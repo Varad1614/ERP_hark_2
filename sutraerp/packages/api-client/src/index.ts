@@ -20,14 +20,19 @@ export type LoginResponse = Schemas["LoginResponse"];
 export type SessionInfo = Schemas["SessionInfo"];
 export type ModuleDescriptor = Schemas["ModuleDescriptor"];
 export type Problem = Schemas["Problem"];
+export type MfaLevel = Schemas["MfaLevel"];
+export type CsrfTokenResponse = Schemas["CsrfTokenResponse"];
+export type TotpEnrolmentResponse = Schemas["TotpEnrolmentResponse"];
+export type LogoutResponse = Schemas["LogoutResponse"];
 
 export interface ClientOptions {
   /** Origin of the API; empty string = same origin (default, via dev proxy / ingress). */
   baseUrl?: string;
   /**
-   * Current session's synchronizer CSRF token (from login or `GET /api/v1/auth/session`).
-   * Sent as `X-CSRF-Token` on every unsafe request. Tenant/institution scope is never sent: the
-   * server takes it from the session (ADR-L5-0004).
+   * Current CSRF token, sent as `X-CSRF-Token` on every unsafe request: before sign-in the
+   * pre-session token from `GET /api/v1/auth/csrf` (login + MFA verify), afterwards the
+   * session's synchronizer token (from login or `GET /api/v1/auth/session`). Tenant/institution
+   * scope is never sent: the server takes it from the session (ADR-L5-0004).
    */
   csrfToken?: () => string | undefined;
 }

@@ -15,11 +15,12 @@
     "@sutra/api-client": "workspace:*",
     "@sutra/ui": "workspace:*",
     "@tanstack/react-query": "^5.104.1",
+    "isbot": "^5",
     "lucide-react": "^1.55.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0",
-    "isbot": "^5"
+    "uqr": "^0.1.3"
   },
   "devDependencies": {
     "@react-router/dev": "^8.4.0",

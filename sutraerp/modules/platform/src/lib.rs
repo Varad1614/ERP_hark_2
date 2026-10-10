@@ -1,10 +1,12 @@
 //! # Domain A — Platform module
 //!
-//! Scope (Batch 0 + Batch 1 slice A):
-//! * **Auth (D01 boundary)** — `POST /api/v1/auth/login`, `POST /api/v1/auth/mfa/verify`,
-//!   `GET /api/v1/auth/session`, `POST /api/v1/auth/logout` with an opaque server-side session
-//!   cookie. Credential verification goes through `CredentialAuthenticator`: a **dev stub** now,
-//!   the Keycloak 26 adapter later in Batch 1 (ADR-L5-0024 / ADR-L5-0038).
+//! Scope (Batch 0 + Batch 1 slices A and B):
+//! * **Auth (D01 boundary)** — `GET /api/v1/auth/csrf`, `POST /api/v1/auth/login`,
+//!   `POST /api/v1/auth/mfa/verify`, `GET /api/v1/auth/session`, `POST /api/v1/auth/logout` with
+//!   an opaque server-side session cookie. Two modes (`SUTRA_AUTH_MODE`): **dev** (seeded
+//!   personas + real TOTP MFA, enrolment and step-up) and **keycloak** (OIDC Authorization Code +
+//!   PKCE back-end-for-frontend: `GET /api/v1/auth/oidc/start|callback`, MFA delegated to
+//!   Keycloak and read from `amr`/`acr`, RP-initiated logout) — ADR-L5-0024 / ADR-L5-0038.
 //! * **Sessions** — durable `platform.session` store (SHA-256 token digests only, idle + absolute
 //!   expiry, revocation) or an in-memory store for no-database development and tests.
 //! * **CSRF** — per-session synchronizer token, returned by login and `GET /auth/session` and
@@ -20,7 +22,10 @@ pub mod catalog;
 pub mod workflow;
 
 use std::sync::Arc;
-use sutra_contracts::platform::auth::{CredentialAuthenticator, MfaPolicy, SessionStore};
+use sutra_contracts::platform::auth::{
+    CredentialAuthenticator, MfaPolicy, OidcIdentityProvider, PreAuthStore, SessionStore,
+    WebauthnPort,
+};
 use sutra_kernel::audit::AuditSink;
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
@@ -43,6 +48,15 @@ pub struct PlatformDeps {
     pub audit: Arc<dyn AuditSink>,
     pub cookie: auth::CookieSettings,
     pub modules: Vec<ModuleDescriptor>,
+    /// Pending OIDC authorization requests and MFA challenges.
+    pub pre_auth: Arc<dyn PreAuthStore>,
+    /// Dev-mode TOTP service; `None` when MFA is delegated to Keycloak.
+    pub mfa_service: Option<auth::mfa::MfaService>,
+    /// OIDC identity provider (Keycloak mode); `None` in dev mode.
+    pub oidc: Option<Arc<dyn OidcIdentityProvider>>,
+    pub webauthn: Arc<dyn WebauthnPort>,
+    /// Signed double-submit token for the pre-session endpoints.
+    pub pre_session: sutra_web::PreSessionCsrf,
 }
 
 pub fn router(deps: PlatformDeps) -> OpenApiRouter {

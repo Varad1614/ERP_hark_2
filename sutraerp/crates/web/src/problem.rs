@@ -87,6 +87,14 @@ impl ApiError {
                 (StatusCode::UNAUTHORIZED, "Authentication required", None)
             }
             KernelError::Forbidden(d) => (StatusCode::FORBIDDEN, "Forbidden", Some(d.clone())),
+            KernelError::StepUpRequired(p) => (
+                StatusCode::FORBIDDEN,
+                "Multi-factor step-up required",
+                Some(format!(
+                    "`{p}` requires a session verified with a second factor; \
+                     complete POST /api/v1/auth/mfa/step-up (or OIDC step-up) and retry"
+                )),
+            ),
             KernelError::Scope(d) => (
                 StatusCode::BAD_REQUEST,
                 "Invalid execution scope",

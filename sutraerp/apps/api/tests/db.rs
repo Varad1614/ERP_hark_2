@@ -22,6 +22,13 @@ const INSTITUTIONS: &str = "/api/v1/institution/institutions";
 
 /// A fully Postgres-backed app whose dev authenticator issues sessions in `tenant`.
 async fn app(tenant: &'static str) -> (Router, sqlx::PgPool) {
+    app_with(tenant, &[]).await
+}
+
+async fn app_with(
+    tenant: &'static str,
+    extra: &[(&'static str, &'static str)],
+) -> (Router, sqlx::PgPool) {
     let url: &'static str = Box::leak(
         std::env::var("DATABASE_URL")
             .expect("DATABASE_URL must be set for db-tests")
@@ -34,7 +41,14 @@ async fn app(tenant: &'static str) -> (Router, sqlx::PgPool) {
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),
         ("SUTRA_AUDIT_SINK", "postgres"),
         ("SUTRA_DEV_TENANT_ID", tenant),
+        // Shared login-CSRF key: tokens from one instance verify on another (multi-replica).
+        (
+            "SUTRA_CSRF_KEY",
+            "0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0",
+        ),
     ]);
+    let mut src = src;
+    src.extend(extra.iter().copied());
     let cfg = Config::load(&src).expect("config");
     let ctx = AppContext::from_config(&cfg).expect("context");
     sutra_persistence::migrate::run(&ctx.pool)
@@ -64,17 +78,42 @@ struct Login {
     csrf: String,
 }
 
-async fn login(app: &Router, login_id: &str) -> Login {
+/// `GET /api/v1/auth/csrf` → (cookie pair, token).
+async fn login_csrf(app: &Router) -> (String, String) {
     let (s, h, body) = send(
         app,
-        Request::post("/api/v1/auth/login")
-            .header("content-type", "application/json")
-            .body(Body::from(
-                serde_json::json!({"loginId": login_id, "password": "sutra"}).to_string(),
-            ))
+        Request::get("/api/v1/auth/csrf")
+            .body(Body::empty())
             .unwrap(),
     )
     .await;
+    assert_eq!(s, StatusCode::OK);
+    (
+        h[header::SET_COOKIE]
+            .to_str()
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap()
+            .to_owned(),
+        body["csrfToken"].as_str().unwrap().to_owned(),
+    )
+}
+
+fn login_req(login_id: &str, csrf: &(String, String)) -> Request<Body> {
+    Request::post("/api/v1/auth/login")
+        .header("content-type", "application/json")
+        .header("cookie", &csrf.0)
+        .header("x-csrf-token", &csrf.1)
+        .body(Body::from(
+            serde_json::json!({"loginId": login_id, "password": "sutra"}).to_string(),
+        ))
+        .unwrap()
+}
+
+async fn login(app: &Router, login_id: &str) -> Login {
+    let csrf = login_csrf(app).await;
+    let (s, h, body) = send(app, login_req(login_id, &csrf)).await;
     assert_eq!(s, StatusCode::OK, "{body}");
     Login {
         cookie: h[header::SET_COOKIE]
@@ -210,4 +249,149 @@ async fn sessions_scope_and_cross_tenant_isolation() {
     assert_eq!(s, StatusCode::NO_CONTENT);
     let (s, _, _) = send(&a, get(&admin_a, &id)).await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
+}
+
+fn cookie_of(h: &axum::http::HeaderMap) -> String {
+    h[header::SET_COOKIE]
+        .to_str()
+        .unwrap()
+        .split(';')
+        .next()
+        .unwrap()
+        .to_owned()
+}
+
+fn post_json(path: &str, who: &Login, body: serde_json::Value) -> Request<Body> {
+    Request::post(path)
+        .header("content-type", "application/json")
+        .header("cookie", &who.cookie)
+        .header("x-csrf-token", &who.csrf)
+        .header("idempotency-key", uuid::Uuid::now_v7().to_string())
+        .body(Body::from(body.to_string()))
+        .unwrap()
+}
+
+/// Batch 1B end to end on PostgreSQL: enforced MFA, encrypted TOTP enrolment, durable
+/// challenge (pre_auth), replay refusal, step-up gate on institution register.
+#[tokio::test]
+async fn totp_mfa_and_step_up_on_postgres() {
+    use sutra_platform::auth::mfa::{base32_decode, totp_code, totp_step};
+    let tenant: &'static str = Box::leak(uuid::Uuid::now_v7().to_string().into_boxed_str());
+    let (a, pool) = app_with(tenant, &[("SUTRA_DEV_MFA", "true")]).await;
+    let admin = login(&a, "admin@sutra.dev").await;
+    let register = |who: &Login| {
+        post_json(
+            INSTITUTIONS,
+            who,
+            serde_json::json!({
+                "code": format!("M-{}", uuid::Uuid::now_v7().simple().to_string()[20..].to_uppercase()),
+                "name": "MFA College"
+            }),
+        )
+    };
+    let (s, _, body) = send(&a, register(&admin)).await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+    assert_eq!(body["errorCode"], "mfa-step-up-required");
+
+    // Enrol: the secret is stored only as AES-GCM ciphertext.
+    let (s, _, enrol) = send(
+        &a,
+        post_json(
+            "/api/v1/auth/mfa/totp/enrolment",
+            &admin,
+            serde_json::json!({}),
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{enrol}");
+    let secret = base32_decode(enrol["secret"].as_str().unwrap()).unwrap();
+    let (status, ct): (String, Vec<u8>) = sqlx::query_as(
+        "SELECT status, secret_ciphertext FROM platform.mfa_factor WHERE tenant_id = $1::uuid",
+    )
+    .bind(tenant)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(status, "pending");
+    assert!(!ct.windows(secret.len()).any(|w| w == secret.as_slice()));
+
+    let code = totp_code(&secret, totp_step(chrono::Utc::now().timestamp()));
+    let (s, h, body) = send(
+        &a,
+        post_json(
+            "/api/v1/auth/mfa/totp/confirm",
+            &admin,
+            serde_json::json!({"code": code}),
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    let elevated = Login {
+        cookie: cookie_of(&h),
+        csrf: body["csrfToken"].as_str().unwrap().to_owned(),
+    };
+    let (s, _, body) = send(&a, register(&elevated)).await;
+    assert_eq!(s, StatusCode::CREATED, "{body}");
+    let mfa_level: String = sqlx::query_scalar(
+        "SELECT mfa_level FROM platform.session WHERE tenant_id = $1::uuid AND revoked_at IS NULL",
+    )
+    .bind(tenant)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(mfa_level, "mfa");
+
+    // Next sign-in: durable challenge; the enrolment code is a replay.
+    let csrf = login_csrf(&a).await;
+    let (_, _, body) = send(&a, login_req("admin@sutra.dev", &csrf)).await;
+    assert_eq!(body["outcome"], "mfaRequired");
+    let challenge = body["challengeId"].as_str().unwrap().to_owned();
+    let stored: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM platform.pre_auth WHERE kind = 'mfa' AND payload::text LIKE '%' || $1 || '%'",
+    )
+    .bind(tenant)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(stored, 1);
+    let verify = |challenge: &str, code: &str| {
+        Request::post("/api/v1/auth/mfa/verify")
+            .header("content-type", "application/json")
+            .header("cookie", &csrf.0)
+            .header("x-csrf-token", &csrf.1)
+            .body(Body::from(
+                serde_json::json!({"challengeId": challenge, "code": code}).to_string(),
+            ))
+            .unwrap()
+    };
+    let (s, _, _) = send(&a, verify(&challenge, &code)).await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED, "same step replay");
+    let left: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM platform.pre_auth WHERE kind = 'mfa' AND payload::text LIKE '%' || $1 || '%'",
+    )
+    .bind(tenant)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(left, 0, "challenge consumed");
+
+    // Simulate the next time step having not been used yet, then sign in with MFA.
+    sqlx::query(
+        "UPDATE platform.mfa_factor SET last_used_step = last_used_step - 2 WHERE tenant_id = $1::uuid",
+    )
+    .bind(tenant)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let (_, _, body) = send(&a, login_req("admin@sutra.dev", &csrf)).await;
+    let challenge = body["challengeId"].as_str().unwrap().to_owned();
+    let (s, h, body) = send(&a, verify(&challenge, &code)).await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    assert_eq!(body["mfaLevel"], "mfa");
+    let mfa_admin = Login {
+        cookie: cookie_of(&h),
+        csrf: body["csrfToken"].as_str().unwrap().to_owned(),
+    };
+    let (s, _, body) = send(&a, register(&mfa_admin)).await;
+    assert_eq!(s, StatusCode::CREATED, "{body}");
 }

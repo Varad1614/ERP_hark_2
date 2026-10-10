@@ -52,6 +52,7 @@ uuid.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true
+chrono.workspace = true
 async-trait.workspace = true
 
 [features]

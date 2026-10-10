@@ -65,18 +65,101 @@ async fn unknown_route_is_problem_json() {
     assert_eq!(body["correlationId"], "rid-9");
 }
 
+/// `GET /api/v1/auth/csrf` → (cookie pair, token): the pre-session double-submit token.
+async fn login_csrf(app: &Router) -> (String, String) {
+    let (s, h, body) = send(
+        app,
+        Request::get("/api/v1/auth/csrf")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let cookie = h[header::SET_COOKIE]
+        .to_str()
+        .unwrap()
+        .split(';')
+        .next()
+        .unwrap()
+        .to_owned();
+    (cookie, body["csrfToken"].as_str().unwrap().to_owned())
+}
+
+fn login_request(login_id: &str, csrf: Option<&(String, String)>) -> Request<Body> {
+    let mut b = Request::post("/api/v1/auth/login").header("content-type", "application/json");
+    if let Some((cookie, token)) = csrf {
+        b = b.header("cookie", cookie).header("x-csrf-token", token);
+    }
+    b.body(Body::from(
+        serde_json::json!({"loginId": login_id, "password": "sutra"}).to_string(),
+    ))
+    .unwrap()
+}
+
 #[tokio::test]
 async fn dev_login_sets_session_cookie() {
-    let req = Request::post("/api/v1/auth/login")
-        .header("content-type", "application/json")
-        .body(Body::from(
-            r#"{"loginId":"meera.shah@sutra.dev","password":"sutra"}"#,
-        ))
-        .unwrap();
-    let (s, h, body) = call(req).await;
+    let app = router(AppContext::for_spec());
+    let csrf = login_csrf(&app).await;
+    let (s, h, body) = send(&app, login_request("meera.shah@sutra.dev", Some(&csrf))).await;
     assert_eq!(s, StatusCode::OK);
     assert!(h[header::SET_COOKIE].to_str().unwrap().contains("HttpOnly"));
     assert_eq!(body["principal"]["roles"][0], "faculty");
+}
+
+#[tokio::test]
+async fn login_requires_the_pre_session_csrf_token() {
+    let app = router(AppContext::for_spec());
+    let (s, h, body) = send(&app, login_request("admin@sutra.dev", None)).await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+    assert_eq!(h[header::CONTENT_TYPE], "application/problem+json");
+    assert_eq!(body["errorCode"], "csrf-token-missing");
+    let (cookie, _) = login_csrf(&app).await;
+    let forged = (cookie, "0".repeat(64) + ".9999999999." + &"0".repeat(64));
+    let (s, _, body) = send(&app, login_request("admin@sutra.dev", Some(&forged))).await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+    assert_eq!(body["errorCode"], "csrf-token-invalid");
+    let ok = login_csrf(&app).await;
+    let (s, _, _) = send(&app, login_request("admin@sutra.dev", Some(&ok))).await;
+    assert_eq!(s, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn cross_site_unsafe_requests_are_rejected() {
+    let app = router(AppContext::for_spec());
+    let csrf = login_csrf(&app).await;
+    for (name, value) in [
+        ("origin", "https://evil.example"),
+        ("sec-fetch-site", "cross-site"),
+        ("origin", "null"),
+    ] {
+        let mut req = login_request("admin@sutra.dev", Some(&csrf));
+        req.headers_mut()
+            .insert("host", "erp.sutra.test".parse().unwrap());
+        req.headers_mut().insert(name, value.parse().unwrap());
+        let (s, h, body) = send(&app, req).await;
+        assert_eq!(s, StatusCode::FORBIDDEN, "{name}: {value}");
+        assert_eq!(h[header::CONTENT_TYPE], "application/problem+json");
+        assert_eq!(body["errorCode"], "cross-site-request-rejected");
+        assert!(h.get(header::SET_COOKIE).is_none());
+    }
+    // Same-origin browser request passes.
+    let mut req = login_request("admin@sutra.dev", Some(&csrf));
+    req.headers_mut()
+        .insert("host", "erp.sutra.test".parse().unwrap());
+    req.headers_mut()
+        .insert("origin", "https://erp.sutra.test".parse().unwrap());
+    req.headers_mut()
+        .insert("sec-fetch-site", "same-origin".parse().unwrap());
+    let (s, _, _) = send(&app, req).await;
+    assert_eq!(s, StatusCode::OK);
+    // Safe methods are not blocked.
+    let mut req = Request::get("/api/v1/platform/modules")
+        .body(Body::empty())
+        .unwrap();
+    req.headers_mut()
+        .insert("sec-fetch-site", "cross-site".parse().unwrap());
+    let (s, _, _) = send(&app, req).await;
+    assert_eq!(s, StatusCode::OK);
 }
 
 #[tokio::test]
@@ -110,6 +193,11 @@ async fn openapi_is_served_and_matches_committed_spec() {
     assert_eq!(body["openapi"], "3.1.0");
     for p in [
         "/api/v1/auth/login",
+        "/api/v1/auth/csrf",
+        "/api/v1/auth/mfa/step-up",
+        "/api/v1/auth/mfa/totp/enrolment",
+        "/api/v1/auth/oidc/start",
+        "/api/v1/auth/oidc/callback",
         "/api/v1/platform/workspaces",
         "/health/ready",
     ] {
@@ -141,16 +229,8 @@ struct Login {
 }
 
 async fn login(app: &Router, login_id: &str) -> Login {
-    let (s, h, body) = send(
-        app,
-        Request::post("/api/v1/auth/login")
-            .header("content-type", "application/json")
-            .body(Body::from(
-                serde_json::json!({"loginId": login_id, "password": "sutra"}).to_string(),
-            ))
-            .unwrap(),
-    )
-    .await;
+    let csrf = login_csrf(app).await;
+    let (s, h, body) = send(app, login_request(login_id, Some(&csrf))).await;
     assert_eq!(s, StatusCode::OK, "{body}");
     let cookie = h[header::SET_COOKIE]
         .to_str()
@@ -351,6 +431,106 @@ async fn logout_requires_csrf_and_ends_access() {
     assert_eq!(body["errorCode"], "csrf-token-missing");
     let (s, _, _) = send(&app, logout(Some(&admin.csrf))).await;
     assert_eq!(s, StatusCode::NO_CONTENT);
+    let (s, _, _) = send(&app, get_req(Some(&admin))).await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Batch 1 slice B: step-up for admin-sensitive permissions (dev TOTP, memory stores, no DB).
+// ---------------------------------------------------------------------------------------------
+
+fn step_up_app() -> Router {
+    let src: std::collections::HashMap<&'static str, &'static str> =
+        std::collections::HashMap::from([
+            ("SUTRA_ENV", "test"),
+            ("DATABASE_URL", "postgres://sutra:sutra@127.0.0.1:1/sutra"),
+            ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "1"),
+            ("SUTRA_MFA_STEP_UP", "true"),
+        ]);
+    let cfg = sutra_api::config::Config::load(&src).unwrap();
+    router(AppContext::from_config(&cfg).unwrap())
+}
+
+#[tokio::test]
+async fn admin_sensitive_permission_needs_step_up() {
+    use sutra_platform::auth::mfa::{base32_decode, totp_code, totp_step};
+    let app = step_up_app();
+    let admin = login(&app, "admin@sutra.dev").await;
+    // Granted by role, but the session has no second factor → 403 step-up.
+    let (s, h, body) = send(
+        &app,
+        register_req(Some(&admin), Some(&admin.csrf), Some("su-1")),
+    )
+    .await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "{body}");
+    assert_eq!(h[header::CONTENT_TYPE], "application/problem+json");
+    assert_eq!(body["errorCode"], "mfa-step-up-required");
+    assert!(body["detail"]
+        .as_str()
+        .unwrap()
+        .contains("institution.register"));
+    // Not admin-sensitive: rename is still allowed at aal1 (reaches the repository → 503).
+    let (s, _, _) = send(&app, rename_req(&admin, Some(&admin.csrf))).await;
+    assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE);
+    // Faculty gets the plain 403 (step-up never grants a permission).
+    let faculty = login(&app, "meera.shah@sutra.dev").await;
+    let (_, _, body) = send(
+        &app,
+        register_req(Some(&faculty), Some(&faculty.csrf), Some("su-2")),
+    )
+    .await;
+    assert_eq!(body["errorCode"], "forbidden");
+
+    // Enrol TOTP (confirmation upgrades + rotates the session), then register passes the policy.
+    let unsafe_req = |path: &str, body: serde_json::Value, who: &Login| {
+        Request::post(path)
+            .header("content-type", "application/json")
+            .header("cookie", &who.cookie)
+            .header("x-csrf-token", &who.csrf)
+            .body(Body::from(body.to_string()))
+            .unwrap()
+    };
+    let (s, _, enrol) = send(
+        &app,
+        unsafe_req(
+            "/api/v1/auth/mfa/totp/enrolment",
+            serde_json::json!({}),
+            &admin,
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let secret = base32_decode(enrol["secret"].as_str().unwrap()).unwrap();
+    let now = chrono::Utc::now().timestamp();
+    let code = totp_code(&secret, totp_step(now));
+    let (s, h, body) = send(
+        &app,
+        unsafe_req(
+            "/api/v1/auth/mfa/totp/confirm",
+            serde_json::json!({"code": code}),
+            &admin,
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    assert_eq!(body["mfaLevel"], "mfa");
+    let elevated = Login {
+        cookie: h[header::SET_COOKIE]
+            .to_str()
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap()
+            .to_owned(),
+        csrf: body["csrfToken"].as_str().unwrap().to_owned(),
+    };
+    let (s, _, body) = send(
+        &app,
+        register_req(Some(&elevated), Some(&elevated.csrf), Some("su-3")),
+    )
+    .await;
+    assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE, "policy passed: {body}");
+    // The pre-enrolment session id is gone.
     let (s, _, _) = send(&app, get_req(Some(&admin))).await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
 }

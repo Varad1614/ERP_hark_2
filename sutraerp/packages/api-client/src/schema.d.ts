@@ -4,6 +4,27 @@
  */
 
 export interface paths {
+    "/api/v1/auth/csrf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Issue a pre-session (login) CSRF token.
+         * @description Sets the `__Host-sutra_login_csrf` cookie and returns the same signed value; `POST /login`
+         *     and `POST /mfa/verify` must echo it in `X-CSRF-Token` (signed double submit).
+         */
+        get: operations["csrf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -14,12 +35,13 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Authenticate with login id + password.
-         * @description Delegates to the configured credential authority (Keycloak in production, dev stub in Batch 0)
-         *     and, on success, sets an opaque `HttpOnly; Secure; SameSite=Strict` session cookie and returns
-         *     the session's CSRF token. Privileged principals may receive `mfaRequired` instead and must
-         *     call `/api/v1/auth/mfa/verify`. Exempt from the CSRF check (no session exists yet); any
-         *     presented session is revoked and replaced (fixation defence).
+         * Authenticate with login id + password (dev mode).
+         * @description Requires the pre-session CSRF token (`GET /api/v1/auth/csrf`) in `X-CSRF-Token`. On success
+         *     sets an opaque `HttpOnly; Secure; SameSite=Strict` session cookie and returns the session's
+         *     CSRF token. Principals that need MFA and have an enrolled TOTP factor get `mfaRequired` and
+         *     must call `/api/v1/auth/mfa/verify`; those without a factor get a single-factor session with
+         *     `mfaEnrollmentRequired = true`. Any presented session is revoked and replaced (fixation
+         *     defence). In Keycloak mode this endpoint answers `501` (no ROPC; use OIDC).
          */
         post: operations["login"];
         delete?: never;
@@ -39,9 +61,72 @@ export interface paths {
         put?: never;
         /**
          * End the current session (idempotent).
-         * @description With a live session the request must carry `X-CSRF-Token` (prevents forced sign-out).
+         * @description With a live session the request must carry `X-CSRF-Token` (prevents forced sign-out). For a
+         *     Keycloak session the response is `200` with the IdP's RP-initiated logout URL.
          */
         post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/step-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Step up the current session with a TOTP code (needed for admin-sensitive permissions).
+         * @description The session is rotated (new cookie and CSRF token) to `mfaLevel = mfa`; its absolute expiry
+         *     is unchanged. In Keycloak mode use `GET /api/v1/auth/oidc/start?stepUp=true` instead.
+         */
+        post: operations["step_up"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/totp/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm TOTP enrolment with the first code; activates the factor and upgrades the session.
+         * @description The session is rotated (new cookie and CSRF token) to `mfaLevel = mfa`.
+         */
+        post: operations["totp_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/totp/enrolment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start TOTP enrolment for the signed-in account (dev mode).
+         * @description Returns a fresh secret as an `otpauth://` URI; nothing changes until `…/totp/confirm`
+         *     accepts a code from it. Replacing an already active factor requires an MFA-verified session.
+         */
+        post: operations["totp_enrolment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -57,8 +142,90 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Complete an MFA challenge issued by `login`. */
+        /**
+         * Complete a TOTP challenge issued by `login`.
+         * @description Requires the same pre-session CSRF token the challenge was issued to. A challenge is single
+         *     use (a wrong code burns it) and expires after 5 minutes; each TOTP time step is accepted once.
+         */
         post: operations["verify_mfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/webauthn/assertion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Begin a WebAuthn assertion (step-up) — **deferred** (`501`). */
+        post: operations["webauthn_assertion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/webauthn/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Begin WebAuthn credential registration — **deferred** (`501`). */
+        post: operations["webauthn_registration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oidc/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OIDC redirect endpoint (Keycloak → SutraERP).
+         * @description Consumes the single-use `state`, checks the browser-binding cookie, exchanges the code with
+         *     the PKCE verifier, validates the ID token (JWKS signature, `iss`, `aud`, `exp`, `nonce`),
+         *     maps roles and tenant claims, creates the session and redirects (`303`) into the SPA. Any
+         *     failure redirects to `/sign-in?authError=<code>` without a session.
+         */
+        get: operations["oidc_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oidc/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start an OIDC sign-in at Keycloak (Authorization Code + PKCE, Keycloak mode).
+         * @description Stores `state`, `nonce` and the PKCE verifier server-side for 10 minutes, binds the request
+         *     to this browser with a `SameSite=Lax` cookie and redirects (`303`) to Keycloak.
+         */
+        get: operations["oidc_start"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -73,8 +240,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Current session: principal, expiries and the session's CSRF token.
-         * @description Counts as activity (slides the idle window).
+         * Current session: principal, expiries, assurance and the session's CSRF token.
+         * @description Counts as activity (slides the idle window; the write is throttled).
          */
         get: operations["session"];
         put?: never;
@@ -223,6 +390,15 @@ export interface components {
             name: string;
             ok: boolean;
         };
+        CsrfTokenResponse: {
+            /**
+             * @description Pre-session CSRF token; echo it as `X-CSRF-Token` on login and MFA verification. The
+             *     same value is set in the `__Host-sutra_login_csrf` cookie (double submit).
+             */
+            csrfToken: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
         /**
          * @description The validated scope a protected operation executes in. Must be carried across every
          *     synchronous, asynchronous, workflow and persistence hand-off.
@@ -287,10 +463,28 @@ export interface components {
              * @description Present when `outcome = authenticated`: absolute session expiry.
              */
             expiresAt?: string | null;
+            /**
+             * @description `true` when the account must enrol a second factor (`/api/v1/auth/mfa/totp/enrolment`);
+             *     until then step-up-protected permissions are refused.
+             */
+            mfaEnrollmentRequired: boolean;
+            mfaLevel?: null | components["schemas"]["MfaLevel"];
             mfaMethods?: components["schemas"]["MfaMethod"][];
             outcome: components["schemas"]["LoginOutcome"];
             principal?: null | components["schemas"]["Principal"];
         };
+        LogoutResponse: {
+            /** @description Keycloak RP-initiated logout URL; navigate the browser there to end the SSO session. */
+            endSessionUrl: string;
+        };
+        /**
+         * @description Authentication assurance of a session (ADR-L5-0038 §3.8).
+         *
+         *     `Mfa` means the session was established (or stepped up) with a second factor: a TOTP code
+         *     verified by SutraERP in dev mode, or Keycloak-asserted `amr`/`acr` values in Keycloak mode.
+         * @enum {string}
+         */
+        MfaLevel: "none" | "mfa";
         /**
          * @description MFA method family (WebAuthn preferred for privileged users, TOTP fallback).
          * @enum {string}
@@ -298,6 +492,10 @@ export interface components {
         MfaMethod: "webauthn" | "totp";
         MfaVerifyRequest: {
             challengeId: string;
+            /**
+             * @description Six-digit TOTP code.
+             * @example 123456
+             */
             code: string;
         };
         ModuleDescriptor: {
@@ -363,6 +561,8 @@ export interface components {
          */
         Role: "administrator" | "faculty" | "student";
         SessionInfo: {
+            /** @description Authentication methods references (`pwd`, `otp`, …). */
+            amr: string[];
             /** @description Synchronizer CSRF token bound to this session; send as `X-CSRF-Token` on unsafe requests. */
             csrfToken: string;
             /**
@@ -375,6 +575,10 @@ export interface components {
              * @description Expiry if the session stays idle from now on (sliding window).
              */
             idleExpiresAt: string;
+            /** @description `true` when the account must enrol a second factor. */
+            mfaEnrollmentRequired: boolean;
+            /** @description Assurance of the session: `mfa` once a second factor was verified. */
+            mfaLevel: components["schemas"]["MfaLevel"];
             principal: components["schemas"]["Principal"];
         };
         /**
@@ -382,6 +586,23 @@ export interface components {
          * @description Root protected technical scope.
          */
         TenantId: string;
+        TotpCodeRequest: {
+            /**
+             * @description Six-digit TOTP code from the authenticator app.
+             * @example 123456
+             */
+            code: string;
+        };
+        TotpEnrolmentResponse: {
+            /** Format: int32 */
+            digits: number;
+            /** @description `otpauth://totp/…` key URI (render as a QR code). */
+            otpauthUri: string;
+            /** Format: int64 */
+            period: number;
+            /** @description Base32 shared secret for manual entry. */
+            secret: string;
+        };
         /** Format: int64 */
         Version: number;
         WorkflowEntry: {
@@ -413,6 +634,25 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    csrf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsrfTokenResponse"];
+                };
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -444,8 +684,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Login CSRF token missing/invalid or cross-site request */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Password login not offered (Keycloak mode) */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -464,6 +722,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Signed out; continue at the IdP to end the SSO session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoutResponse"];
+                };
+            };
             /** @description Signed out */
             204: {
                 headers: {
@@ -473,6 +740,141 @@ export interface operations {
             };
             /** @description CSRF token missing or invalid */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    step_up: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpCodeRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description No session, wrong or replayed code */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description MFA is managed by Keycloak */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    totp_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpCodeRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No enrolment in progress */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Wrong code */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    totp_enrolment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpEnrolmentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Replacing a factor needs step-up */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description MFA is managed by Keycloak */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -503,7 +905,120 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponse"];
                 };
             };
+            /** @description Unknown/expired challenge, wrong or replayed code */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Login CSRF token missing/invalid */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    webauthn_assertion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deferred: WebAuthn is offered through Keycloak */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    webauthn_registration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deferred: WebAuthn is offered through Keycloak */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    oidc_callback: {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session created → SPA, or failure → /sign-in?authError=… */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oidc_start: {
+        parameters: {
+            query?: {
+                /** @description SPA path to land on after sign-in (relative, same origin). Defaults to `/`. */
+                returnTo?: string;
+                /** @description Request a fresh multi-factor authentication (step-up). */
+                stepUp?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the Keycloak authorization endpoint */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description OIDC not configured (dev mode) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Identity provider unreachable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

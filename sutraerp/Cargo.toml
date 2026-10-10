@@ -76,6 +76,12 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"]
 
 dotenvy = "0.15"
 
+# Auth: OIDC back-channel (ADR-L5-0024), ID-token validation, TOTP/AES-GCM (ADR-L5-0038)
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
+ring = "0.17"
+base64 = "0.22"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 

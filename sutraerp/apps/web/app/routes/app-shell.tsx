@@ -1,4 +1,4 @@
-import { Bell, Check, LogOut, Megaphone, Search, User } from "lucide-react";
+import { Bell, Check, LogOut, Megaphone, Search, ShieldCheck, User } from "lucide-react";
 import {
   Avatar,
   CommandPalette,
@@ -15,7 +15,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, NavLink, Outlet, useNavigate } from "react-router";
 import { AUTH_MODE, useWorkspaces } from "../lib/api";
-import { useAuth } from "../lib/auth";
+import { useAuth, type SignInResult } from "../lib/auth";
 import { groupMeta } from "../lib/icons";
 import { ROLE_CONFIG, ROLES, routeFor, type Role } from "../lib/roles";
 
@@ -34,7 +34,15 @@ export default function AppShell() {
   return <AuthenticatedShell role={session.role} signIn={signIn} signOut={signOut} />;
 }
 
-function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r: Role) => Promise<void>; signOut: () => Promise<void> }) {
+function AuthenticatedShell({
+  role,
+  signIn,
+  signOut,
+}: {
+  role: Role;
+  signIn: (r: Role) => Promise<SignInResult>;
+  signOut: () => Promise<void>;
+}) {
   const cfg = ROLE_CONFIG[role];
   const navigate = useNavigate();
   const toast = useToast();
@@ -81,7 +89,11 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
     setPop(null);
     if (next === role) return;
     try {
-      await signIn(next);
+      const result = await signIn(next);
+      if (result.status === "mfaRequired") {
+        toast(`${ROLE_CONFIG[next].name} needs two-step verification — sign out and sign in again.`);
+        return;
+      }
       toast(`Signed in as ${ROLE_CONFIG[next].name}`);
       navigate("/");
     } catch (e) {
@@ -138,6 +150,10 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
           <Megaphone strokeWidth={1.75} />
           <div><b>Notices</b></div>
         </button>
+        <button type="button" className="sb-pop-item" data-mfa-menu onClick={() => { setPop(null); navigate("/account/mfa"); }}>
+          <ShieldCheck strokeWidth={1.75} />
+          <div><b>Two-step verification</b></div>
+        </button>
         <div className="sb-pop-sep" />
         <p className="sb-pop-label">Switch role</p>
         {ROLES.map((r) => {
@@ -182,7 +198,7 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
         footer={
           <div className="sb-env-tag">
             <i />
-            {AUTH_MODE === "api" ? "Batch 0 · live API" : "Batch 0 · mock data"}
+            {AUTH_MODE === "mock" ? "Batch 1 · mock data" : AUTH_MODE === "oidc" ? "Batch 1 · live API · SSO" : "Batch 1 · live API"}
           </div>
         }
       >

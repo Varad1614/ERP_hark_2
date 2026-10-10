@@ -19,10 +19,66 @@ pub enum LogFormat {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuthProvider {
-    /// Seeded personas + shared password. Refused in production.
+    /// Seeded personas + shared password + SutraERP TOTP. Refused in production.
     Dev,
-    /// Keycloak 26 credential delegation (Batch 1).
+    /// Keycloak 26 via OIDC Authorization Code + PKCE (backend-for-frontend).
     Keycloak,
+}
+
+/// Development-only default key for the TOTP secret encryption (AES-256-GCM). Refused in
+/// production; set `SUTRA_MFA_ENCRYPTION_KEY` (64 hex chars) everywhere else that matters.
+pub const DEV_MFA_ENCRYPTION_KEY: &str =
+    "5375747261455250206465762d6f6e6c79204d4641206b6579202d2d20646576";
+
+/// OIDC relying-party settings (Keycloak mode).
+#[derive(Clone)]
+pub struct OidcConfig {
+    pub issuer: String,
+    pub backchannel_url: Option<String>,
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
+    pub post_logout_redirect_uri: Option<String>,
+    pub tenant_claim: String,
+    pub institution_claim: String,
+    pub mfa_acr_values: Vec<String>,
+    pub step_up_acr: Option<String>,
+}
+
+impl std::fmt::Debug for OidcConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OidcConfig")
+            .field("issuer", &self.issuer)
+            .field("client_id", &self.client_id)
+            .field("client_secret", &"<redacted>")
+            .field("redirect_uri", &self.redirect_uri)
+            .finish_non_exhaustive()
+    }
+}
+
+/// A 256-bit key given as 64 hex characters. `Debug` is redacted.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Key32(pub [u8; 32]);
+
+impl std::fmt::Debug for Key32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Key32(<redacted>)")
+    }
+}
+
+impl std::str::FromStr for Key32 {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, ()> {
+        let s = s.trim();
+        if s.len() != 64 || !s.is_ascii() {
+            return Err(());
+        }
+        let mut k = [0u8; 32];
+        for (i, b) in k.iter_mut().enumerate() {
+            *b = u8::from_str_radix(&s[2 * i..2 * i + 2], 16).map_err(|_| ())?;
+        }
+        Ok(Key32(k))
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,14 +103,26 @@ pub struct Config {
     pub dev_mfa_enforced: bool,
     pub dev_tenant_id: String,
     pub dev_institution_id: String,
-    pub keycloak_url: String,
-    pub keycloak_realm: String,
-    pub keycloak_client_id: String,
+    pub oidc: OidcConfig,
+    /// Require an MFA-verified session for step-up permissions (e.g. institution register).
+    pub mfa_step_up: bool,
+    /// AES-256-GCM key for TOTP secrets at rest (dev mode).
+    pub mfa_encryption_key: Key32,
+    /// Issuer label shown in authenticator apps.
+    pub mfa_issuer: String,
+    /// HMAC key of the pre-session (login) CSRF token. `None` → random per process (single
+    /// instance only; required in production).
+    pub csrf_key: Option<Key32>,
+    pub login_csrf_ttl_secs: i64,
+    /// Origins allowed to send unsafe requests besides the API's own host.
+    pub allowed_origins: Vec<String>,
     pub session_cookie_secure: bool,
     /// Absolute session lifetime (also the cookie `Max-Age`).
     pub session_ttl_secs: i64,
     /// Idle timeout: a session unused for this long is dead.
     pub session_idle_secs: i64,
+    /// `last_seen_at` is written at most once per this many seconds per session.
+    pub session_touch_secs: i64,
     pub session_store: StoreBackend,
     pub idempotency_store: StoreBackend,
     pub audit_sink: StoreBackend,
@@ -164,23 +232,79 @@ impl Config {
                 })
             }
         };
-        let auth_provider = match src.get("SUTRA_AUTH_PROVIDER").as_deref() {
+        let database_url = match src.get("DATABASE_URL") {
+            Some(u) => u,
+            None if prod => return Err(ConfigError::RequiredInProduction("DATABASE_URL")),
+            None => "postgres://sutra:sutra@localhost:5432/sutra".into(),
+        };
+        // SUTRA_AUTH_MODE (Batch 1B); SUTRA_AUTH_PROVIDER is the Batch 0/1A alias.
+        let auth_mode = src
+            .get("SUTRA_AUTH_MODE")
+            .or_else(|| src.get("SUTRA_AUTH_PROVIDER"));
+        let auth_provider = match auth_mode.as_deref().map(str::to_lowercase).as_deref() {
             Some("keycloak") => AuthProvider::Keycloak,
             Some("dev") => AuthProvider::Dev,
             None if prod => AuthProvider::Keycloak,
             None => AuthProvider::Dev,
             Some(v) => {
                 return Err(ConfigError::Invalid {
-                    key: "SUTRA_AUTH_PROVIDER",
+                    key: "SUTRA_AUTH_MODE",
                     value: v.into(),
                 })
             }
         };
-        let database_url = match src.get("DATABASE_URL") {
-            Some(u) => u,
-            None if prod => return Err(ConfigError::RequiredInProduction("DATABASE_URL")),
-            None => "postgres://sutra:sutra@localhost:5432/sutra".into(),
+        let keycloak_url = string(src, "SUTRA_KEYCLOAK_URL", "http://localhost:8180");
+        let keycloak_realm = string(src, "SUTRA_KEYCLOAK_REALM", "sutra");
+        let issuer = src.get("SUTRA_OIDC_ISSUER").unwrap_or_else(|| {
+            format!(
+                "{}/realms/{keycloak_realm}",
+                keycloak_url.trim_end_matches('/')
+            )
+        });
+        let list = |key: &str, default: &str| -> Vec<String> {
+            src.get(key)
+                .unwrap_or_else(|| default.to_owned())
+                .split(',')
+                .map(|v| v.trim().to_owned())
+                .filter(|v| !v.is_empty())
+                .collect()
         };
+        let client_secret = match src.get("SUTRA_OIDC_CLIENT_SECRET") {
+            Some(s) => s,
+            None if prod && auth_provider == AuthProvider::Keycloak => {
+                return Err(ConfigError::RequiredInProduction(
+                    "SUTRA_OIDC_CLIENT_SECRET",
+                ))
+            }
+            None => "dev-only-change-me".into(),
+        };
+        let oidc = OidcConfig {
+            issuer,
+            backchannel_url: src.get("SUTRA_OIDC_BACKCHANNEL_URL"),
+            client_id: src
+                .get("SUTRA_OIDC_CLIENT_ID")
+                .or_else(|| src.get("SUTRA_KEYCLOAK_CLIENT_ID"))
+                .unwrap_or_else(|| "sutra-web".into()),
+            client_secret,
+            redirect_uri: string(
+                src,
+                "SUTRA_OIDC_REDIRECT_URI",
+                "http://localhost:5173/api/v1/auth/oidc/callback",
+            ),
+            post_logout_redirect_uri: Some(string(
+                src,
+                "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI",
+                "http://localhost:5173/sign-in",
+            )),
+            tenant_claim: string(src, "SUTRA_OIDC_TENANT_CLAIM", "tenant_id"),
+            institution_claim: string(src, "SUTRA_OIDC_INSTITUTION_CLAIM", "institution_id"),
+            mfa_acr_values: list("SUTRA_OIDC_MFA_ACR", "2,mfa"),
+            step_up_acr: Some(string(src, "SUTRA_OIDC_STEP_UP_ACR", "mfa"))
+                .filter(|v| !v.is_empty()),
+        };
+        let dev_mfa_enforced: bool = parse(src, "SUTRA_DEV_MFA", false)?;
+        let mfa_step_up_default =
+            prod || auth_provider == AuthProvider::Keycloak || dev_mfa_enforced;
         let default_store = if env == Environment::Test {
             StoreBackend::Memory
         } else {
@@ -210,15 +334,39 @@ impl Config {
             shutdown_grace: Duration::from_secs(parse(src, "SUTRA_SHUTDOWN_GRACE_SECS", 20)?),
             auth_provider,
             dev_auth_password: string(src, "SUTRA_DEV_AUTH_PASSWORD", "sutra"),
-            dev_mfa_enforced: parse(src, "SUTRA_DEV_MFA", false)?,
+            dev_mfa_enforced,
             dev_tenant_id: string(src, "SUTRA_DEV_TENANT_ID", DEV_TENANT_ID),
             dev_institution_id: string(src, "SUTRA_DEV_INSTITUTION_ID", DEV_INSTITUTION_ID),
-            keycloak_url: string(src, "SUTRA_KEYCLOAK_URL", "http://localhost:8180"),
-            keycloak_realm: string(src, "SUTRA_KEYCLOAK_REALM", "sutra"),
-            keycloak_client_id: string(src, "SUTRA_KEYCLOAK_CLIENT_ID", "sutra-api"),
+            oidc,
+            mfa_step_up: parse(src, "SUTRA_MFA_STEP_UP", mfa_step_up_default)?,
+            mfa_encryption_key: match src.get("SUTRA_MFA_ENCRYPTION_KEY") {
+                Some(v) => v.parse().map_err(|_| ConfigError::Invalid {
+                    key: "SUTRA_MFA_ENCRYPTION_KEY",
+                    value: "<64 hex characters expected>".into(),
+                })?,
+                None => DEV_MFA_ENCRYPTION_KEY
+                    .parse()
+                    .map_err(|_| ConfigError::Invalid {
+                        key: "SUTRA_MFA_ENCRYPTION_KEY",
+                        value: "<built-in dev key>".into(),
+                    })?,
+            },
+            mfa_issuer: string(src, "SUTRA_MFA_ISSUER", "SutraERP"),
+            csrf_key: src
+                .get("SUTRA_CSRF_KEY")
+                .map(|v| {
+                    v.parse().map_err(|_| ConfigError::Invalid {
+                        key: "SUTRA_CSRF_KEY",
+                        value: "<64 hex characters expected>".into(),
+                    })
+                })
+                .transpose()?,
+            login_csrf_ttl_secs: parse(src, "SUTRA_LOGIN_CSRF_TTL_SECS", 1800)?,
+            allowed_origins: list("SUTRA_ALLOWED_ORIGINS", ""),
             session_cookie_secure: parse(src, "SUTRA_SESSION_COOKIE_SECURE", true)?,
             session_ttl_secs: parse(src, "SUTRA_SESSION_TTL_SECS", 8 * 3600)?,
             session_idle_secs: parse(src, "SUTRA_SESSION_IDLE_SECS", 30 * 60)?,
+            session_touch_secs: parse(src, "SUTRA_SESSION_TOUCH_SECS", 60)?,
             session_store: backend(src, "SUTRA_SESSION_STORE", default_store)?,
             idempotency_store: backend(src, "SUTRA_IDEMPOTENCY_STORE", default_store)?,
             audit_sink: backend(src, "SUTRA_AUDIT_SINK", default_store)?,
@@ -232,12 +380,31 @@ impl Config {
         if self.env == Environment::Production {
             if self.auth_provider == AuthProvider::Dev {
                 return Err(ConfigError::Forbidden(
-                    "SUTRA_AUTH_PROVIDER=dev is not allowed in production",
+                    "SUTRA_AUTH_MODE=dev is not allowed in production",
                 ));
             }
             if !self.session_cookie_secure {
                 return Err(ConfigError::Forbidden(
                     "SUTRA_SESSION_COOKIE_SECURE=false is not allowed in production",
+                ));
+            }
+            if !self.mfa_step_up {
+                return Err(ConfigError::Forbidden(
+                    "SUTRA_MFA_STEP_UP=false is not allowed in production",
+                ));
+            }
+            if self.csrf_key.is_none() {
+                return Err(ConfigError::RequiredInProduction("SUTRA_CSRF_KEY"));
+            }
+            if self.mfa_encryption_key.0.as_slice()
+                == DEV_MFA_ENCRYPTION_KEY
+                    .parse::<Key32>()
+                    .map(|k| k.0)
+                    .unwrap_or_default()
+                    .as_slice()
+            {
+                return Err(ConfigError::Forbidden(
+                    "the built-in dev SUTRA_MFA_ENCRYPTION_KEY is not allowed in production",
                 ));
             }
             if self.idempotency_store == StoreBackend::Memory
@@ -264,6 +431,21 @@ impl Config {
                 ),
             });
         }
+        if self.session_touch_secs < 0 || self.session_touch_secs >= self.session_idle_secs {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_SESSION_TOUCH_SECS",
+                value: format!(
+                    "{} (must be >= 0 and < SUTRA_SESSION_IDLE_SECS)",
+                    self.session_touch_secs
+                ),
+            });
+        }
+        if self.login_csrf_ttl_secs <= 0 {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_LOGIN_CSRF_TTL_SECS",
+                value: self.login_csrf_ttl_secs.to_string(),
+            });
+        }
         if self.db_max_connections == 0 {
             return Err(ConfigError::Invalid {
                 key: "SUTRA_DB_MAX_CONNECTIONS",
@@ -278,6 +460,53 @@ impl Config {
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    const KEY: &str = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
+
+    #[test]
+    fn auth_mode_oidc_and_mfa_settings() {
+        let dev = Config::load(&HashMap::<&str, &str>::new()).unwrap();
+        assert!(
+            !dev.mfa_step_up,
+            "dev without enforced MFA keeps step-up off"
+        );
+        assert_eq!(dev.oidc.issuer, "http://localhost:8180/realms/sutra");
+        assert_eq!(dev.oidc.client_id, "sutra-web");
+        assert_eq!(dev.session_touch_secs, 60);
+        assert!(dev.csrf_key.is_none());
+        let kc = Config::load(&HashMap::from([
+            ("SUTRA_AUTH_MODE", "keycloak"),
+            ("SUTRA_OIDC_ISSUER", "https://sso.example/realms/x"),
+            ("SUTRA_OIDC_MFA_ACR", "gold, silver"),
+            (
+                "SUTRA_ALLOWED_ORIGINS",
+                "https://a.example, https://b.example",
+            ),
+        ]))
+        .unwrap();
+        assert_eq!(kc.auth_provider, AuthProvider::Keycloak);
+        assert!(kc.mfa_step_up);
+        assert_eq!(kc.oidc.issuer, "https://sso.example/realms/x");
+        assert_eq!(kc.oidc.mfa_acr_values, vec!["gold", "silver"]);
+        assert_eq!(kc.allowed_origins.len(), 2);
+        let legacy = Config::load(&HashMap::from([("SUTRA_AUTH_PROVIDER", "keycloak")])).unwrap();
+        assert_eq!(legacy.auth_provider, AuthProvider::Keycloak);
+        let enforced = Config::load(&HashMap::from([("SUTRA_DEV_MFA", "true")])).unwrap();
+        assert!(enforced.mfa_step_up);
+        assert!(Config::load(&HashMap::from([("SUTRA_AUTH_MODE", "saml")])).is_err());
+        assert!(Config::load(&HashMap::from([("SUTRA_CSRF_KEY", "abc")])).is_err());
+        assert_eq!(
+            Config::load(&HashMap::from([("SUTRA_CSRF_KEY", KEY)]))
+                .unwrap()
+                .csrf_key
+                .map(|k| k.0[1]),
+            Some(0x11)
+        );
+        assert!(
+            Config::load(&HashMap::from([("SUTRA_SESSION_TOUCH_SECS", "1800")])).is_err(),
+            "touch interval must be below the idle timeout"
+        );
+    }
 
     #[test]
     fn development_defaults() {
@@ -304,11 +533,48 @@ mod tests {
             Config::load(&dev_auth),
             Err(ConfigError::Forbidden(_))
         ));
-        let ok = HashMap::from([
+        let no_secret = HashMap::from([
             ("SUTRA_ENV", "production"),
             ("DATABASE_URL", "postgres://x"),
         ]);
+        assert!(matches!(
+            Config::load(&no_secret),
+            Err(ConfigError::RequiredInProduction(
+                "SUTRA_OIDC_CLIENT_SECRET"
+            ))
+        ));
+        let no_csrf_key = HashMap::from([
+            ("SUTRA_ENV", "production"),
+            ("DATABASE_URL", "postgres://x"),
+            ("SUTRA_OIDC_CLIENT_SECRET", "s"),
+        ]);
+        assert!(matches!(
+            Config::load(&no_csrf_key),
+            Err(ConfigError::RequiredInProduction("SUTRA_CSRF_KEY"))
+        ));
+        let dev_key = HashMap::from([
+            ("SUTRA_ENV", "production"),
+            ("DATABASE_URL", "postgres://x"),
+            ("SUTRA_OIDC_CLIENT_SECRET", "s"),
+            ("SUTRA_CSRF_KEY", KEY),
+        ]);
+        assert!(matches!(
+            Config::load(&dev_key),
+            Err(ConfigError::Forbidden(_))
+        ));
+        let ok = HashMap::from([
+            ("SUTRA_ENV", "production"),
+            ("DATABASE_URL", "postgres://x"),
+            ("SUTRA_OIDC_CLIENT_SECRET", "s"),
+            ("SUTRA_CSRF_KEY", KEY),
+            ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
+        ]);
         let c = Config::load(&ok).unwrap();
+        assert!(c.mfa_step_up, "step-up is always enforced in production");
+        assert!(
+            !format!("{:?}", c.oidc).contains("\"s\""),
+            "secret redacted"
+        );
         assert_eq!(c.auth_provider, AuthProvider::Keycloak);
         assert_eq!(c.log_format, LogFormat::Json);
     }
@@ -325,6 +591,9 @@ mod tests {
         let prod_mem = HashMap::from([
             ("SUTRA_ENV", "production"),
             ("DATABASE_URL", "postgres://x"),
+            ("SUTRA_OIDC_CLIENT_SECRET", "s"),
+            ("SUTRA_CSRF_KEY", KEY),
+            ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
             ("SUTRA_SESSION_STORE", "memory"),
         ]);
         assert!(matches!(

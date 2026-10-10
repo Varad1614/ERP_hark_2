@@ -50,6 +50,51 @@ impl Role {
     }
 }
 
+/// Authentication assurance of a session (ADR-L5-0038 §3.8).
+///
+/// `Mfa` means the session was established (or stepped up) with a second factor: a TOTP code
+/// verified by SutraERP in dev mode, or Keycloak-asserted `amr`/`acr` values in Keycloak mode.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    utoipa::ToSchema,
+)]
+#[serde(rename_all = "camelCase")]
+pub enum MfaLevel {
+    /// Single factor (password / federated login without a second factor).
+    #[default]
+    None,
+    /// A second factor was verified for this session.
+    Mfa,
+}
+
+impl MfaLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MfaLevel::None => "none",
+            MfaLevel::Mfa => "mfa",
+        }
+    }
+
+    /// Strict parse of the stored name; unknown values fail closed to `None`.
+    pub fn parse(s: &str) -> MfaLevel {
+        if s == "mfa" {
+            MfaLevel::Mfa
+        } else {
+            MfaLevel::None
+        }
+    }
+}
+
 /// A protected action. Add a variant per new capability; it is denied to every role until it is
 /// explicitly granted in [`role_permissions`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -75,6 +120,12 @@ impl Permission {
             Permission::InstitutionRegister => "institution.register",
             Permission::InstitutionRename => "institution.rename",
         }
+    }
+
+    /// Admin-sensitive permissions that additionally need an MFA-verified session when step-up
+    /// is enforced ([`AuthContext::step_up_enforced`]).
+    pub fn requires_step_up(&self) -> bool {
+        matches!(self, Permission::InstitutionRegister)
     }
 }
 
@@ -114,6 +165,13 @@ pub struct AuthContext {
     pub expires_at: DateTime<Utc>,
     /// Expiry if the session stays idle from now on.
     pub idle_expires_at: DateTime<Utc>,
+    /// Assurance level of the session (second factor verified or not).
+    pub mfa_level: MfaLevel,
+    /// Authentication methods references (RFC 8176 style: `pwd`, `otp`, `hwk`, …).
+    pub amr: Vec<String>,
+    /// Whether step-up permissions ([`Permission::requires_step_up`]) need `mfa_level = Mfa`.
+    /// Set by the session resolver from configuration.
+    pub step_up_enforced: bool,
 }
 
 impl fmt::Debug for AuthContext {
@@ -125,6 +183,7 @@ impl fmt::Debug for AuthContext {
             .field("scope", &self.scope)
             .field("csrf_token", &"<redacted>")
             .field("expires_at", &self.expires_at)
+            .field("mfa_level", &self.mfa_level)
             .finish_non_exhaustive()
     }
 }
@@ -134,16 +193,21 @@ impl AuthContext {
         is_granted(&self.roles, permission)
     }
 
-    /// Deny-by-default permission check: `Forbidden` unless one of the caller's roles grants it.
+    /// Deny-by-default permission check: `Forbidden` unless one of the caller's roles grants it;
+    /// `StepUpRequired` when the permission is admin-sensitive, step-up is enforced and the
+    /// session has not verified a second factor.
     pub fn require(&self, permission: Permission) -> Result<(), KernelError> {
-        if self.has_permission(permission) {
-            Ok(())
-        } else {
-            Err(KernelError::Forbidden(format!(
+        if !self.has_permission(permission) {
+            return Err(KernelError::Forbidden(format!(
                 "missing permission `{}`",
                 permission.as_str()
-            )))
+            )));
         }
+        if self.step_up_enforced && permission.requires_step_up() && self.mfa_level < MfaLevel::Mfa
+        {
+            return Err(KernelError::StepUpRequired(permission.as_str()));
+        }
+        Ok(())
     }
 
     /// Constant-time check of a presented synchronizer token.
@@ -177,7 +241,37 @@ mod tests {
             csrf_token: "a".repeat(64),
             expires_at: Utc::now(),
             idle_expires_at: Utc::now(),
+            mfa_level: MfaLevel::None,
+            amr: vec!["pwd".into()],
+            step_up_enforced: false,
         }
+    }
+
+    #[test]
+    fn step_up_is_required_only_when_enforced() {
+        let mut a = ctx(vec![Role::Administrator]);
+        assert!(a.require(Permission::InstitutionRegister).is_ok());
+        a.step_up_enforced = true;
+        assert!(matches!(
+            a.require(Permission::InstitutionRegister),
+            Err(KernelError::StepUpRequired("institution.register"))
+        ));
+        assert!(
+            a.require(Permission::InstitutionRead).is_ok(),
+            "not sensitive"
+        );
+        a.mfa_level = MfaLevel::Mfa;
+        assert!(a.require(Permission::InstitutionRegister).is_ok());
+        // Step-up never grants a permission the role does not hold.
+        let mut s = ctx(vec![Role::Student]);
+        s.step_up_enforced = true;
+        s.mfa_level = MfaLevel::Mfa;
+        assert!(matches!(
+            s.require(Permission::InstitutionRegister),
+            Err(KernelError::Forbidden(_))
+        ));
+        assert_eq!(MfaLevel::parse("mfa"), MfaLevel::Mfa);
+        assert_eq!(MfaLevel::parse("bogus"), MfaLevel::None);
     }
 
     #[test]

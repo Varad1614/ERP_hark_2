@@ -7,9 +7,15 @@
   "bruteForceProtected": true,
   "roles": {
     "realm": [
-      { "name": "administrator" },
-      { "name": "faculty" },
-      { "name": "student" }
+      {
+        "name": "administrator"
+      },
+      {
+        "name": "faculty"
+      },
+      {
+        "name": "student"
+      }
     ]
   },
   "clients": [
@@ -21,12 +27,223 @@
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
-      "protocol": "openid-connect"
+      "protocol": "openid-connect",
+      "description": "Service-account client for future machine-to-machine calls (no browser flows)."
+    },
+    {
+      "clientId": "sutra-web",
+      "name": "SutraERP web (BFF)",
+      "description": "Confidential OIDC client used by sutra-api as backend-for-frontend (Authorization Code + PKCE S256). No ROPC.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "dev-only-change-me",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "redirectUris": [
+        "http://localhost:5173/api/v1/auth/oidc/callback",
+        "http://localhost:3000/api/v1/auth/oidc/callback"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/sign-in##http://localhost:3000/sign-in",
+        "use.refresh.tokens": "false",
+        "acr.loa.map": "{\"pwd\":\"1\",\"mfa\":\"2\"}",
+        "minimum.acr.value": "1",
+        "id.token.signed.response.alg": "RS256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "basic",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "offline_access"
+      ],
+      "protocolMappers": [
+        {
+          "name": "realm roles in ID token",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "tenant_id (dev: hardcoded)",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "tenant_id",
+            "claim.value": "0192f5a0-7c3e-7000-8000-000000000001",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "institution_id (dev: hardcoded)",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "institution_id",
+            "claim.value": "0192f5a0-7c3e-7000-8000-0000000000aa",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "users": [
-    { "username": "admin@sutra.dev", "email": "admin@sutra.dev", "firstName": "Dhruv", "lastName": "Naik", "enabled": true, "emailVerified": true, "realmRoles": ["administrator"], "credentials": [{ "type": "password", "value": "sutra", "temporary": false }] },
-    { "username": "meera.shah@sutra.dev", "email": "meera.shah@sutra.dev", "firstName": "Meera", "lastName": "Shah", "enabled": true, "emailVerified": true, "realmRoles": ["faculty"], "credentials": [{ "type": "password", "value": "sutra", "temporary": false }] },
-    { "username": "aarav.desai@sutra.dev", "email": "aarav.desai@sutra.dev", "firstName": "Aarav", "lastName": "Desai", "enabled": true, "emailVerified": true, "realmRoles": ["student"], "credentials": [{ "type": "password", "value": "sutra", "temporary": false }] }
+    {
+      "username": "admin@sutra.dev",
+      "email": "admin@sutra.dev",
+      "firstName": "Dhruv",
+      "lastName": "Naik",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "administrator"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "meera.shah@sutra.dev",
+      "email": "meera.shah@sutra.dev",
+      "firstName": "Meera",
+      "lastName": "Shah",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "faculty"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "aarav.desai@sutra.dev",
+      "email": "aarav.desai@sutra.dev",
+      "firstName": "Aarav",
+      "lastName": "Desai",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "student"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "sslRequired": "external",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "webAuthnPolicyRpEntityName": "SutraERP",
+  "webAuthnPolicyUserVerificationRequirement": "preferred",
+  "attributes": {
+    "acr.loa.map": "{\"pwd\":\"1\",\"mfa\":\"2\"}"
+  },
+  "requiredActions": [
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 10,
+      "config": {}
+    },
+    {
+      "alias": "webauthn-register",
+      "name": "Webauthn Register",
+      "providerId": "webauthn-register",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 20,
+      "config": {}
+    },
+    {
+      "alias": "webauthn-register-passwordless",
+      "name": "Webauthn Register Passwordless",
+      "providerId": "webauthn-register-passwordless",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 40,
+      "config": {}
+    },
+    {
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 50,
+      "config": {}
+    }
   ]
 }

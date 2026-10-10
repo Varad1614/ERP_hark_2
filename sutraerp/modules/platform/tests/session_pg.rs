@@ -7,7 +7,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use sqlx::PgPool;
-use sutra_contracts::platform::auth::{Principal, Role, SessionPolicy, SessionStore};
+use sutra_contracts::platform::auth::{NewSession, Principal, Role, SessionPolicy, SessionStore};
 use sutra_kernel::scope::{ExecutionScope, InstitutionId, TenantId};
 use sutra_persistence::{migrate, pool};
 use sutra_platform::auth::session::token_hash;
@@ -46,7 +46,7 @@ async fn create_get_revoke_roundtrip() {
     let p = db().await;
     let s = store(&p);
     let who = principal();
-    let issued = s.create(who.clone()).await.unwrap();
+    let issued = s.create(NewSession::password(who.clone())).await.unwrap();
     assert_eq!(issued.token.len(), 64);
     assert_eq!(issued.session.principal, who);
     assert_eq!(issued.session.csrf_token.len(), 64);
@@ -78,7 +78,10 @@ async fn create_get_revoke_roundtrip() {
 #[tokio::test]
 async fn only_the_token_digest_is_stored() {
     let p = db().await;
-    let issued = store(&p).create(principal()).await.unwrap();
+    let issued = store(&p)
+        .create(NewSession::password(principal()))
+        .await
+        .unwrap();
     let (hash, secret): (Vec<u8>, Vec<u8>) =
         sqlx::query_as("SELECT token_hash, csrf_secret FROM platform.session WHERE id = $1")
             .bind(issued.session.id)
@@ -103,7 +106,7 @@ async fn only_the_token_digest_is_stored() {
 async fn idle_expiry() {
     let p = db().await;
     let s = store(&p);
-    let issued = s.create(principal()).await.unwrap();
+    let issued = s.create(NewSession::password(principal())).await.unwrap();
     // 29 minutes idle: alive, and the lookup slides the window.
     sqlx::query(
         "UPDATE platform.session SET last_seen_at = now() - interval '29 minutes' WHERE id = $1",
@@ -139,7 +142,7 @@ async fn idle_expiry() {
 async fn absolute_expiry() {
     let p = db().await;
     let s = store(&p);
-    let issued = s.create(principal()).await.unwrap();
+    let issued = s.create(NewSession::password(principal())).await.unwrap();
     sqlx::query(
         "UPDATE platform.session SET created_at = now() - interval '9 hours', \
          expires_at = now() - interval '1 hour' WHERE id = $1",
@@ -158,7 +161,7 @@ async fn absolute_expiry() {
 async fn unknown_stored_roles_grant_nothing() {
     let p = db().await;
     let s = store(&p);
-    let issued = s.create(principal()).await.unwrap();
+    let issued = s.create(NewSession::password(principal())).await.unwrap();
     sqlx::query("UPDATE platform.session SET roles = ARRAY['superuser', 'faculty'] WHERE id = $1")
         .bind(issued.session.id)
         .execute(&p)
@@ -172,8 +175,8 @@ async fn unknown_stored_roles_grant_nothing() {
 async fn distinct_sessions_have_distinct_secrets() {
     let p = db().await;
     let s = store(&p);
-    let a = s.create(principal()).await.unwrap();
-    let b = s.create(principal()).await.unwrap();
+    let a = s.create(NewSession::password(principal())).await.unwrap();
+    let b = s.create(NewSession::password(principal())).await.unwrap();
     assert_ne!(a.token, b.token);
     assert_ne!(a.session.csrf_token, b.session.csrf_token);
     assert_ne!(a.session.id, b.session.id);
@@ -183,8 +186,8 @@ async fn distinct_sessions_have_distinct_secrets() {
 async fn purge_removes_long_dead_sessions_only() {
     let p = db().await;
     let s = store(&p);
-    let live = s.create(principal()).await.unwrap();
-    let dead = s.create(principal()).await.unwrap();
+    let live = s.create(NewSession::password(principal())).await.unwrap();
+    let dead = s.create(NewSession::password(principal())).await.unwrap();
     sqlx::query(
         "UPDATE platform.session SET created_at = now() - interval '10 days', \
          last_seen_at = now() - interval '10 days', expires_at = now() - interval '9 days' WHERE id = $1",

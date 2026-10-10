@@ -12,13 +12,16 @@
 //!   can be re-derived on `GET /api/v1/auth/session`, and cannot be computed from a database
 //!   dump alone (the token is not in the database);
 //! * a session dies at the earlier of its absolute expiry and its idle expiry (sliding window
-//!   refreshed on every successful lookup); revocation is immediate.
+//!   refreshed on successful lookups — the `last_seen_at` write is throttled to once per
+//!   [`SessionPolicy::touch_interval`]); revocation is immediate;
+//! * a session records its assurance (`mfa_level`, `amr`) and, for federated logins, the IdP
+//!   session id (`idp_sid`).
 
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use sutra_contracts::platform::auth::{
-    IssuedSession, Principal, Session, SessionPolicy, SessionStore,
+    IssuedSession, MfaLevel, NewSession, Principal, Session, SessionPolicy, SessionStore,
 };
 use sutra_kernel::auth::{AuthContext, SessionResolver};
 use sutra_kernel::error::KernelError;
@@ -59,6 +62,9 @@ struct Entry {
     created_at: DateTime<Utc>,
     last_seen_at: DateTime<Utc>,
     expires_at: DateTime<Utc>,
+    mfa_level: MfaLevel,
+    amr: Vec<String>,
+    idp_sid: Option<String>,
 }
 
 pub struct InMemorySessionStore {
@@ -95,22 +101,35 @@ impl InMemorySessionStore {
             expires_at: e.expires_at,
             idle_expires_at: (e.last_seen_at + self.policy.idle_timeout).min(e.expires_at),
             csrf_token: derive_csrf_token(&e.csrf_secret, token)?,
+            mfa_level: e.mfa_level,
+            amr: e.amr.clone(),
+            idp_sid: e.idp_sid.clone(),
         })
     }
 }
 
 #[async_trait::async_trait]
 impl SessionStore for InMemorySessionStore {
-    async fn create(&self, principal: Principal) -> Result<IssuedSession, KernelError> {
+    async fn create(&self, new: NewSession) -> Result<IssuedSession, KernelError> {
         let now = (self.clock)();
         let token = new_session_token()?;
+        let mut expires_at = now + self.policy.absolute_timeout;
+        if let Some(cap) = new.not_after {
+            expires_at = expires_at.min(cap);
+        }
+        if expires_at <= now {
+            return Err(KernelError::Unauthenticated);
+        }
         let entry = Entry {
             id: sutra_kernel::id::new_v7(),
-            principal,
+            principal: new.principal,
             csrf_secret: secret::random_bytes()?,
             created_at: now,
             last_seen_at: now,
-            expires_at: now + self.policy.absolute_timeout,
+            expires_at,
+            mfa_level: new.mfa_level,
+            amr: new.amr,
+            idp_sid: new.idp_sid,
         };
         let session = self.view(&entry, &token)?;
         let mut map = self.lock()?;
@@ -134,7 +153,9 @@ impl SessionStore for InMemorySessionStore {
         }
         match map.get_mut(&key) {
             Some(e) => {
-                e.last_seen_at = now;
+                if self.policy.should_touch(now, e.last_seen_at) {
+                    e.last_seen_at = now;
+                }
                 Ok(Some(self.view(e, token)?))
             }
             None => Ok(None),
@@ -147,13 +168,21 @@ impl SessionStore for InMemorySessionStore {
     }
 }
 
-/// Adapts any [`SessionStore`] to the kernel's [`SessionResolver`] port used by the HTTP layer.
-pub struct StoreSessionResolver(pub Arc<dyn SessionStore>);
+/// Adapts any [`SessionStore`] to the kernel's [`SessionResolver`] port used by the HTTP layer,
+/// stamping the configured step-up policy onto every [`AuthContext`].
+pub struct StoreSessionResolver {
+    pub store: Arc<dyn SessionStore>,
+    pub step_up_enforced: bool,
+}
 
 #[async_trait::async_trait]
 impl SessionResolver for StoreSessionResolver {
     async fn resolve(&self, token: &str) -> Result<Option<AuthContext>, KernelError> {
-        Ok(self.0.get(token).await?.map(|s| s.auth_context()))
+        Ok(self.store.get(token).await?.map(|s| {
+            let mut ctx = s.auth_context();
+            ctx.step_up_enforced = self.step_up_enforced;
+            ctx
+        }))
     }
 }
 
@@ -165,7 +194,11 @@ mod tests {
     use sutra_contracts::platform::auth::Role;
     use sutra_kernel::scope::{ExecutionScope, TenantId};
 
-    fn p() -> Principal {
+    fn p() -> NewSession {
+        NewSession::password(principal())
+    }
+
+    fn principal() -> Principal {
         Principal {
             subject: "s".into(),
             display_name: "d".into(),
@@ -257,6 +290,45 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn last_seen_writes_are_throttled() {
+        let (s, clock) = clocked(600, 3600); // touch interval = 60 s
+        let issued = s.create(p()).await.unwrap();
+        clock.store(30, Ordering::SeqCst);
+        let got = s.get(&issued.token).await.unwrap().unwrap();
+        assert_eq!(
+            got.last_seen_at, issued.session.last_seen_at,
+            "30 s: not written"
+        );
+        clock.store(61, Ordering::SeqCst);
+        let got = s.get(&issued.token).await.unwrap().unwrap();
+        assert_eq!(
+            got.last_seen_at,
+            issued.session.last_seen_at + Duration::seconds(61),
+            "61 s: written"
+        );
+    }
+
+    #[tokio::test]
+    async fn mfa_metadata_and_not_after_cap() {
+        let s = InMemorySessionStore::new(policy(60, 3600));
+        let mut n = NewSession::password_and_totp(principal());
+        n.idp_sid = Some("kc-sid".into());
+        let cap = Utc::now() + Duration::seconds(100);
+        n.not_after = Some(cap);
+        let issued = s.create(n).await.unwrap();
+        assert_eq!(issued.session.mfa_level, MfaLevel::Mfa);
+        assert!(issued.session.amr.contains(&"otp".to_owned()));
+        assert_eq!(issued.session.idp_sid.as_deref(), Some("kc-sid"));
+        assert_eq!(issued.session.expires_at, cap);
+        let mut past = NewSession::password(principal());
+        past.not_after = Some(Utc::now() - Duration::seconds(1));
+        assert!(
+            s.create(past).await.is_err(),
+            "cannot mint an already-expired session"
+        );
+    }
+
+    #[tokio::test]
     async fn absolute_expiry_despite_activity() {
         let (s, clock) = clocked(60, 120);
         let issued = s.create(p()).await.unwrap();
@@ -283,9 +355,15 @@ mod tests {
     async fn resolver_maps_to_auth_context() {
         let store: Arc<dyn SessionStore> = Arc::new(InMemorySessionStore::new(policy(60, 3600)));
         let issued = store.create(p()).await.unwrap();
-        let r = StoreSessionResolver(store);
+        let r = StoreSessionResolver {
+            store,
+            step_up_enforced: true,
+        };
         let ctx = r.resolve(&issued.token).await.unwrap().unwrap();
         assert_eq!(ctx.session_id, issued.session.id);
+        assert!(ctx.step_up_enforced);
+        assert_eq!(ctx.mfa_level, MfaLevel::None);
+        assert_eq!(ctx.amr, vec!["pwd".to_owned()]);
         assert_eq!(ctx.csrf_token, issued.session.csrf_token);
         assert!(r.resolve("nope").await.unwrap().is_none());
     }

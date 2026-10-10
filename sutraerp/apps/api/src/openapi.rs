@@ -11,12 +11,17 @@ use utoipa::OpenApi;
             Conventions (ADR-L5-0034): camelCase JSON members; URL major versioning (`/api/v1`); \
             RFC 9457 `application/problem+json` errors with `errorCode`, `correlationId` and \
             `validationErrors` extensions; retry-sensitive commands accept `Idempotency-Key`.\n\n\
-            Authentication (ADR-L5-0038): `POST /api/v1/auth/login` sets an opaque `HttpOnly` \
-            session cookie and returns a `csrfToken`; every POST/PUT/PATCH/DELETE made with the \
-            cookie must send it as `X-CSRF-Token` (login and MFA verification excepted). \
+            Authentication (ADR-L5-0024/0038): dev mode signs in with `POST /api/v1/auth/login` \
+            (+ TOTP `POST /api/v1/auth/mfa/verify`); Keycloak mode with the OIDC Authorization \
+            Code + PKCE flow `GET /api/v1/auth/oidc/start` → `/oidc/callback`. Both set an opaque \
+            `HttpOnly` session cookie; the session's `csrfToken` must be sent as `X-CSRF-Token` \
+            on every POST/PUT/PATCH/DELETE made with the cookie. Login and MFA verification \
+            instead need the signed double-submit token from `GET /api/v1/auth/csrf`. Unsafe \
+            requests from another site (`Origin` / `Sec-Fetch-Site`) are rejected. \
             Tenant/institution scope is taken from the session (ADR-L5-0004); scope headers \
-            cannot select or widen it. Missing session: 401; CSRF failure or missing \
-            permission: 403 (`application/problem+json`)."
+            cannot select or widen it. Admin-sensitive permissions need an MFA-verified session \
+            (`mfa-step-up-required`). Missing session: 401; CSRF failure, cross-site request, \
+            missing permission or step-up: 403 (`application/problem+json`)."
     ),
     tags(
         (name = "health", description = "Liveness and readiness probes"),
@@ -41,6 +46,14 @@ impl utoipa::Modify for SecuritySchemes {
             SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::with_description(
                 "__Host-sutra_session",
                 "Opaque server-side session token (`sutra_session` when Secure cookies are off in dev).",
+            ))),
+        );
+        components.add_security_scheme(
+            "login_csrf",
+            SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::with_description(
+                "X-CSRF-Token",
+                "Pre-session double-submit token from GET /api/v1/auth/csrf (must equal the \
+                 `__Host-sutra_login_csrf` cookie).",
             ))),
         );
         components.add_security_scheme(

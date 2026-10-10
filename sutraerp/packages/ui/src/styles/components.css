@@ -152,6 +152,19 @@
 .sb-role-card h3 { font-size: 20px; font-weight: 700; }
 .sb-role-card small { color: var(--sb-mute); font-size: 14px; }
 .sb-role-card .sb-btn { margin-top: auto; align-self: flex-start; }
+.sb-signin-sso { justify-content: center; }
+.sb-signin > .sb-field-error { text-align: center; margin: 0 0 20px; }
+
+/* MFA: TOTP challenge + enrolment */
+.sb-mfa-wrap { max-width: 440px; margin: 0 auto; }
+.sb-mfa form { display: flex; flex-direction: column; gap: 14px; }
+.sb-mfa h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.sb-mfa p { color: var(--sb-mute); font-size: 14.5px; }
+.sb-mfa .sb-input { font-size: 22px; letter-spacing: 0.3em; font-variant-numeric: tabular-nums; }
+.sb-mfa-qr { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.sb-qr { color: var(--sb-ink, #1c1b22); border-radius: 16px; background: #fff; padding: 8px; }
+.sb-mfa-secret { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--sb-mute); }
+.sb-mfa-secret code { font-family: ui-monospace, monospace; color: var(--sb-ink, #1c1b22); word-break: break-all; }
 
 /* overlays: drawer + modal */
 .sb-overlay { position: fixed; inset: 0; background: rgba(28, 27, 34, 0.28); z-index: 40; animation: sb-fade 0.2s; }

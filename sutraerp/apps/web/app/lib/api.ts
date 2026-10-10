@@ -3,8 +3,16 @@ import { ApiProblem, createSutraClient, isProblem, type Workspace, type Workspac
 import catalogJson from "../../../../catalog/workspaces.json";
 import type { Role } from "./roles";
 
-/** `mock`: everything resolved in the browser. `api`: talk to sutra-api (same origin). */
-export const AUTH_MODE: "mock" | "api" = import.meta.env.VITE_AUTH_MODE === "api" ? "api" : "mock";
+/**
+ * `mock`: everything resolved in the browser. `api`: sutra-api (same origin) with the dev
+ * authenticator (password + TOTP). `oidc`: sutra-api in Keycloak mode — sign-in is a redirect to
+ * `GET /api/v1/auth/oidc/start`.
+ */
+export type AuthMode = "mock" | "api" | "oidc";
+export const AUTH_MODE: AuthMode =
+  import.meta.env.VITE_AUTH_MODE === "api" ? "api" : import.meta.env.VITE_AUTH_MODE === "oidc" ? "oidc" : "mock";
+/** True when the API (not the in-browser mock) is the source of truth. */
+export const USES_API = AUTH_MODE !== "mock";
 
 /**
  * Synchronizer CSRF token of the current server-side session (ADR-L5-0038). Kept in memory only
@@ -21,6 +29,26 @@ export function getCsrfToken(): string | undefined {
 }
 
 export const api = createSutraClient({ baseUrl: import.meta.env.VITE_API_BASE ?? "", csrfToken: getCsrfToken });
+
+type FetchOptions = { fetch?: (input: Request) => Promise<Response>; baseUrl?: string };
+
+/**
+ * Login-CSRF bootstrap: fetches the pre-session double-submit token (`GET /api/v1/auth/csrf`,
+ * which also sets the `__Host-sutra_login_csrf` cookie) and makes it the token the client sends
+ * on the following login / MFA-verify requests. Replaced by the session token after sign-in.
+ */
+export async function bootstrapLoginCsrf(opts: FetchOptions = {}): Promise<string> {
+  const res = unwrap(await api.GET("/api/v1/auth/csrf", opts));
+  setCsrfToken(res.csrfToken);
+  return res.csrfToken;
+}
+
+/** URL that starts the Keycloak (OIDC) sign-in for `returnTo` (same-origin path). */
+export function oidcStartUrl(returnTo = "/", stepUp = false): string {
+  const q = new URLSearchParams({ returnTo });
+  if (stepUp) q.set("stepUp", "true");
+  return `${import.meta.env.VITE_API_BASE ?? ""}/api/v1/auth/oidc/start?${q.toString()}`;
+}
 
 /** Shared copy of `catalog/workspaces.json` (the same file the API embeds). */
 export const CATALOG = catalogJson as unknown as Workspace[];
@@ -45,6 +73,6 @@ export function useWorkspaces(role: Role) {
   return useQuery({
     queryKey: ["platform", "workspaces", role, AUTH_MODE],
     queryFn: async (): Promise<WorkspaceList> =>
-      AUTH_MODE === "api" ? unwrap(await api.GET("/api/v1/platform/workspaces", { params: { query: { role } } })) : filterCatalog(role),
+      USES_API ? unwrap(await api.GET("/api/v1/platform/workspaces", { params: { query: { role } } })) : filterCatalog(role),
   });
 }

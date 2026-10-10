@@ -267,6 +267,9 @@ mod tests {
             csrf_token: String::new(),
             expires_at: chrono::Utc::now(),
             idle_expires_at: chrono::Utc::now(),
+            mfa_level: sutra_kernel::auth::MfaLevel::None,
+            amr: vec![],
+            step_up_enforced: false,
         };
         assert_eq!(owner_key(Some(&ctx)), format!("{t}/dev|a"));
         assert_eq!(owner_key(None), "anonymous");

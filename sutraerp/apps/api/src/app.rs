@@ -9,7 +9,8 @@ use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::Duration;
 use sutra_contracts::platform::auth::{
-    CredentialAuthenticator, MfaPolicy, SessionPolicy, SessionStore,
+    CredentialAuthenticator, MfaFactorStore, MfaPolicy, OidcIdentityProvider, PreAuthStore,
+    SessionPolicy, SessionStore,
 };
 use sutra_kernel::audit::{AuditSink, TracingAuditSink};
 use sutra_kernel::idempotency::{IdempotencyStore, InMemoryIdempotencyStore};
@@ -20,12 +21,16 @@ use sutra_persistence::{
 };
 use sutra_platform::auth::dev::{DevAuthenticator, PrivilegedRoleMfaPolicy};
 use sutra_platform::auth::keycloak::{KeycloakAuthenticator, KeycloakSettings};
+use sutra_platform::auth::mfa::{
+    DeferredWebauthn, InMemoryMfaFactorStore, MfaService, PgMfaFactorStore, SecretBox,
+};
+use sutra_platform::auth::preauth::{InMemoryPreAuthStore, PgPreAuthStore};
 use sutra_platform::auth::session::InMemorySessionStore;
 use sutra_platform::auth::session_pg::PgSessionStore;
 use sutra_platform::auth::CookieSettings;
 use sutra_platform::PlatformDeps;
 use sutra_web::health::Readiness;
-use sutra_web::SessionAuth;
+use sutra_web::{OriginPolicy, PreSessionCsrf, SessionAuth};
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
@@ -57,6 +62,8 @@ pub struct AppContext {
     pub platform: PlatformDeps,
     /// Global session authentication + CSRF middleware state.
     pub session_auth: SessionAuth,
+    /// Cross-site `Origin` / `Sec-Fetch-Site` guard for unsafe requests.
+    pub origin_policy: OriginPolicy,
     pub idempotency: Arc<dyn IdempotencyStore>,
     pub request_timeout: Duration,
 }
@@ -69,6 +76,8 @@ pub enum BuildError {
     Scope(String),
     #[error("session configuration: {0}")]
     Session(String),
+    #[error("auth configuration: {0}")]
+    Auth(String),
 }
 
 impl AppContext {
@@ -84,7 +93,10 @@ impl AppContext {
         let mfa = PrivilegedRoleMfaPolicy {
             enforce: cfg.dev_mfa_enforced,
         };
-        let authenticator: Arc<dyn CredentialAuthenticator> = match cfg.auth_provider {
+        let (authenticator, oidc): (
+            Arc<dyn CredentialAuthenticator>,
+            Option<Arc<dyn OidcIdentityProvider>>,
+        ) = match cfg.auth_provider {
             AuthProvider::Dev => {
                 let scope =
                     ExecutionScope::parse(Some(&cfg.dev_tenant_id), Some(&cfg.dev_institution_id))
@@ -92,19 +104,31 @@ impl AppContext {
                 tracing::warn!(
                     "using the DEV credential authenticator — never enable outside development"
                 );
-                Arc::new(DevAuthenticator::new(
-                    cfg.dev_auth_password.clone(),
-                    scope,
-                    Box::new(PrivilegedRoleMfaPolicy {
-                        enforce: cfg.dev_mfa_enforced,
-                    }),
-                ))
+                (
+                    Arc::new(DevAuthenticator::new(cfg.dev_auth_password.clone(), scope)),
+                    None,
+                )
             }
-            AuthProvider::Keycloak => Arc::new(KeycloakAuthenticator::new(KeycloakSettings {
-                base_url: cfg.keycloak_url.clone(),
-                realm: cfg.keycloak_realm.clone(),
-                client_id: cfg.keycloak_client_id.clone(),
-            })),
+            AuthProvider::Keycloak => {
+                let o = &cfg.oidc;
+                let mut settings = KeycloakSettings::new(
+                    &o.issuer,
+                    &o.client_id,
+                    &o.client_secret,
+                    &o.redirect_uri,
+                );
+                settings.backchannel_url = o.backchannel_url.clone();
+                settings.post_logout_redirect_uri = o.post_logout_redirect_uri.clone();
+                settings.tenant_claim = o.tenant_claim.clone();
+                settings.institution_claim = o.institution_claim.clone();
+                settings.mfa_acr_values = o.mfa_acr_values.clone();
+                settings.step_up_acr = o.step_up_acr.clone();
+                let kc = Arc::new(
+                    KeycloakAuthenticator::new(settings)
+                        .map_err(|e| BuildError::Auth(e.to_string()))?,
+                );
+                (kc.clone(), Some(kc))
+            }
         };
         let audit: Arc<dyn AuditSink> = match cfg.audit_sink {
             StoreBackend::Postgres => Arc::new(PgAuditSink::new(pool.clone())),
@@ -116,16 +140,54 @@ impl AppContext {
         };
         let mfa: Arc<dyn MfaPolicy> = Arc::new(mfa);
         let policy = SessionPolicy::new(cfg.session_idle_secs, cfg.session_ttl_secs)
+            .and_then(|p| p.with_touch_interval(cfg.session_touch_secs))
             .map_err(|e| BuildError::Session(e.to_string()))?;
-        let sessions: Arc<dyn SessionStore> = match cfg.session_store {
-            StoreBackend::Postgres => Arc::new(PgSessionStore::new(pool.clone(), policy)),
-            StoreBackend::Memory => Arc::new(InMemorySessionStore::new(policy)),
+        // Session, pre-auth and MFA-factor records share the session store backend.
+        let (sessions, pre_auth, factors): (
+            Arc<dyn SessionStore>,
+            Arc<dyn PreAuthStore>,
+            Arc<dyn MfaFactorStore>,
+        ) = match cfg.session_store {
+            StoreBackend::Postgres => (
+                Arc::new(PgSessionStore::new(pool.clone(), policy)),
+                Arc::new(PgPreAuthStore::new(pool.clone())),
+                Arc::new(PgMfaFactorStore::new(pool.clone())),
+            ),
+            StoreBackend::Memory => (
+                Arc::new(InMemorySessionStore::new(policy)),
+                Arc::new(InMemoryPreAuthStore::default()),
+                Arc::new(InMemoryMfaFactorStore::default()),
+            ),
         };
+        // Dev mode verifies TOTP itself; Keycloak mode delegates MFA to Keycloak.
+        let mfa_service = match cfg.auth_provider {
+            AuthProvider::Dev => Some(MfaService::new(
+                factors,
+                SecretBox::new(&cfg.mfa_encryption_key.0)
+                    .map_err(|e| BuildError::Auth(e.to_string()))?,
+                cfg.mfa_issuer.clone(),
+            )),
+            AuthProvider::Keycloak => None,
+        };
+        let csrf_key = match cfg.csrf_key {
+            Some(k) => k.0,
+            None => {
+                tracing::info!("SUTRA_CSRF_KEY unset: using a per-process random login-CSRF key");
+                sutra_kernel::secret::random_bytes().map_err(|e| BuildError::Auth(e.to_string()))?
+            }
+        };
+        let pre_session =
+            PreSessionCsrf::new(csrf_key, cfg.session_cookie_secure, cfg.login_csrf_ttl_secs);
         let cookie = CookieSettings {
             secure: cfg.session_cookie_secure,
             max_age_secs: cfg.session_ttl_secs,
         };
-        let session_auth = sutra_platform::auth::session_auth(sessions.clone(), &cookie);
+        let session_auth = sutra_platform::auth::session_auth(
+            sessions.clone(),
+            &cookie,
+            pre_session.clone(),
+            cfg.mfa_step_up,
+        );
         Ok(Self {
             pool,
             readiness,
@@ -136,8 +198,14 @@ impl AppContext {
                 audit,
                 cookie,
                 modules: modules(),
+                pre_auth,
+                mfa_service,
+                oidc,
+                webauthn: Arc::new(DeferredWebauthn),
+                pre_session,
             },
             session_auth,
+            origin_policy: OriginPolicy::new(&cfg.allowed_origins),
             idempotency,
             request_timeout: cfg.request_timeout,
         })
@@ -160,7 +228,8 @@ impl AppContext {
 
 /// Builds the router plus the generated OpenAPI document.
 ///
-/// Layer order (outermost first): session authentication + CSRF → idempotency → handlers. The
+/// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
+/// idempotency → handlers. The
 /// idempotency middleware keys its records by the authenticated owner, so it must run inside
 /// the authentication layer.
 pub fn build(ctx: AppContext) -> OpenApiRouter {
@@ -183,6 +252,10 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         .layer(axum::middleware::from_fn_with_state(
             ctx.session_auth,
             sutra_web::auth::authenticate,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            ctx.origin_policy,
+            sutra_web::auth::origin_guard,
         ))
 }
 

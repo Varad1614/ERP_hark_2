@@ -43,6 +43,10 @@ pub enum KernelError {
     Unauthenticated,
     #[error("forbidden: {0}")]
     Forbidden(String),
+    /// The permission is granted but needs a session that completed multi-factor authentication
+    /// (step-up, ADR-L5-0038 §3.8). Carries the permission name.
+    #[error("multi-factor step-up required for `{0}`")]
+    StepUpRequired(&'static str),
     /// Missing, ambiguous, mismatched or widened Tenant/Institution scope (ADR-L5-0004: fail closed).
     #[error("scope violation: {0}")]
     Scope(String),
@@ -74,6 +78,7 @@ impl KernelError {
             Self::BadRequest(_) => "bad-request",
             Self::Unauthenticated => "unauthenticated",
             Self::Forbidden(_) => "forbidden",
+            Self::StepUpRequired(_) => "mfa-step-up-required",
             Self::Scope(_) => "scope-violation",
             Self::NotFound { .. } => "not-found",
             Self::VersionConflict { .. } => "version-conflict",
@@ -109,6 +114,7 @@ mod tests {
         let all = [
             KernelError::Validation(vec![]),
             KernelError::Unauthenticated,
+            KernelError::StepUpRequired("x"),
             KernelError::Scope("x".into()),
             KernelError::NotFound {
                 entity: "institution",

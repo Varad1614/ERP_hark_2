@@ -1,7 +1,8 @@
 # SutraERP
 
-Production-grade education ERP — **Batch 0: Foundation** + **Batch 1 slice A** (durable sessions, CSRF,
-authorization policy, session-derived tenant scope).
+Production-grade education ERP — **Batch 0: Foundation** + **Batch 1 slices A and B** (durable sessions,
+CSRF, authorization policy, session-derived tenant scope; Keycloak OIDC adapter, TOTP MFA + step-up,
+login CSRF, cross-site Origin checks).
 
 A Rust modular monolith (Axum + Tokio, PostgreSQL 18 + SQLx) with a React Router SPA in the
 **Soft Bento** design language. Architecture authority: the SutraERP L0–L6 architecture repository
@@ -69,7 +70,9 @@ make web          # http://localhost:5173   (proxies /api to :8080)
 
 The web app runs without the API by default (`VITE_AUTH_MODE=mock`): pick a role on the sign-in
 page. Set `VITE_AUTH_MODE=api` to sign in through `POST /api/v1/auth/login` (dev authenticator,
-password `sutra`; set `SUTRA_DEV_MFA=true` to exercise the MFA challenge, code `000000`).
+password `sutra`). With `SUTRA_DEV_MFA=true` administrators are asked to enrol an authenticator app
+(QR code on `/mfa/enrol`) and then enter a real TOTP code at every sign-in. `VITE_AUTH_MODE=oidc`
+pairs with `SUTRA_AUTH_MODE=keycloak` and shows a single sign-on button (`GET /api/v1/auth/oidc/start`).
 
 The API also starts with no database at all for UI work:
 
@@ -87,7 +90,8 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace                       # no database needed
 make test-db                                 # + live PostgreSQL 18 tests: persistence, PG session store,
-                                             #   end-to-end cross-tenant isolation (DATABASE_URL)
+                                             #   end-to-end cross-tenant isolation, MFA factors,
+                                             #   pre-auth records, TOTP + step-up (DATABASE_URL)
 pnpm install && pnpm -r typecheck && pnpm lint && pnpm -r test && pnpm -r build
 make openapi                                 # regenerate spec + TS client after API changes
 make ci                                      # everything CI runs, incl. OpenAPI drift
@@ -103,8 +107,13 @@ make ci                                      # everything CI runs, incl. OpenAPI
 - Authentication: opaque server-side session in an `HttpOnly; SameSite=Strict` (`Secure`, `__Host-`)
   cookie. No session → `401`. Missing permission → `403` (deny-by-default role→permission policy).
 - CSRF: login and `GET /api/v1/auth/session` return `csrfToken`; every POST/PUT/PATCH/DELETE carrying the
-  session cookie must send it as `X-CSRF-Token` (login and MFA verify excepted) → otherwise `403`
-  `csrf-token-missing` / `csrf-token-invalid`.
+  session cookie must send it as `X-CSRF-Token` → otherwise `403` `csrf-token-missing` / `csrf-token-invalid`.
+  Login and MFA verify (no session yet) need the signed pre-session token from `GET /api/v1/auth/csrf`
+  (double submit: `__Host-sutra_login_csrf` cookie + `X-CSRF-Token`).
+- Cross-site unsafe requests (`Sec-Fetch-Site: cross-site`, or an `Origin` that is neither the API's own
+  host nor in `SUTRA_ALLOWED_ORIGINS`) → `403`.
+- Step-up: admin-sensitive permissions (`institution.register`) need an MFA-verified session when step-up
+  is enforced → `403` `mfa-step-up-required`.
 - Tenant scope comes **only** from the session (ADR-L5-0004). `X-Sutra-Tenant-Id` / `X-Sutra-Institution-Id`
   are no longer read; if a client still sends one that contradicts the session it gets `403`.
 - Mutable aggregates expose `ETag: "<version>"`; updates require `If-Match` (412 on conflict, 428 if absent).
@@ -114,10 +123,15 @@ make ci                                      # everything CI runs, incl. OpenAPI
 | Method | Path | Notes |
 |--------|------|-------|
 | GET | `/health/live`, `/health/ready` | readiness checks PostgreSQL, flips to 503 while draining |
-| POST | `/api/v1/auth/login` | dev authenticator now, Keycloak delegation later in Batch 1; returns `csrfToken` |
-| POST | `/api/v1/auth/mfa/verify` | MFA continuation hook; returns `csrfToken` |
-| GET | `/api/v1/auth/session` | current principal, `expiresAt`, `idleExpiresAt`, `csrfToken` |
-| POST | `/api/v1/auth/logout` | revokes the server-side session (CSRF token required) |
+| GET | `/api/v1/auth/csrf` | pre-session (login) CSRF token: cookie + body |
+| POST | `/api/v1/auth/login` | dev mode: login id + password (login CSRF required); `authenticated` or `mfaRequired`; `501` in Keycloak mode |
+| POST | `/api/v1/auth/mfa/verify` | TOTP code for a pending challenge (login CSRF required) |
+| GET | `/api/v1/auth/session` | current principal, `expiresAt`, `idleExpiresAt`, `csrfToken`, `mfaLevel`, `amr` |
+| POST | `/api/v1/auth/logout` | revokes the server-side session; Keycloak mode returns the RP-initiated `endSessionUrl` |
+| POST | `/api/v1/auth/mfa/totp/enrolment`, `/api/v1/auth/mfa/totp/confirm` | dev-mode TOTP enrolment (secret + `otpauth://` URI, first code activates) |
+| POST | `/api/v1/auth/mfa/step-up` | TOTP code → session rotated to `mfaLevel = mfa` |
+| POST | `/api/v1/auth/mfa/webauthn/registration`, `/assertion` | port only: `501` problem (deferred) |
+| GET | `/api/v1/auth/oidc/start`, `/api/v1/auth/oidc/callback` | Keycloak mode: Authorization Code + PKCE BFF flow |
 | GET | `/api/v1/platform/workspaces[?role=&group=]`, `/api/v1/platform/workspaces/{key}` | navigation catalog |
 | GET | `/api/v1/platform/modules` | module registry |
 | POST/GET/PATCH | `/api/v1/institution/institutions[/{id}]` | reference aggregate (needs PostgreSQL); register/rename: administrator, read: any role, always in the session tenant |
@@ -136,3 +150,20 @@ make ci                                      # everything CI runs, incl. OpenAPI
 
 Web (`VITE_AUTH_MODE=api`) keeps the CSRF token in memory from the login/session responses and the typed
 client adds `X-CSRF-Token` to unsafe requests; mock mode is unchanged.
+
+## Batch 1 slice B — Keycloak OIDC, MFA, login CSRF, Origin checks
+
+| Concern | Implementation |
+|---------|----------------|
+| Auth mode | `SUTRA_AUTH_MODE=dev\|keycloak` (default `dev`, refused in production). Keycloak settings: `SUTRA_OIDC_ISSUER` (or `SUTRA_KEYCLOAK_URL` + `SUTRA_KEYCLOAK_REALM`), `SUTRA_OIDC_CLIENT_ID`, `SUTRA_OIDC_CLIENT_SECRET`, `SUTRA_OIDC_REDIRECT_URI`, `SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI`, tenant/institution claim names, MFA `acr` values. See `.env.example`. |
+| OIDC BFF | `modules/platform/src/auth/keycloak.rs`. `/oidc/start` stores `state` → nonce, PKCE `S256` verifier, browser-binding cookie digest and return path in `platform.pre_auth` (single use, 10 min). `/oidc/callback` exchanges the code (confidential client), validates the ID token (JWKS cached, refreshed once on unknown `kid`; RS/ES/PS algorithms only; `iss`, `aud`/`azp`, `exp`/`nbf`, `nonce`), maps `sub`/`preferred_username`/`name`, realm roles → `Role`, `tenant_id`/`institution_id` → scope (fail closed), `amr`/`acr` → MFA level, stores `sid`, creates the session and redirects to the SPA. Logout returns the RP-initiated `end_session_endpoint` URL (`client_id` + `post_logout_redirect_uri`; no `id_token_hint` because ID tokens are not retained). Keycloak tokens never reach the browser. |
+| Dev-realm | `deploy/keycloak/realm-sutra-dev.json`: confidential `sutra-web` client (PKCE S256), realm roles = SutraERP roles, `tenant_id`/`institution_id` user-attribute mappers, `CONFIGURE_TOTP` / `webauthn-register` required actions. |
+| TOTP MFA (dev mode) | `modules/platform/src/auth/mfa.rs`: RFC 6238 (SHA-1, 6 digits, 30 s, ±1 step), enrolment → `otpauth://` URI + QR, first code activates; last accepted step stored so a code cannot be replayed. Secret encrypted at rest with AES-256-GCM (`SUTRA_MFA_ENCRYPTION_KEY`, AAD = tenant\|subject\|kind) in `platform.mfa_factor`. Administrators require MFA when `SUTRA_DEV_MFA=true`. |
+| Session assurance | `platform.session.mfa_level` / `amr` / `idp_sid` (`migrations/20261012000001_platform_auth_mfa.sql`). `Permission::requires_step_up` (institution register) → `403` problem unless `mfa_level = mfa`; `POST /auth/mfa/step-up` rotates the session. |
+| WebAuthn | Port (`WebauthnPort`) + endpoints answering `501` (deferred; available in Keycloak mode via the `webauthn-register` required action). |
+| Login CSRF | `GET /api/v1/auth/csrf`: HMAC-signed, expiring double-submit token (`SUTRA_CSRF_KEY`, `SUTRA_LOGIN_CSRF_TTL_SECS`); required on login and MFA verify. MFA challenges are bound to the token they were issued with. |
+| Origin guard | `sutra_web::auth::origin_guard` on every unsafe request (`SUTRA_ALLOWED_ORIGINS` for extra origins). |
+| `last_seen_at` throttle | Written at most once per `SUTRA_SESSION_TOUCH_SECS` (default 60 s) per session. |
+
+Web: sign-in fetches the login CSRF token first, shows a TOTP step on `mfaRequired`, routes to the MFA
+enrolment screen (QR code) when `mfaEnrollmentRequired`; `oidc` mode shows an SSO button.
