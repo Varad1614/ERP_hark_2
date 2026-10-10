@@ -3,7 +3,9 @@
 //! For mutating requests (POST/PUT/PATCH/DELETE) that carry `Idempotency-Key`:
 //!
 //! 1. the request is fingerprinted (method, path+query, content-type, body SHA-256);
-//! 2. the key is *begun* in the owner-scoped [`IdempotencyStore`] (scope = tenant header);
+//! 2. the key is *begun* in the owner-scoped [`IdempotencyStore`]; the owner is the authenticated
+//!    principal (`<tenant>/<subject>` from the session, see [`crate::auth`]) so one tenant or user can
+//!    never replay another's stored response. Anonymous requests share the `anonymous` owner;
 //! 3. first execution runs the handler and stores the final 2xx/4xx response;
 //! 4. a retry with the same fingerprint replays the stored response with
 //!    `Idempotency-Replayed: true`; a different fingerprint is rejected with 422;
@@ -13,7 +15,6 @@
 //! through untouched; handlers that *require* a key can use [`require_idempotency_key`].
 
 use crate::problem::ApiError;
-use crate::scope::TENANT_HEADER;
 use axum::body::{to_bytes, Body};
 use axum::extract::{Request, State};
 use axum::http::{header, HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
@@ -21,6 +22,7 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
+use sutra_kernel::auth::AuthContext;
 use sutra_kernel::error::KernelError;
 use sutra_kernel::idempotency::{BeginOutcome, IdempotencyStore, StoredResponse};
 
@@ -80,6 +82,14 @@ fn fingerprint(method: &Method, uri: &str, content_type: Option<&str>, body: &[u
     h.finalize().iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Owner scope of an idempotency record: the authenticated principal within its tenant.
+pub fn owner_key(ctx: Option<&AuthContext>) -> String {
+    match ctx {
+        Some(c) => format!("{}/{}", c.scope.tenant_id, c.subject),
+        None => "anonymous".to_owned(),
+    }
+}
+
 fn replay(stored: StoredResponse) -> Response {
     let status = StatusCode::from_u16(stored.status).unwrap_or(StatusCode::OK);
     let mut res = (status, stored.body).into_response();
@@ -123,12 +133,7 @@ pub async fn idempotency(
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok());
     let fp = fingerprint(&parts.method, &uri, ct, &bytes);
-    let scope_key = parts
-        .headers
-        .get(TENANT_HEADER)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("anonymous")
-        .to_owned();
+    let scope_key = owner_key(parts.extensions.get::<AuthContext>());
 
     match store.begin(&scope_key, &key, &fp).await? {
         BeginOutcome::Replay(stored) => return Ok(replay(stored)),
@@ -204,10 +209,7 @@ mod tests {
     }
 
     fn req(key: Option<&str>, body: &str) -> Request {
-        let mut b = Request::builder()
-            .method("POST")
-            .uri("/things")
-            .header(TENANT_HEADER, "t1");
+        let mut b = Request::builder().method("POST").uri("/things");
         if let Some(k) = key {
             b = b.header("idempotency-key", k);
         }
@@ -248,6 +250,26 @@ mod tests {
         let _ = a.clone().oneshot(req(None, "x")).await.unwrap();
         let _ = a.clone().oneshot(req(None, "x")).await.unwrap();
         assert_eq!(c.load(Ordering::SeqCst), 2);
+    }
+
+    #[test]
+    fn owner_key_is_tenant_and_subject() {
+        use sutra_kernel::auth::Role;
+        use sutra_kernel::scope::{ExecutionScope, TenantId};
+        let t = TenantId::new();
+        let ctx = AuthContext {
+            session_id: uuid::Uuid::now_v7(),
+            subject: "dev|a".into(),
+            login_id: "a".into(),
+            display_name: "A".into(),
+            roles: vec![Role::Student],
+            scope: ExecutionScope::tenant(t),
+            csrf_token: String::new(),
+            expires_at: chrono::Utc::now(),
+            idle_expires_at: chrono::Utc::now(),
+        };
+        assert_eq!(owner_key(Some(&ctx)), format!("{t}/dev|a"));
+        assert_eq!(owner_key(None), "anonymous");
     }
 
     #[tokio::test]

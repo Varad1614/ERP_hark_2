@@ -6,12 +6,21 @@ import type { Role } from "./roles";
 /** `mock`: everything resolved in the browser. `api`: talk to sutra-api (same origin). */
 export const AUTH_MODE: "mock" | "api" = import.meta.env.VITE_AUTH_MODE === "api" ? "api" : "mock";
 
-let currentScope: { tenantId?: string; institutionId?: string } | undefined;
-export function setApiScope(scope: typeof currentScope) {
-  currentScope = scope;
+/**
+ * Synchronizer CSRF token of the current server-side session (ADR-L5-0038). Kept in memory only
+ * (never in storage): it is re-read from `GET /api/v1/auth/session` on every page load and sent
+ * as `X-CSRF-Token` on POST/PUT/PATCH/DELETE. Tenant scope is never sent; the API takes it from
+ * the session.
+ */
+let csrfToken: string | undefined;
+export function setCsrfToken(token: string | undefined) {
+  csrfToken = token;
+}
+export function getCsrfToken(): string | undefined {
+  return csrfToken;
 }
 
-export const api = createSutraClient({ baseUrl: import.meta.env.VITE_API_BASE ?? "", scope: () => currentScope });
+export const api = createSutraClient({ baseUrl: import.meta.env.VITE_API_BASE ?? "", csrfToken: getCsrfToken });
 
 /** Shared copy of `catalog/workspaces.json` (the same file the API embeds). */
 export const CATALOG = catalogJson as unknown as Workspace[];

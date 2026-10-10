@@ -46,7 +46,7 @@ test: ## Rust + web unit tests (no database needed)
 	$(PNPM) -r test
 
 test-db: ## Integration tests against a live PostgreSQL (DATABASE_URL)
-	$(CARGO) test -p sutra-persistence --features db-tests
+	$(CARGO) test -p sutra-persistence -p sutra-platform -p sutra-api --features db-tests
 
 build: ## Build API and web
 	$(CARGO) build --workspace

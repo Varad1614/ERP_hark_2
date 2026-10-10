@@ -63,7 +63,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: sutraerp
-      - run: cargo test -p sutra-persistence --features db-tests --locked
+      - run: cargo test -p sutra-persistence -p sutra-platform -p sutra-api --features db-tests --locked
 
   openapi-drift:
     name: OpenAPI drift

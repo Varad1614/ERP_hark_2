@@ -6,37 +6,16 @@
 //! carried in a `Secure; HttpOnly; SameSite` cookie. No password hash is ever stored by SutraERP and
 //! the OAuth Resource-Owner-Password grant is **not** used.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use std::fmt;
+use sutra_kernel::auth::AuthContext;
 use sutra_kernel::error::KernelError;
 use sutra_kernel::scope::ExecutionScope;
+use uuid::Uuid;
 
-/// Application role as presented by the web client. Authorization truth stays with D02 policy;
-/// this is a coarse persona used for navigation and default scoping.
-#[derive(
-    Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, utoipa::ToSchema,
-)]
-#[serde(rename_all = "camelCase")]
-pub enum Role {
-    Administrator,
-    Faculty,
-    Student,
-}
-
-impl Role {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Role::Administrator => "administrator",
-            Role::Faculty => "faculty",
-            Role::Student => "student",
-        }
-    }
-
-    /// Privileged roles require MFA (ADR-L5-0038 §3.8).
-    pub fn is_privileged(&self) -> bool {
-        matches!(self, Role::Administrator)
-    }
-}
+/// Application role (defined in the kernel so the HTTP layer can evaluate the D02 policy without
+/// depending on contracts). Authorization truth is `sutra_kernel::auth::role_permissions`.
+pub use sutra_kernel::auth::Role;
 
 /// Transient credentials. `Debug` is redacted so the password can never reach a log line.
 #[derive(Clone, serde::Deserialize)]
@@ -103,21 +82,127 @@ pub trait MfaPolicy: Send + Sync + 'static {
     fn requires_mfa(&self, principal: &Principal) -> bool;
 }
 
-/// Server-side session record. The cookie only carries the opaque id.
-#[derive(Clone, Debug)]
-pub struct Session {
-    pub id: String,
-    pub principal: Principal,
-    pub created_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
+impl From<&AuthContext> for Principal {
+    fn from(c: &AuthContext) -> Self {
+        Principal {
+            subject: c.subject.clone(),
+            display_name: c.display_name.clone(),
+            login_id: c.login_id.clone(),
+            roles: c.roles.clone(),
+            scope: c.scope,
+        }
+    }
 }
 
-/// Session storage port (D01-owned). In-memory in Batch 0; PostgreSQL/Valkey-backed in Batch 1.
+/// Idle and absolute session lifetimes (ADR-L5-0038 §3.4). A session dies at whichever comes
+/// first: `created_at + absolute_timeout`, or `last_seen_at + idle_timeout`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SessionPolicy {
+    pub idle_timeout: Duration,
+    pub absolute_timeout: Duration,
+}
+
+impl SessionPolicy {
+    /// Validates `0 < idle <= absolute`.
+    pub fn new(idle_secs: i64, absolute_secs: i64) -> Result<Self, KernelError> {
+        if idle_secs <= 0 || absolute_secs <= 0 || idle_secs > absolute_secs {
+            return Err(KernelError::BadRequest(
+                "session policy requires 0 < idle timeout <= absolute timeout".into(),
+            ));
+        }
+        Ok(Self {
+            idle_timeout: Duration::seconds(idle_secs),
+            absolute_timeout: Duration::seconds(absolute_secs),
+        })
+    }
+
+    /// `true` when a session with these timestamps is still alive at `now`.
+    pub fn is_live(
+        &self,
+        now: DateTime<Utc>,
+        last_seen_at: DateTime<Utc>,
+        expires_at: DateTime<Utc>,
+    ) -> bool {
+        now < expires_at && now < last_seen_at + self.idle_timeout
+    }
+}
+
+/// Server-side session record. The cookie only carries the opaque token; the store keeps a
+/// SHA-256 digest of it, never the token itself.
+#[derive(Clone, PartialEq, Eq)]
+pub struct Session {
+    /// Technical session id (UUIDv7) — safe for logs and audit; not a credential.
+    pub id: Uuid,
+    pub principal: Principal,
+    pub created_at: DateTime<Utc>,
+    pub last_seen_at: DateTime<Utc>,
+    /// Absolute expiry.
+    pub expires_at: DateTime<Utc>,
+    /// Expiry if no further activity is seen.
+    pub idle_expires_at: DateTime<Utc>,
+    /// Synchronizer CSRF token bound to this session (derived; never stored in clear).
+    pub csrf_token: String,
+}
+
+impl fmt::Debug for Session {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Session")
+            .field("id", &self.id)
+            .field("principal", &self.principal)
+            .field("created_at", &self.created_at)
+            .field("last_seen_at", &self.last_seen_at)
+            .field("expires_at", &self.expires_at)
+            .field("idle_expires_at", &self.idle_expires_at)
+            .field("csrf_token", &"<redacted>")
+            .finish()
+    }
+}
+
+impl Session {
+    /// The HTTP-layer view of this session.
+    pub fn auth_context(&self) -> AuthContext {
+        AuthContext {
+            session_id: self.id,
+            subject: self.principal.subject.clone(),
+            login_id: self.principal.login_id.clone(),
+            display_name: self.principal.display_name.clone(),
+            roles: self.principal.roles.clone(),
+            scope: self.principal.scope,
+            csrf_token: self.csrf_token.clone(),
+            expires_at: self.expires_at,
+            idle_expires_at: self.idle_expires_at,
+        }
+    }
+}
+
+/// A freshly created session together with its opaque token. The token is handed to the client
+/// exactly once (in the session cookie) and is never persisted or logged.
+#[derive(Clone)]
+pub struct IssuedSession {
+    pub token: String,
+    pub session: Session,
+}
+
+impl fmt::Debug for IssuedSession {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IssuedSession")
+            .field("token", &"<redacted>")
+            .field("session", &self.session)
+            .finish()
+    }
+}
+
+/// Session storage port (D01-owned): in-memory (dev/tests) or PostgreSQL (`platform.session`).
+/// Valkey may cache but is never the session authority (ADR-L5-0037 §2.8).
 #[async_trait::async_trait]
 pub trait SessionStore: Send + Sync + 'static {
-    async fn create(&self, principal: Principal) -> Result<Session, KernelError>;
-    async fn get(&self, id: &str) -> Result<Option<Session>, KernelError>;
-    async fn revoke(&self, id: &str) -> Result<(), KernelError>;
+    /// Mints a new session with a fresh 256-bit token and CSRF secret.
+    async fn create(&self, principal: Principal) -> Result<IssuedSession, KernelError>;
+    /// Resolves a live session by its token and records activity (slides the idle window).
+    /// Unknown, revoked, idle-expired and absolutely-expired sessions yield `None`.
+    async fn get(&self, token: &str) -> Result<Option<Session>, KernelError>;
+    /// Revokes the session (idempotent; unknown tokens are ignored).
+    async fn revoke(&self, token: &str) -> Result<(), KernelError>;
 }
 
 #[cfg(test)]
@@ -136,8 +221,44 @@ mod tests {
     }
 
     #[test]
-    fn administrator_is_privileged() {
-        assert!(Role::Administrator.is_privileged());
-        assert!(!Role::Student.is_privileged());
+    fn session_policy_validation_and_liveness() {
+        assert!(SessionPolicy::new(0, 10).is_err());
+        assert!(SessionPolicy::new(20, 10).is_err());
+        let p = SessionPolicy::new(60, 3600).unwrap_or_else(|_| unreachable!());
+        let now = Utc::now();
+        let expires = now + Duration::seconds(3600);
+        assert!(p.is_live(now, now, expires));
+        assert!(
+            !p.is_live(now, now - Duration::seconds(61), expires),
+            "idle"
+        );
+        assert!(!p.is_live(expires, expires, expires), "absolute");
+    }
+
+    #[test]
+    fn issued_session_debug_redacts_secrets() {
+        let now = Utc::now();
+        let s = IssuedSession {
+            token: "tok-secret".into(),
+            session: Session {
+                id: Uuid::now_v7(),
+                principal: Principal {
+                    subject: "s".into(),
+                    display_name: "d".into(),
+                    login_id: "l".into(),
+                    roles: vec![Role::Student],
+                    scope: ExecutionScope::tenant(sutra_kernel::scope::TenantId::new()),
+                },
+                created_at: now,
+                last_seen_at: now,
+                expires_at: now,
+                idle_expires_at: now,
+                csrf_token: "csrf-secret".into(),
+            },
+        };
+        let d = format!("{s:?}");
+        assert!(!d.contains("tok-secret") && !d.contains("csrf-secret"));
+        let ctx = s.session.auth_context();
+        assert_eq!(Principal::from(&ctx), s.session.principal);
     }
 }

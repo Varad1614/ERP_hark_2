@@ -2,18 +2,20 @@
 
 use super::CookieSettings;
 use crate::PlatformDeps;
-use axum::extract::{FromRef, FromRequestParts, State};
-use axum::http::{header, request::Parts, HeaderMap, HeaderValue, StatusCode};
+use axum::extract::State;
+use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::Json;
+use axum::{Extension, Json};
 use std::sync::Arc;
 use sutra_contracts::platform::auth::{
-    AuthOutcome, CredentialAuthenticator, Credentials, MfaMethod, Principal, Session, SessionStore,
+    AuthOutcome, CredentialAuthenticator, Credentials, MfaMethod, Principal, SessionStore,
 };
 use sutra_kernel::audit::{ActorKind, AuditEntry, AuditOutcome, AuditSink};
+use sutra_kernel::auth::AuthContext;
 use sutra_kernel::error::{FieldViolation, KernelError};
+use sutra_web::auth::read_cookie;
 use sutra_web::request_id::current_correlation_id;
-use sutra_web::{ApiError, ApiResult, Problem};
+use sutra_web::{ApiResult, Authenticated, Problem};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 #[derive(Clone)]
@@ -22,18 +24,6 @@ pub struct AuthState {
     pub sessions: Arc<dyn SessionStore>,
     pub audit: Arc<dyn AuditSink>,
     pub cookie: CookieSettings,
-}
-
-impl FromRef<AuthState> for Arc<dyn SessionStore> {
-    fn from_ref(s: &AuthState) -> Self {
-        s.sessions.clone()
-    }
-}
-
-impl FromRef<AuthState> for CookieSettings {
-    fn from_ref(s: &AuthState) -> Self {
-        s.cookie.clone()
-    }
 }
 
 #[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
@@ -72,48 +62,25 @@ pub struct LoginResponse {
     pub challenge_id: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub mfa_methods: Vec<MfaMethod>,
+    /// Present when `outcome = authenticated`: the session's synchronizer CSRF token. Send it as
+    /// `X-CSRF-Token` on every POST/PUT/PATCH/DELETE made with the session cookie.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub csrf_token: Option<String>,
+    /// Present when `outcome = authenticated`: absolute session expiry.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionInfo {
     pub principal: Principal,
+    /// Absolute expiry (re-authentication required afterwards).
     pub expires_at: chrono::DateTime<chrono::Utc>,
-}
-
-fn session_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
-    headers
-        .get_all(header::COOKIE)
-        .iter()
-        .filter_map(|v| v.to_str().ok())
-        .flat_map(|v| v.split(';'))
-        .filter_map(|kv| kv.trim().split_once('='))
-        .find(|(k, _)| *k == name)
-        .map(|(_, v)| v.to_owned())
-}
-
-/// Extractor: the caller's live session, or 401.
-pub struct CurrentSession(pub Session);
-
-impl<S> FromRequestParts<S> for CurrentSession
-where
-    S: Send + Sync,
-    Arc<dyn SessionStore>: FromRef<S>,
-    CookieSettings: FromRef<S>,
-{
-    type Rejection = ApiError;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let cookie = CookieSettings::from_ref(state);
-        let store = <Arc<dyn SessionStore>>::from_ref(state);
-        let token =
-            session_cookie(&parts.headers, cookie.name()).ok_or(KernelError::Unauthenticated)?;
-        let session = store
-            .get(&token)
-            .await?
-            .ok_or(KernelError::Unauthenticated)?;
-        Ok(CurrentSession(session))
-    }
+    /// Expiry if the session stays idle from now on (sliding window).
+    pub idle_expires_at: chrono::DateTime<chrono::Utc>,
+    /// Synchronizer CSRF token bound to this session; send as `X-CSRF-Token` on unsafe requests.
+    pub csrf_token: String,
 }
 
 async fn establish(
@@ -122,10 +89,10 @@ async fn establish(
     principal: Principal,
 ) -> ApiResult<Response> {
     // Session fixation defence: always mint a new id and revoke any presented one.
-    if let Some(old) = session_cookie(headers, state.cookie.name()) {
+    if let Some(old) = read_cookie(headers, state.cookie.name()) {
         state.sessions.revoke(&old).await?;
     }
-    let session = state.sessions.create(principal.clone()).await?;
+    let issued = state.sessions.create(principal.clone()).await?;
     let _ = state
         .audit
         .record(
@@ -135,6 +102,7 @@ async fn establish(
                 AuditOutcome::Succeeded,
             )
             .actor(ActorKind::User, Some(principal.subject.clone()))
+            .target("session", issued.session.id.to_string())
             .correlation(current_correlation_id()),
         )
         .await;
@@ -143,9 +111,11 @@ async fn establish(
         principal: Some(principal),
         challenge_id: None,
         mfa_methods: vec![],
+        csrf_token: Some(issued.session.csrf_token.clone()),
+        expires_at: Some(issued.session.expires_at),
     };
     let mut res = Json(body).into_response();
-    let cookie = HeaderValue::from_str(&state.cookie.set_cookie(&session.id))
+    let cookie = HeaderValue::from_str(&state.cookie.set_cookie(&issued.token))
         .map_err(KernelError::internal)?;
     res.headers_mut().insert(header::SET_COOKIE, cookie);
     res.headers_mut()
@@ -156,8 +126,10 @@ async fn establish(
 /// Authenticate with login id + password.
 ///
 /// Delegates to the configured credential authority (Keycloak in production, dev stub in Batch 0)
-/// and, on success, sets an opaque `HttpOnly; Secure; SameSite=Strict` session cookie. Privileged
-/// principals may receive `mfaRequired` instead and must call `/api/v1/auth/mfa/verify`.
+/// and, on success, sets an opaque `HttpOnly; Secure; SameSite=Strict` session cookie and returns
+/// the session's CSRF token. Privileged principals may receive `mfaRequired` instead and must
+/// call `/api/v1/auth/mfa/verify`. Exempt from the CSRF check (no session exists yet); any
+/// presented session is revoked and replaced (fixation defence).
 #[utoipa::path(
     post,
     path = "/api/v1/auth/login",
@@ -211,6 +183,8 @@ pub async fn login(
             principal: None,
             challenge_id: Some(challenge_id),
             mfa_methods: methods,
+            csrf_token: None,
+            expires_at: None,
         })
         .into_response()),
         Err(e) => {
@@ -244,28 +218,63 @@ pub async fn verify_mfa(
     establish(&state, &headers, principal).await
 }
 
-/// Current session principal.
+/// Current session: principal, expiries and the session's CSRF token.
+///
+/// Counts as activity (slides the idle window).
 #[utoipa::path(
     get,
     path = "/api/v1/auth/session",
     tag = "auth",
+    security(("session_cookie" = [])),
     responses(
         (status = 200, body = SessionInfo),
         (status = 401, body = Problem, content_type = "application/problem+json"),
     )
 )]
-pub async fn session(CurrentSession(s): CurrentSession) -> Json<SessionInfo> {
-    Json(SessionInfo {
-        principal: s.principal,
-        expires_at: s.expires_at,
+pub async fn session(Authenticated(ctx): Authenticated) -> Response {
+    let mut res = Json(SessionInfo {
+        principal: Principal::from(&ctx),
+        expires_at: ctx.expires_at,
+        idle_expires_at: ctx.idle_expires_at,
+        csrf_token: ctx.csrf_token,
     })
+    .into_response();
+    res.headers_mut()
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    res
 }
 
 /// End the current session (idempotent).
-#[utoipa::path(post, path = "/api/v1/auth/logout", tag = "auth", responses((status = 204, description = "Signed out")))]
-pub async fn logout(State(state): State<AuthState>, headers: HeaderMap) -> ApiResult<Response> {
-    if let Some(token) = session_cookie(&headers, state.cookie.name()) {
+///
+/// With a live session the request must carry `X-CSRF-Token` (prevents forced sign-out).
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/logout",
+    tag = "auth",
+    security(("session_cookie" = [], "csrf_token" = [])),
+    responses(
+        (status = 204, description = "Signed out"),
+        (status = 403, description = "CSRF token missing or invalid", body = Problem, content_type = "application/problem+json"),
+    )
+)]
+pub async fn logout(
+    State(state): State<AuthState>,
+    ctx: Option<Extension<AuthContext>>,
+    headers: HeaderMap,
+) -> ApiResult<Response> {
+    if let Some(token) = read_cookie(&headers, state.cookie.name()) {
         state.sessions.revoke(&token).await?;
+    }
+    if let Some(Extension(ctx)) = ctx {
+        let _ = state
+            .audit
+            .record(
+                AuditEntry::new(ctx.scope, "platform.auth.logout", AuditOutcome::Succeeded)
+                    .actor(ActorKind::User, Some(ctx.subject.clone()))
+                    .target("session", ctx.session_id.to_string())
+                    .correlation(current_correlation_id()),
+            )
+            .await;
     }
     let mut res = StatusCode::NO_CONTENT.into_response();
     let cookie =
@@ -297,11 +306,21 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use http_body_util::BodyExt;
+    use sutra_contracts::platform::auth::SessionPolicy;
     use sutra_kernel::audit::TracingAuditSink;
     use sutra_kernel::scope::{ExecutionScope, TenantId};
+    use sutra_web::auth::CSRF_HEADER;
     use tower::ServiceExt;
 
     fn app(enforce_mfa: bool) -> axum::Router {
+        let sessions: Arc<dyn SessionStore> = Arc::new(InMemorySessionStore::new(
+            SessionPolicy::new(1800, 3600).unwrap(),
+        ));
+        let cookie = CookieSettings {
+            secure: true,
+            max_age_secs: 3600,
+        };
+        let auth = crate::auth::session_auth(sessions.clone(), &cookie);
         let deps = PlatformDeps {
             authenticator: Arc::new(DevAuthenticator::new(
                 "sutra".into(),
@@ -310,26 +329,45 @@ mod tests {
                     enforce: enforce_mfa,
                 }),
             )),
-            sessions: Arc::new(InMemorySessionStore::new(3600)),
+            sessions,
             mfa: Arc::new(PrivilegedRoleMfaPolicy {
                 enforce: enforce_mfa,
             }),
             audit: Arc::new(TracingAuditSink),
-            cookie: CookieSettings {
-                secure: true,
-                max_age_secs: 3600,
-            },
+            cookie,
             modules: vec![],
         };
-        router(deps).into()
+        axum::Router::from(router(deps)).layer(axum::middleware::from_fn_with_state(
+            auth,
+            sutra_web::auth::authenticate,
+        ))
     }
 
     fn post(path: &str, body: serde_json::Value, cookie: Option<&str>) -> Request<Body> {
+        post_csrf(path, body, cookie, None)
+    }
+
+    fn post_csrf(
+        path: &str,
+        body: serde_json::Value,
+        cookie: Option<&str>,
+        csrf: Option<&str>,
+    ) -> Request<Body> {
         let mut b = Request::post(path).header("content-type", "application/json");
         if let Some(c) = cookie {
             b = b.header("cookie", c);
         }
+        if let Some(t) = csrf {
+            b = b.header(CSRF_HEADER, t);
+        }
         b.body(Body::from(body.to_string())).unwrap()
+    }
+
+    fn get_session(cookie: &str) -> Request<Body> {
+        Request::get("/api/v1/auth/session")
+            .header("cookie", cookie)
+            .body(Body::empty())
+            .unwrap()
     }
 
     async fn json(res: Response) -> serde_json::Value {
@@ -344,6 +382,22 @@ mod tests {
             .next()
             .unwrap()
             .to_owned()
+    }
+
+    async fn login(app: &axum::Router, login_id: &str) -> (String, String) {
+        let res = app
+            .clone()
+            .oneshot(post(
+                "/api/v1/auth/login",
+                serde_json::json!({"loginId": login_id, "password": "sutra"}),
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let cookie = cookie_pair(&res);
+        let csrf = json(res).await["csrfToken"].as_str().unwrap().to_owned();
+        (cookie, csrf)
     }
 
     #[tokio::test]
@@ -371,21 +425,27 @@ mod tests {
         assert_eq!(body["outcome"], "authenticated");
         assert_eq!(body["principal"]["roles"][0], "student");
         assert!(!body.to_string().contains("password"));
+        let csrf = body["csrfToken"].as_str().unwrap().to_owned();
+        assert_eq!(csrf.len(), 64);
+        assert!(
+            !set.contains(&csrf),
+            "the CSRF token is not the session token"
+        );
 
-        let me = app
-            .clone()
-            .oneshot(
-                Request::get("/api/v1/auth/session")
-                    .header("cookie", &cookie)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
+        let me = app.clone().oneshot(get_session(&cookie)).await.unwrap();
         assert_eq!(me.status(), StatusCode::OK);
-        assert_eq!(json(me).await["principal"]["displayName"], "Aarav Desai");
+        assert_eq!(me.headers()[header::CACHE_CONTROL], "no-store");
+        let me = json(me).await;
+        assert_eq!(me["principal"]["displayName"], "Aarav Desai");
+        assert_eq!(
+            me["csrfToken"],
+            csrf.as_str(),
+            "same token from login and session"
+        );
+        assert!(me["idleExpiresAt"].is_string() && me["expiresAt"].is_string());
 
-        let out = app
+        // Logout with a live session is an unsafe cookie request: CSRF required.
+        let forced = app
             .clone()
             .oneshot(post(
                 "/api/v1/auth/logout",
@@ -394,17 +454,48 @@ mod tests {
             ))
             .await
             .unwrap();
-        assert_eq!(out.status(), StatusCode::NO_CONTENT);
-        let me = app
-            .oneshot(
-                Request::get("/api/v1/auth/session")
-                    .header("cookie", &cookie)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+        assert_eq!(forced.status(), StatusCode::FORBIDDEN);
+        assert_eq!(json(forced).await["errorCode"], "csrf-token-missing");
+        assert_eq!(
+            app.clone()
+                .oneshot(get_session(&cookie))
+                .await
+                .unwrap()
+                .status(),
+            StatusCode::OK,
+            "a forged logout must not end the session"
+        );
+
+        let out = app
+            .clone()
+            .oneshot(post_csrf(
+                "/api/v1/auth/logout",
+                serde_json::json!({}),
+                Some(&cookie),
+                Some(&csrf),
+            ))
             .await
             .unwrap();
+        assert_eq!(out.status(), StatusCode::NO_CONTENT);
+        let me = app.oneshot(get_session(&cookie)).await.unwrap();
         assert_eq!(me.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            me.headers()[header::CONTENT_TYPE],
+            "application/problem+json"
+        );
+    }
+
+    #[tokio::test]
+    async fn logout_without_live_session_is_idempotent() {
+        let res = app(false)
+            .oneshot(post(
+                "/api/v1/auth/logout",
+                serde_json::json!({}),
+                Some("__Host-sutra_session=dead"),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::NO_CONTENT);
     }
 
     #[tokio::test]
@@ -460,6 +551,7 @@ mod tests {
         );
         let body = json(res).await;
         assert_eq!(body["outcome"], "mfaRequired");
+        assert!(body.get("csrfToken").is_none(), "no CSRF token before MFA");
         let challenge = body["challengeId"].as_str().unwrap().to_owned();
         let res = app
             .oneshot(post(
@@ -471,19 +563,14 @@ mod tests {
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         assert!(res.headers().get(header::SET_COOKIE).is_some());
+        assert!(json(res).await["csrfToken"].is_string());
     }
 
     #[tokio::test]
-    async fn login_rotates_presented_session() {
+    async fn login_rotates_presented_session_without_csrf() {
         let app = app(false);
-        let login = || {
-            post(
-                "/api/v1/auth/login",
-                serde_json::json!({"loginId": "meera.shah@sutra.dev", "password": "sutra"}),
-                None,
-            )
-        };
-        let first = cookie_pair(&app.clone().oneshot(login()).await.unwrap());
+        let (first, first_csrf) = login(&app, "meera.shah@sutra.dev").await;
+        // Login is CSRF-exempt even when a live session cookie is presented.
         let second_res = app
             .clone()
             .oneshot(post(
@@ -493,17 +580,33 @@ mod tests {
             ))
             .await
             .unwrap();
+        assert_eq!(second_res.status(), StatusCode::OK);
         let second = cookie_pair(&second_res);
         assert_ne!(first, second);
-        let old = app
-            .oneshot(
-                Request::get("/api/v1/auth/session")
-                    .header("cookie", &first)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+        assert_ne!(
+            json(second_res).await["csrfToken"].as_str().unwrap(),
+            first_csrf,
+            "a new session gets a new CSRF token"
+        );
+        let old = app.oneshot(get_session(&first)).await.unwrap();
+        assert_eq!(old.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn csrf_token_of_another_session_is_rejected() {
+        let app = app(false);
+        let (cookie_a, _) = login(&app, "meera.shah@sutra.dev").await;
+        let (_, csrf_b) = login(&app, "aarav.desai@sutra.dev").await;
+        let res = app
+            .oneshot(post_csrf(
+                "/api/v1/auth/logout",
+                serde_json::json!({}),
+                Some(&cookie_a),
+                Some(&csrf_b),
+            ))
             .await
             .unwrap();
-        assert_eq!(old.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        assert_eq!(json(res).await["errorCode"], "csrf-token-invalid");
     }
 }

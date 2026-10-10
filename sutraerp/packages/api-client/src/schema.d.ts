@@ -16,8 +16,10 @@ export interface paths {
         /**
          * Authenticate with login id + password.
          * @description Delegates to the configured credential authority (Keycloak in production, dev stub in Batch 0)
-         *     and, on success, sets an opaque `HttpOnly; Secure; SameSite=Strict` session cookie. Privileged
-         *     principals may receive `mfaRequired` instead and must call `/api/v1/auth/mfa/verify`.
+         *     and, on success, sets an opaque `HttpOnly; Secure; SameSite=Strict` session cookie and returns
+         *     the session's CSRF token. Privileged principals may receive `mfaRequired` instead and must
+         *     call `/api/v1/auth/mfa/verify`. Exempt from the CSRF check (no session exists yet); any
+         *     presented session is revoked and replaced (fixation defence).
          */
         post: operations["login"];
         delete?: never;
@@ -35,7 +37,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** End the current session (idempotent). */
+        /**
+         * End the current session (idempotent).
+         * @description With a live session the request must carry `X-CSRF-Token` (prevents forced sign-out).
+         */
         post: operations["logout"];
         delete?: never;
         options?: never;
@@ -67,7 +72,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Current session principal. */
+        /**
+         * Current session: principal, expiries and the session's CSRF token.
+         * @description Counts as activity (slides the idle window).
+         */
         get: operations["session"];
         put?: never;
         post?: never;
@@ -86,7 +94,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Register an institution (reference aggregate). */
+        /**
+         * Register an institution (reference aggregate) in the caller's session tenant.
+         * @description Requires the `institution.register` permission (administrators).
+         */
         post: operations["register"];
         delete?: never;
         options?: never;
@@ -101,14 +112,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get an institution. */
+        /**
+         * Get an institution of the caller's session tenant (`institution.read`).
+         * @description Institutions of other tenants are indistinguishable from missing ones (404).
+         */
         get: operations["get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** Rename an institution (optimistic concurrency via `If-Match`). */
+        /**
+         * Rename an institution of the caller's session tenant (optimistic concurrency via `If-Match`).
+         * @description Requires the `institution.rename` permission (administrators).
+         */
         patch: operations["rename"];
         trace?: never;
     };
@@ -260,6 +277,16 @@ export interface components {
         LoginResponse: {
             /** @description Present when `outcome = mfaRequired`. */
             challengeId?: string | null;
+            /**
+             * @description Present when `outcome = authenticated`: the session's synchronizer CSRF token. Send it as
+             *     `X-CSRF-Token` on every POST/PUT/PATCH/DELETE made with the session cookie.
+             */
+            csrfToken?: string | null;
+            /**
+             * Format: date-time
+             * @description Present when `outcome = authenticated`: absolute session expiry.
+             */
+            expiresAt?: string | null;
             mfaMethods?: components["schemas"]["MfaMethod"][];
             outcome: components["schemas"]["LoginOutcome"];
             principal?: null | components["schemas"]["Principal"];
@@ -330,14 +357,24 @@ export interface components {
             name: string;
         };
         /**
-         * @description Application role as presented by the web client. Authorization truth stays with D02 policy;
-         *     this is a coarse persona used for navigation and default scoping.
+         * @description Application role as presented by the web client. Authorization decisions use the
+         *     [`Permission`] map below, never the role name directly.
          * @enum {string}
          */
         Role: "administrator" | "faculty" | "student";
         SessionInfo: {
-            /** Format: date-time */
+            /** @description Synchronizer CSRF token bound to this session; send as `X-CSRF-Token` on unsafe requests. */
+            csrfToken: string;
+            /**
+             * Format: date-time
+             * @description Absolute expiry (re-authentication required afterwards).
+             */
             expiresAt: string;
+            /**
+             * Format: date-time
+             * @description Expiry if the session stays idle from now on (sliding window).
+             */
+            idleExpiresAt: string;
             principal: components["schemas"]["Principal"];
         };
         /**
@@ -434,6 +471,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description CSRF token missing or invalid */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     verify_mfa: {
@@ -498,12 +544,10 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Tenant scope (UUID). Mandatory; requests without it fail closed. */
-                "X-Sutra-Tenant-Id": string;
-                /** @description Institution scope (UUID). Optional; must belong to the tenant. */
-                "X-Sutra-Institution-Id"?: string | null;
                 /** @description Required. Retry-safe key (1-255 visible ASCII). */
                 "Idempotency-Key": string;
+                /** @description Required. Session CSRF token from login or GET /api/v1/auth/session. */
+                "X-CSRF-Token": string;
             };
             path?: never;
             cookie?: never;
@@ -532,6 +576,24 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description No live session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure or missing `institution.register` permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -553,12 +615,7 @@ export interface operations {
     get: {
         parameters: {
             query?: never;
-            header: {
-                /** @description Tenant scope (UUID). Mandatory; requests without it fail closed. */
-                "X-Sutra-Tenant-Id": string;
-                /** @description Institution scope (UUID). Optional; must belong to the tenant. */
-                "X-Sutra-Institution-Id"?: string | null;
-            };
+            header?: never;
             path: {
                 id: string;
             };
@@ -575,6 +632,24 @@ export interface operations {
                     "application/json": components["schemas"]["Institution"];
                 };
             };
+            /** @description No live session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -589,12 +664,10 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Tenant scope (UUID). Mandatory; requests without it fail closed. */
-                "X-Sutra-Tenant-Id": string;
-                /** @description Institution scope (UUID). Optional; must belong to the tenant. */
-                "X-Sutra-Institution-Id"?: string | null;
                 /** @description ETag of the version being modified */
                 "If-Match": string;
+                /** @description Required. Session CSRF token from login or GET /api/v1/auth/session. */
+                "X-CSRF-Token": string;
             };
             path: {
                 id: string;
@@ -614,6 +687,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description No live session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure or missing `institution.rename` permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {

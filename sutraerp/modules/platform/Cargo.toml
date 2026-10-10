@@ -14,6 +14,8 @@ workspace = true
 sutra-kernel.workspace = true
 sutra-contracts.workspace = true
 sutra-web.workspace = true
+sutra-persistence.workspace = true
+sqlx.workspace = true
 axum.workspace = true
 http.workspace = true
 serde.workspace = true
@@ -25,8 +27,11 @@ utoipa-axum.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
 tokio.workspace = true
-getrandom.workspace = true
 
 [dev-dependencies]
 tower.workspace = true
 http-body-util.workspace = true
+
+[features]
+# Integration tests that need a live PostgreSQL 18 (set DATABASE_URL). Off by default.
+db-tests = []

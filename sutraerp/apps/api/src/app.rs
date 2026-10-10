@@ -8,7 +8,9 @@ use http::header;
 use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::Duration;
-use sutra_contracts::platform::auth::{CredentialAuthenticator, MfaPolicy};
+use sutra_contracts::platform::auth::{
+    CredentialAuthenticator, MfaPolicy, SessionPolicy, SessionStore,
+};
 use sutra_kernel::audit::{AuditSink, TracingAuditSink};
 use sutra_kernel::idempotency::{IdempotencyStore, InMemoryIdempotencyStore};
 use sutra_kernel::module::ModuleDescriptor;
@@ -19,9 +21,11 @@ use sutra_persistence::{
 use sutra_platform::auth::dev::{DevAuthenticator, PrivilegedRoleMfaPolicy};
 use sutra_platform::auth::keycloak::{KeycloakAuthenticator, KeycloakSettings};
 use sutra_platform::auth::session::InMemorySessionStore;
+use sutra_platform::auth::session_pg::PgSessionStore;
 use sutra_platform::auth::CookieSettings;
 use sutra_platform::PlatformDeps;
 use sutra_web::health::Readiness;
+use sutra_web::SessionAuth;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
@@ -51,6 +55,8 @@ pub struct AppContext {
     pub pool: PgPool,
     pub readiness: Readiness,
     pub platform: PlatformDeps,
+    /// Global session authentication + CSRF middleware state.
+    pub session_auth: SessionAuth,
     pub idempotency: Arc<dyn IdempotencyStore>,
     pub request_timeout: Duration,
 }
@@ -61,6 +67,8 @@ pub enum BuildError {
     Database(#[from] sqlx::Error),
     #[error("dev scope configuration: {0}")]
     Scope(String),
+    #[error("session configuration: {0}")]
+    Session(String),
 }
 
 impl AppContext {
@@ -107,20 +115,29 @@ impl AppContext {
             StoreBackend::Memory => Arc::new(InMemoryIdempotencyStore::default()),
         };
         let mfa: Arc<dyn MfaPolicy> = Arc::new(mfa);
+        let policy = SessionPolicy::new(cfg.session_idle_secs, cfg.session_ttl_secs)
+            .map_err(|e| BuildError::Session(e.to_string()))?;
+        let sessions: Arc<dyn SessionStore> = match cfg.session_store {
+            StoreBackend::Postgres => Arc::new(PgSessionStore::new(pool.clone(), policy)),
+            StoreBackend::Memory => Arc::new(InMemorySessionStore::new(policy)),
+        };
+        let cookie = CookieSettings {
+            secure: cfg.session_cookie_secure,
+            max_age_secs: cfg.session_ttl_secs,
+        };
+        let session_auth = sutra_platform::auth::session_auth(sessions.clone(), &cookie);
         Ok(Self {
             pool,
             readiness,
             platform: PlatformDeps {
                 authenticator,
-                sessions: Arc::new(InMemorySessionStore::new(cfg.session_ttl_secs)),
+                sessions,
                 mfa,
                 audit,
-                cookie: CookieSettings {
-                    secure: cfg.session_cookie_secure,
-                    max_age_secs: cfg.session_ttl_secs,
-                },
+                cookie,
                 modules: modules(),
             },
+            session_auth,
             idempotency,
             request_timeout: cfg.request_timeout,
         })
@@ -142,6 +159,10 @@ impl AppContext {
 }
 
 /// Builds the router plus the generated OpenAPI document.
+///
+/// Layer order (outermost first): session authentication + CSRF → idempotency → handlers. The
+/// idempotency middleware keys its records by the authenticated owner, so it must run inside
+/// the authentication layer.
 pub fn build(ctx: AppContext) -> OpenApiRouter {
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .merge(sutra_web::health::router(ctx.readiness.clone()))
@@ -158,6 +179,10 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         .layer(axum::middleware::from_fn_with_state(
             ctx.idempotency,
             sutra_web::idempotency::idempotency,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            ctx.session_auth,
+            sutra_web::auth::authenticate,
         ))
 }
 

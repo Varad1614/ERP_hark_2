@@ -51,7 +51,11 @@ pub struct Config {
     pub keycloak_realm: String,
     pub keycloak_client_id: String,
     pub session_cookie_secure: bool,
+    /// Absolute session lifetime (also the cookie `Max-Age`).
     pub session_ttl_secs: i64,
+    /// Idle timeout: a session unused for this long is dead.
+    pub session_idle_secs: i64,
+    pub session_store: StoreBackend,
     pub idempotency_store: StoreBackend,
     pub audit_sink: StoreBackend,
     pub otel_endpoint: Option<String>,
@@ -214,6 +218,8 @@ impl Config {
             keycloak_client_id: string(src, "SUTRA_KEYCLOAK_CLIENT_ID", "sutra-api"),
             session_cookie_secure: parse(src, "SUTRA_SESSION_COOKIE_SECURE", true)?,
             session_ttl_secs: parse(src, "SUTRA_SESSION_TTL_SECS", 8 * 3600)?,
+            session_idle_secs: parse(src, "SUTRA_SESSION_IDLE_SECS", 30 * 60)?,
+            session_store: backend(src, "SUTRA_SESSION_STORE", default_store)?,
             idempotency_store: backend(src, "SUTRA_IDEMPOTENCY_STORE", default_store)?,
             audit_sink: backend(src, "SUTRA_AUDIT_SINK", default_store)?,
             otel_endpoint: src.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
@@ -236,11 +242,27 @@ impl Config {
             }
             if self.idempotency_store == StoreBackend::Memory
                 || self.audit_sink == StoreBackend::Memory
+                || self.session_store == StoreBackend::Memory
             {
                 return Err(ConfigError::Forbidden(
-                    "in-memory idempotency/audit stores are not allowed in production",
+                    "in-memory session/idempotency/audit stores are not allowed in production",
                 ));
             }
+        }
+        if self.session_ttl_secs <= 0 {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_SESSION_TTL_SECS",
+                value: self.session_ttl_secs.to_string(),
+            });
+        }
+        if self.session_idle_secs <= 0 || self.session_idle_secs > self.session_ttl_secs {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_SESSION_IDLE_SECS",
+                value: format!(
+                    "{} (must be > 0 and <= SUTRA_SESSION_TTL_SECS)",
+                    self.session_idle_secs
+                ),
+            });
         }
         if self.db_max_connections == 0 {
             return Err(ConfigError::Invalid {
@@ -289,6 +311,38 @@ mod tests {
         let c = Config::load(&ok).unwrap();
         assert_eq!(c.auth_provider, AuthProvider::Keycloak);
         assert_eq!(c.log_format, LogFormat::Json);
+    }
+
+    #[test]
+    fn session_store_and_timeouts() {
+        let c = Config::load(&HashMap::<&str, &str>::new()).unwrap();
+        assert_eq!(c.session_store, StoreBackend::Postgres);
+        assert_eq!((c.session_idle_secs, c.session_ttl_secs), (1800, 28800));
+        let test = Config::load(&HashMap::from([("SUTRA_ENV", "test")])).unwrap();
+        assert_eq!(test.session_store, StoreBackend::Memory);
+        let mem = Config::load(&HashMap::from([("SUTRA_SESSION_STORE", "memory")])).unwrap();
+        assert_eq!(mem.session_store, StoreBackend::Memory);
+        let prod_mem = HashMap::from([
+            ("SUTRA_ENV", "production"),
+            ("DATABASE_URL", "postgres://x"),
+            ("SUTRA_SESSION_STORE", "memory"),
+        ]);
+        assert!(matches!(
+            Config::load(&prod_mem),
+            Err(ConfigError::Forbidden(_))
+        ));
+        let idle_too_long = HashMap::from([
+            ("SUTRA_SESSION_TTL_SECS", "600"),
+            ("SUTRA_SESSION_IDLE_SECS", "601"),
+        ]);
+        assert!(matches!(
+            Config::load(&idle_too_long),
+            Err(ConfigError::Invalid {
+                key: "SUTRA_SESSION_IDLE_SECS",
+                ..
+            })
+        ));
+        assert!(Config::load(&HashMap::from([("SUTRA_SESSION_STORE", "redis")])).is_err());
     }
 
     #[test]

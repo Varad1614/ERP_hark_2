@@ -53,3 +53,7 @@ uuid.workspace = true
 [dev-dependencies]
 http-body-util.workspace = true
 async-trait.workspace = true
+
+[features]
+# End-to-end tests against a live PostgreSQL 18 (set DATABASE_URL). Off by default.
+db-tests = []

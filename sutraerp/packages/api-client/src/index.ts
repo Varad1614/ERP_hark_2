@@ -24,8 +24,35 @@ export type Problem = Schemas["Problem"];
 export interface ClientOptions {
   /** Origin of the API; empty string = same origin (default, via dev proxy / ingress). */
   baseUrl?: string;
-  /** Tenant/Institution scope headers (dev header mode, ADR-L5-0004). */
-  scope?: () => { tenantId?: string; institutionId?: string } | undefined;
+  /**
+   * Current session's synchronizer CSRF token (from login or `GET /api/v1/auth/session`).
+   * Sent as `X-CSRF-Token` on every unsafe request. Tenant/institution scope is never sent: the
+   * server takes it from the session (ADR-L5-0004).
+   */
+  csrfToken?: () => string | undefined;
+}
+
+/** Header carrying the session's CSRF token (ADR-L5-0038). */
+export const CSRF_HEADER = "X-CSRF-Token";
+
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/** True for methods that change state and must carry the CSRF token. */
+export function isUnsafeMethod(method: string): boolean {
+  return UNSAFE_METHODS.has(method.toUpperCase());
+}
+
+/** Adds `X-CSRF-Token` to unsafe requests when a token is known. */
+export function csrfMiddleware(csrfToken: () => string | undefined): Middleware {
+  return {
+    onRequest({ request }) {
+      if (isUnsafeMethod(request.method)) {
+        const token = csrfToken();
+        if (token) request.headers.set(CSRF_HEADER, token);
+      }
+      return request;
+    },
+  };
 }
 
 /** Error thrown for RFC 9457 problem responses. */
@@ -47,15 +74,7 @@ export function newIdempotencyKey(): string {
 
 export function createSutraClient(options: ClientOptions = {}) {
   const client = createClient<paths>({ baseUrl: options.baseUrl ?? "", credentials: "include" });
-  const scopeMiddleware: Middleware = {
-    onRequest({ request }) {
-      const scope = options.scope?.();
-      if (scope?.tenantId) request.headers.set("X-Sutra-Tenant-Id", scope.tenantId);
-      if (scope?.institutionId) request.headers.set("X-Sutra-Institution-Id", scope.institutionId);
-      return request;
-    },
-  };
-  client.use(scopeMiddleware);
+  if (options.csrfToken) client.use(csrfMiddleware(options.csrfToken));
   return client;
 }
 

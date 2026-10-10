@@ -7,7 +7,8 @@
 //! * owner-local transaction: state + outbox intent + audit commit atomically (ADR-L5-0006/0007)
 //! * optimistic concurrency via `version` + `ETag`/`If-Match` (ADR-L5-0006)
 //! * required `Idempotency-Key` on create (ADR-L5-0034)
-//! * fail-closed tenant scope (ADR-L5-0004)
+//! * fail-closed, **session-derived** tenant scope (ADR-L5-0004) and deny-by-default D02
+//!   permissions (`institution.read` / `.register` / `.rename`) — Batch 1 slice A
 //!
 //! Full institution structure (campuses, departments, calendars) is Batch 2.
 

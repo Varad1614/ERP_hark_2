@@ -4,6 +4,24 @@ pub mod dev;
 pub mod http;
 pub mod keycloak;
 pub mod session;
+pub mod session_pg;
+
+use std::sync::Arc;
+use sutra_contracts::platform::auth::SessionStore;
+use sutra_web::SessionAuth;
+
+/// Endpoints that establish a session and therefore cannot present a CSRF token yet.
+pub const CSRF_EXEMPT_PATHS: [&str; 2] = ["/api/v1/auth/login", "/api/v1/auth/mfa/verify"];
+
+/// State for the global `sutra_web::auth::authenticate` middleware, backed by this module's
+/// session store.
+pub fn session_auth(sessions: Arc<dyn SessionStore>, cookie: &CookieSettings) -> SessionAuth {
+    SessionAuth::new(
+        Arc::new(session::StoreSessionResolver(sessions)),
+        cookie.name(),
+        CSRF_EXEMPT_PATHS,
+    )
+}
 
 /// Session cookie settings (ADR-L5-0038 §3.4: `Secure`, `HttpOnly`, same-site governed).
 #[derive(Clone, Debug)]

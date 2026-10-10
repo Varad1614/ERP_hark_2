@@ -1,6 +1,7 @@
 # SutraERP
 
-Production-grade education ERP — **Batch 0: Foundation**.
+Production-grade education ERP — **Batch 0: Foundation** + **Batch 1 slice A** (durable sessions, CSRF,
+authorization policy, session-derived tenant scope).
 
 A Rust modular monolith (Axum + Tokio, PostgreSQL 18 + SQLx) with a React Router SPA in the
 **Soft Bento** design language. Architecture authority: the SutraERP L0–L6 architecture repository
@@ -16,15 +17,17 @@ sutraerp/
 ├── Cargo.toml                 Cargo workspace
 ├── crates/                    shared, domain-free crates
 │   ├── kernel/                UUIDv7 ids · ExecutionScope (tenant/institution) · Money (rust_decimal)
+│   │                          · Role/Permission policy + AuthContext · secret helpers (CSPRNG, SHA-256, HMAC, ct-eq)
 │   │                          · Version (optimistic concurrency) · CloudEvents envelope + EventPublisher
 │   │                          · AuditEntry/AuditSink · IdempotencyStore · ReadinessCheck · KernelError
 │   ├── contracts/             public inter-module ports + DTOs (the ONLY way modules talk)
-│   ├── web/                   Axum layer: RFC 9457 problems · request id · Scope extractor
-│   │                          · Idempotency-Key middleware · /health/live|ready
+│   ├── web/                   Axum layer: RFC 9457 problems · request id · session auth + CSRF middleware
+│   │                          · Authenticated/Scope extractors · Idempotency-Key middleware · /health/live|ready
 │   └── persistence/           SQLx pool (UTC) · embedded migrations · outbox writer · audit sink
 │                              · PostgreSQL idempotency store · DB readiness
 ├── modules/                   one crate per domain (A–J), each owns one PostgreSQL schema
 │   ├── platform/      (A)     auth boundary (login/session/MFA hook, dev stub, Keycloak interface),
+│   │                          durable sessions (platform.session, idle + absolute expiry) + CSRF tokens,
 │   │                          WorkflowPort no-op adapter, workspace catalog, module registry
 │   ├── institution/   (B)     reference aggregate: tx + outbox + audit + version/ETag + Idempotency-Key
 │   ├── student/       (C)  academic/ (D)  people/ (E)  finance/ (F, money model seed)
@@ -71,7 +74,7 @@ password `sutra`; set `SUTRA_DEV_MFA=true` to exercise the MFA challenge, code `
 The API also starts with no database at all for UI work:
 
 ```sh
-SUTRA_IDEMPOTENCY_STORE=memory SUTRA_AUDIT_SINK=memory cargo run -p sutra-api
+SUTRA_SESSION_STORE=memory SUTRA_IDEMPOTENCY_STORE=memory SUTRA_AUDIT_SINK=memory cargo run -p sutra-api
 # /health/ready reports 503 (postgres unreachable) — liveness, auth and catalog still work
 ```
 
@@ -83,7 +86,8 @@ Whole stack in containers: `docker compose --profile app up --build` (web on :30
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace                       # no database needed
-make test-db                                 # + live PostgreSQL 18 integration tests (DATABASE_URL)
+make test-db                                 # + live PostgreSQL 18 tests: persistence, PG session store,
+                                             #   end-to-end cross-tenant isolation (DATABASE_URL)
 pnpm install && pnpm -r typecheck && pnpm lint && pnpm -r test && pnpm -r build
 make openapi                                 # regenerate spec + TS client after API changes
 make ci                                      # everything CI runs, incl. OpenAPI drift
@@ -96,20 +100,39 @@ make ci                                      # everything CI runs, incl. OpenAPI
   (= `X-Request-Id`) and `validationErrors`.
 - Retry-sensitive commands accept `Idempotency-Key`; same key + different body → 422, in flight → 409,
   replay carries `Idempotency-Replayed: true`.
-- Tenant scope: `X-Sutra-Tenant-Id` (+ optional `X-Sutra-Institution-Id`) in dev header mode; missing
-  or malformed scope fails closed.
+- Authentication: opaque server-side session in an `HttpOnly; SameSite=Strict` (`Secure`, `__Host-`)
+  cookie. No session → `401`. Missing permission → `403` (deny-by-default role→permission policy).
+- CSRF: login and `GET /api/v1/auth/session` return `csrfToken`; every POST/PUT/PATCH/DELETE carrying the
+  session cookie must send it as `X-CSRF-Token` (login and MFA verify excepted) → otherwise `403`
+  `csrf-token-missing` / `csrf-token-invalid`.
+- Tenant scope comes **only** from the session (ADR-L5-0004). `X-Sutra-Tenant-Id` / `X-Sutra-Institution-Id`
+  are no longer read; if a client still sends one that contradicts the session it gets `403`.
 - Mutable aggregates expose `ETag: "<version>"`; updates require `If-Match` (412 on conflict, 428 if absent).
 
-## Batch 0 endpoints
+## Endpoints
 
 | Method | Path | Notes |
 |--------|------|-------|
 | GET | `/health/live`, `/health/ready` | readiness checks PostgreSQL, flips to 503 while draining |
-| POST | `/api/v1/auth/login` | dev authenticator now, Keycloak delegation in Batch 1 |
-| POST | `/api/v1/auth/mfa/verify` | MFA continuation hook |
-| GET | `/api/v1/auth/session` | current principal |
-| POST | `/api/v1/auth/logout` | revokes the server-side session |
+| POST | `/api/v1/auth/login` | dev authenticator now, Keycloak delegation later in Batch 1; returns `csrfToken` |
+| POST | `/api/v1/auth/mfa/verify` | MFA continuation hook; returns `csrfToken` |
+| GET | `/api/v1/auth/session` | current principal, `expiresAt`, `idleExpiresAt`, `csrfToken` |
+| POST | `/api/v1/auth/logout` | revokes the server-side session (CSRF token required) |
 | GET | `/api/v1/platform/workspaces[?role=&group=]`, `/api/v1/platform/workspaces/{key}` | navigation catalog |
 | GET | `/api/v1/platform/modules` | module registry |
-| POST/GET/PATCH | `/api/v1/institution/institutions[/{id}]` | reference aggregate (needs PostgreSQL) |
+| POST/GET/PATCH | `/api/v1/institution/institutions[/{id}]` | reference aggregate (needs PostgreSQL); register/rename: administrator, read: any role, always in the session tenant |
 | GET | `/api/openapi.json` | generated OpenAPI 3.1 |
+
+## Batch 1 slice A — sessions, CSRF, policy, scope
+
+| Concern | Implementation |
+|---------|----------------|
+| Durable sessions | `platform.session` (`migrations/20261011000001_platform_session.sql`), `PgSessionStore` in `modules/platform/src/auth/session_pg.rs`; `InMemorySessionStore` for no-DB dev/tests. Only `SHA-256(token)` is stored; 256-bit tokens; revocation sets `revoked_at`. |
+| Expiry | Absolute `SUTRA_SESSION_TTL_SECS` (default 8 h, also cookie `Max-Age`) + sliding idle `SUTRA_SESSION_IDLE_SECS` (default 30 min). Checked atomically with the DB clock in one `UPDATE … RETURNING`. |
+| Store selection | `SUTRA_SESSION_STORE=postgres\|memory` (default `postgres`, `memory` when `SUTRA_ENV=test`; `memory` refused in production). |
+| CSRF | Per-session random secret; token = `HMAC-SHA256(secret, "sutraerp.csrf.v1\|" ‖ session token)`, so it is session-bound, re-derivable for `GET /auth/session`, and not computable from a DB dump. Enforced by `sutra_web::auth::authenticate` with a constant-time compare. |
+| Authorization (D02) | `sutra_kernel::auth::{Role, Permission, role_permissions}` — exhaustive, deny-by-default map. Handlers take `sutra_web::Authenticated` and call `.require(Permission::…)`. |
+| Scope | `AuthContext.scope` from the session is the only scope authority; the idempotency store is keyed by `<tenant>/<subject>` of the session. |
+
+Web (`VITE_AUTH_MODE=api`) keeps the CSRF token in memory from the login/session responses and the typed
+client adds `X-CSRF-Token` to unsafe requests; mock mode is unchanged.

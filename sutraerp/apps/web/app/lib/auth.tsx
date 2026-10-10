@@ -1,10 +1,11 @@
 /**
  * Client session state. The server-side session cookie is HttpOnly (ADR-L5-0038), so in `api`
- * mode the browser only ever learns the principal through `GET /api/v1/auth/session`.
+ * mode the browser only ever learns the principal (and the session's CSRF token) through the
+ * login response and `GET /api/v1/auth/session`.
  * In `mock` mode (default for UI work) the chosen dev persona is kept in sessionStorage.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { AUTH_MODE, api, setApiScope, unwrap } from "./api";
+import { AUTH_MODE, api, setCsrfToken, unwrap } from "./api";
 import { isRole, ROLE_CONFIG, type Role } from "./roles";
 
 export interface ClientSession {
@@ -42,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await api.GET("/api/v1/auth/session");
         const p = res.data?.principal;
         const role = p?.roles[0];
-        if (!cancelled && p && role) {
-          setApiScope({ tenantId: p.scope.tenantId, institutionId: p.scope.institutionId ?? undefined });
+        if (!cancelled && res.data && p && role) {
+          setCsrfToken(res.data.csrfToken);
           setSession({ role, displayName: p.displayName, loginId: p.loginId });
         }
       }
@@ -69,14 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Multi-factor verification is required for this account (Batch 1 UI).");
     }
     const p = res.principal;
-    setApiScope({ tenantId: p.scope.tenantId, institutionId: p.scope.institutionId ?? undefined });
+    setCsrfToken(res.csrfToken ?? undefined);
     setSession({ role: p.roles[0] ?? role, displayName: p.displayName, loginId: p.loginId });
   }, []);
 
   const signOut = useCallback(async () => {
     if (AUTH_MODE === "mock") window.sessionStorage.removeItem(STORAGE_KEY);
+    // Logout is an unsafe request: the client middleware attaches X-CSRF-Token.
     else await api.POST("/api/v1/auth/logout").catch(() => undefined);
-    setApiScope(undefined);
+    setCsrfToken(undefined);
     setSession(null);
   }, []);
 
