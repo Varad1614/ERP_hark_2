@@ -1,0 +1,30 @@
+[package]
+name = "sutra-infra"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Infrastructure adapters behind kernel ports: NATS JetStream MessagePublisher (ADR-L5-0022), Valkey Cache (ADR-L5-0037)."
+
+[lints]
+workspace = true
+
+[dependencies]
+sutra-kernel.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+async-nats.workspace = true
+redis.workspace = true
+
+[dev-dependencies]
+uuid.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+
+[features]
+# Live tests against a local nats-server -js (SUTRA_TEST_NATS_URL, default nats://127.0.0.1:4222).
+nats-tests = []
+# Live tests against a local valkey/redis (SUTRA_TEST_VALKEY_URL, default redis://127.0.0.1:6379).
+valkey-tests = []

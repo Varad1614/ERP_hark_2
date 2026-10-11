@@ -5,6 +5,9 @@
 //! * [`pool`] – bounded, lazily-connecting SQLx pool, sessions normalised to UTC (ADR-L5-0036 §3.4/§3.7)
 //! * [`migrate`] – embedded, version-controlled migrations run as a separate step (ADR-L5-0008)
 //! * [`outbox`] – Durable Publication Intent writer for the owner-local transaction (ADR-L5-0007)
+//! * [`outbox_relay`] – claim → publish → mark relay to a `MessagePublisher` (ADR-L5-0010/0022)
+//! * [`jobs`] – advisory-locked sweeper scheduler + idempotency/outbox retention jobs
+//! * [`backoff`] – exponential backoff with jitter
 //! * [`audit`] – append-only audit sink
 //! * [`idempotency`] – owner-scoped idempotency store (ADR-L5-0034)
 //! * [`readiness`] – database readiness probe
@@ -12,9 +15,12 @@
 //! All queries are runtime-checked (`sqlx::query`), so the workspace builds with no database.
 
 pub mod audit;
+pub mod backoff;
 pub mod idempotency;
+pub mod jobs;
 pub mod migrate;
 pub mod outbox;
+pub mod outbox_relay;
 pub mod pool;
 pub mod readiness;
 

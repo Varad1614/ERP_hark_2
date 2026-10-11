@@ -5,7 +5,7 @@ use sutra_kernel::concurrency::Version;
 use sutra_kernel::error::{FieldViolation, KernelError};
 use sutra_kernel::scope::{InstitutionId, TenantId};
 
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Institution {
     pub id: InstitutionId,

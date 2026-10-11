@@ -1,8 +1,8 @@
 # SutraERP
 
-Production-grade education ERP — **Batch 0: Foundation** + **Batch 1 slices A and B** (durable sessions,
+Production-grade education ERP — **Batch 0: Foundation** + **Batch 1 slices A, B and C** (durable sessions,
 CSRF, authorization policy, session-derived tenant scope; Keycloak OIDC adapter, TOTP MFA + step-up,
-login CSRF, cross-site Origin checks).
+login CSRF, cross-site Origin checks; NATS JetStream outbox relay, advisory-locked sweepers, Valkey cache).
 
 A Rust modular monolith (Axum + Tokio, PostgreSQL 18 + SQLx) with a React Router SPA in the
 **Soft Bento** design language. Architecture authority: the SutraERP L0–L6 architecture repository
@@ -21,11 +21,14 @@ sutraerp/
 │   │                          · Role/Permission policy + AuthContext · secret helpers (CSPRNG, SHA-256, HMAC, ct-eq)
 │   │                          · Version (optimistic concurrency) · CloudEvents envelope + EventPublisher
 │   │                          · AuditEntry/AuditSink · IdempotencyStore · ReadinessCheck · KernelError
+│   │                          · MessagePublisher port + subject derivation · advisory Cache port
 │   ├── contracts/             public inter-module ports + DTOs (the ONLY way modules talk)
 │   ├── web/                   Axum layer: RFC 9457 problems · request id · session auth + CSRF middleware
 │   │                          · Authenticated/Scope extractors · Idempotency-Key middleware · /health/live|ready
-│   └── persistence/           SQLx pool (UTC) · embedded migrations · outbox writer · audit sink
-│                              · PostgreSQL idempotency store · DB readiness
+│   ├── persistence/           SQLx pool (UTC) · embedded migrations · outbox writer + relay · audit sink
+│   │                          · PostgreSQL idempotency store · DB readiness · sweeper scheduler (advisory locks)
+│   └── infra/                 product adapters behind kernel ports: NATS JetStream publisher, Valkey cache
+│                              (only the composition root depends on it)
 ├── modules/                   one crate per domain (A–J), each owns one PostgreSQL schema
 │   ├── platform/      (A)     auth boundary (login/session/MFA hook, dev stub, Keycloak interface),
 │   │                          durable sessions (platform.session, idle + absolute expiry) + CSRF tokens,
@@ -45,13 +48,14 @@ sutraerp/
 ├── migrations/                schemas per domain, audit_log, outbox, idempotency_key, institution
 ├── openapi/openapi.json       generated OpenAPI 3.1 (committed; CI checks drift)
 ├── deploy/                    Dockerfiles, nginx, Keycloak dev realm, Postgres init
-├── docker-compose.yml         postgres 18 · keycloak 26 · valkey · mailpit (+ api/web profile)
+├── docker-compose.yml         postgres 18 · keycloak 26 · valkey · nats (JetStream) · mailpit (+ api/web profile)
 └── .github/workflows/ci.yml   fmt · clippy -D warnings · tests · PG18 integration · web · OpenAPI drift
 ```
 
 **Boundary rules** (enforced by `cargo test`, see `apps/api/tests/architecture.rs`):
 
 - a module crate depends only on `sutra-kernel`, `sutra-contracts`, `sutra-web`, `sutra-persistence`;
+- NATS / Valkey SDKs appear only in `sutra-infra` (never in modules or the other shared crates);
 - `kernel` and `contracts` never depend on Axum/SQLx/Tower;
 - no module SQL references another module's schema;
 - every module crate is registered in the composition root.
@@ -62,7 +66,7 @@ Prerequisites: Rust stable (see `rust-toolchain.toml`), Node 22, pnpm (`corepack
 
 ```sh
 make setup        # pnpm install + .env from .env.example
-make up           # postgres 18, keycloak 26, valkey, mailpit
+make up           # postgres 18, keycloak 26, valkey, nats (JetStream), mailpit
 make migrate      # apply migrations (separate step, ADR-L5-0008)
 make api          # http://localhost:8080   (OpenAPI: /api/openapi.json)
 make web          # http://localhost:5173   (proxies /api to :8080)
@@ -91,7 +95,10 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace                       # no database needed
 make test-db                                 # + live PostgreSQL 18 tests: persistence, PG session store,
                                              #   end-to-end cross-tenant isolation, MFA factors,
-                                             #   pre-auth records, TOTP + step-up (DATABASE_URL)
+                                             #   pre-auth records, TOTP + step-up, outbox relay,
+                                             #   sweepers, institution cache (DATABASE_URL)
+make test-live                               # + live NATS JetStream / Valkey adapter tests
+                                             #   (nats-server -js and valkey/redis on localhost)
 pnpm install && pnpm -r typecheck && pnpm lint && pnpm -r test && pnpm -r build
 make openapi                                 # regenerate spec + TS client after API changes
 make ci                                      # everything CI runs, incl. OpenAPI drift
@@ -122,7 +129,7 @@ make ci                                      # everything CI runs, incl. OpenAPI
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/health/live`, `/health/ready` | readiness checks PostgreSQL, flips to 503 while draining |
+| GET | `/health/live`, `/health/ready` | readiness: PostgreSQL (critical) + NATS / Valkey when enabled (non-critical → `degraded`, still 200); 503 while draining |
 | GET | `/api/v1/auth/csrf` | pre-session (login) CSRF token: cookie + body |
 | POST | `/api/v1/auth/login` | dev mode: login id + password (login CSRF required); `authenticated` or `mfaRequired`; `501` in Keycloak mode |
 | POST | `/api/v1/auth/mfa/verify` | TOTP code for a pending challenge (login CSRF required) |
@@ -167,3 +174,15 @@ client adds `X-CSRF-Token` to unsafe requests; mock mode is unchanged.
 
 Web: sign-in fetches the login CSRF token first, shows a TOTP step on `mfaRequired`, routes to the MFA
 enrolment screen (QR code) when `mfaEnrollmentRequired`; `oidc` mode shows an SSO button.
+
+## Batch 1 slice C — JetStream outbox relay, sweepers, Valkey cache
+
+| Concern | Implementation |
+|---------|----------------|
+| Ports | `sutra_kernel::messaging::MessagePublisher` (+ `InMemoryPublisher` test adapter, `subject_for`) and `sutra_kernel::cache::{Cache, AdvisoryCache}` (+ `InMemoryCache`, `NoCache`). Adapters in `crates/infra`: `JetStreamPublisher` (async-nats, rustls) and `ValkeyCache` (redis crate, rustls for `rediss://`). |
+| Outbox relay | `crates/persistence/src/outbox_relay.rs`, enabled by `SUTRA_OUTBOX_RELAY=nats` (default `off` in dev/test, `nats` in production; `off` in production needs `SUTRA_OUTBOX_RELAY_ALLOW_OFF=true`). Claim: short transaction, relay-claim advisory lock, `FOR UPDATE SKIP LOCKED`, rows leased via `claim_token` + `next_attempt_at = now() + lease`. Publish in `created_at` order to `sutra.<tenant>.<domain>.<aggregate>.<event>` with `Nats-Msg-Id` = outbox id and CloudEvents headers; mark `published_at` **only after the JetStream ack**. Transient failure → `attempts+1`, `last_error`, exponential backoff with jitter, pass stops (broker likely down); permanent failure or `SUTRA_OUTBOX_MAX_ATTEMPTS` → `dead_lettered_at` (kept for operators). Later events of a failed aggregate (same tenant + subject) are held back to keep per-aggregate order. Cancellation token for graceful shutdown. Stream ensured at startup (`SUTRA_NATS_STREAM`, subjects `<prefix>.>`, duplicate window > lease). |
+| Migration | `migrations/20261013000001_platform_outbox_relay.sql`: `claim_token`, `last_attempt_at`, `dead_lettered_at`, published-xor-dead-lettered check, pending / per-subject / retention / dead-letter partial indexes. |
+| Sweepers | `crates/persistence/src/jobs.rs`: `Scheduler` (one tokio loop per job, first run spread over one interval, ±10 % jitter) and `SweepJob` run inside a transaction holding `pg_try_advisory_xact_lock(fnv1a(name))` — one replica per job per tick, others skip. Jobs (bounded by `SUTRA_SWEEP_BATCH_LIMIT` rows per run): expired idempotency keys, published outbox rows older than `SUTRA_OUTBOX_RETENTION_SECS` (dead-lettered kept), sessions expired/revoked/idle beyond `SUTRA_SESSION_PURGE_GRACE_SECS` and expired pre-auth records beyond `SUTRA_PREAUTH_PURGE_GRACE_SECS` (`modules/platform/src/sweep.rs`). `SUTRA_SWEEPERS=false` or a zero interval disables. Counts are logged on the `sutra::metrics` target. |
+| Cache | `SUTRA_CACHE=off\|memory\|valkey` (default `memory` in dev/test, `off` in production because a process-local cache is incoherent across replicas). Keys `sutra:<env>:<owner>:t:<tenant>[:i:<institution>]:…` (`SUTRA_CACHE_NAMESPACE`), TTL `SUTRA_CACHE_TTL_SECS`, per-command timeout `SUTRA_CACHE_TIMEOUT_MS`, 5 s fail-fast cool-down after a Valkey error. Every error is a logged miss. Real use: read-through cache for `GET /api/v1/institution/institutions/{id}` keyed by the session tenant (checked after authorization), invalidated by the owner after register/rename — also when a rename fails the `If-Match` check, so the client's refetch is fresh. The cache is never session or authorization authority (ADR-L5-0037 §2.8). |
+| Readiness | NATS (connected + stream ensured) and Valkey (`PING`) are reported when enabled but are **non-critical**: the outbox buffers events while NATS is down and a cache outage is a miss, so a failure returns `200` with `status: degraded` instead of taking the replica out of rotation. PostgreSQL stays critical. |
+| Shutdown | After HTTP draining, the relay finishes its current pass and the sweepers their current run, then stop (10 s bound). |

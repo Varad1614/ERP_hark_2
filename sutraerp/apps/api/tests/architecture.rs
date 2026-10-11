@@ -66,6 +66,7 @@ fn shared_crates_never_depend_on_modules() {
         ("contracts", &["sutra-kernel"][..]),
         ("web", &["sutra-kernel"][..]),
         ("persistence", &["sutra-kernel"][..]),
+        ("infra", &["sutra-kernel"][..]),
     ] {
         for dep in internal_deps(&root().join("crates").join(krate).join("Cargo.toml")) {
             assert!(
@@ -85,6 +86,26 @@ fn kernel_and_contracts_are_framework_free() {
             assert!(
                 !text.contains(&format!("\n{forbidden}")),
                 "crates/{krate} must not depend on {forbidden} (ADR-L5-0019 §7)"
+            );
+        }
+    }
+}
+
+/// Product SDKs (NATS, Valkey/Redis) live only in `sutra-infra` behind kernel ports
+/// (ADR-L5-0022 / ADR-L5-0037): domain modules and the other shared crates never see them.
+#[test]
+fn broker_and_cache_sdks_stay_in_infra() {
+    let mut manifests: Vec<PathBuf> = module_dirs().iter().map(|d| d.join("Cargo.toml")).collect();
+    for krate in ["kernel", "contracts", "web", "persistence"] {
+        manifests.push(root().join("crates").join(krate).join("Cargo.toml"));
+    }
+    for m in manifests {
+        let text = fs::read_to_string(&m).unwrap();
+        for sdk in ["async-nats", "redis", "fred"] {
+            assert!(
+                !text.contains(&format!("\n{sdk}")),
+                "{} depends on {sdk}; use the kernel port and the sutra-infra adapter",
+                m.display()
             );
         }
     }

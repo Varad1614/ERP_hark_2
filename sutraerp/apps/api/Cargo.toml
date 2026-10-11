@@ -24,6 +24,7 @@ sutra-kernel.workspace = true
 sutra-contracts.workspace = true
 sutra-persistence.workspace = true
 sutra-web.workspace = true
+sutra-infra.workspace = true
 sutra-platform.workspace = true
 sutra-institution.workspace = true
 sutra-student.workspace = true
@@ -35,6 +36,7 @@ sutra-services.workspace = true
 sutra-exams.workspace = true
 sutra-resources.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
 axum.workspace = true
 tower.workspace = true
 tower-http.workspace = true
@@ -54,7 +56,10 @@ uuid.workspace = true
 http-body-util.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
+async-nats.workspace = true
 
 [features]
 # End-to-end tests against a live PostgreSQL 18 (set DATABASE_URL). Off by default.
 db-tests = []
+# With db-tests: end-to-end outbox relay to a live `nats-server -js` (SUTRA_TEST_NATS_URL).
+nats-tests = []

@@ -386,6 +386,11 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         CheckResult: {
+            /**
+             * @description A failing critical check makes the instance unready (503); a failing non-critical check
+             *     (advisory cache, event broker behind the outbox) only reports `degraded`.
+             */
+            critical: boolean;
             detail?: string | null;
             name: string;
             ok: boolean;
@@ -418,7 +423,7 @@ export interface components {
         };
         HealthStatus: {
             checks?: components["schemas"]["CheckResult"][];
-            /** @description `ok`, `degraded` or `draining`. */
+            /** @description `ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`. */
             status: string;
         };
         Institution: {

@@ -1,5 +1,5 @@
 # Local development dependencies for SutraERP.
-#   docker compose up -d            # infra only (postgres, keycloak, valkey, mailpit)
+#   docker compose up -d            # infra only (postgres, keycloak, valkey, nats, mailpit)
 #   docker compose --profile app up # + api and web containers
 name: sutraerp
 
@@ -48,6 +48,18 @@ services:
       interval: 5s
       retries: 10
 
+  # ADR-L5-0022: event transport for the outbox relay (JetStream, file storage).
+  nats:
+    image: nats:2.11-alpine
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports: ["4222:4222", "8222:8222"]
+    volumes:
+      - natsdata:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz?js-enabled-only=true"]
+      interval: 5s
+      retries: 10
+
   mailpit:
     image: axllent/mailpit:latest
     ports: ["1025:1025", "8025:8025"]
@@ -79,9 +91,17 @@ services:
       SUTRA_OIDC_CLIENT_SECRET: dev-only-change-me
       SUTRA_OIDC_REDIRECT_URI: http://localhost:3000/api/v1/auth/oidc/callback
       SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI: http://localhost:3000/sign-in
+      # Batch 1C: outbox → NATS JetStream, Valkey advisory cache, sweepers (on by default).
+      SUTRA_OUTBOX_RELAY: nats
+      SUTRA_NATS_URL: nats://nats:4222
+      SUTRA_NATS_STREAM: SUTRA_EVENTS
+      SUTRA_CACHE: valkey
+      SUTRA_VALKEY_URL: redis://valkey:6379
     ports: ["8080:8080"]
     depends_on:
       migrate: { condition: service_completed_successfully }
+      nats: { condition: service_healthy }
+      valkey: { condition: service_healthy }
 
   web:
     profiles: ["app"]
@@ -94,3 +114,4 @@ services:
 
 volumes:
   pgdata:
+  natsdata:

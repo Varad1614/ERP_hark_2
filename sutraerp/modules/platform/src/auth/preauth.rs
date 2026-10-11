@@ -102,7 +102,8 @@ impl PgPreAuthStore {
         Self { pool }
     }
 
-    /// Deletes expired records. Returns the number removed (scheduled by the sweeper slice).
+    /// Deletes expired records. Returns the number removed. The scheduled, batched equivalent is
+    /// [`crate::sweep::PreAuthPurge`].
     pub async fn purge_expired(&self) -> Result<u64, KernelError> {
         Ok(
             sqlx::query("DELETE FROM platform.pre_auth WHERE expires_at <= now()")

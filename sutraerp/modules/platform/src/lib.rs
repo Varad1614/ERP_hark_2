@@ -16,9 +16,12 @@
 //!   ADR-L5-0023).
 //! * **Catalog** — read-only workspace/workflow navigation catalog (99 workspaces / 595 workflows).
 //! * **Modules** — enumerates the modular-monolith module descriptors.
+//! * **Sweepers** (Batch 1C) — [`sweep::SessionPurge`] and [`sweep::PreAuthPurge`] jobs for the
+//!   advisory-locked scheduler in `sutra_persistence::jobs`.
 
 pub mod auth;
 pub mod catalog;
+pub mod sweep;
 pub mod workflow;
 
 use std::sync::Arc;

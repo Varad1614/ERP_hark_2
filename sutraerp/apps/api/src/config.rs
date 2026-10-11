@@ -87,6 +87,74 @@ pub enum StoreBackend {
     Memory,
 }
 
+/// `SUTRA_OUTBOX_RELAY`: where committed outbox rows go.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OutboxRelayMode {
+    /// No relay in this process (rows accumulate until a relaying replica publishes them).
+    Off,
+    /// Publish to NATS JetStream (ADR-L5-0022).
+    Nats,
+}
+
+/// `SUTRA_CACHE`: advisory cache backend (ADR-L5-0037).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CacheBackend {
+    Off,
+    /// Process-local; invalidation only reaches this replica.
+    Memory,
+    Valkey,
+}
+
+/// NATS JetStream settings for the outbox relay.
+#[derive(Debug, Clone)]
+pub struct NatsConfig {
+    pub url: String,
+    pub stream: String,
+    pub subject_prefix: String,
+    pub duplicate_window: Duration,
+    pub max_age: Duration,
+    pub replicas: usize,
+}
+
+/// Outbox relay tuning.
+#[derive(Debug, Clone)]
+pub struct RelayConfig {
+    pub mode: OutboxRelayMode,
+    pub batch_size: u32,
+    pub poll_interval: Duration,
+    pub lease: Duration,
+    pub max_attempts: u32,
+    pub backoff_base: Duration,
+    pub backoff_max: Duration,
+    pub publish_timeout: Duration,
+}
+
+/// Advisory cache settings.
+#[derive(Debug, Clone)]
+pub struct CacheConfig {
+    pub backend: CacheBackend,
+    pub valkey_url: String,
+    /// Environment segment of every key (defaults to the environment name).
+    pub namespace: String,
+    pub default_ttl: Duration,
+    pub timeout: Duration,
+    pub memory_max_entries: usize,
+}
+
+/// Sweeper intervals and retention windows. A zero interval disables that job.
+#[derive(Debug, Clone)]
+pub struct SweeperConfig {
+    pub enabled: bool,
+    pub batch_limit: u32,
+    pub idempotency_interval: Duration,
+    pub outbox_interval: Duration,
+    pub outbox_retention: Duration,
+    pub session_interval: Duration,
+    pub session_grace: Duration,
+    pub pre_auth_interval: Duration,
+    pub pre_auth_grace: Duration,
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub env: Environment,
@@ -127,6 +195,12 @@ pub struct Config {
     pub idempotency_store: StoreBackend,
     pub audit_sink: StoreBackend,
     pub otel_endpoint: Option<String>,
+    pub relay: RelayConfig,
+    /// Production only: permit `SUTRA_OUTBOX_RELAY=off` (e.g. a dedicated relay deployment).
+    pub relay_allow_off: bool,
+    pub nats: NatsConfig,
+    pub cache: CacheConfig,
+    pub sweepers: SweeperConfig,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -192,6 +266,14 @@ fn backend(
             value: v.to_owned(),
         }),
     }
+}
+
+fn secs_cfg(src: &dyn Source, key: &'static str, default: u64) -> Result<Duration, ConfigError> {
+    Ok(Duration::from_secs(parse(src, key, default)?))
+}
+
+fn millis_cfg(src: &dyn Source, key: &'static str, default: u64) -> Result<Duration, ConfigError> {
+    Ok(Duration::from_millis(parse(src, key, default)?))
 }
 
 pub const DEV_TENANT_ID: &str = "0192f5a0-7c3e-7000-8000-000000000001";
@@ -310,6 +392,85 @@ impl Config {
         } else {
             StoreBackend::Postgres
         };
+        let relay_mode = match src
+            .get("SUTRA_OUTBOX_RELAY")
+            .as_deref()
+            .map(str::to_lowercase)
+            .as_deref()
+        {
+            Some("off") => OutboxRelayMode::Off,
+            Some("nats") => OutboxRelayMode::Nats,
+            None if prod => OutboxRelayMode::Nats,
+            None => OutboxRelayMode::Off,
+            Some(v) => {
+                return Err(ConfigError::Invalid {
+                    key: "SUTRA_OUTBOX_RELAY",
+                    value: v.into(),
+                })
+            }
+        };
+        let cache_backend = match src
+            .get("SUTRA_CACHE")
+            .as_deref()
+            .map(str::to_lowercase)
+            .as_deref()
+        {
+            Some("off") => CacheBackend::Off,
+            Some("memory") => CacheBackend::Memory,
+            Some("valkey") => CacheBackend::Valkey,
+            // Process-local caches are incoherent across replicas: off unless chosen in production.
+            None if prod => CacheBackend::Off,
+            None => CacheBackend::Memory,
+            Some(v) => {
+                return Err(ConfigError::Invalid {
+                    key: "SUTRA_CACHE",
+                    value: v.into(),
+                })
+            }
+        };
+        let env_name = match env {
+            Environment::Development => "development",
+            Environment::Test => "test",
+            Environment::Production => "production",
+        };
+        let relay = RelayConfig {
+            mode: relay_mode,
+            batch_size: parse(src, "SUTRA_OUTBOX_BATCH_SIZE", 100)?,
+            poll_interval: millis_cfg(src, "SUTRA_OUTBOX_POLL_MS", 500)?,
+            lease: secs_cfg(src, "SUTRA_OUTBOX_LEASE_SECS", 30)?,
+            max_attempts: parse(src, "SUTRA_OUTBOX_MAX_ATTEMPTS", 12)?,
+            backoff_base: millis_cfg(src, "SUTRA_OUTBOX_BACKOFF_BASE_MS", 1000)?,
+            backoff_max: secs_cfg(src, "SUTRA_OUTBOX_BACKOFF_MAX_SECS", 300)?,
+            publish_timeout: secs_cfg(src, "SUTRA_OUTBOX_PUBLISH_TIMEOUT_SECS", 5)?,
+        };
+        let nats = NatsConfig {
+            url: string(src, "SUTRA_NATS_URL", "nats://localhost:4222"),
+            stream: string(src, "SUTRA_NATS_STREAM", "SUTRA_EVENTS"),
+            subject_prefix: string(src, "SUTRA_NATS_SUBJECT_PREFIX", "sutra"),
+            duplicate_window: secs_cfg(src, "SUTRA_NATS_DUPLICATE_WINDOW_SECS", 120)?,
+            max_age: secs_cfg(src, "SUTRA_NATS_STREAM_MAX_AGE_SECS", 7 * 24 * 3600)?,
+            replicas: parse(src, "SUTRA_NATS_STREAM_REPLICAS", 1)?,
+        };
+        let cache = CacheConfig {
+            backend: cache_backend,
+            valkey_url: string(src, "SUTRA_VALKEY_URL", "redis://localhost:6379"),
+            namespace: string(src, "SUTRA_CACHE_NAMESPACE", env_name),
+            default_ttl: secs_cfg(src, "SUTRA_CACHE_TTL_SECS", 60)?,
+            timeout: millis_cfg(src, "SUTRA_CACHE_TIMEOUT_MS", 250)?,
+            memory_max_entries: parse(src, "SUTRA_CACHE_MEMORY_MAX_ENTRIES", 10_000)?,
+        };
+        let sweepers = SweeperConfig {
+            // Sweepers need PostgreSQL; the test profile runs on in-memory stores.
+            enabled: parse(src, "SUTRA_SWEEPERS", env != Environment::Test)?,
+            batch_limit: parse(src, "SUTRA_SWEEP_BATCH_LIMIT", 5000)?,
+            idempotency_interval: secs_cfg(src, "SUTRA_SWEEP_IDEMPOTENCY_SECS", 300)?,
+            outbox_interval: secs_cfg(src, "SUTRA_SWEEP_OUTBOX_SECS", 3600)?,
+            outbox_retention: secs_cfg(src, "SUTRA_OUTBOX_RETENTION_SECS", 7 * 24 * 3600)?,
+            session_interval: secs_cfg(src, "SUTRA_SWEEP_SESSION_SECS", 900)?,
+            session_grace: secs_cfg(src, "SUTRA_SESSION_PURGE_GRACE_SECS", 24 * 3600)?,
+            pre_auth_interval: secs_cfg(src, "SUTRA_SWEEP_PREAUTH_SECS", 300)?,
+            pre_auth_grace: secs_cfg(src, "SUTRA_PREAUTH_PURGE_GRACE_SECS", 300)?,
+        };
         let cfg = Config {
             env,
             http_addr: parse(
@@ -371,6 +532,11 @@ impl Config {
             idempotency_store: backend(src, "SUTRA_IDEMPOTENCY_STORE", default_store)?,
             audit_sink: backend(src, "SUTRA_AUDIT_SINK", default_store)?,
             otel_endpoint: src.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
+            relay,
+            relay_allow_off: parse(src, "SUTRA_OUTBOX_RELAY_ALLOW_OFF", false)?,
+            nats,
+            cache,
+            sweepers,
         };
         cfg.validate()?;
         Ok(cfg)
@@ -415,6 +581,51 @@ impl Config {
                     "in-memory session/idempotency/audit stores are not allowed in production",
                 ));
             }
+            if self.relay.mode == OutboxRelayMode::Off && !self.relay_allow_off {
+                return Err(ConfigError::Forbidden(
+                    "SUTRA_OUTBOX_RELAY=off is not allowed in production unless \
+                     SUTRA_OUTBOX_RELAY_ALLOW_OFF=true (another deployment relays the outbox)",
+                ));
+            }
+        }
+        if self.relay.batch_size == 0 || self.relay.batch_size > 10_000 {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_OUTBOX_BATCH_SIZE",
+                value: format!("{} (must be 1..=10000)", self.relay.batch_size),
+            });
+        }
+        if self.relay.max_attempts == 0 {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_OUTBOX_MAX_ATTEMPTS",
+                value: "0".into(),
+            });
+        }
+        if self.relay.publish_timeout.is_zero() || self.relay.lease < self.relay.publish_timeout * 2
+        {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_OUTBOX_LEASE_SECS",
+                value: format!(
+                    "{:?} (must be at least twice SUTRA_OUTBOX_PUBLISH_TIMEOUT_SECS, which must be > 0)",
+                    self.relay.lease
+                ),
+            });
+        }
+        if self.relay.mode == OutboxRelayMode::Nats
+            && self.nats.duplicate_window <= self.relay.lease
+        {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_NATS_DUPLICATE_WINDOW_SECS",
+                value: format!(
+                    "{:?} (must exceed SUTRA_OUTBOX_LEASE_SECS so a re-claimed row is de-duplicated)",
+                    self.nats.duplicate_window
+                ),
+            });
+        }
+        if self.sweepers.batch_limit == 0 {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_SWEEP_BATCH_LIMIT",
+                value: "0".into(),
+            });
         }
         if self.session_ttl_secs <= 0 {
             return Err(ConfigError::Invalid {
@@ -570,6 +781,9 @@ mod tests {
             ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
         ]);
         let c = Config::load(&ok).unwrap();
+        assert_eq!(c.relay.mode, OutboxRelayMode::Nats, "relay on by default");
+        assert_eq!(c.cache.backend, CacheBackend::Off);
+        assert_eq!(c.cache.namespace, "production");
         assert!(c.mfa_step_up, "step-up is always enforced in production");
         assert!(
             !format!("{:?}", c.oidc).contains("\"s\""),
@@ -612,6 +826,67 @@ mod tests {
             })
         ));
         assert!(Config::load(&HashMap::from([("SUTRA_SESSION_STORE", "redis")])).is_err());
+    }
+
+    #[test]
+    fn relay_cache_and_sweeper_settings() {
+        let dev = Config::load(&HashMap::<&str, &str>::new()).unwrap();
+        assert_eq!(dev.relay.mode, OutboxRelayMode::Off);
+        assert_eq!(dev.cache.backend, CacheBackend::Memory);
+        assert_eq!(dev.cache.namespace, "development");
+        assert!(dev.sweepers.enabled);
+        assert_eq!(dev.nats.stream, "SUTRA_EVENTS");
+        assert_eq!(dev.sweepers.outbox_retention, Duration::from_secs(604_800));
+        let test = Config::load(&HashMap::from([("SUTRA_ENV", "test")])).unwrap();
+        assert!(!test.sweepers.enabled, "test profile has no database");
+        let custom = Config::load(&HashMap::from([
+            ("SUTRA_OUTBOX_RELAY", "nats"),
+            ("SUTRA_NATS_URL", "nats://nats:4222"),
+            ("SUTRA_CACHE", "valkey"),
+            ("SUTRA_VALKEY_URL", "rediss://cache:6380"),
+            ("SUTRA_SWEEP_SESSION_SECS", "0"),
+            ("SUTRA_OUTBOX_RETENTION_SECS", "60"),
+        ]))
+        .unwrap();
+        assert_eq!(custom.relay.mode, OutboxRelayMode::Nats);
+        assert_eq!(custom.nats.url, "nats://nats:4222");
+        assert_eq!(custom.cache.backend, CacheBackend::Valkey);
+        assert!(custom.sweepers.session_interval.is_zero());
+        assert_eq!(custom.sweepers.outbox_retention, Duration::from_secs(60));
+        for bad in [
+            ("SUTRA_OUTBOX_RELAY", "kafka"),
+            ("SUTRA_CACHE", "redis"),
+            ("SUTRA_OUTBOX_BATCH_SIZE", "0"),
+            ("SUTRA_OUTBOX_MAX_ATTEMPTS", "0"),
+            ("SUTRA_OUTBOX_LEASE_SECS", "5"),
+            ("SUTRA_SWEEP_BATCH_LIMIT", "0"),
+        ] {
+            assert!(Config::load(&HashMap::from([bad])).is_err(), "{bad:?}");
+        }
+        assert!(
+            Config::load(&HashMap::from([
+                ("SUTRA_OUTBOX_RELAY", "nats"),
+                ("SUTRA_NATS_DUPLICATE_WINDOW_SECS", "30"),
+            ]))
+            .is_err(),
+            "duplicate window must exceed the lease"
+        );
+        let prod = |extra: (&'static str, &'static str)| {
+            Config::load(&HashMap::from([
+                ("SUTRA_ENV", "production"),
+                ("DATABASE_URL", "postgres://x"),
+                ("SUTRA_OIDC_CLIENT_SECRET", "s"),
+                ("SUTRA_CSRF_KEY", KEY),
+                ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
+                ("SUTRA_OUTBOX_RELAY", "off"),
+                extra,
+            ]))
+        };
+        assert!(matches!(
+            prod(("SUTRA_CACHE", "off")),
+            Err(ConfigError::Forbidden(_))
+        ));
+        assert!(prod(("SUTRA_OUTBOX_RELAY_ALLOW_OFF", "true")).is_ok());
     }
 
     #[test]

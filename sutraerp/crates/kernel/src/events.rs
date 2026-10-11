@@ -6,7 +6,9 @@
 //!   their standard names. SutraERP context travels as CloudEvents *extension attributes*, which
 //!   the CloudEvents spec restricts to lowercase alphanumerics (`tenantid`, `correlationid`, …);
 //!   SutraERP-defined members inside `data` use camelCase.
-//! * ADR-L5-0022: NATS JetStream is the transport; it plugs in later behind [`EventPublisher`].
+//! * ADR-L5-0022: NATS JetStream is the transport. The outbox relay publishes committed envelopes
+//!   through the broker-neutral [`crate::messaging::MessagePublisher`] port (Batch 1C);
+//!   [`EventPublisher`] remains the in-process envelope port.
 
 use crate::error::KernelError;
 use crate::scope::ExecutionScope;
@@ -90,7 +92,8 @@ pub trait EventPublisher: Send + Sync + 'static {
     async fn publish(&self, envelope: &EventEnvelope) -> Result<(), KernelError>;
 }
 
-/// Development publisher that only logs. The NATS JetStream adapter replaces it in Batch 1.
+/// Development publisher that only logs. Durable publication goes through the outbox relay and
+/// the JetStream `MessagePublisher` adapter instead.
 #[derive(Debug, Default, Clone)]
 pub struct LoggingEventPublisher;
 

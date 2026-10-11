@@ -43,9 +43,14 @@ jobs:
         run: cargo test --workspace --locked
 
   rust-db:
-    name: Rust integration (PostgreSQL 18)
+    name: Rust integration (PostgreSQL 18 · NATS JetStream · Valkey)
     runs-on: ubuntu-24.04
     services:
+      valkey:
+        image: valkey/valkey:8
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "valkey-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
       postgres:
         image: postgres:18
         env:
@@ -57,13 +62,22 @@ jobs:
           --health-cmd "pg_isready -U sutra" --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
+      SUTRA_TEST_NATS_URL: nats://127.0.0.1:4222
+      SUTRA_TEST_VALKEY_URL: redis://127.0.0.1:6379
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: sutraerp
+      # Service containers cannot pass server flags, so JetStream runs as a plain container.
+      - name: Start NATS (JetStream)
+        run: docker run -d --name nats -p 4222:4222 nats:2.11 -js
       - run: cargo test -p sutra-persistence -p sutra-platform -p sutra-api --features db-tests --locked
+      - name: Live NATS / Valkey adapter tests
+        run: |
+          cargo test -p sutra-infra --features nats-tests,valkey-tests --locked
+          cargo test -p sutra-api --features db-tests,nats-tests --test live_relay --locked
 
   openapi-drift:
     name: OpenAPI drift

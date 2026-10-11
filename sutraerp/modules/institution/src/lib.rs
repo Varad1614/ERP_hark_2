@@ -9,6 +9,8 @@
 //! * required `Idempotency-Key` on create (ADR-L5-0034)
 //! * fail-closed, **session-derived** tenant scope (ADR-L5-0004) and deny-by-default D02
 //!   permissions (`institution.read` / `.register` / `.rename`) — Batch 1 slice A
+//! * advisory read-through cache for `GET …/institutions/{id}` keyed by session tenant, with
+//!   owner-driven invalidation on register/rename (ADR-L5-0037) — Batch 1 slice C
 //!
 //! Full institution structure (campuses, departments, calendars) is Batch 2.
 

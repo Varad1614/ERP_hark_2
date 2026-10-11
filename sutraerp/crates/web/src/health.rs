@@ -1,8 +1,9 @@
 //! Liveness / readiness endpoints (ADR-L5-0044).
 //!
 //! * `GET /health/live` – process is up; never touches dependencies.
-//! * `GET /health/ready` – all registered [`ReadinessCheck`]s pass and the process is not
-//!   draining. During graceful shutdown readiness flips to 503 first so load balancers stop
+//! * `GET /health/ready` – all registered *critical* [`ReadinessCheck`]s pass and the process is
+//!   not draining. Non-critical checks (advisory Valkey cache, NATS behind the outbox) are reported
+//!   and turn the status to `degraded` without failing readiness. During graceful shutdown readiness flips to 503 first so load balancers stop
 //!   routing before connections are drained.
 
 use axum::extract::State;
@@ -41,7 +42,7 @@ impl Readiness {
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct HealthStatus {
-    /// `ok`, `degraded` or `draining`.
+    /// `ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`.
     pub status: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub checks: Vec<CheckResult>,
@@ -84,11 +85,13 @@ pub async fn ready(State(r): State<Readiness>) -> (StatusCode, Json<HealthStatus
         results.push(CheckResult {
             name: c.name().to_owned(),
             ok,
+            critical: c.critical(),
             detail,
         });
     }
     let all_ok = results.iter().all(|c| c.ok);
-    let status = if all_ok {
+    let critical_ok = results.iter().all(|c| c.ok || !c.critical);
+    let status = if critical_ok {
         StatusCode::OK
     } else {
         StatusCode::SERVICE_UNAVAILABLE
@@ -125,6 +128,37 @@ mod tests {
         async fn check(&self) -> Result<(), String> {
             Err("connection refused".into())
         }
+    }
+
+    struct SoftFail;
+    #[async_trait::async_trait]
+    impl ReadinessCheck for SoftFail {
+        fn name(&self) -> &'static str {
+            "valkey"
+        }
+        async fn check(&self) -> Result<(), String> {
+            Err("down".into())
+        }
+        fn critical(&self) -> bool {
+            false
+        }
+    }
+
+    #[tokio::test]
+    async fn non_critical_failures_degrade_without_failing_readiness() {
+        let app: axum::Router = router(Readiness::new(vec![Arc::new(SoftFail)])).into();
+        let res = app
+            .oneshot(Request::get("/health/ready").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = http_body_util::BodyExt::collect(res.into_body())
+            .await
+            .unwrap()
+            .to_bytes();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["status"], "degraded");
+        assert_eq!(v["checks"][0]["critical"], false);
     }
 
     #[tokio::test]

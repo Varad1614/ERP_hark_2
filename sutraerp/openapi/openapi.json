@@ -1057,9 +1057,14 @@
         "type": "object",
         "required": [
           "name",
-          "ok"
+          "ok",
+          "critical"
         ],
         "properties": {
+          "critical": {
+            "type": "boolean",
+            "description": "A failing critical check makes the instance unready (503); a failing non-critical check\n(advisory cache, event broker behind the outbox) only reports `degraded`."
+          },
           "detail": {
             "type": [
               "string",
@@ -1150,7 +1155,7 @@
           },
           "status": {
             "type": "string",
-            "description": "`ok`, `degraded` or `draining`."
+            "description": "`ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`."
           }
         }
       },

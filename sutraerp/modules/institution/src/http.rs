@@ -6,9 +6,10 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use sqlx::PgPool;
 use sutra_kernel::auth::{AuthContext, Permission};
+use sutra_kernel::cache::{AdvisoryCache, CacheKey};
 use sutra_kernel::concurrency::Version;
 use sutra_kernel::error::KernelError;
-use sutra_kernel::scope::InstitutionId;
+use sutra_kernel::scope::{ExecutionScope, InstitutionId};
 use sutra_web::idempotency::require_idempotency_key;
 use sutra_web::request_id::current_correlation_id;
 use sutra_web::{ApiResult, Authenticated, Problem};
@@ -21,6 +22,27 @@ fn with_etag(status: StatusCode, inst: Institution) -> Response {
         res.headers_mut().insert(header::ETAG, e);
     }
     res
+}
+
+/// Handler state: the owner's pool plus the advisory read-through cache (ADR-L5-0037).
+#[derive(Clone)]
+pub struct InstitutionState {
+    pub pool: PgPool,
+    pub cache: AdvisoryCache,
+}
+
+/// Cache owner segment: entries belong to the institution module.
+const CACHE_OWNER: &str = "institution";
+
+/// Read-through cache key of one institution, bound to the caller's *session tenant* — the
+/// tenant is resolved and the permission checked before the cache is consulted, so a key can
+/// never serve another tenant's row (the database query is tenant-filtered the same way).
+fn cache_key(cache: &AdvisoryCache, scope: &ExecutionScope, id: InstitutionId) -> CacheKey {
+    cache.key(
+        CACHE_OWNER,
+        &ExecutionScope::tenant(scope.tenant_id),
+        &["institution", &id.to_string()],
+    )
 }
 
 fn actor(ctx: &AuthContext) -> Actor {
@@ -53,14 +75,18 @@ fn actor(ctx: &AuthContext) -> Actor {
     )
 )]
 pub async fn register(
-    State(pool): State<PgPool>,
+    State(st): State<InstitutionState>,
     auth: Authenticated,
     headers: HeaderMap,
     Json(cmd): Json<RegisterInstitution>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::InstitutionRegister)?;
     require_idempotency_key(&headers)?;
-    let inst = repo::register(&pool, &ctx.scope, cmd, &actor(ctx)).await?;
+    let inst = repo::register(&st.pool, &ctx.scope, cmd, &actor(ctx)).await?;
+    // Owner-driven invalidation (defensive: guards against any negative/stale entry for the id).
+    st.cache
+        .invalidate(&cache_key(&st.cache, &ctx.scope, inst.id))
+        .await;
     Ok(with_etag(StatusCode::CREATED, inst))
 }
 
@@ -81,15 +107,22 @@ pub async fn register(
     )
 )]
 pub async fn get(
-    State(pool): State<PgPool>,
+    State(st): State<InstitutionState>,
     auth: Authenticated,
     Path(id): Path<InstitutionId>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::InstitutionRead)?;
-    Ok(with_etag(
-        StatusCode::OK,
-        repo::get(&pool, &ctx.scope, id).await?,
-    ))
+    let key = cache_key(&st.cache, &ctx.scope, id);
+    if let Some(hit) = st.cache.get_json::<Institution>(&key).await {
+        // Defence in depth: never serve an entry whose tenant differs from the session's.
+        if hit.tenant_id == ctx.scope.tenant_id && hit.id == id {
+            return Ok(with_etag(StatusCode::OK, hit));
+        }
+        st.cache.invalidate(&key).await;
+    }
+    let inst = repo::get(&st.pool, &ctx.scope, id).await?;
+    st.cache.put_json(&key, &inst).await;
+    Ok(with_etag(StatusCode::OK, inst))
 }
 
 /// Rename an institution of the caller's session tenant (optimistic concurrency via `If-Match`).
@@ -116,7 +149,7 @@ pub async fn get(
     )
 )]
 pub async fn rename(
-    State(pool): State<PgPool>,
+    State(st): State<InstitutionState>,
     auth: Authenticated,
     Path(id): Path<InstitutionId>,
     headers: HeaderMap,
@@ -141,15 +174,19 @@ pub async fn rename(
         .into_response());
     };
     cmd.validate()?;
-    Ok(with_etag(
-        StatusCode::OK,
-        repo::rename(&pool, &ctx.scope, id, expected, &cmd.name, &actor(ctx)).await?,
-    ))
+    let key = cache_key(&st.cache, &ctx.scope, id);
+    // Freshness-critical write: the version check runs against the owner's row, never the cache.
+    let result = repo::rename(&st.pool, &ctx.scope, id, expected, &cmd.name, &actor(ctx)).await;
+    // Invalidate after commit, and also on a conflict/not-found (the cached ETag is stale), so a
+    // client that refetches after 412 sees the current version.
+    st.cache.invalidate(&key).await;
+    Ok(with_etag(StatusCode::OK, result?))
 }
 
-pub fn router(pool: PgPool) -> OpenApiRouter {
+/// Institution routes. `cache` is advisory: pass `AdvisoryCache::disabled()` to turn it off.
+pub fn router(pool: PgPool, cache: AdvisoryCache) -> OpenApiRouter {
     OpenApiRouter::new()
         .routes(routes!(register))
         .routes(routes!(get, rename))
-        .with_state(pool)
+        .with_state(InstitutionState { pool, cache })
 }

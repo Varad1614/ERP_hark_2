@@ -395,3 +395,151 @@ async fn totp_mfa_and_step_up_on_postgres() {
     let (s, _, body) = send(&a, register(&mfa_admin)).await;
     assert_eq!(s, StatusCode::CREATED, "{body}");
 }
+
+const TENANT_C: &str = "0192f5a0-7c3e-7000-8000-00000000c001";
+
+/// Batch 1C: the institution GET read-through cache (memory backend) is invalidated by the
+/// owner on rename — also when the rename loses an optimistic-concurrency race — and the
+/// committed outbox intents of those writes relay in order with `msg_id` = outbox id.
+#[tokio::test]
+async fn institution_cache_invalidation_and_outbox_relay() {
+    let (a, pool) = app_with(TENANT_C, &[("SUTRA_CACHE", "memory")]).await;
+    let admin = login(&a, "admin@sutra.dev").await;
+    let code = format!(
+        "C-{}",
+        uuid::Uuid::now_v7().simple().to_string()[20..].to_uppercase()
+    );
+    let (s, _, inst) = send(
+        &a,
+        post_json(
+            INSTITUTIONS,
+            &admin,
+            serde_json::json!({"code": code, "name": "Cache College"}),
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{inst}");
+    let id = inst["id"].as_str().unwrap().to_owned();
+    let uid = uuid::Uuid::parse_str(&id).unwrap();
+
+    // First read fills the cache; a change made behind the owner's API is not seen (a hit).
+    let (s, _, body) = send(&a, get(&admin, &id)).await;
+    assert_eq!(
+        (s, body["name"].as_str()),
+        (StatusCode::OK, Some("Cache College"))
+    );
+    sqlx::query("UPDATE institution.institution SET name = 'Behind' WHERE id = $1")
+        .bind(uid)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (_, _, body) = send(&a, get(&admin, &id)).await;
+    assert_eq!(body["name"], "Cache College", "served from the cache");
+
+    // Rename invalidates: the next read is fresh.
+    let (s, _, _) = send(&a, rename(&admin, &id, "1")).await;
+    assert_eq!(s, StatusCode::OK);
+    let (_, h, body) = send(&a, get(&admin, &id)).await;
+    assert_eq!(body["name"], "Hijacked");
+    assert_eq!(h[header::ETAG], "\"2\"");
+
+    // A stale cached ETag: the rename fails the version check (against the row, never the
+    // cache) and still invalidates, so the client's refetch sees the current version.
+    sqlx::query("UPDATE institution.institution SET name = 'Moved', version = 5 WHERE id = $1")
+        .bind(uid)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (_, h, _) = send(&a, get(&admin, &id)).await;
+    assert_eq!(h[header::ETAG], "\"2\"", "still cached");
+    let (s, _, _) = send(&a, rename(&admin, &id, "2")).await;
+    assert_eq!(s, StatusCode::PRECONDITION_FAILED);
+    let (_, h, body) = send(&a, get(&admin, &id)).await;
+    assert_eq!(body["name"], "Moved");
+    assert_eq!(h[header::ETAG], "\"5\"");
+
+    // Relay this tenant's committed intents through the in-memory publisher.
+    let publisher = sutra_kernel::messaging::InMemoryPublisher::new();
+    let relay = sutra_persistence::outbox_relay::OutboxRelay::new(
+        pool.clone(),
+        std::sync::Arc::new(publisher.clone()),
+        sutra_persistence::outbox_relay::RelaySettings {
+            tenant: Some(uuid::Uuid::parse_str(TENANT_C).unwrap()),
+            ..Default::default()
+        },
+    );
+    while relay.run_once().await.unwrap().claimed > 0 {}
+    let mine: Vec<(String, serde_json::Value)> = publisher
+        .published()
+        .into_iter()
+        .map(|m| (m.subject, serde_json::from_slice(&m.payload).unwrap()))
+        .filter(|(_, env): &(String, serde_json::Value)| env["subject"] == id)
+        .collect();
+    let subjects: Vec<&str> = mine.iter().map(|(s, _)| s.as_str()).collect();
+    assert_eq!(
+        subjects,
+        vec![
+            format!("sutra.{TENANT_C}.institution.institution.registered"),
+            format!("sutra.{TENANT_C}.institution.institution.renamed"),
+        ]
+    );
+    let published: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM platform.outbox WHERE subject = $1 AND published_at IS NOT NULL",
+    )
+    .bind(&id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(published, 2);
+}
+
+/// Cache and broker outages never fail requests or readiness: Valkey errors degrade to misses
+/// and both dependencies report as non-critical `degraded` checks.
+#[tokio::test]
+async fn unreachable_valkey_and_nats_degrade_without_failing() {
+    let (a, _) = app_with(
+        TENANT_C,
+        &[
+            ("SUTRA_CACHE", "valkey"),
+            ("SUTRA_VALKEY_URL", "redis://127.0.0.1:1"),
+            ("SUTRA_OUTBOX_RELAY", "nats"),
+            ("SUTRA_NATS_URL", "nats://127.0.0.1:1"),
+        ],
+    )
+    .await;
+    let admin = login(&a, "admin@sutra.dev").await;
+    let code = format!(
+        "V-{}",
+        uuid::Uuid::now_v7().simple().to_string()[20..].to_uppercase()
+    );
+    let (s, _, inst) = send(
+        &a,
+        post_json(
+            INSTITUTIONS,
+            &admin,
+            serde_json::json!({"code": code, "name": "No Cache College"}),
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{inst}");
+    let id = inst["id"].as_str().unwrap();
+    for _ in 0..2 {
+        let (s, _, body) = send(&a, get(&admin, id)).await;
+        assert_eq!(s, StatusCode::OK, "{body}");
+        assert_eq!(body["name"], "No Cache College");
+    }
+    let (s, _, ready) = send(
+        &a,
+        Request::get("/health/ready").body(Body::empty()).unwrap(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{ready}");
+    assert_eq!(ready["status"], "degraded");
+    let checks = ready["checks"].as_array().unwrap();
+    let find = |n: &str| checks.iter().find(|c| c["name"] == n).cloned().unwrap();
+    assert_eq!(find("postgres")["ok"], true);
+    assert_eq!(find("valkey")["ok"], false);
+    assert_eq!(find("valkey")["critical"], false);
+    assert_eq!(find("nats")["ok"], false);
+    assert_eq!(find("nats")["critical"], false);
+}

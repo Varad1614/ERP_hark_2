@@ -61,8 +61,13 @@ async fn migrate(cfg: Config) -> Result<(), String> {
 }
 
 async fn serve(cfg: Config) -> Result<(), String> {
-    let ctx = app::AppContext::from_config(&cfg).map_err(|e| e.to_string())?;
+    let mut ctx = app::AppContext::from_config(&cfg).map_err(|e| e.to_string())?;
     let pool = ctx.pool.clone();
+    // Outbox relay + sweepers run beside the server and stop after HTTP draining finished.
+    let background = ctx.take_background();
+    tracing::info!(workers = ?background.describe(), "background workers");
+    let cancel = tokio_util::sync::CancellationToken::new();
+    let workers = background.spawn(&cancel);
     let readiness = ctx.readiness.clone();
     let router = app::router(ctx);
     let listener = tokio::net::TcpListener::bind(cfg.http_addr)
@@ -78,7 +83,24 @@ async fn serve(cfg: Config) -> Result<(), String> {
             tracing::warn!(grace = ?cfg.shutdown_grace, "grace period elapsed; forcing shutdown");
         }
     }
+    // Workers finish their current pass/run (bounded by publish and statement timeouts).
+    cancel.cancel();
+    let join = futures_join_all(workers);
+    if tokio::time::timeout(std::time::Duration::from_secs(10), join)
+        .await
+        .is_err()
+    {
+        tracing::warn!("background workers did not stop within 10s");
+    }
     pool.close().await;
     tracing::info!("shutdown complete");
     Ok(())
+}
+
+async fn futures_join_all(handles: Vec<tokio::task::JoinHandle<()>>) {
+    for h in handles {
+        if let Err(e) = h.await {
+            tracing::warn!(error = %e, "background worker ended abnormally");
+        }
+    }
 }

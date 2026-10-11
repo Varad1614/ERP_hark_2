@@ -1,6 +1,6 @@
 //! Application assembly: infrastructure → modules → middleware stack.
 
-use crate::config::{AuthProvider, Config, StoreBackend};
+use crate::config::{AuthProvider, CacheBackend, Config, OutboxRelayMode, StoreBackend};
 use crate::openapi::ApiDoc;
 use axum::routing::get;
 use axum::{Json, Router};
@@ -12,10 +12,17 @@ use sutra_contracts::platform::auth::{
     CredentialAuthenticator, MfaFactorStore, MfaPolicy, OidcIdentityProvider, PreAuthStore,
     SessionPolicy, SessionStore,
 };
+use sutra_infra::nats::{JetStreamPublisher, JetStreamSettings, NatsReadiness};
+use sutra_infra::valkey::{ValkeyCache, ValkeyReadiness, ValkeySettings};
 use sutra_kernel::audit::{AuditSink, TracingAuditSink};
+use sutra_kernel::cache::{AdvisoryCache, Cache, CacheNamespace, InMemoryCache, NoCache};
+use sutra_kernel::health::ReadinessCheck;
 use sutra_kernel::idempotency::{IdempotencyStore, InMemoryIdempotencyStore};
 use sutra_kernel::module::ModuleDescriptor;
 use sutra_kernel::scope::ExecutionScope;
+use sutra_persistence::backoff::Backoff;
+use sutra_persistence::jobs::{IdempotencyPurge, OutboxPurge, Scheduler};
+use sutra_persistence::outbox_relay::{OutboxRelay, RelaySettings};
 use sutra_persistence::{
     audit::PgAuditSink, idempotency::PgIdempotencyStore, pool, readiness::PgReadiness,
 };
@@ -28,9 +35,12 @@ use sutra_platform::auth::preauth::{InMemoryPreAuthStore, PgPreAuthStore};
 use sutra_platform::auth::session::InMemorySessionStore;
 use sutra_platform::auth::session_pg::PgSessionStore;
 use sutra_platform::auth::CookieSettings;
+use sutra_platform::sweep::{PreAuthPurge, SessionPurge};
 use sutra_platform::PlatformDeps;
 use sutra_web::health::Readiness;
 use sutra_web::{OriginPolicy, PreSessionCsrf, SessionAuth};
+use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
@@ -66,6 +76,43 @@ pub struct AppContext {
     pub origin_policy: OriginPolicy,
     pub idempotency: Arc<dyn IdempotencyStore>,
     pub request_timeout: Duration,
+    /// Advisory cache handed to modules (ADR-L5-0037).
+    pub cache: AdvisoryCache,
+    /// Outbox relay + sweepers; started by `serve` via [`AppContext::take_background`].
+    pub background: BackgroundTasks,
+}
+
+/// Long-running workers that run next to the HTTP server.
+#[derive(Default)]
+pub struct BackgroundTasks {
+    pub relay: Option<OutboxRelay>,
+    pub scheduler: Option<Scheduler>,
+}
+
+impl BackgroundTasks {
+    /// Names of the configured workers (for logs and tests).
+    pub fn describe(&self) -> Vec<String> {
+        let mut v = vec![];
+        if let Some(r) = &self.relay {
+            v.push(format!("outbox-relay(batch={})", r.settings().batch_size));
+        }
+        if let Some(s) = &self.scheduler {
+            v.extend(s.job_names().into_iter().map(str::to_owned));
+        }
+        v
+    }
+
+    /// Spawns every worker; all stop when `cancel` fires.
+    pub fn spawn(self, cancel: &CancellationToken) -> Vec<JoinHandle<()>> {
+        let mut handles = vec![];
+        if let Some(relay) = self.relay {
+            handles.push(tokio::spawn(relay.run(cancel.clone())));
+        }
+        if let Some(s) = self.scheduler {
+            handles.extend(s.spawn(cancel.clone()));
+        }
+        handles
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -78,6 +125,10 @@ pub enum BuildError {
     Session(String),
     #[error("auth configuration: {0}")]
     Auth(String),
+    #[error("messaging configuration: {0}")]
+    Messaging(String),
+    #[error("cache configuration: {0}")]
+    Cache(String),
 }
 
 impl AppContext {
@@ -89,7 +140,14 @@ impl AppContext {
             acquire_timeout: cfg.db_acquire_timeout,
             application_name: "sutra-api".into(),
         })?;
-        let readiness = Readiness::new(vec![Arc::new(PgReadiness::new(pool.clone()))]);
+        let mut checks: Vec<Arc<dyn ReadinessCheck>> =
+            vec![Arc::new(PgReadiness::new(pool.clone()))];
+        let (cache, cache_check) = build_cache(cfg)?;
+        checks.extend(cache_check);
+        let (relay, relay_check) = build_relay(cfg, &pool)?;
+        checks.extend(relay_check);
+        let readiness = Readiness::new(checks);
+        let scheduler = cfg.sweepers.enabled.then(|| build_scheduler(cfg, &pool));
         let mfa = PrivilegedRoleMfaPolicy {
             enforce: cfg.dev_mfa_enforced,
         };
@@ -208,7 +266,14 @@ impl AppContext {
             origin_policy: OriginPolicy::new(&cfg.allowed_origins),
             idempotency,
             request_timeout: cfg.request_timeout,
+            cache,
+            background: BackgroundTasks { relay, scheduler },
         })
+    }
+
+    /// Moves the background workers out (the rest of the context becomes the router).
+    pub fn take_background(&mut self) -> BackgroundTasks {
+        std::mem::take(&mut self.background)
     }
 
     /// Self-contained context with in-memory stores and a never-contacted lazy pool. Used by
@@ -226,6 +291,99 @@ impl AppContext {
     }
 }
 
+/// A built adapter plus its optional readiness check.
+type WithCheck<T> = (T, Option<Arc<dyn ReadinessCheck>>);
+
+/// Advisory cache from `SUTRA_CACHE` (+ its non-critical readiness check for Valkey).
+fn build_cache(cfg: &Config) -> Result<WithCheck<AdvisoryCache>, BuildError> {
+    let c = &cfg.cache;
+    let (inner, check): (Arc<dyn Cache>, Option<Arc<dyn ReadinessCheck>>) = match c.backend {
+        CacheBackend::Off => (Arc::new(NoCache), None),
+        CacheBackend::Memory => (Arc::new(InMemoryCache::new(c.memory_max_entries)), None),
+        CacheBackend::Valkey => {
+            let v = Arc::new(
+                ValkeyCache::new(ValkeySettings {
+                    url: c.valkey_url.clone(),
+                    timeout: c.timeout,
+                    cooldown: Duration::from_secs(5),
+                })
+                .map_err(BuildError::Cache)?,
+            );
+            (v.clone(), Some(Arc::new(ValkeyReadiness(v))))
+        }
+    };
+    tracing::info!(backend = inner.backend(), ttl = ?c.default_ttl, "advisory cache");
+    Ok((
+        AdvisoryCache::new(inner, CacheNamespace::new(&c.namespace), c.default_ttl),
+        check,
+    ))
+}
+
+/// Outbox relay from `SUTRA_OUTBOX_RELAY` (+ its non-critical NATS readiness check).
+fn build_relay(cfg: &Config, pool: &PgPool) -> Result<WithCheck<Option<OutboxRelay>>, BuildError> {
+    if cfg.relay.mode == OutboxRelayMode::Off {
+        return Ok((None, None));
+    }
+    let n = &cfg.nats;
+    let publisher = Arc::new(
+        JetStreamPublisher::new(JetStreamSettings {
+            url: n.url.clone(),
+            stream: n.stream.clone(),
+            subject_prefix: n.subject_prefix.clone(),
+            duplicate_window: n.duplicate_window,
+            max_age: n.max_age,
+            replicas: n.replicas,
+            connect_timeout: Duration::from_secs(5),
+            client_name: "sutra-api".into(),
+        })
+        .map_err(BuildError::Messaging)?,
+    );
+    // Validate the prefix once at startup instead of dead-lettering every event.
+    sutra_kernel::messaging::subject_for(&n.subject_prefix, uuid::Uuid::nil(), "sutraerp.a.b")
+        .map_err(|e| BuildError::Messaging(e.to_string()))?;
+    let r = &cfg.relay;
+    let relay = OutboxRelay::new(
+        pool.clone(),
+        publisher.clone(),
+        RelaySettings {
+            batch_size: r.batch_size,
+            poll_interval: r.poll_interval,
+            lease: r.lease,
+            max_attempts: r.max_attempts,
+            backoff: Backoff::new(r.backoff_base, r.backoff_max),
+            publish_timeout: r.publish_timeout,
+            subject_prefix: n.subject_prefix.clone(),
+            tenant: None,
+        },
+    );
+    Ok((Some(relay), Some(Arc::new(NatsReadiness(publisher)))))
+}
+
+fn build_scheduler(cfg: &Config, pool: &PgPool) -> Scheduler {
+    let s = &cfg.sweepers;
+    Scheduler::new(pool.clone())
+        .with(Arc::new(IdempotencyPurge {
+            interval: s.idempotency_interval,
+            batch_limit: s.batch_limit,
+        }))
+        .with(Arc::new(OutboxPurge {
+            interval: s.outbox_interval,
+            retention: s.outbox_retention,
+            batch_limit: s.batch_limit,
+        }))
+        .with(Arc::new(SessionPurge {
+            interval: s.session_interval,
+            grace: s.session_grace,
+            idle_timeout: Duration::from_secs(u64::try_from(cfg.session_idle_secs).unwrap_or(0)),
+            batch_limit: s.batch_limit,
+        }))
+        .with(Arc::new(PreAuthPurge {
+            interval: s.pre_auth_interval,
+            grace: s.pre_auth_grace,
+            batch_limit: s.batch_limit,
+        }))
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
@@ -236,7 +394,10 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform))
-        .merge(sutra_institution::router(ctx.pool.clone()))
+        .merge(sutra_institution::router(
+            ctx.pool.clone(),
+            ctx.cache.clone(),
+        ))
         .merge(sutra_student::router())
         .merge(sutra_academic::router())
         .merge(sutra_people::router())

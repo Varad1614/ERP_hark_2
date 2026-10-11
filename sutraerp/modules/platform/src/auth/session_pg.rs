@@ -104,7 +104,7 @@ impl PgSessionStore {
     }
 
     /// Deletes sessions that expired or were revoked more than `retention` ago. Returns the
-    /// number of rows removed. (Scheduled by the sweeper in a later Batch 1 slice.)
+    /// number of rows removed. The scheduled, batched equivalent is [`crate::sweep::SessionPurge`].
     pub async fn purge_expired(&self, retention: chrono::Duration) -> Result<u64, KernelError> {
         let n = sqlx::query(
             "DELETE FROM platform.session \

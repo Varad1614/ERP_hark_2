@@ -5,6 +5,7 @@ members = [
     "crates/contracts",
     "crates/persistence",
     "crates/web",
+    "crates/infra",
     "modules/platform",
     "modules/institution",
     "modules/student",
@@ -21,7 +22,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "UNLICENSED"
 publish = false
 
@@ -31,6 +32,7 @@ sutra-kernel = { path = "crates/kernel" }
 sutra-contracts = { path = "crates/contracts" }
 sutra-persistence = { path = "crates/persistence" }
 sutra-web = { path = "crates/web" }
+sutra-infra = { path = "crates/infra" }
 sutra-platform = { path = "modules/platform" }
 sutra-institution = { path = "modules/institution" }
 sutra-student = { path = "modules/student" }
@@ -49,6 +51,7 @@ tower = { version = "0.5", default-features = false, features = ["util"] }
 tower-http = { version = "0.6", features = ["trace", "timeout", "limit", "sensitive-headers", "catch-panic"] }
 http = "1"
 http-body-util = "0.1"
+tokio-util = { version = "0.7", default-features = false }
 
 # Contracts / OpenAPI (ADR-L5-0021 / 0034)
 utoipa = { version = "5", features = ["uuid", "chrono", "decimal"] }
@@ -81,6 +84,10 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
 ring = "0.17"
 base64 = "0.22"
+
+# Messaging + cache adapters (ADR-L5-0022 NATS JetStream, ADR-L5-0037 Valkey); rustls only
+async-nats = { version = "0.50", default-features = false, features = ["ring", "jetstream"] }
+redis = { version = "1", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "tls-rustls-webpki-roots", "connection-manager"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
