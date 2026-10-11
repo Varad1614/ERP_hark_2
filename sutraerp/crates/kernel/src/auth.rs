@@ -105,13 +105,31 @@ pub enum Permission {
     InstitutionRegister,
     /// Rename an institution of the caller's tenant.
     InstitutionRename,
+    /// Read one's own notifications (inbox, unread count, mark read).
+    NotificationRead,
+    /// Read the notices addressed to one of the caller's roles.
+    NoticeRead,
+    /// Create, update and archive institution-wide notices (and see every notice).
+    NoticeManage,
+    /// Use one's own to-do inbox (create for oneself, complete, dismiss, reopen).
+    TodoUse,
+    /// Assign a to-do to another person of the tenant.
+    TodoAssign,
+    /// View and update one's own profile, preferences and sessions.
+    ProfileManage,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 3] = [
+    pub const ALL: [Permission; 9] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
+        Permission::NotificationRead,
+        Permission::NoticeRead,
+        Permission::NoticeManage,
+        Permission::TodoUse,
+        Permission::TodoAssign,
+        Permission::ProfileManage,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -119,6 +137,12 @@ impl Permission {
             Permission::InstitutionRead => "institution.read",
             Permission::InstitutionRegister => "institution.register",
             Permission::InstitutionRename => "institution.rename",
+            Permission::NotificationRead => "notification.read",
+            Permission::NoticeRead => "notice.read",
+            Permission::NoticeManage => "notice.manage",
+            Permission::TodoUse => "todo.use",
+            Permission::TodoAssign => "todo.assign",
+            Permission::ProfileManage => "profile.manage",
         }
     }
 
@@ -134,9 +158,32 @@ impl Permission {
 pub fn role_permissions(role: Role) -> &'static [Permission] {
     use Permission::*;
     match role {
-        Role::Administrator => &[InstitutionRead, InstitutionRegister, InstitutionRename],
-        Role::Faculty => &[InstitutionRead],
-        Role::Student => &[InstitutionRead],
+        Role::Administrator => &[
+            InstitutionRead,
+            InstitutionRegister,
+            InstitutionRename,
+            NotificationRead,
+            NoticeRead,
+            NoticeManage,
+            TodoUse,
+            TodoAssign,
+            ProfileManage,
+        ],
+        Role::Faculty => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            TodoAssign,
+            ProfileManage,
+        ],
+        Role::Student => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+        ],
     }
 }
 
@@ -290,6 +337,7 @@ mod tests {
             for p in [
                 Permission::InstitutionRegister,
                 Permission::InstitutionRename,
+                Permission::NoticeManage,
             ] {
                 assert!(
                     matches!(c.require(p), Err(KernelError::Forbidden(m)) if m.contains(p.as_str())),
@@ -339,6 +387,31 @@ mod tests {
         let mut empty = c;
         empty.csrf_token.clear();
         assert!(!empty.csrf_matches(""), "an empty token never matches");
+    }
+
+    #[test]
+    fn self_service_permissions_for_every_role_and_assignment_for_staff() {
+        for r in Role::ALL {
+            let c = ctx(vec![r]);
+            for p in [
+                Permission::NotificationRead,
+                Permission::NoticeRead,
+                Permission::TodoUse,
+                Permission::ProfileManage,
+            ] {
+                assert!(c.require(p).is_ok(), "{r:?} needs {p:?}");
+            }
+        }
+        assert!(ctx(vec![Role::Faculty]).has_permission(Permission::TodoAssign));
+        assert!(!ctx(vec![Role::Student]).has_permission(Permission::TodoAssign));
+        assert!(!ctx(vec![Role::Faculty]).has_permission(Permission::NoticeManage));
+        let names: std::collections::HashSet<_> =
+            Permission::ALL.iter().map(Permission::as_str).collect();
+        assert_eq!(
+            names.len(),
+            Permission::ALL.len(),
+            "permission names are unique"
+        );
     }
 
     #[test]

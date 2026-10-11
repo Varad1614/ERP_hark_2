@@ -2,4 +2,5 @@
 
 pub mod auth;
 pub mod catalog;
+pub mod events;
 pub mod workflow;

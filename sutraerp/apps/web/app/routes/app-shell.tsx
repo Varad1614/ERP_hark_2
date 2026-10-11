@@ -1,9 +1,9 @@
-import { Bell, Check, LogOut, Megaphone, Search, ShieldCheck, User } from "lucide-react";
+import { Bell, BellOff, Check, KeyRound, ListTodo, LogOut, Megaphone, Search, ShieldCheck, User } from "lucide-react";
+import type { Notification } from "@sutra/api-client";
 import {
   Avatar,
   CommandPalette,
   IconButton,
-  IconChip,
   Popover,
   ROLE_ACCENTS,
   RoleTheme,
@@ -12,11 +12,14 @@ import {
   type NavLinkLikeProps,
   type PaletteItem,
 } from "@sutra/ui";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, NavLink, Outlet, useNavigate } from "react-router";
 import { AUTH_MODE, useWorkspaces } from "../lib/api";
 import { useAuth, type SignInResult } from "../lib/auth";
+import { NotificationRow } from "../components/NotificationRow";
 import { groupMeta } from "../lib/icons";
+import { inboxKeys, useInbox, useInboxRefresh, useUnreadCount } from "../lib/inbox";
 import { ROLE_CONFIG, ROLES, routeFor, type Role } from "../lib/roles";
 
 function RouterLink({ to, className, end, children }: NavLinkLikeProps) {
@@ -48,7 +51,16 @@ function AuthenticatedShell({
   const toast = useToast();
   const [pop, setPop] = useState<"bell" | "menu" | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [read, setRead] = useState<Record<string, boolean>>({});
+  const inbox = useInbox();
+  const refreshInbox = useInboxRefresh();
+  const unreadQuery = useUnreadCount();
+  // Latest notifications for the bell; fetched when the popover opens (and kept for a minute).
+  const recent = useQuery({
+    queryKey: [...inboxKeys.notifications(role, false), "bell"],
+    queryFn: () => inbox.notifications({ limit: 6 }),
+    enabled: pop === "bell",
+    staleTime: 60_000,
+  });
   const workspaces = useWorkspaces(role);
 
   useEffect(() => setPop(null), [role]);
@@ -63,7 +75,22 @@ function AuthenticatedShell({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const unread = cfg.notifications.filter((_, i) => !read[`${role}${i}`]).length;
+  const unread = unreadQuery.data ?? 0;
+
+  const openNotification = async (n: Notification) => {
+    if (!n.readAt) {
+      await inbox.markRead(n.id).catch(() => undefined);
+      await refreshInbox();
+    }
+    if (n.link) {
+      setPop(null);
+      navigate(n.link);
+    }
+  };
+  const markAllRead = async () => {
+    await inbox.markAllRead().catch(() => 0);
+    await refreshInbox();
+  };
   const nav = cfg.nav.map((n) => ({ id: n.id, label: n.label, to: routeFor(n.id) }));
 
   const paletteItems = useMemo<PaletteItem[]>(
@@ -117,20 +144,29 @@ function AuthenticatedShell({
       <Popover open={pop === "bell"} onClose={() => setPop(null)} label="Notifications">
         <h5>
           Notifications
-          <button type="button" onClick={() => setRead(Object.fromEntries(cfg.notifications.map((_, i) => [`${role}${i}`, true])))}>
+          <button type="button" onClick={markAllRead} disabled={unread === 0} data-bell-read-all>
             Mark all read
           </button>
         </h5>
-        {cfg.notifications.map((n, i) => (
-          <button key={n.title} type="button" className={`sb-pop-item${read[`${role}${i}`] ? " is-read" : ""}`} onClick={() => setRead((r) => ({ ...r, [`${role}${i}`]: true }))}>
-            <IconChip icon={n.icon} tone={n.tone} size="sm" />
+        {recent.isLoading ? (
+          <div className="sb-skeleton" style={{ width: "70%" }} />
+        ) : recent.isError ? (
+          <p className="sb-pop-label">Notifications are unavailable right now.</p>
+        ) : (recent.data?.items.length ?? 0) === 0 ? (
+          <div className="sb-pop-item is-read">
+            <BellOff strokeWidth={1.75} />
             <div>
-              <b>{n.title}</b>
-              <small>{n.meta}</small>
+              <b>You’re all caught up</b>
             </div>
-            <span className="sb-unread" />
-          </button>
-        ))}
+          </div>
+        ) : (
+          recent.data?.items.map((n) => <NotificationRow key={n.id} n={n} onOpen={openNotification} />)
+        )}
+        <div className="sb-pop-sep" />
+        <button type="button" className="sb-pop-item" data-bell-see-all onClick={() => { setPop(null); navigate("/notifications"); }}>
+          <Bell strokeWidth={1.75} />
+          <div><b>See all notifications</b></div>
+        </button>
       </Popover>
       <Popover open={pop === "menu"} onClose={() => setPop(null)} variant="menu" label="Account menu">
         <div className="sb-pop-item">
@@ -149,6 +185,14 @@ function AuthenticatedShell({
         <button type="button" className="sb-pop-item" onClick={() => { setPop(null); navigate("/notices"); }}>
           <Megaphone strokeWidth={1.75} />
           <div><b>Notices</b></div>
+        </button>
+        <button type="button" className="sb-pop-item" data-todos-menu onClick={() => { setPop(null); navigate("/todos"); }}>
+          <ListTodo strokeWidth={1.75} />
+          <div><b>To-dos</b></div>
+        </button>
+        <button type="button" className="sb-pop-item" data-security-menu onClick={() => { setPop(null); navigate("/account/security"); }}>
+          <KeyRound strokeWidth={1.75} />
+          <div><b>Security</b><small>Sessions, passkeys</small></div>
         </button>
         <button type="button" className="sb-pop-item" data-mfa-menu onClick={() => { setPop(null); navigate("/account/mfa"); }}>
           <ShieldCheck strokeWidth={1.75} />

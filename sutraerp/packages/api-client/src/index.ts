@@ -21,9 +21,32 @@ export type SessionInfo = Schemas["SessionInfo"];
 export type ModuleDescriptor = Schemas["ModuleDescriptor"];
 export type Problem = Schemas["Problem"];
 export type MfaLevel = Schemas["MfaLevel"];
+export type MfaMethod = Schemas["MfaMethod"];
 export type CsrfTokenResponse = Schemas["CsrfTokenResponse"];
 export type TotpEnrolmentResponse = Schemas["TotpEnrolmentResponse"];
 export type LogoutResponse = Schemas["LogoutResponse"];
+// Batch 1D
+export type Notification = Schemas["Notification"];
+export type NotificationPage = Schemas["NotificationPage"];
+export type NotificationCategory = Schemas["NotificationCategory"];
+export type Severity = Schemas["Severity"];
+export type Notice = Schemas["Notice"];
+export type NoticeList = Schemas["NoticeList"];
+export type NoticeState = Schemas["NoticeState"];
+export type NewNotice = Schemas["NewNotice"];
+export type UpdateNotice = Schemas["UpdateNotice"];
+export type Todo = Schemas["Todo"];
+export type TodoPage = Schemas["TodoPage"];
+export type TodoStatus = Schemas["TodoStatus"];
+export type NewTodo = Schemas["NewTodo"];
+export type Profile = Schemas["Profile"];
+export type UpdateProfile = Schemas["UpdateProfile"];
+export type CategoryPreference = Schemas["CategoryPreference"];
+export type MfaStatus = Schemas["MfaStatus"];
+export type PasskeyInfo = Schemas["PasskeyInfo"];
+export type SessionView = Schemas["SessionView"];
+export type WebauthnCeremony = Schemas["WebauthnCeremony"];
+export type WebauthnChallengeResponse = Schemas["WebauthnChallengeResponse"];
 
 export interface ClientOptions {
   /** Origin of the API; empty string = same origin (default, via dev proxy / ingress). */

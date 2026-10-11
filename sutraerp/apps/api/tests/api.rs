@@ -203,6 +203,19 @@ async fn openapi_is_served_and_matches_committed_spec() {
     ] {
         assert!(body["paths"].get(p).is_some(), "missing {p}");
     }
+    // operationIds must be unique: the typed TS client indexes operations by them, so a
+    // duplicate silently gives two paths the same request/response types.
+    let mut seen = std::collections::HashSet::new();
+    for (path, item) in body["paths"].as_object().unwrap() {
+        for (method, op) in item.as_object().unwrap() {
+            if let Some(id) = op.get("operationId").and_then(|v| v.as_str()) {
+                assert!(
+                    seen.insert(id.to_owned()),
+                    "duplicate operationId {id} ({method} {path})"
+                );
+            }
+        }
+    }
     let committed = std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../openapi/openapi.json"

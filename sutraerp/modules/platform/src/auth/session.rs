@@ -21,10 +21,12 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use sutra_contracts::platform::auth::{
-    IssuedSession, MfaLevel, NewSession, Principal, Session, SessionPolicy, SessionStore,
+    IssuedSession, MfaLevel, NewSession, Principal, RevokedSession, Session, SessionPolicy,
+    SessionStore, SessionSummary,
 };
 use sutra_kernel::auth::{AuthContext, SessionResolver};
 use sutra_kernel::error::KernelError;
+use sutra_kernel::scope::ExecutionScope;
 use sutra_kernel::secret;
 use uuid::Uuid;
 
@@ -165,6 +167,99 @@ impl SessionStore for InMemorySessionStore {
     async fn revoke(&self, token: &str) -> Result<(), KernelError> {
         self.lock()?.remove(&token_hash(token));
         Ok(())
+    }
+
+    async fn list_for_subject(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+    ) -> Result<Vec<SessionSummary>, KernelError> {
+        let now = (self.clock)();
+        let map = self.lock()?;
+        let mut v: Vec<SessionSummary> = map
+            .values()
+            .filter(|e| {
+                e.principal.scope.tenant_id == scope.tenant_id
+                    && e.principal.subject == subject
+                    && self.policy.is_live(now, e.last_seen_at, e.expires_at)
+            })
+            .map(|e| self.summary(e))
+            .collect();
+        v.sort_by(|a, b| b.created_at.cmp(&a.created_at).then(b.id.cmp(&a.id)));
+        Ok(v)
+    }
+
+    async fn revoke_id(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+        id: Uuid,
+    ) -> Result<bool, KernelError> {
+        let mut map = self.lock()?;
+        let before = map.len();
+        map.retain(|_, e| {
+            !(e.id == id
+                && e.principal.scope.tenant_id == scope.tenant_id
+                && e.principal.subject == subject)
+        });
+        Ok(map.len() < before)
+    }
+
+    async fn revoke_others(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+        keep: Uuid,
+    ) -> Result<u64, KernelError> {
+        let mut map = self.lock()?;
+        let before = map.len();
+        map.retain(|_, e| {
+            e.id == keep
+                || e.principal.scope.tenant_id != scope.tenant_id
+                || e.principal.subject != subject
+        });
+        Ok((before - map.len()) as u64)
+    }
+
+    async fn revoke_federated(
+        &self,
+        sid: Option<&str>,
+        sub: Option<&str>,
+    ) -> Result<Vec<RevokedSession>, KernelError> {
+        if sid.is_none() && sub.is_none() {
+            return Ok(vec![]);
+        }
+        let mut map = self.lock()?;
+        let mut out = vec![];
+        map.retain(|_, e| {
+            let hit = e.idp_sid.is_some()
+                && sid.is_none_or(|s| e.idp_sid.as_deref() == Some(s))
+                && sub.is_none_or(|s| e.principal.subject == s);
+            if hit {
+                out.push(RevokedSession {
+                    id: e.id,
+                    scope: e.principal.scope,
+                    subject: e.principal.subject.clone(),
+                });
+            }
+            !hit
+        });
+        Ok(out)
+    }
+}
+
+impl InMemorySessionStore {
+    fn summary(&self, e: &Entry) -> SessionSummary {
+        SessionSummary {
+            id: e.id,
+            created_at: e.created_at,
+            last_seen_at: e.last_seen_at,
+            expires_at: e.expires_at,
+            idle_expires_at: (e.last_seen_at + self.policy.idle_timeout).min(e.expires_at),
+            mfa_level: e.mfa_level,
+            amr: e.amr.clone(),
+            federated: e.idp_sid.is_some(),
+        }
     }
 }
 

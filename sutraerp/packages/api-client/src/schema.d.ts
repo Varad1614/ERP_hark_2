@@ -71,6 +71,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/mfa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Second-factor status of the signed-in account. */
+        get: operations["mfa_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/mfa/step-up": {
         parameters: {
             query?: never;
@@ -87,6 +104,26 @@ export interface paths {
          */
         post: operations["step_up"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Turn off the authenticator app (needs an MFA-verified session).
+         * @description Refused (`409`) when it is the last second factor of an account whose role requires MFA.
+         */
+        delete: operations["totp_disable"];
         options?: never;
         head?: never;
         patch?: never;
@@ -163,9 +200,52 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Begin a WebAuthn assertion (step-up) — **deferred** (`501`). */
+        /** Begin a passkey assertion to step up the current session. */
         post: operations["webauthn_assertion"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/webauthn/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start the passkey option of a sign-in challenge.
+         * @description Consumes `challengeId` and returns a **new** one (carrying the WebAuthn ceremony) together
+         *     with the assertion options for `navigator.credentials.get`. The new id also still accepts a
+         *     TOTP code at `/api/v1/auth/mfa/verify`. Requires the pre-session CSRF token the challenge
+         *     was issued to.
+         */
+        post: operations["webauthn_challenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/webauthn/credentials/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove one of the caller's passkeys (needs an MFA-verified session). Removing the last
+         *     second factor of an account whose role requires MFA is refused (`409`).
+         */
+        delete: operations["webauthn_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -180,8 +260,92 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Begin WebAuthn credential registration — **deferred** (`501`). */
+        /**
+         * Begin registering a passkey for the signed-in account.
+         * @description Returns the creation options for `navigator.credentials.create` and a `ceremonyId`.
+         *     Adding a passkey to an account that already has a second factor needs an MFA-verified
+         *     session (`403 mfa-step-up-required`).
+         */
         post: operations["webauthn_registration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/webauthn/registration/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish passkey registration; the session is rotated to `mfaLevel = mfa`. */
+        post: operations["webauthn_registration_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/webauthn/step-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish a passkey step-up; the session is rotated to `mfaLevel = mfa` (absolute expiry kept). */
+        post: operations["webauthn_step_up"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/webauthn/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish a sign-in challenge with a passkey.
+         * @description Single use like the TOTP path: a failed assertion burns the challenge. On success the
+         *     session is created with `mfaLevel = mfa` (`amr` = `pwd`, `hwk`, `mfa`).
+         */
+        post: operations["webauthn_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oidc/backchannel-logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * OIDC Back-Channel Logout 1.0 receiver (Keycloak → SutraERP, server to server).
+         * @description Body: `application/x-www-form-urlencoded` with `logout_token`. The token is validated
+         *     (JWKS signature, `iss`, `aud`, `iat`/`exp`, back-channel-logout `events`, `sid`/`sub`, no
+         *     `nonce`), its `jti` must not have been seen before, and then every SutraERP session bound
+         *     to the IdP session `sid` (or, without `sid`, every federated session of `sub`) is revoked.
+         *     Answers `200` (also when no session matched) or `400`; never sets cookies.
+         */
+        post: operations["backchannel_logout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -252,6 +416,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active sessions of the signed-in account (newest first; the current one is flagged). */
+        get: operations["sessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/revoke-others": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign out every other session of this account ("sign out other devices"). */
+        post: operations["revoke_other_sessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Sign out one other session of this account. The current session ends with `POST /logout`. */
+        delete: operations["revoke_session"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/institution/institutions": {
         parameters: {
             query?: never;
@@ -283,7 +498,7 @@ export interface paths {
          * Get an institution of the caller's session tenant (`institution.read`).
          * @description Institutions of other tenants are indistinguishable from missing ones (404).
          */
-        get: operations["get"];
+        get: operations["get_institution"];
         put?: never;
         post?: never;
         delete?: never;
@@ -294,6 +509,127 @@ export interface paths {
          * @description Requires the `institution.rename` permission (administrators).
          */
         patch: operations["rename"];
+        trace?: never;
+    };
+    "/api/v1/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notices: the caller's live notices (pinned first), or every notice (`view=manage`). */
+        get: operations["list_notices"];
+        put?: never;
+        /** Publish a notice (`notice.manage`; `Idempotency-Key` required). */
+        post: operations["create_notice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One notice. Readers only see live notices addressed to one of their roles (otherwise 404). */
+        get: operations["get_notice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a notice (`notice.manage`, `If-Match` required). Archived notices cannot change. */
+        patch: operations["update_notice"];
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a notice (`notice.manage`; idempotent). It disappears for readers immediately. */
+        post: operations["archive_notice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's notifications, newest first (cursor pagination). */
+        get: operations["list_notifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark every visible notification read. */
+        post: operations["mark_all_notifications_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Number of unread notifications (the bell badge). */
+        get: operations["unread_notification_count"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark one notification read (idempotent). Notifications not addressed to the caller → 404. */
+        post: operations["mark_notification_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/platform/modules": {
@@ -347,6 +683,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's profile (created from the session's principal on first access). */
+        get: operations["get_profile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update the caller's profile (optimistic concurrency: `If-Match: "<version>"`). */
+        patch: operations["update_profile"];
+        trace?: never;
+    };
+    "/api/v1/todos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's to-dos (newest first). */
+        get: operations["list_todos"];
+        put?: never;
+        /** Create a to-do for yourself, or assign one (`todo.assign`; `Idempotency-Key` required). */
+        post: operations["create_todo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark one of your to-dos done. */
+        post: operations["complete_todo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss one of your to-dos (no longer relevant). */
+        post: operations["dismiss_todo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todos/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen a completed or dismissed to-do. */
+        post: operations["reopen_todo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -385,6 +808,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Per-category notification preference. */
+        CategoryPreference: {
+            category: components["schemas"]["NotificationCategory"];
+            /** @description Also send by e-mail to `contactEmail`. */
+            email: boolean;
+            /** @description Show in the in-app inbox (security notifications cannot be muted). */
+            inApp: boolean;
+        };
         CheckResult: {
             /**
              * @description A failing critical check makes the instance unready (503); a failing non-critical check
@@ -412,6 +843,11 @@ export interface components {
             institutionId?: null | components["schemas"]["InstitutionId"];
             tenantId: components["schemas"]["TenantId"];
         };
+        /**
+         * @description Who manages the account's second factors.
+         * @enum {string}
+         */
+        FactorAuthority: "sutra" | "keycloak";
         /** @description A single field-level validation failure (`validationErrors[]` in problem+json). */
         FieldViolation: {
             /** @description Stable machine-readable reason code. */
@@ -482,6 +918,10 @@ export interface components {
             /** @description Keycloak RP-initiated logout URL; navigate the browser there to end the SSO session. */
             endSessionUrl: string;
         };
+        MarkedCount: {
+            /** Format: int64 */
+            marked: number;
+        };
         /**
          * @description Authentication assurance of a session (ADR-L5-0038 §3.8).
          *
@@ -495,6 +935,19 @@ export interface components {
          * @enum {string}
          */
         MfaMethod: "webauthn" | "totp";
+        MfaStatus: {
+            managedBy: components["schemas"]["FactorAuthority"];
+            /** @description The account's role requires a second factor. */
+            mfaRequired: boolean;
+            /** @description Registered passkeys / security keys. */
+            passkeys: components["schemas"]["PasskeyInfo"][];
+            /** @description Assurance of the current session. */
+            sessionMfaLevel: components["schemas"]["MfaLevel"];
+            /** @description An authenticator app (TOTP) is active. */
+            totpEnrolled: boolean;
+            /** @description Dev-mode WebAuthn is available in this deployment. */
+            webauthnAvailable: boolean;
+        };
         MfaVerifyRequest: {
             challengeId: string;
             /**
@@ -520,6 +973,100 @@ export interface components {
         };
         /** @enum {string} */
         ModuleStatus: "scaffolded" | "active";
+        NewNotice: {
+            /** @description Roles that see the notice (at least one). */
+            audienceRoles: components["schemas"]["Role"][];
+            body: string;
+            /** Format: date-time */
+            expiresAt?: string | null;
+            pinned?: boolean;
+            /**
+             * Format: date-time
+             * @description Defaults to now.
+             */
+            publishAt?: string | null;
+            /** @example Innovation Week begins 23 September */
+            title: string;
+        };
+        NewTodo: {
+            /** @description Assign to this person (login id of someone who has signed in before); omitted = me. */
+            assigneeLoginId?: string | null;
+            detail?: string;
+            /** Format: date-time */
+            dueAt?: string | null;
+            /** @description Application path (e.g. `/academics`). */
+            link?: string | null;
+            title: string;
+        };
+        Notice: {
+            audienceRoles: components["schemas"]["Role"][];
+            authorName: string;
+            body: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            pinned: boolean;
+            /** Format: date-time */
+            publishAt: string;
+            state: components["schemas"]["NoticeState"];
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        NoticeList: {
+            items: components["schemas"]["Notice"][];
+            /** Format: int64 */
+            total: number;
+        };
+        /** @enum {string} */
+        NoticeState: "scheduled" | "live" | "expired" | "archived";
+        Notification: {
+            body: string;
+            category: components["schemas"]["NotificationCategory"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** @description Application path to open (e.g. `/todos`). */
+            link?: string | null;
+            /**
+             * Format: date-time
+             * @description When the caller read it; `null` = unread.
+             */
+            readAt?: string | null;
+            severity: components["schemas"]["Severity"];
+            title: string;
+        };
+        /**
+         * @description What a notification is about (also the unit of notification preferences).
+         * @enum {string}
+         */
+        NotificationCategory: "institution" | "notice" | "todo" | "security" | "system";
+        NotificationPage: {
+            items: components["schemas"]["Notification"][];
+            /**
+             * Format: uuid
+             * @description Pass as `cursor` to fetch the next (older) page; absent on the last page.
+             */
+            nextCursor?: string | null;
+            /** Format: int64 */
+            unreadCount: number;
+        };
+        /** @description A registered passkey / security key (public data only). */
+        PasskeyInfo: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** Format: date-time */
+            lastUsedAt?: string | null;
+        };
         /** @description The authenticated principal (technical identity bound to a SutraERP canonical identity). */
         Principal: {
             displayName: string;
@@ -545,6 +1092,26 @@ export interface components {
             /** @description SutraERP extension: structured field violations. */
             validationErrors?: components["schemas"]["FieldViolation"][];
         };
+        Profile: {
+            contactEmail?: string | null;
+            /** @description E.164, e.g. `+919876543210`. */
+            contactPhone?: string | null;
+            displayName: string;
+            /** Format: date-time */
+            lastSignInAt?: string | null;
+            /** @description BCP 47 language tag, e.g. `en-IN`. */
+            locale: string;
+            loginId: string;
+            notificationPreferences: components["schemas"]["CategoryPreference"][];
+            roles: components["schemas"]["Role"][];
+            subject: string;
+            /** @description IANA time zone, e.g. `Asia/Kolkata`. */
+            timeZone: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
         RegisterInstitution: {
             /**
              * @description Short institution code, unique within the tenant (`A-Z0-9-`, 2–32 chars).
@@ -558,6 +1125,10 @@ export interface components {
         };
         RenameInstitution: {
             name: string;
+        };
+        RevokedCount: {
+            /** Format: int64 */
+            revoked: number;
         };
         /**
          * @description Application role as presented by the web client. Authorization decisions use the
@@ -586,11 +1157,73 @@ export interface components {
             mfaLevel: components["schemas"]["MfaLevel"];
             principal: components["schemas"]["Principal"];
         };
+        SessionList: {
+            items: components["schemas"]["SessionView"][];
+        };
+        SessionView: {
+            amr: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description The session making this request. */
+            current: boolean;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Signed in through single sign-on (Keycloak). */
+            federated: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            idleExpiresAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            mfaLevel: components["schemas"]["MfaLevel"];
+        };
+        /** @enum {string} */
+        Severity: "info" | "success" | "warning" | "critical";
         /**
          * Format: uuid
          * @description Root protected technical scope.
          */
         TenantId: string;
+        Todo: {
+            /** @description Subject that assigned it (`null` = created by the system or by the assignee). */
+            assignedBy?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            detail: string;
+            /** Format: date-time */
+            dismissedAt?: string | null;
+            /** Format: date-time */
+            dueAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description Application path where the work happens. */
+            link?: string | null;
+            overdue: boolean;
+            source: components["schemas"]["TodoSource"];
+            status: components["schemas"]["TodoStatus"];
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        TodoPage: {
+            items: components["schemas"]["Todo"][];
+            /** Format: uuid */
+            nextCursor?: string | null;
+            /**
+             * Format: int64
+             * @description Open items of the caller (all pages).
+             */
+            openCount: number;
+        };
+        /** @enum {string} */
+        TodoSource: "manual" | "event";
+        /** @enum {string} */
+        TodoStatus: "open" | "completed" | "dismissed";
         TotpCodeRequest: {
             /**
              * @description Six-digit TOTP code from the authenticator app.
@@ -608,8 +1241,74 @@ export interface components {
             /** @description Base32 shared secret for manual entry. */
             secret: string;
         };
+        UnreadCount: {
+            /** Format: int64 */
+            unread: number;
+        };
+        /** @description Partial update; omitted members are unchanged. `clearExpiry: true` removes the expiry. */
+        UpdateNotice: {
+            audienceRoles?: components["schemas"]["Role"][] | null;
+            body?: string | null;
+            clearExpiry?: boolean;
+            /** Format: date-time */
+            expiresAt?: string | null;
+            pinned?: boolean | null;
+            /** Format: date-time */
+            publishAt?: string | null;
+            title?: string | null;
+        };
+        /**
+         * @description Partial update; omitted members are unchanged. An empty `contactEmail` / `contactPhone`
+         *     clears it.
+         */
+        UpdateProfile: {
+            contactEmail?: string | null;
+            contactPhone?: string | null;
+            displayName?: string | null;
+            locale?: string | null;
+            notificationPreferences?: components["schemas"]["CategoryPreference"][] | null;
+            timeZone?: string | null;
+        };
         /** Format: int64 */
         Version: number;
+        WebauthnAssertionRequest: {
+            ceremonyId: string;
+            credential: Record<string, never>;
+        };
+        /**
+         * @description A WebAuthn ceremony handed to the browser: `options` is the JSON form of
+         *     `PublicKeyCredentialCreationOptions` / `…RequestOptions` (binary members base64url encoded,
+         *     under `publicKey`); `ceremony_id` names the server-side state (single use, short lived).
+         */
+        WebauthnCeremony: {
+            ceremonyId: string;
+            options: Record<string, never>;
+        };
+        /** @description Pre-session request naming the sign-in challenge. */
+        WebauthnChallengeRequest: {
+            challengeId: string;
+        };
+        /**
+         * @description Sign-in challenge after the passkey option was started: use the **new** `challengeId` for
+         *     both `…/webauthn/verify` and the TOTP `…/mfa/verify` (the previous one was consumed).
+         */
+        WebauthnChallengeResponse: {
+            challengeId: string;
+            /** @description `PublicKeyCredentialRequestOptions` (JSON form, under `publicKey`). */
+            options: Record<string, never>;
+        };
+        WebauthnRegistrationCompleteRequest: {
+            ceremonyId: string;
+            /** @description `PublicKeyCredential` from `navigator.credentials.create` (binary members base64url). */
+            credential: Record<string, never>;
+            /** @description Name shown in the security page (defaults to "Passkey"). */
+            label?: string;
+        };
+        WebauthnVerifyRequest: {
+            challengeId: string;
+            /** @description `PublicKeyCredential` from `navigator.credentials.get` (binary members base64url). */
+            credential: Record<string, never>;
+        };
         WorkflowEntry: {
             label: string;
             roles: components["schemas"]["Role"][];
@@ -754,6 +1453,33 @@ export interface operations {
             };
         };
     };
+    mfa_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaStatus"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     step_up: {
         parameters: {
             query?: never;
@@ -777,6 +1503,60 @@ export interface operations {
             };
             /** @description No session, wrong or replayed code */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description MFA is managed by Keycloak */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    totp_disable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authenticator removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Step-up required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No authenticator enrolled */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Last factor of an account that requires MFA */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -939,8 +1719,129 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Deferred: WebAuthn is offered through Keycloak */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebauthnCeremony"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No passkey registered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Passkeys are managed by Keycloak */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    webauthn_challenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebauthnChallengeRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebauthnChallengeResponse"];
+                };
+            };
+            /** @description Unknown/expired challenge or another browser */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No passkey registered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Passkeys are managed by Keycloak */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    webauthn_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Step-up required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Last factor of an account that requires MFA */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -959,8 +1860,224 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Deferred: WebAuthn is offered through Keycloak */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebauthnCeremony"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Step-up required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Too many passkeys */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Passkeys are managed by Keycloak */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    webauthn_registration_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebauthnRegistrationCompleteRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Unknown or foreign ceremony */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Authenticator already registered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Attestation could not be verified */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    webauthn_step_up: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebauthnAssertionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Assertion rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Passkeys are managed by Keycloak */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    webauthn_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebauthnVerifyRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Unknown challenge, wrong browser, or assertion rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Passkeys are managed by Keycloak */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    backchannel_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description logout_token=<JWT> */
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": string;
+            };
+        };
+        responses: {
+            /** @description Logout token accepted; matching sessions revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid or replayed logout token */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description OIDC not configured (dev mode) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Identity provider keys unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1060,6 +2177,107 @@ export interface operations {
             };
         };
     };
+    sessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionList"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    revoke_other_sessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokedCount"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    revoke_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a live session of this account */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description That is the current session (use logout) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     register: {
         parameters: {
             query?: never;
@@ -1132,7 +2350,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_institution: {
         parameters: {
             query?: never;
             header?: never;
@@ -1253,6 +2471,385 @@ export interface operations {
             };
         };
     };
+    list_notices: {
+        parameters: {
+            query?: {
+                view?: "current" | "manage";
+                /** @description Page size (1–100, default 50). */
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeList"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `view=manage` without `notice.manage` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_notice: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewNotice"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notice"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `notice.manage` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    get_notice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notice"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update_notice: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being modified */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateNotice"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notice"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Archived */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    archive_notice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notice"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    list_notifications: {
+        parameters: {
+            query?: {
+                /** @description Only unread notifications. */
+                unreadOnly?: boolean;
+                /** @description Page size (1–100, default 20). */
+                limit?: number;
+                /** @description `nextCursor` of the previous page. */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    mark_all_notifications_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkedCount"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    unread_notification_count: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCount"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    mark_notification_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marked read */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     list_modules: {
         parameters: {
             query?: never;
@@ -1314,6 +2911,282 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Workspace"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    get_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update_profile: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the profile version being modified */
+                "If-Match": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfile"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    list_todos: {
+        parameters: {
+            query?: {
+                /** @description Default `open`. */
+                status?: "open" | "completed" | "dismissed" | "all";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_todo: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTodo"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Todo"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Assigning needs `todo.assign` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Invalid, or unknown assignee */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    complete_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Todo"];
+                };
+            };
+            /** @description Not one of your to-dos */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    dismiss_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Todo"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reopen_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Todo"];
                 };
             };
             404: {

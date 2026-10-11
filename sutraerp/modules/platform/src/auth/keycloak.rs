@@ -26,8 +26,8 @@ use jsonwebtoken::jwk::JwkSet;
 use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 use std::time::{Duration, Instant};
 use sutra_contracts::platform::auth::{
-    AuthorizationParams, CredentialAuthenticator, Credentials, FederatedIdentity, MfaLevel,
-    OidcIdentityProvider, Principal, Role,
+    AuthorizationParams, CredentialAuthenticator, Credentials, FederatedIdentity, LogoutClaims,
+    MfaLevel, OidcIdentityProvider, Principal, Role,
 };
 use sutra_kernel::error::KernelError;
 use sutra_kernel::scope::{ExecutionScope, InstitutionId, TenantId};
@@ -304,6 +304,45 @@ const ALLOWED_ALGS: [Algorithm; 8] = [
     Algorithm::ES384,
 ];
 
+/// `events` member of a back-channel logout token (OIDC Back-Channel Logout 1.0 §2.4).
+pub const BACKCHANNEL_LOGOUT_EVENT: &str = "http://schemas.openid.net/event/backchannel-logout";
+/// Accepted age of a logout token that carries no `exp`.
+const LOGOUT_TOKEN_MAX_AGE_SECS: i64 = 300;
+
+/// Claims of a logout token as received (validated by [`KeycloakAuthenticator::validate_logout`]).
+#[derive(Debug, serde::Deserialize)]
+struct LogoutTokenClaims {
+    #[serde(default)]
+    sub: Option<String>,
+    #[serde(default)]
+    sid: Option<String>,
+    #[serde(default)]
+    jti: Option<String>,
+    #[serde(default)]
+    iat: Option<i64>,
+    #[serde(default)]
+    exp: Option<i64>,
+    #[serde(default)]
+    azp: Option<String>,
+    #[serde(default)]
+    events: Option<serde_json::Value>,
+    #[serde(default)]
+    nonce: Option<serde_json::Value>,
+}
+
+fn map_jwt_error(e: &jsonwebtoken::errors::Error, alg: Algorithm) -> TokenError {
+    use jsonwebtoken::errors::ErrorKind as K;
+    match e.kind() {
+        K::InvalidSignature => TokenError::BadSignature,
+        K::ExpiredSignature => TokenError::Expired,
+        K::ImmatureSignature => TokenError::NotYetValid,
+        K::InvalidIssuer => TokenError::WrongIssuer,
+        K::InvalidAudience => TokenError::WrongAudience,
+        K::InvalidAlgorithm => TokenError::AlgorithmNotAllowed(alg),
+        _ => TokenError::Claims(e.to_string()),
+    }
+}
+
 /// Minimum spacing between JWKS refreshes triggered by unknown `kid`s.
 const JWKS_MIN_REFRESH: Duration = Duration::from_secs(10);
 
@@ -391,12 +430,12 @@ impl KeycloakAuthenticator {
         self.fetch_jwks().await
     }
 
-    /// Validates an ID token (signature, `iss`, `aud`, `azp`, `exp`/`nbf`, `nonce`).
-    pub async fn validate_id_token(
+    /// Header + JWKS key of a compact JWS (asymmetric algorithms only; unknown `kid` triggers
+    /// one bounded JWKS refresh).
+    async fn decoding_key(
         &self,
         token: &str,
-        expected_nonce: &str,
-    ) -> Result<IdTokenClaims, TokenError> {
+    ) -> Result<(jsonwebtoken::Header, DecodingKey), TokenError> {
         let header =
             jsonwebtoken::decode_header(token).map_err(|e| TokenError::Malformed(e.to_string()))?;
         if !ALLOWED_ALGS.contains(&header.alg) {
@@ -413,24 +452,95 @@ impl KeycloakAuthenticator {
                 .ok_or_else(|| TokenError::UnknownKey(header.kid.clone()))?,
         };
         let key = DecodingKey::from_jwk(&jwk).map_err(|e| TokenError::Malformed(e.to_string()))?;
+        Ok((header, key))
+    }
+
+    /// Validates an OIDC Back-Channel Logout 1.0 logout token (§2.6): JWKS signature, `iss`,
+    /// `aud` (and `azp` when present), `iat` freshness / `exp`, an `events` member containing the
+    /// back-channel-logout event as a JSON object, `sid` and/or `sub`, a `jti`, and **no**
+    /// `nonce` (which also keeps an ID token from being accepted as a logout token).
+    pub async fn validate_logout(&self, token: &str) -> Result<LogoutClaims, TokenError> {
+        let (header, key) = self.decoding_key(token).await?;
+        let mut v = Validation::new(header.alg);
+        v.set_issuer(&[&self.settings.issuer]);
+        v.set_audience(&[&self.settings.client_id]);
+        v.leeway = self.settings.leeway_secs;
+        v.validate_nbf = true;
+        // `exp` is optional for logout tokens: checked below when present.
+        v.validate_exp = false;
+        v.set_required_spec_claims(&["iss", "aud"]);
+        let data = jsonwebtoken::decode::<LogoutTokenClaims>(token, &key, &v)
+            .map_err(|e| map_jwt_error(&e, header.alg))?;
+        let c = data.claims;
+        if c.nonce.is_some() {
+            return Err(TokenError::Claims(
+                "logout token must not carry a nonce".into(),
+            ));
+        }
+        if let Some(azp) = &c.azp {
+            if azp != &self.settings.client_id {
+                return Err(TokenError::WrongAudience);
+            }
+        }
+        let event_ok = c
+            .events
+            .as_ref()
+            .and_then(|e| e.get(BACKCHANNEL_LOGOUT_EVENT))
+            .is_some_and(serde_json::Value::is_object);
+        if !event_ok {
+            return Err(TokenError::Claims(
+                "events member lacks the back-channel-logout event".into(),
+            ));
+        }
+        let sid = c.sid.filter(|s| !s.is_empty());
+        let sub = c.sub.filter(|s| !s.is_empty());
+        if sid.is_none() && sub.is_none() {
+            return Err(TokenError::Claims("logout token needs sid or sub".into()));
+        }
+        let jti = c
+            .jti
+            .filter(|j| !j.is_empty())
+            .ok_or_else(|| TokenError::Claims("logout token needs a jti".into()))?;
+        let now = chrono::Utc::now().timestamp();
+        let leeway = i64::try_from(self.settings.leeway_secs).unwrap_or(0);
+        let iat = c
+            .iat
+            .ok_or_else(|| TokenError::Claims("logout token needs iat".into()))?;
+        if iat > now + leeway {
+            return Err(TokenError::NotYetValid);
+        }
+        let until = match c.exp {
+            Some(exp) if exp + leeway <= now => return Err(TokenError::Expired),
+            Some(exp) => exp + leeway,
+            None if iat + LOGOUT_TOKEN_MAX_AGE_SECS + leeway <= now => {
+                return Err(TokenError::Expired)
+            }
+            None => iat + LOGOUT_TOKEN_MAX_AGE_SECS + leeway,
+        };
+        Ok(LogoutClaims {
+            sid,
+            sub,
+            jti,
+            replayable_until: chrono::DateTime::from_timestamp(until, 0)
+                .unwrap_or_else(chrono::Utc::now),
+        })
+    }
+
+    /// Validates an ID token (signature, `iss`, `aud`, `azp`, `exp`/`nbf`, `nonce`).
+    pub async fn validate_id_token(
+        &self,
+        token: &str,
+        expected_nonce: &str,
+    ) -> Result<IdTokenClaims, TokenError> {
+        let (header, key) = self.decoding_key(token).await?;
         let mut v = Validation::new(header.alg);
         v.set_issuer(&[&self.settings.issuer]);
         v.set_audience(&[&self.settings.client_id]);
         v.leeway = self.settings.leeway_secs;
         v.validate_nbf = true;
         v.set_required_spec_claims(&["exp", "iat", "iss", "aud", "sub"]);
-        let data = jsonwebtoken::decode::<IdTokenClaims>(token, &key, &v).map_err(|e| {
-            use jsonwebtoken::errors::ErrorKind as K;
-            match e.kind() {
-                K::InvalidSignature => TokenError::BadSignature,
-                K::ExpiredSignature => TokenError::Expired,
-                K::ImmatureSignature => TokenError::NotYetValid,
-                K::InvalidIssuer => TokenError::WrongIssuer,
-                K::InvalidAudience => TokenError::WrongAudience,
-                K::InvalidAlgorithm => TokenError::AlgorithmNotAllowed(header.alg),
-                _ => TokenError::Claims(e.to_string()),
-            }
-        })?;
+        let data = jsonwebtoken::decode::<IdTokenClaims>(token, &key, &v)
+            .map_err(|e| map_jwt_error(&e, header.alg))?;
         let claims = data.claims;
         if let Some(azp) = &claims.azp {
             if azp != &self.settings.client_id {
@@ -529,6 +639,16 @@ impl OidcIdentityProvider for KeycloakAuthenticator {
         let url = reqwest::Url::parse_with_params(&endpoint, &params)
             .map_err(|e| KernelError::Unavailable(format!("end-session endpoint: {e}")))?;
         Ok(Some(url.into()))
+    }
+
+    async fn validate_logout_token(&self, token: &str) -> Result<LogoutClaims, KernelError> {
+        self.validate_logout(token).await.map_err(|e| match e {
+            TokenError::Unavailable(m) => KernelError::Unavailable(m),
+            other => {
+                tracing::warn!(reason = %other, "logout token rejected");
+                KernelError::BadRequest(format!("invalid logout token: {other}"))
+            }
+        })
     }
 }
 

@@ -23,8 +23,8 @@ use chrono::{DateTime, Duration, Utc};
 use std::sync::Arc;
 use sutra_contracts::platform::auth::{
     AuthorizationParams, CredentialAuthenticator, Credentials, MfaLevel, MfaMethod, MfaPolicy,
-    NewSession, OidcIdentityProvider, PreAuthKind, PreAuthStore, Principal, SessionStore,
-    WebauthnPort,
+    NewSession, OidcIdentityProvider, PreAuthKind, PreAuthStore, Principal, ReplayGuard,
+    SessionStore, WebauthnPort,
 };
 use sutra_kernel::audit::{ActorKind, AuditEntry, AuditOutcome, AuditSink};
 use sutra_kernel::auth::AuthContext;
@@ -36,7 +36,7 @@ use sutra_web::{ApiResult, Authenticated, PreSessionCsrf, Problem};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 /// Lifetime of a pending MFA challenge.
-const MFA_CHALLENGE_TTL_SECS: i64 = 300;
+pub(crate) const MFA_CHALLENGE_TTL_SECS: i64 = 300;
 /// Lifetime of an OIDC authorization request (state / nonce / PKCE verifier).
 const OIDC_REQUEST_TTL_SECS: i64 = 600;
 
@@ -52,6 +52,16 @@ pub struct AuthState {
     pub oidc: Option<Arc<dyn OidcIdentityProvider>>,
     pub webauthn: Arc<dyn WebauthnPort>,
     pub pre_session: PreSessionCsrf,
+    /// Single-use guard for back-channel logout token ids.
+    pub replay: Arc<dyn ReplayGuard>,
+    /// Refreshes the user's profile row at every sign-in (best effort; `None` without a DB).
+    pub sign_in_hook: Option<Arc<dyn SignInHook>>,
+}
+
+/// Called after a session was established (profile refresh, last sign-in time).
+#[async_trait::async_trait]
+pub trait SignInHook: Send + Sync + 'static {
+    async fn signed_in(&self, principal: &Principal) -> Result<(), KernelError>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -183,10 +193,13 @@ pub struct OidcCallbackQuery {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-struct MfaChallengePayload {
-    principal: Principal,
+pub(crate) struct MfaChallengePayload {
+    pub(crate) principal: Principal,
     /// `SHA-256(pre-session CSRF token)` the challenge was issued to (browser binding).
-    binding: String,
+    pub(crate) binding: String,
+    /// WebAuthn authentication ceremony started for this challenge (passkey option).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) webauthn_ceremony: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -202,12 +215,12 @@ struct OidcRequestPayload {
 // Helpers
 // ---------------------------------------------------------------------------------------------
 
-fn no_store(res: &mut Response) {
+pub(crate) fn no_store(res: &mut Response) {
     res.headers_mut()
         .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
 }
 
-fn add_cookie(res: &mut Response, cookie: &str) -> Result<(), KernelError> {
+pub(crate) fn add_cookie(res: &mut Response, cookie: &str) -> Result<(), KernelError> {
     res.headers_mut().append(
         header::SET_COOKIE,
         HeaderValue::from_str(cookie).map_err(KernelError::internal)?,
@@ -215,7 +228,7 @@ fn add_cookie(res: &mut Response, cookie: &str) -> Result<(), KernelError> {
     Ok(())
 }
 
-async fn audit(
+pub(crate) async fn audit(
     state: &AuthState,
     principal: &Principal,
     action: &'static str,
@@ -231,12 +244,39 @@ async fn audit(
     let _ = state.audit.record(e).await;
 }
 
+/// Second factors the subject has enrolled with SutraERP (dev mode): `(totp, passkey)`.
+pub(crate) async fn enrolled_factors(
+    state: &AuthState,
+    p: &Principal,
+) -> Result<(bool, bool), KernelError> {
+    let Some(mfa) = &state.mfa else {
+        return Ok((false, false));
+    };
+    let totp = mfa.has_totp(p).await?;
+    let passkey = state.webauthn.enabled() && !state.webauthn.credentials(p).await?.is_empty();
+    Ok((totp, passkey))
+}
+
 /// Whether `p` must (still) enrol a second factor with SutraERP.
-async fn enrollment_required(state: &AuthState, p: &Principal) -> Result<bool, KernelError> {
-    match &state.mfa {
-        Some(mfa) if state.mfa_policy.requires_mfa(p) => Ok(!mfa.has_totp(p).await?),
-        _ => Ok(false),
+pub(crate) async fn enrollment_required(
+    state: &AuthState,
+    p: &Principal,
+) -> Result<bool, KernelError> {
+    if state.mfa.is_none() || !state.mfa_policy.requires_mfa(p) {
+        return Ok(false);
     }
+    let (totp, passkey) = enrolled_factors(state, p).await?;
+    Ok(!totp && !passkey)
+}
+
+/// The pre-session CSRF token of this request, hashed: the browser binding of MFA challenges.
+pub(crate) fn browser_binding(headers: &HeaderMap) -> String {
+    let presented = headers
+        .get(CSRF_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or_default()
+        .trim();
+    secret::hex(&secret::sha256(presented.as_bytes()))
 }
 
 /// Mints a session (always a new token; any presented session is revoked — fixation defence),
@@ -252,6 +292,11 @@ async fn issue_session(
     }
     let principal = new.principal.clone();
     let issued = state.sessions.create(new).await?;
+    if let Some(hook) = &state.sign_in_hook {
+        if let Err(e) = hook.signed_in(&principal).await {
+            tracing::warn!(error = %e, "sign-in hook failed (profile refresh)");
+        }
+    }
     audit(
         state,
         &principal,
@@ -276,7 +321,7 @@ async fn issue_session(
     Ok((res, body))
 }
 
-async fn establish(
+pub(crate) async fn establish(
     state: &AuthState,
     headers: &HeaderMap,
     new: NewSession,
@@ -290,16 +335,18 @@ async fn establish(
 }
 
 /// Rotates the caller's session into an MFA-verified one (new token + CSRF token, same
-/// principal, original absolute expiry kept).
-async fn elevate(
+/// principal, original absolute expiry kept). `method` is the `amr` of the second factor
+/// (`otp` for TOTP, `hwk` for WebAuthn).
+pub(crate) async fn elevate(
     state: &AuthState,
     headers: &HeaderMap,
     ctx: &AuthContext,
+    method: &'static str,
     action: &'static str,
 ) -> ApiResult<Response> {
     let mut new = NewSession::password_and_totp(Principal::from(ctx));
     let mut amr = ctx.amr.clone();
-    for m in ["otp", "mfa"] {
+    for m in [method, "mfa"] {
         if !amr.iter().any(|a| a == m) {
             amr.push(m.into());
         }
@@ -309,13 +356,13 @@ async fn elevate(
     establish(state, headers, new, action).await
 }
 
-fn mfa_service(state: &AuthState) -> Result<&MfaService, KernelError> {
+pub(crate) fn mfa_service(state: &AuthState) -> Result<&MfaService, KernelError> {
     state.mfa.as_ref().ok_or(KernelError::NotImplemented(
         "second factors are managed by Keycloak in this mode",
     ))
 }
 
-fn require_code(code: &str) -> Result<(), KernelError> {
+pub(crate) fn require_code(code: &str) -> Result<(), KernelError> {
     let c = code.trim();
     if c.len() == 6 && c.bytes().all(|b| b.is_ascii_digit()) {
         Ok(())
@@ -440,40 +487,44 @@ pub async fn login(
             return Err(e.into());
         }
     };
-    if state.mfa_policy.requires_mfa(&principal) {
-        if let Some(mfa) = &state.mfa {
-            if mfa.has_totp(&principal).await? {
-                let presented = headers
-                    .get(CSRF_HEADER)
-                    .and_then(|v| v.to_str().ok())
-                    .unwrap_or_default()
-                    .trim();
-                let payload = MfaChallengePayload {
-                    principal,
-                    binding: secret::hex(&secret::sha256(presented.as_bytes())),
-                };
-                let challenge_id = state
-                    .pre_auth
-                    .put(
-                        PreAuthKind::MfaChallenge,
-                        serde_json::to_value(&payload).map_err(KernelError::internal)?,
-                        Duration::seconds(MFA_CHALLENGE_TTL_SECS),
-                    )
-                    .await?;
-                let mut res = Json(LoginResponse {
-                    outcome: LoginOutcome::MfaRequired,
-                    principal: None,
-                    challenge_id: Some(challenge_id),
-                    mfa_methods: vec![MfaMethod::Totp],
-                    csrf_token: None,
-                    expires_at: None,
-                    mfa_level: None,
-                    mfa_enrollment_required: false,
-                })
-                .into_response();
-                no_store(&mut res);
-                return Ok(res);
+    // Principals the policy requires MFA for are challenged for any enrolled second factor
+    // (TOTP and/or passkey); without one they get a single-factor session flagged for enrolment.
+    if state.mfa.is_some() && state.mfa_policy.requires_mfa(&principal) {
+        let (totp, passkey) = enrolled_factors(&state, &principal).await?;
+        if totp || passkey {
+            let mut mfa_methods = vec![];
+            if passkey {
+                mfa_methods.push(MfaMethod::Webauthn);
             }
+            if totp {
+                mfa_methods.push(MfaMethod::Totp);
+            }
+            let payload = MfaChallengePayload {
+                principal,
+                binding: browser_binding(&headers),
+                webauthn_ceremony: None,
+            };
+            let challenge_id = state
+                .pre_auth
+                .put(
+                    PreAuthKind::MfaChallenge,
+                    serde_json::to_value(&payload).map_err(KernelError::internal)?,
+                    Duration::seconds(MFA_CHALLENGE_TTL_SECS),
+                )
+                .await?;
+            let mut res = Json(LoginResponse {
+                outcome: LoginOutcome::MfaRequired,
+                principal: None,
+                challenge_id: Some(challenge_id),
+                mfa_methods,
+                csrf_token: None,
+                expires_at: None,
+                mfa_level: None,
+                mfa_enrollment_required: false,
+            })
+            .into_response();
+            no_store(&mut res);
+            return Ok(res);
         }
     }
     establish(
@@ -514,12 +565,7 @@ pub async fn verify_mfa(
         .ok_or(KernelError::Unauthenticated)?;
     let payload: MfaChallengePayload =
         serde_json::from_value(payload).map_err(KernelError::internal)?;
-    let presented = headers
-        .get(CSRF_HEADER)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or_default()
-        .trim();
-    let binding = secret::hex(&secret::sha256(presented.as_bytes()));
+    let binding = browser_binding(&headers);
     if !secret::ct_eq(binding.as_bytes(), payload.binding.as_bytes()) {
         tracing::warn!("MFA challenge presented by another browser");
         return Err(KernelError::Unauthenticated.into());
@@ -703,7 +749,7 @@ pub async fn totp_confirm(
     require_code(&req.code)?;
     mfa.confirm_totp_enrolment(&Principal::from(&ctx), &req.code)
         .await?;
-    elevate(&state, &headers, &ctx, "platform.auth.mfa.enrolled").await
+    elevate(&state, &headers, &ctx, "otp", "platform.auth.mfa.enrolled").await
 }
 
 /// Step up the current session with a TOTP code (needed for admin-sensitive permissions).
@@ -742,51 +788,7 @@ pub async fn step_up(
         .await;
         return Err(e.into());
     }
-    elevate(&state, &headers, &ctx, "platform.auth.mfa.step_up").await
-}
-
-/// Begin WebAuthn credential registration — **deferred** (`501`).
-#[utoipa::path(
-    post,
-    path = "/api/v1/auth/mfa/webauthn/registration",
-    tag = "auth",
-    security(("session_cookie" = [], "csrf_token" = [])),
-    responses(
-        (status = 501, description = "Deferred: WebAuthn is offered through Keycloak", body = Problem, content_type = "application/problem+json"),
-    )
-)]
-pub async fn webauthn_registration(
-    State(state): State<AuthState>,
-    Authenticated(ctx): Authenticated,
-) -> ApiResult<Json<serde_json::Value>> {
-    Ok(Json(
-        state
-            .webauthn
-            .registration_options(&Principal::from(&ctx))
-            .await?,
-    ))
-}
-
-/// Begin a WebAuthn assertion (step-up) — **deferred** (`501`).
-#[utoipa::path(
-    post,
-    path = "/api/v1/auth/mfa/webauthn/assertion",
-    tag = "auth",
-    security(("session_cookie" = [], "csrf_token" = [])),
-    responses(
-        (status = 501, description = "Deferred: WebAuthn is offered through Keycloak", body = Problem, content_type = "application/problem+json"),
-    )
-)]
-pub async fn webauthn_assertion(
-    State(state): State<AuthState>,
-    Authenticated(ctx): Authenticated,
-) -> ApiResult<Json<serde_json::Value>> {
-    Ok(Json(
-        state
-            .webauthn
-            .assertion_options(&Principal::from(&ctx))
-            .await?,
-    ))
+    elevate(&state, &headers, &ctx, "otp", "platform.auth.mfa.step_up").await
 }
 
 /// Start an OIDC sign-in at Keycloak (Authorization Code + PKCE, Keycloak mode).
@@ -960,6 +962,8 @@ pub fn router(deps: PlatformDeps) -> OpenApiRouter {
         oidc: deps.oidc,
         webauthn: deps.webauthn,
         pre_session: deps.pre_session,
+        replay: deps.replay,
+        sign_in_hook: deps.sign_in_hook,
     };
     OpenApiRouter::new()
         .routes(routes!(csrf))
@@ -970,10 +974,10 @@ pub fn router(deps: PlatformDeps) -> OpenApiRouter {
         .routes(routes!(totp_enrolment))
         .routes(routes!(totp_confirm))
         .routes(routes!(step_up))
-        .routes(routes!(webauthn_registration))
-        .routes(routes!(webauthn_assertion))
         .routes(routes!(oidc_start))
         .routes(routes!(oidc_callback))
+        .merge(super::http_security::routes())
+        .merge(super::http_webauthn::routes())
         .with_state(state)
 }
 

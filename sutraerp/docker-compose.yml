@@ -1,6 +1,7 @@
 # Local development dependencies for SutraERP.
-#   docker compose up -d            # infra only (postgres, keycloak, valkey, nats, mailpit)
-#   docker compose --profile app up # + api and web containers
+#   docker compose up -d                    # infra only (postgres, keycloak, valkey, nats, mailpit)
+#   docker compose --profile app up --build # + migrate (owner) → api (runtime role) and web
+# See README "Local Docker verification".
 name: sutraerp
 
 services:
@@ -35,6 +36,9 @@ services:
       KC_HOSTNAME: http://localhost:8180
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     ports: ["8180:8180"]
+    # Back-channel logout POSTs go to http://api:8080 (compose); host.docker.internal lets an
+    # API started on the host (`make api`) be registered instead.
+    extra_hosts: ["host.docker.internal:host-gateway"]
     volumes:
       - ./deploy/keycloak/realm-sutra-dev.json:/opt/keycloak/data/import/realm-sutra-dev.json:ro
     depends_on:
@@ -60,17 +64,32 @@ services:
       interval: 5s
       retries: 10
 
+  # Development SMTP sink: notification e-mails (SUTRA_NOTIFY_EMAIL=smtp) land here.
+  # Web UI http://localhost:8025, SMTP localhost:1025.
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.31
     ports: ["1025:1025", "8025:8025"]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      retries: 10
 
+  # ADR-L5-0008 / ADR-L5-0005: migrations run as the schema OWNER (`sutra`) and provision the
+  # API's runtime LOGIN role (member of `sutra_app`, owns nothing, DML only).
   migrate:
     profiles: ["app"]
     build: { context: ., dockerfile: deploy/docker/api.Dockerfile }
     command: ["migrate"]
     environment:
       SUTRA_ENV: development
+      SUTRA_LOG_FORMAT: json
       DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
+      SUTRA_MIGRATION_DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
+      SUTRA_DB_RUNTIME_USER: sutra_api
+      SUTRA_DB_RUNTIME_PASSWORD: sutra-api-dev-only
     depends_on:
       postgres: { condition: service_healthy }
 
@@ -80,11 +99,15 @@ services:
     environment:
       SUTRA_ENV: development
       SUTRA_LOG_FORMAT: json
-      DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
+      # Serves as the runtime role provisioned by `migrate` (not the schema owner).
+      DATABASE_URL: postgres://sutra_api:sutra-api-dev-only@postgres:5432/sutra
       # dev | keycloak. Keycloak mode: OIDC Authorization Code + PKCE through the BFF endpoints
       # /api/v1/auth/oidc/start|callback (browser-facing issuer localhost:8180, back channel
       # through the compose network).
-      SUTRA_AUTH_MODE: dev
+      # Switch with `SUTRA_COMPOSE_AUTH_MODE=keycloak SUTRA_COMPOSE_WEB_AUTH_MODE=oidc docker compose …`.
+      SUTRA_AUTH_MODE: ${SUTRA_COMPOSE_AUTH_MODE:-dev}
+      # true = administrators must answer a second factor (TOTP or passkey) at dev sign-in.
+      SUTRA_DEV_MFA: ${SUTRA_COMPOSE_DEV_MFA:-false}
       SUTRA_OIDC_ISSUER: http://localhost:8180/realms/sutra
       SUTRA_OIDC_BACKCHANNEL_URL: http://keycloak:8180/realms/sutra
       SUTRA_OIDC_CLIENT_ID: sutra-web
@@ -97,18 +120,40 @@ services:
       SUTRA_NATS_STREAM: SUTRA_EVENTS
       SUTRA_CACHE: valkey
       SUTRA_VALKEY_URL: redis://valkey:6379
+      # Batch 1D: notifications / notices / to-dos inbox, e-mail channel (Mailpit), retention.
+      SUTRA_PUBLIC_URL: http://localhost:3000
+      SUTRA_NOTIFY_EMAIL: smtp
+      SUTRA_SMTP_HOST: mailpit
+      SUTRA_SMTP_PORT: "1025"
+      SUTRA_SMTP_TLS: none
+      SUTRA_MAIL_FROM: SutraERP <no-reply@sutra.dev>
+      SUTRA_NOTIFY_DELIVERY_MS: "5000"
+      SUTRA_NOTIFY_MAX_ATTEMPTS: "5"
+      SUTRA_INBOX_CONSUMER: "true"
+      SUTRA_INBOX_POLL_MS: "2000"
+      SUTRA_INBOX_LOOKBACK_SECS: "604800"
+      SUTRA_INBOX_BATCH_SIZE: "200"
+      SUTRA_SWEEP_INBOX_SECS: "3600"
+      SUTRA_NOTIFICATION_RETENTION_SECS: "7776000"
+      SUTRA_NOTICE_RETENTION_SECS: "15552000"
+      SUTRA_TODO_RETENTION_SECS: "7776000"
+      # Dev-mode WebAuthn (passkeys): relying party = the browser-facing host.
+      SUTRA_WEBAUTHN_RP_ID: localhost
+      SUTRA_WEBAUTHN_RP_NAME: SutraERP
+      SUTRA_WEBAUTHN_ORIGINS: http://localhost:3000,http://localhost:5173
     ports: ["8080:8080"]
     depends_on:
       migrate: { condition: service_completed_successfully }
       nats: { condition: service_healthy }
       valkey: { condition: service_healthy }
+      mailpit: { condition: service_healthy }
 
   web:
     profiles: ["app"]
     build:
       context: .
       dockerfile: deploy/docker/web.Dockerfile
-      args: { VITE_AUTH_MODE: api }
+      args: { VITE_AUTH_MODE: "${SUTRA_COMPOSE_WEB_AUTH_MODE:-api}" }
     ports: ["3000:8080"]
     depends_on: [api]
 

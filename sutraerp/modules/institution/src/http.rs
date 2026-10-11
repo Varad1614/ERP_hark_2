@@ -96,6 +96,7 @@ pub async fn register(
 #[utoipa::path(
     get,
     path = "/api/v1/institution/institutions/{id}",
+    operation_id = "get_institution",
     tag = "institution",
     params(("id" = String, Path, format = Uuid)),
     security(("session_cookie" = [])),

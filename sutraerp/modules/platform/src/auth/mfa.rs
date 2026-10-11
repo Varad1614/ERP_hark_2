@@ -6,8 +6,8 @@
 //!   or an earlier one is refused).
 //! * The shared secret is **encrypted at rest** with AES-256-GCM ([`SecretBox`]); associated
 //!   data binds the ciphertext to tenant, subject and factor kind.
-//! * **WebAuthn** is a port only ([`DeferredWebauthn`] answers `501`); Keycloak mode offers it
-//!   through Keycloak's `webauthn-register` required action.
+//! * **WebAuthn** (dev mode) lives in [`super::webauthn`]; in Keycloak mode
+//!   [`DeferredWebauthn`] answers `501` and Keycloak's `webauthn-register` required action is used.
 //! * In Keycloak mode none of this runs: MFA is delegated to Keycloak and the session assurance
 //!   is read from the ID token's `amr`/`acr` claims (see `keycloak.rs`).
 
@@ -17,7 +17,9 @@ use ring::aead::{self, Aad, LessSafeKey, Nonce, UnboundKey};
 use ring::hmac;
 use sqlx::{PgPool, Row};
 use std::sync::{Arc, Mutex};
-use sutra_contracts::platform::auth::{MfaFactorStore, Principal, TotpFactor, WebauthnPort};
+use sutra_contracts::platform::auth::{
+    MfaFactorStore, PasskeyInfo, Principal, TotpFactor, WebauthnCeremony, WebauthnPort,
+};
 use sutra_kernel::error::{FieldViolation, KernelError};
 use sutra_kernel::scope::ExecutionScope;
 use sutra_kernel::secret;
@@ -305,6 +307,17 @@ impl MfaFactorStore for InMemoryMfaFactorStore {
         }
         Ok(true)
     }
+
+    async fn remove_totp(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+    ) -> Result<bool, KernelError> {
+        let mut rows = self.lock()?;
+        let before = rows.len();
+        rows.retain(|r| !(r.tenant == scope.tenant_id.as_uuid() && r.subject == subject));
+        Ok(rows.len() < before)
+    }
 }
 
 /// `platform.mfa_factor` store.
@@ -444,6 +457,23 @@ impl MfaFactorStore for PgMfaFactorStore {
         tx.commit().await.map_err(map_db_error)?;
         Ok(true)
     }
+
+    async fn remove_totp(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+    ) -> Result<bool, KernelError> {
+        let n = sqlx::query(
+            "DELETE FROM platform.mfa_factor WHERE tenant_id = $1 AND subject = $2 AND kind = 'totp'",
+        )
+        .bind(scope.tenant_id.as_uuid())
+        .bind(subject)
+        .execute(&self.pool)
+        .await
+        .map_err(map_db_error)?
+        .rows_affected();
+        Ok(n > 0)
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -483,6 +513,11 @@ impl MfaService {
             issuer,
             clock,
         }
+    }
+
+    /// Removes the subject's TOTP factor (active and pending). `false` when there was none.
+    pub async fn disable_totp(&self, p: &Principal) -> Result<bool, KernelError> {
+        self.store.remove_totp(&p.scope, &p.subject).await
     }
 
     /// `true` when the subject has an active TOTP factor.
@@ -558,28 +593,46 @@ impl MfaService {
     }
 }
 
-/// WebAuthn adapter placeholder: every operation is `501 not-implemented` (deferred).
+/// WebAuthn adapter for Keycloak mode: every operation is `501 not-implemented` because
+/// passkeys are registered and verified by Keycloak (`webauthn-register` required action).
+/// Dev mode uses [`super::webauthn::DevWebauthn`].
 pub struct DeferredWebauthn;
 
 const WEBAUTHN_DEFERRED: &str =
-    "WebAuthn in dev mode is deferred; in Keycloak mode register a passkey through Keycloak";
+    "passkeys are managed by Keycloak in this mode (webauthn-register required action)";
 
 #[async_trait::async_trait]
 impl WebauthnPort for DeferredWebauthn {
-    async fn registration_options(&self, _: &Principal) -> Result<serde_json::Value, KernelError> {
+    fn enabled(&self) -> bool {
+        false
+    }
+    async fn credentials(&self, _: &Principal) -> Result<Vec<PasskeyInfo>, KernelError> {
+        Ok(vec![])
+    }
+    async fn start_registration(&self, _: &Principal) -> Result<WebauthnCeremony, KernelError> {
         Err(KernelError::NotImplemented(WEBAUTHN_DEFERRED))
     }
-    async fn register(&self, _: &Principal, _: serde_json::Value) -> Result<(), KernelError> {
-        Err(KernelError::NotImplemented(WEBAUTHN_DEFERRED))
-    }
-    async fn assertion_options(&self, _: &Principal) -> Result<serde_json::Value, KernelError> {
-        Err(KernelError::NotImplemented(WEBAUTHN_DEFERRED))
-    }
-    async fn verify_assertion(
+    async fn finish_registration(
         &self,
         _: &Principal,
+        _: &str,
+        _: serde_json::Value,
+        _: &str,
+    ) -> Result<PasskeyInfo, KernelError> {
+        Err(KernelError::NotImplemented(WEBAUTHN_DEFERRED))
+    }
+    async fn start_authentication(&self, _: &Principal) -> Result<WebauthnCeremony, KernelError> {
+        Err(KernelError::NotImplemented(WEBAUTHN_DEFERRED))
+    }
+    async fn finish_authentication(
+        &self,
+        _: &Principal,
+        _: &str,
         _: serde_json::Value,
     ) -> Result<(), KernelError> {
+        Err(KernelError::NotImplemented(WEBAUTHN_DEFERRED))
+    }
+    async fn remove(&self, _: &Principal, _: Uuid) -> Result<bool, KernelError> {
         Err(KernelError::NotImplemented(WEBAUTHN_DEFERRED))
     }
 }
@@ -779,11 +832,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn webauthn_is_deferred_501() {
+    async fn webauthn_is_deferred_501_in_keycloak_mode() {
         let w = DeferredWebauthn;
+        assert!(!w.enabled());
         assert!(matches!(
-            w.registration_options(&principal()).await,
+            w.start_registration(&principal()).await,
             Err(KernelError::NotImplemented(_))
         ));
+        assert!(matches!(
+            w.start_authentication(&principal()).await,
+            Err(KernelError::NotImplemented(_))
+        ));
+        assert!(w.credentials(&principal()).await.unwrap().is_empty());
     }
 }

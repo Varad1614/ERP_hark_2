@@ -18,16 +18,20 @@
 //! * **Modules** — enumerates the modular-monolith module descriptors.
 //! * **Sweepers** (Batch 1C) — [`sweep::SessionPurge`] and [`sweep::PreAuthPurge`] jobs for the
 //!   advisory-locked scheduler in `sutra_persistence::jobs`.
+//! * **Self-service** (Batch 1D, [`inbox`]) — profile, notifications (in-app + e-mail channel),
+//!   notices, to-do inbox, the outbox-driven inbox consumer and their sweepers; dev-mode
+//!   WebAuthn ([`auth::webauthn`]), session list / revoke, OIDC back-channel logout.
 
 pub mod auth;
 pub mod catalog;
+pub mod inbox;
 pub mod sweep;
 pub mod workflow;
 
 use std::sync::Arc;
 use sutra_contracts::platform::auth::{
-    CredentialAuthenticator, MfaPolicy, OidcIdentityProvider, PreAuthStore, SessionStore,
-    WebauthnPort,
+    CredentialAuthenticator, MfaPolicy, OidcIdentityProvider, PreAuthStore, ReplayGuard,
+    SessionStore, WebauthnPort,
 };
 use sutra_kernel::audit::AuditSink;
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
@@ -60,11 +64,18 @@ pub struct PlatformDeps {
     pub webauthn: Arc<dyn WebauthnPort>,
     /// Signed double-submit token for the pre-session endpoints.
     pub pre_session: sutra_web::PreSessionCsrf,
+    /// Seen back-channel logout token ids.
+    pub replay: Arc<dyn ReplayGuard>,
+    /// Profile refresh at sign-in (`None` without PostgreSQL).
+    pub sign_in_hook: Option<Arc<dyn auth::http::SignInHook>>,
 }
 
-pub fn router(deps: PlatformDeps) -> OpenApiRouter {
+/// Platform routes: auth boundary, catalog, and the Batch 1D self-service APIs (profile,
+/// notifications, notices, to-dos) over `pool`.
+pub fn router(deps: PlatformDeps, pool: sqlx::PgPool) -> OpenApiRouter {
     let modules = deps.modules.clone();
     OpenApiRouter::new()
         .merge(auth::http::router(deps))
         .merge(catalog::router(modules))
+        .merge(inbox::router(pool))
 }

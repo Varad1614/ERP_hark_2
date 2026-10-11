@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Infrastructure adapters behind kernel ports: NATS JetStream MessagePublisher (ADR-L5-0022), Valkey Cache (ADR-L5-0037)."
+description = "Infrastructure adapters behind kernel ports: NATS JetStream MessagePublisher (ADR-L5-0022), Valkey Cache (ADR-L5-0037), SMTP MailSender."
 
 [lints]
 workspace = true
@@ -17,6 +17,7 @@ tokio.workspace = true
 tracing.workspace = true
 async-nats.workspace = true
 redis.workspace = true
+lettre.workspace = true
 
 [dev-dependencies]
 uuid.workspace = true

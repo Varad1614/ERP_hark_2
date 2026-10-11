@@ -8,10 +8,11 @@
  * pre-session token). In `oidc` mode the sign-in page links to `GET /auth/oidc/start` instead.
  * In `mock` mode (default for UI work) the chosen dev persona is kept in sessionStorage.
  */
-import type { LoginResponse, MfaLevel } from "@sutra/api-client";
+import type { LoginResponse, MfaLevel, MfaMethod } from "@sutra/api-client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AUTH_MODE, api, bootstrapLoginCsrf, setCsrfToken, unwrap } from "./api";
 import { isRole, ROLE_CONFIG, type Role } from "./roles";
+import { getPasskeyAssertion } from "./webauthn";
 
 export interface ClientSession {
   role: Role;
@@ -23,13 +24,21 @@ export interface ClientSession {
   mfaEnrollmentRequired: boolean;
 }
 
-export type SignInResult = { status: "authenticated"; session: ClientSession } | { status: "mfaRequired"; challengeId: string };
+export type SignInResult =
+  | { status: "authenticated"; session: ClientSession }
+  | { status: "mfaRequired"; challengeId: string; methods: MfaMethod[] };
 
 interface AuthContextValue {
   ready: boolean;
   session: ClientSession | null;
   signIn: (role: Role) => Promise<SignInResult>;
   verifyMfa: (challengeId: string, code: string) => Promise<ClientSession>;
+  /**
+   * Answers a sign-in challenge with a passkey. The server consumes `challengeId` and issues a
+   * new one that also still accepts a TOTP code; `onNewChallenge` receives it before the browser
+   * prompt so a cancelled passkey prompt can fall back to the authenticator code.
+   */
+  verifyPasskey: (challengeId: string, onNewChallenge?: (id: string) => void) => Promise<ClientSession>;
   /** Adopts the response of an endpoint that rotated the session (MFA enrolment, step-up). */
   adoptSession: (res: LoginResponse) => ClientSession;
   signOut: () => Promise<void>;
@@ -104,7 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: { loginId: ROLE_CONFIG[role].loginId, password: import.meta.env.VITE_DEV_PASSWORD ?? "sutra" },
       }),
     );
-    if (res.outcome === "mfaRequired" && res.challengeId) return { status: "mfaRequired", challengeId: res.challengeId };
+    if (res.outcome === "mfaRequired" && res.challengeId)
+      return { status: "mfaRequired", challengeId: res.challengeId, methods: res.mfaMethods ?? ["totp"] };
     const s = sessionFromLogin(res, role);
     setSession(s);
     return { status: "authenticated", session: s };
@@ -112,6 +122,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyMfa = useCallback(async (challengeId: string, code: string) => {
     const res = unwrap(await api.POST("/api/v1/auth/mfa/verify", { body: { challengeId, code } }));
+    const s = sessionFromLogin(res, "administrator");
+    setSession(s);
+    return s;
+  }, []);
+
+  const verifyPasskey = useCallback(async (challengeId: string, onNewChallenge?: (id: string) => void) => {
+    const started = unwrap(await api.POST("/api/v1/auth/mfa/webauthn/challenge", { body: { challengeId } }));
+    onNewChallenge?.(started.challengeId);
+    const credential = await getPasskeyAssertion(started.options);
+    const res = unwrap(await api.POST("/api/v1/auth/mfa/webauthn/verify", { body: { challengeId: started.challengeId, credential } }));
     const s = sessionFromLogin(res, "administrator");
     setSession(s);
     return s;
@@ -138,8 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ ready, session, signIn, verifyMfa, adoptSession, signOut }),
-    [ready, session, signIn, verifyMfa, adoptSession, signOut],
+    () => ({ ready, session, signIn, verifyMfa, verifyPasskey, adoptSession, signOut }),
+    [ready, session, signIn, verifyMfa, verifyPasskey, adoptSession, signOut],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

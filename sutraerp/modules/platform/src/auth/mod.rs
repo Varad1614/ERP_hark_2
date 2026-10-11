@@ -2,11 +2,15 @@
 
 pub mod dev;
 pub mod http;
+pub mod http_security;
+pub mod http_webauthn;
 pub mod keycloak;
 pub mod mfa;
 pub mod preauth;
+pub mod replay;
 pub mod session;
 pub mod session_pg;
+pub mod webauthn;
 
 use std::sync::Arc;
 use sutra_contracts::platform::auth::SessionStore;
@@ -14,7 +18,12 @@ use sutra_web::{PreSessionCsrf, SessionAuth};
 
 /// Endpoints that establish a session: they cannot present a session CSRF token yet and are
 /// protected by the pre-session (login) double-submit token from `GET /api/v1/auth/csrf`.
-pub const PRE_SESSION_PATHS: [&str; 2] = ["/api/v1/auth/login", "/api/v1/auth/mfa/verify"];
+pub const PRE_SESSION_PATHS: [&str; 4] = [
+    "/api/v1/auth/login",
+    "/api/v1/auth/mfa/verify",
+    "/api/v1/auth/mfa/webauthn/challenge",
+    "/api/v1/auth/mfa/webauthn/verify",
+];
 
 /// State for the global `sutra_web::auth::authenticate` middleware, backed by this module's
 /// session store. `step_up_enforced` is stamped onto every resolved `AuthContext`.

@@ -1,5 +1,5 @@
 import { ArrowUpRight, KeyRound } from "lucide-react";
-import { ApiProblem } from "@sutra/api-client";
+import { ApiProblem, type MfaMethod } from "@sutra/api-client";
 import { Button, Logo, ROLE_ACCENTS, RoleTheme, useToast } from "@sutra/ui";
 import type { CSSProperties } from "react";
 import { useState } from "react";
@@ -8,6 +8,7 @@ import { TotpChallenge } from "../components/TotpChallenge";
 import { AUTH_MODE, oidcStartUrl } from "../lib/api";
 import { useAuth, type ClientSession } from "../lib/auth";
 import { ROLE_CONFIG, ROLES, type Role } from "../lib/roles";
+import { webauthnSupported } from "../lib/webauthn";
 
 export function meta() {
   return [{ title: "Sign in · SutraERP" }];
@@ -23,17 +24,18 @@ const AUTH_ERRORS: Record<string, string> = {
 };
 
 function describe(e: unknown): string {
-  if (e instanceof ApiProblem && e.problem.status === 401) return "That code didn’t work. Sign in again to get a new challenge.";
+  if (e instanceof DOMException && e.name === "NotAllowedError") return "The passkey prompt was cancelled. Try again or use your authenticator code.";
+  if (e instanceof ApiProblem && e.problem.status === 401) return "That didn’t work. Sign in again to get a new challenge.";
   return e instanceof Error ? e.message : "Sign-in failed";
 }
 
 export default function SignIn() {
-  const { ready, session, signIn, verifyMfa } = useAuth();
+  const { ready, session, signIn, verifyMfa, verifyPasskey } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [params] = useSearchParams();
   const [busy, setBusy] = useState<Role | null>(null);
-  const [challenge, setChallenge] = useState<{ role: Role; id: string } | null>(null);
+  const [challenge, setChallenge] = useState<{ role: Role; id: string; methods: MfaMethod[] } | null>(null);
   const [mfaBusy, setMfaBusy] = useState(false);
   const [mfaError, setMfaError] = useState<string | null>(null);
   if (ready && session && !challenge) return <Navigate to="/" replace />;
@@ -49,7 +51,7 @@ export default function SignIn() {
       const result = await signIn(role);
       if (result.status === "mfaRequired") {
         setMfaError(null);
-        setChallenge({ role, id: result.challengeId });
+        setChallenge({ role, id: result.challengeId, methods: result.methods });
       } else finish(result.session);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Sign-in failed");
@@ -73,7 +75,24 @@ export default function SignIn() {
     }
   };
 
+  const passkey = async () => {
+    if (!challenge) return;
+    setMfaBusy(true);
+    setMfaError(null);
+    try {
+      const s = await verifyPasskey(challenge.id, (id) => setChallenge((c) => (c ? { ...c, id } : c)));
+      setChallenge(null);
+      finish(s);
+    } catch (e) {
+      setMfaError(describe(e));
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
   const authError = params.get("authError");
+  const offersPasskey = challenge?.methods.includes("webauthn") ?? false;
+  const offersTotp = challenge ? challenge.methods.length === 0 || challenge.methods.includes("totp") : false;
 
   return (
     <div className="sb-signin">
@@ -84,15 +103,51 @@ export default function SignIn() {
           <h1>Verify it’s you</h1>
           <p>{ROLE_CONFIG[challenge.role].name} · second factor required</p>
           <div className="sb-mfa-wrap">
-            <TotpChallenge
-              busy={mfaBusy}
-              error={mfaError}
-              onSubmit={verify}
-              onCancel={() => {
-                setChallenge(null);
-                setMfaError(null);
-              }}
-            />
+            {offersPasskey && (
+              <div className="sb-actions-row sb-signin-passkey">
+                <Button
+                  icon={<KeyRound strokeWidth={1.75} />}
+                  iconPosition="start"
+                  onClick={passkey}
+                  disabled={mfaBusy || !webauthnSupported()}
+                  data-passkey-signin
+                >
+                  {mfaBusy ? "Waiting for your passkey…" : "Use a passkey"}
+                </Button>
+                {!webauthnSupported() && <small>This browser cannot use passkeys here.</small>}
+              </div>
+            )}
+            {offersTotp ? (
+              <TotpChallenge
+                description={offersPasskey ? "Or enter the 6-digit code from your authenticator app." : undefined}
+                busy={mfaBusy}
+                error={mfaError}
+                onSubmit={verify}
+                onCancel={() => {
+                  setChallenge(null);
+                  setMfaError(null);
+                }}
+              />
+            ) : (
+              <>
+                {mfaError && (
+                  <p className="sb-field-error" role="alert">
+                    {mfaError}
+                  </p>
+                )}
+                <div className="sb-actions-row">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setChallenge(null);
+                      setMfaError(null);
+                    }}
+                  >
+                    Back
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </>
       ) : (

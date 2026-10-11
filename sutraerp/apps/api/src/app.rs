@@ -1,6 +1,8 @@
 //! Application assembly: infrastructure → modules → middleware stack.
 
-use crate::config::{AuthProvider, CacheBackend, Config, OutboxRelayMode, StoreBackend};
+use crate::config::{
+    AuthProvider, CacheBackend, Config, MailMode, OutboxRelayMode, SmtpTlsMode, StoreBackend,
+};
 use crate::openapi::ApiDoc;
 use axum::routing::get;
 use axum::{Json, Router};
@@ -10,14 +12,16 @@ use std::sync::Arc;
 use std::time::Duration;
 use sutra_contracts::platform::auth::{
     CredentialAuthenticator, MfaFactorStore, MfaPolicy, OidcIdentityProvider, PreAuthStore,
-    SessionPolicy, SessionStore,
+    ReplayGuard, SessionPolicy, SessionStore, WebauthnPort,
 };
 use sutra_infra::nats::{JetStreamPublisher, JetStreamSettings, NatsReadiness};
+use sutra_infra::smtp::{SmtpMailSender, SmtpSettings, SmtpTls};
 use sutra_infra::valkey::{ValkeyCache, ValkeyReadiness, ValkeySettings};
 use sutra_kernel::audit::{AuditSink, TracingAuditSink};
 use sutra_kernel::cache::{AdvisoryCache, Cache, CacheNamespace, InMemoryCache, NoCache};
 use sutra_kernel::health::ReadinessCheck;
 use sutra_kernel::idempotency::{IdempotencyStore, InMemoryIdempotencyStore};
+use sutra_kernel::mail::{MailSender, NoopMailSender};
 use sutra_kernel::module::ModuleDescriptor;
 use sutra_kernel::scope::ExecutionScope;
 use sutra_persistence::backoff::Backoff;
@@ -32,9 +36,17 @@ use sutra_platform::auth::mfa::{
     DeferredWebauthn, InMemoryMfaFactorStore, MfaService, PgMfaFactorStore, SecretBox,
 };
 use sutra_platform::auth::preauth::{InMemoryPreAuthStore, PgPreAuthStore};
+use sutra_platform::auth::replay::{InMemoryReplayGuard, PgReplayGuard};
 use sutra_platform::auth::session::InMemorySessionStore;
 use sutra_platform::auth::session_pg::PgSessionStore;
+use sutra_platform::auth::webauthn::{
+    DevWebauthn, InMemoryWebauthnStore, PgWebauthnStore, WebauthnCredentialStore, WebauthnSettings,
+};
 use sutra_platform::auth::CookieSettings;
+use sutra_platform::inbox::consumer::InboxProjector;
+use sutra_platform::inbox::delivery::NotificationDelivery;
+use sutra_platform::inbox::jobs::{EventReceiptPurge, NoticePurge, NotificationPurge, TodoPurge};
+use sutra_platform::inbox::profile::ProfileSignInHook;
 use sutra_platform::sweep::{PreAuthPurge, SessionPurge};
 use sutra_platform::PlatformDeps;
 use sutra_web::health::Readiness;
@@ -87,6 +99,8 @@ pub struct AppContext {
 pub struct BackgroundTasks {
     pub relay: Option<OutboxRelay>,
     pub scheduler: Option<Scheduler>,
+    /// Inbox consumer + notification e-mail delivery (Batch 1D).
+    pub consumers: Option<Scheduler>,
 }
 
 impl BackgroundTasks {
@@ -99,6 +113,9 @@ impl BackgroundTasks {
         if let Some(s) = &self.scheduler {
             v.extend(s.job_names().into_iter().map(str::to_owned));
         }
+        if let Some(s) = &self.consumers {
+            v.extend(s.job_names().into_iter().map(str::to_owned));
+        }
         v
     }
 
@@ -109,6 +126,9 @@ impl BackgroundTasks {
             handles.push(tokio::spawn(relay.run(cancel.clone())));
         }
         if let Some(s) = self.scheduler {
+            handles.extend(s.spawn(cancel.clone()));
+        }
+        if let Some(s) = self.consumers {
             handles.extend(s.spawn(cancel.clone()));
         }
         handles
@@ -129,6 +149,8 @@ pub enum BuildError {
     Messaging(String),
     #[error("cache configuration: {0}")]
     Cache(String),
+    #[error("mail configuration: {0}")]
+    Mail(String),
 }
 
 impl AppContext {
@@ -148,6 +170,11 @@ impl AppContext {
         checks.extend(relay_check);
         let readiness = Readiness::new(checks);
         let scheduler = cfg.sweepers.enabled.then(|| build_scheduler(cfg, &pool));
+        let mailer = build_mailer(cfg)?;
+        let consumers = cfg
+            .inbox
+            .consumer
+            .then(|| build_consumers(cfg, &pool, mailer.clone()));
         let mfa = PrivilegedRoleMfaPolicy {
             enforce: cfg.dev_mfa_enforced,
         };
@@ -200,23 +227,49 @@ impl AppContext {
         let policy = SessionPolicy::new(cfg.session_idle_secs, cfg.session_ttl_secs)
             .and_then(|p| p.with_touch_interval(cfg.session_touch_secs))
             .map_err(|e| BuildError::Session(e.to_string()))?;
-        // Session, pre-auth and MFA-factor records share the session store backend.
-        let (sessions, pre_auth, factors): (
+        // Session, pre-auth, MFA-factor, passkey and replay records share the session store backend.
+        type Stores = (
             Arc<dyn SessionStore>,
             Arc<dyn PreAuthStore>,
             Arc<dyn MfaFactorStore>,
-        ) = match cfg.session_store {
+            Arc<dyn WebauthnCredentialStore>,
+            Arc<dyn ReplayGuard>,
+        );
+        let (sessions, pre_auth, factors, passkeys, replay): Stores = match cfg.session_store {
             StoreBackend::Postgres => (
                 Arc::new(PgSessionStore::new(pool.clone(), policy)),
                 Arc::new(PgPreAuthStore::new(pool.clone())),
                 Arc::new(PgMfaFactorStore::new(pool.clone())),
+                Arc::new(PgWebauthnStore::new(pool.clone())),
+                Arc::new(PgReplayGuard::new(pool.clone())),
             ),
             StoreBackend::Memory => (
                 Arc::new(InMemorySessionStore::new(policy)),
                 Arc::new(InMemoryPreAuthStore::default()),
                 Arc::new(InMemoryMfaFactorStore::default()),
+                Arc::new(InMemoryWebauthnStore::default()),
+                Arc::new(InMemoryReplayGuard::default()),
             ),
         };
+        // Dev mode runs its own WebAuthn relying party; Keycloak mode delegates passkeys.
+        let webauthn: Arc<dyn WebauthnPort> = match cfg.auth_provider {
+            AuthProvider::Dev => Arc::new(
+                DevWebauthn::new(
+                    &WebauthnSettings {
+                        rp_id: cfg.webauthn.rp_id.clone(),
+                        rp_name: cfg.webauthn.rp_name.clone(),
+                        origins: cfg.webauthn.origins.clone(),
+                    },
+                    passkeys,
+                    pre_auth.clone(),
+                )
+                .map_err(|e| BuildError::Auth(e.to_string()))?,
+            ),
+            AuthProvider::Keycloak => Arc::new(DeferredWebauthn),
+        };
+        let sign_in_hook: Option<Arc<dyn sutra_platform::auth::http::SignInHook>> =
+            (cfg.session_store == StoreBackend::Postgres)
+                .then(|| Arc::new(ProfileSignInHook { pool: pool.clone() }) as _);
         // Dev mode verifies TOTP itself; Keycloak mode delegates MFA to Keycloak.
         let mfa_service = match cfg.auth_provider {
             AuthProvider::Dev => Some(MfaService::new(
@@ -259,15 +312,21 @@ impl AppContext {
                 pre_auth,
                 mfa_service,
                 oidc,
-                webauthn: Arc::new(DeferredWebauthn),
+                webauthn,
                 pre_session,
+                replay,
+                sign_in_hook,
             },
             session_auth,
             origin_policy: OriginPolicy::new(&cfg.allowed_origins),
             idempotency,
             request_timeout: cfg.request_timeout,
             cache,
-            background: BackgroundTasks { relay, scheduler },
+            background: BackgroundTasks {
+                relay,
+                scheduler,
+                consumers,
+            },
         })
     }
 
@@ -359,9 +418,83 @@ fn build_relay(cfg: &Config, pool: &PgPool) -> Result<WithCheck<Option<OutboxRel
     Ok((Some(relay), Some(Arc::new(NatsReadiness(publisher)))))
 }
 
+/// Notification e-mail channel from `SUTRA_NOTIFY_EMAIL`.
+fn build_mailer(cfg: &Config) -> Result<Arc<dyn MailSender>, BuildError> {
+    let m = &cfg.mail;
+    Ok(match m.mode {
+        MailMode::Off => Arc::new(NoopMailSender),
+        MailMode::Smtp => {
+            if m.smtp_tls == SmtpTlsMode::None && cfg.env == crate::config::Environment::Production
+            {
+                tracing::warn!("SUTRA_SMTP_TLS=none in production: e-mail travels unencrypted");
+            }
+            Arc::new(
+                SmtpMailSender::new(&SmtpSettings {
+                    host: m.smtp_host.clone(),
+                    port: m.smtp_port,
+                    tls: match m.smtp_tls {
+                        SmtpTlsMode::None => SmtpTls::None,
+                        SmtpTlsMode::StartTls => SmtpTls::StartTls,
+                        SmtpTlsMode::Tls => SmtpTls::Tls,
+                    },
+                    username: m.smtp_username.clone(),
+                    password: m.smtp_password.clone(),
+                    from: m.from.clone(),
+                    timeout: m.timeout,
+                })
+                .map_err(BuildError::Mail)?,
+            )
+        }
+    })
+}
+
+/// Inbox consumer (+ e-mail delivery when the channel is on).
+fn build_consumers(cfg: &Config, pool: &PgPool, mailer: Arc<dyn MailSender>) -> Scheduler {
+    let i = &cfg.inbox;
+    let email = cfg.mail.mode == MailMode::Smtp;
+    let mut s = Scheduler::new(pool.clone()).with(Arc::new(InboxProjector {
+        interval: i.poll_interval,
+        lookback: i.lookback,
+        batch_size: i.batch_size,
+        email,
+    }));
+    if email {
+        s = s.with(Arc::new(NotificationDelivery {
+            interval: cfg.mail.delivery_interval,
+            mailer,
+            public_url: cfg.public_url.clone(),
+            batch_size: 20,
+            max_attempts: cfg.mail.max_attempts,
+            send_timeout: cfg.mail.timeout,
+        }));
+    }
+    s
+}
+
 fn build_scheduler(cfg: &Config, pool: &PgPool) -> Scheduler {
     let s = &cfg.sweepers;
+    let i = &cfg.inbox;
     Scheduler::new(pool.clone())
+        .with(Arc::new(NotificationPurge {
+            interval: i.sweep_interval,
+            retention: i.notification_retention,
+            batch_limit: s.batch_limit,
+        }))
+        .with(Arc::new(NoticePurge {
+            interval: i.sweep_interval,
+            retention: i.notice_retention,
+            batch_limit: s.batch_limit,
+        }))
+        .with(Arc::new(TodoPurge {
+            interval: i.sweep_interval,
+            retention: i.todo_retention,
+            batch_limit: s.batch_limit,
+        }))
+        .with(Arc::new(EventReceiptPurge {
+            interval: i.sweep_interval,
+            lookback: i.lookback,
+            batch_limit: s.batch_limit,
+        }))
         .with(Arc::new(IdempotencyPurge {
             interval: s.idempotency_interval,
             batch_limit: s.batch_limit,
@@ -393,7 +526,7 @@ fn build_scheduler(cfg: &Config, pool: &PgPool) -> Scheduler {
 pub fn build(ctx: AppContext) -> OpenApiRouter {
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .merge(sutra_web::health::router(ctx.readiness.clone()))
-        .merge(sutra_platform::router(ctx.platform))
+        .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
         .merge(sutra_institution::router(
             ctx.pool.clone(),
             ctx.cache.clone(),

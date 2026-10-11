@@ -265,6 +265,69 @@ pub trait SessionStore: Send + Sync + 'static {
     async fn get(&self, token: &str) -> Result<Option<Session>, KernelError>;
     /// Revokes the session (idempotent; unknown tokens are ignored).
     async fn revoke(&self, token: &str) -> Result<(), KernelError>;
+    /// Live sessions of one subject in one tenant, newest first (self-service security page).
+    async fn list_for_subject(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+    ) -> Result<Vec<SessionSummary>, KernelError>;
+    /// Revokes one live session of the subject by id. `false` when it is not the subject's or
+    /// no longer live.
+    async fn revoke_id(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+        id: Uuid,
+    ) -> Result<bool, KernelError>;
+    /// Revokes every live session of the subject except `keep` ("sign out other devices").
+    async fn revoke_others(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+        keep: Uuid,
+    ) -> Result<u64, KernelError>;
+    /// OIDC back-channel logout: revokes the federated sessions bound to the IdP session `sid`
+    /// (and, when given, `sub`), or every federated session of `sub` when no `sid` is given.
+    /// Callers must pass at least one of them.
+    async fn revoke_federated(
+        &self,
+        sid: Option<&str>,
+        sub: Option<&str>,
+    ) -> Result<Vec<RevokedSession>, KernelError>;
+}
+
+/// Listing view of one live session. Carries no token or CSRF material.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SessionSummary {
+    pub id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub last_seen_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+    pub idle_expires_at: DateTime<Utc>,
+    pub mfa_level: MfaLevel,
+    pub amr: Vec<String>,
+    /// Established through the identity provider (has an IdP `sid`).
+    pub federated: bool,
+}
+
+/// A session ended by an identity-provider logout (for audit evidence).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RevokedSession {
+    pub id: Uuid,
+    pub scope: ExecutionScope,
+    pub subject: String,
+}
+
+/// Single-use guard for replayable identifiers (OIDC logout-token `jti`). `first_use` records
+/// `(namespace, key)` until `ttl` elapses and answers `true` only for the first caller.
+#[async_trait::async_trait]
+pub trait ReplayGuard: Send + Sync + 'static {
+    async fn first_use(
+        &self,
+        namespace: &str,
+        key: &str,
+        ttl: Duration,
+    ) -> Result<bool, KernelError>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -278,6 +341,10 @@ pub enum PreAuthKind {
     OidcAuthorization,
     /// Primary factor accepted; waiting for the second factor.
     MfaChallenge,
+    /// WebAuthn registration ceremony in flight (challenge + ceremony state).
+    WebauthnRegistration,
+    /// WebAuthn authentication ceremony in flight (challenge + allowed credentials).
+    WebauthnAuthentication,
 }
 
 impl PreAuthKind {
@@ -285,6 +352,8 @@ impl PreAuthKind {
         match self {
             PreAuthKind::OidcAuthorization => "oidc",
             PreAuthKind::MfaChallenge => "mfa",
+            PreAuthKind::WebauthnRegistration => "webauthn_reg",
+            PreAuthKind::WebauthnAuthentication => "webauthn_auth",
         }
     }
 }
@@ -312,7 +381,7 @@ pub trait PreAuthStore: Send + Sync + 'static {
 }
 
 // ---------------------------------------------------------------------------------------------
-// MFA factors (dev-mode TOTP; WebAuthn port deferred)
+// MFA factors (dev-mode TOTP and WebAuthn)
 // ---------------------------------------------------------------------------------------------
 
 /// A stored TOTP factor. The shared secret is only ever held encrypted (AES-256-GCM).
@@ -365,34 +434,69 @@ pub trait MfaFactorStore: Send + Sync + 'static {
     /// factor this also activates it (replacing any previous active factor). Returns `false`
     /// on replay (step not newer) or when the factor no longer exists.
     async fn consume_totp_step(&self, factor_id: Uuid, step: i64) -> Result<bool, KernelError>;
+    /// Deletes the subject's TOTP factors (active and pending). `false` when there were none.
+    async fn remove_totp(&self, scope: &ExecutionScope, subject: &str)
+        -> Result<bool, KernelError>;
 }
 
-/// WebAuthn (passkey / security key) port. **Deferred**: the shipped adapter answers `501`;
-/// Keycloak mode already offers WebAuthn through its own required action.
+/// A WebAuthn ceremony handed to the browser: `options` is the JSON form of
+/// `PublicKeyCredentialCreationOptions` / `…RequestOptions` (binary members base64url encoded,
+/// under `publicKey`); `ceremony_id` names the server-side state (single use, short lived).
+#[derive(Clone, Debug, PartialEq, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WebauthnCeremony {
+    pub ceremony_id: String,
+    #[schema(value_type = Object)]
+    pub options: serde_json::Value,
+}
+
+/// A registered passkey / security key (public data only).
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PasskeyInfo {
+    pub id: Uuid,
+    pub label: String,
+    pub created_at: DateTime<Utc>,
+    pub last_used_at: Option<DateTime<Utc>>,
+}
+
+/// WebAuthn (passkey / security key) second factor. Dev mode: `sutra_platform`'s
+/// `DevWebauthn` (webauthn-rs, credentials + sign counters in `platform.webauthn_credential`,
+/// ceremony state in `platform.pre_auth`). Keycloak mode: `DeferredWebauthn` answers `501` —
+/// passkeys are registered through Keycloak's `webauthn-register` required action.
 #[async_trait::async_trait]
 pub trait WebauthnPort: Send + Sync + 'static {
-    /// Begins credential registration; returns `PublicKeyCredentialCreationOptions` JSON.
-    async fn registration_options(
+    /// `false` when this deployment does not offer dev-mode WebAuthn.
+    fn enabled(&self) -> bool;
+    async fn credentials(&self, principal: &Principal) -> Result<Vec<PasskeyInfo>, KernelError>;
+    /// Begins registration of a new credential (existing ones are excluded).
+    async fn start_registration(
         &self,
         principal: &Principal,
-    ) -> Result<serde_json::Value, KernelError>;
-    /// Finishes registration with the authenticator's attestation response.
-    async fn register(
+    ) -> Result<WebauthnCeremony, KernelError>;
+    /// Verifies the attestation response and stores the credential.
+    async fn finish_registration(
         &self,
         principal: &Principal,
+        ceremony_id: &str,
+        response: serde_json::Value,
+        label: &str,
+    ) -> Result<PasskeyInfo, KernelError>;
+    /// Begins an assertion over the principal's credentials (`409` when there are none).
+    async fn start_authentication(
+        &self,
+        principal: &Principal,
+    ) -> Result<WebauthnCeremony, KernelError>;
+    /// Verifies the assertion (challenge, origin, signature, user verification) and advances
+    /// the stored sign counter; a non-increasing counter is refused as a cloned authenticator.
+    async fn finish_authentication(
+        &self,
+        principal: &Principal,
+        ceremony_id: &str,
         response: serde_json::Value,
     ) -> Result<(), KernelError>;
-    /// Begins an assertion; returns `PublicKeyCredentialRequestOptions` JSON.
-    async fn assertion_options(
-        &self,
-        principal: &Principal,
-    ) -> Result<serde_json::Value, KernelError>;
-    /// Verifies an assertion response.
-    async fn verify_assertion(
-        &self,
-        principal: &Principal,
-        response: serde_json::Value,
-    ) -> Result<(), KernelError>;
+    /// Removes one credential of the principal; `false` when it is not theirs.
+    async fn remove(&self, principal: &Principal, id: Uuid) -> Result<bool, KernelError>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -444,6 +548,20 @@ pub trait OidcIdentityProvider: Send + Sync + 'static {
     ) -> Result<FederatedIdentity, KernelError>;
     /// RP-initiated logout URL (`end_session_endpoint`), when the IdP offers one.
     async fn end_session_url(&self, idp_sid: Option<&str>) -> Result<Option<String>, KernelError>;
+    /// Validates an OIDC back-channel logout token: JWKS signature, `iss`, `aud`, `iat`/`exp`,
+    /// the back-channel-logout `events` member, `sid` and/or `sub`, no `nonce`, a `jti`.
+    /// Replay of the `jti` is the caller's concern ([`ReplayGuard`]).
+    async fn validate_logout_token(&self, token: &str) -> Result<LogoutClaims, KernelError>;
+}
+
+/// Claims of a validated back-channel logout token.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LogoutClaims {
+    pub sid: Option<String>,
+    pub sub: Option<String>,
+    pub jti: String,
+    /// Until when the token could be replayed (its `exp`, or `iat` + the accepted age).
+    pub replayable_until: DateTime<Utc>,
 }
 
 #[cfg(test)]

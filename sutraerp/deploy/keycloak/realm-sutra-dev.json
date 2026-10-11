@@ -54,6 +54,9 @@
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:5173/sign-in##http://localhost:3000/sign-in",
+        "backchannel.logout.url": "http://api:8080/api/v1/auth/oidc/backchannel-logout",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "false",
         "use.refresh.tokens": "false",
         "acr.loa.map": "{\"pwd\":\"1\",\"mfa\":\"2\"}",
         "minimum.acr.value": "1",

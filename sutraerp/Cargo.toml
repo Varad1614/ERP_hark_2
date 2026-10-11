@@ -89,6 +89,14 @@ base64 = "0.22"
 async-nats = { version = "0.50", default-features = false, features = ["ring", "jetstream"] }
 redis = { version = "1", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "tls-rustls-webpki-roots", "connection-manager"] }
 
+# Dev-mode WebAuthn second factor (Batch 1D). webauthn-rs-core links the system OpenSSL
+# (libssl): rust:1-bookworm ships libssl-dev and distroless/cc-debian12 ships libssl3.
+webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation"] }
+url = "2"
+
+# SMTP e-mail channel for notifications (Batch 1D), rustls only; lives in sutra-infra.
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-rustls", "ring", "webpki-roots", "builder", "hostname"] }
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 

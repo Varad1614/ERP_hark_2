@@ -8,6 +8,9 @@
 //!   `Nats-Msg-Id` de-duplication, publish acks.
 //! * [`valkey`] – Valkey [`Cache`](sutra_kernel::cache::Cache) adapter (ADR-L5-0037): lazy
 //!   connection manager, short timeouts, connect cool-down, rustls for `rediss://`.
+//! * [`smtp`] – SMTP [`MailSender`](sutra_kernel::mail::MailSender) for the notification
+//!   e-mail channel (lettre, rustls; Mailpit in development).
 
 pub mod nats;
+pub mod smtp;
 pub mod valkey;

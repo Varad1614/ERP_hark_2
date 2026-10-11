@@ -4,6 +4,10 @@
 use crate::domain::{Institution, RegisterInstitution};
 use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
+use sutra_contracts::institution::events::{
+    InstitutionRegisteredV1, InstitutionRenamedV1, INSTITUTION_REGISTERED,
+    INSTITUTION_REGISTERED_SCHEMA, INSTITUTION_RENAMED, INSTITUTION_RENAMED_SCHEMA,
+};
 use sutra_contracts::institution::InstitutionDirectory;
 use sutra_kernel::audit::{ActorKind, AuditEntry, AuditOutcome};
 use sutra_kernel::concurrency::Version;
@@ -12,7 +16,7 @@ use sutra_kernel::events::{EventEnvelope, NewEvent};
 use sutra_kernel::scope::{ExecutionScope, InstitutionId, TenantId};
 use sutra_persistence::{audit, map_db_error, outbox};
 
-const SOURCE: &str = "/sutraerp/institution";
+use sutra_contracts::institution::events::SOURCE;
 const COLUMNS: &str = "id, tenant_id, code, name, timezone, version, created_at, updated_at";
 
 fn from_row(r: &sqlx::postgres::PgRow) -> Result<Institution, sqlx::Error> {
@@ -62,10 +66,15 @@ pub async fn register(
         &event_scope,
         NewEvent {
             source: SOURCE,
-            event_type: "sutraerp.institution.institution.registered",
-            dataschema: "urn:sutraerp:schema:institution.institution.registered:1",
+            event_type: INSTITUTION_REGISTERED,
+            dataschema: INSTITUTION_REGISTERED_SCHEMA,
             subject: Some(inst.id.to_string()),
-            data: serde_json::json!({ "institutionId": inst.id, "code": inst.code, "name": inst.name }),
+            data: serde_json::to_value(InstitutionRegisteredV1 {
+                institution_id: inst.id.as_uuid(),
+                code: inst.code.clone(),
+                name: inst.name.clone(),
+            })
+            .map_err(KernelError::internal)?,
         },
     )
     .with_correlation(actor.correlation_id.clone())
@@ -155,10 +164,15 @@ pub async fn rename(
         &event_scope,
         NewEvent {
             source: SOURCE,
-            event_type: "sutraerp.institution.institution.renamed",
-            dataschema: "urn:sutraerp:schema:institution.institution.renamed:1",
+            event_type: INSTITUTION_RENAMED,
+            dataschema: INSTITUTION_RENAMED_SCHEMA,
             subject: Some(inst.id.to_string()),
-            data: serde_json::json!({ "institutionId": inst.id, "name": inst.name, "version": inst.version }),
+            data: serde_json::to_value(InstitutionRenamedV1 {
+                institution_id: inst.id.as_uuid(),
+                name: inst.name.clone(),
+                version: inst.version.0,
+            })
+            .map_err(KernelError::internal)?,
         },
     )
     .with_correlation(actor.correlation_id.clone())

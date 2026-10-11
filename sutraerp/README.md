@@ -1,8 +1,10 @@
 # SutraERP
 
-Production-grade education ERP — **Batch 0: Foundation** + **Batch 1 slices A, B and C** (durable sessions,
-CSRF, authorization policy, session-derived tenant scope; Keycloak OIDC adapter, TOTP MFA + step-up,
-login CSRF, cross-site Origin checks; NATS JetStream outbox relay, advisory-locked sweepers, Valkey cache).
+Production-grade education ERP — **Batch 0: Foundation** + **Batch 1: Platform** (complete: slices A–D —
+durable sessions, CSRF, authorization policy, session-derived tenant scope; Keycloak OIDC adapter, TOTP MFA +
+step-up, login CSRF, cross-site Origin checks; NATS JetStream outbox relay, advisory-locked sweepers, Valkey
+cache; notifications + e-mail channel, notices, to-dos, profile and security screens, per-schema runtime DB
+roles, dev-mode WebAuthn passkeys, Keycloak back-channel logout).
 
 A Rust modular monolith (Axum + Tokio, PostgreSQL 18 + SQLx) with a React Router SPA in the
 **Soft Bento** design language. Architecture authority: the SutraERP L0–L6 architecture repository
@@ -85,7 +87,8 @@ SUTRA_SESSION_STORE=memory SUTRA_IDEMPOTENCY_STORE=memory SUTRA_AUDIT_SINK=memor
 # /health/ready reports 503 (postgres unreachable) — liveness, auth and catalog still work
 ```
 
-Whole stack in containers: `docker compose --profile app up --build` (web on :3000).
+Whole stack in containers: `docker compose --profile app up --build` (web on :3000) — see
+[Local Docker verification](#local-docker-verification) for the exact checks.
 
 ## Quality gates
 
@@ -137,7 +140,17 @@ make ci                                      # everything CI runs, incl. OpenAPI
 | POST | `/api/v1/auth/logout` | revokes the server-side session; Keycloak mode returns the RP-initiated `endSessionUrl` |
 | POST | `/api/v1/auth/mfa/totp/enrolment`, `/api/v1/auth/mfa/totp/confirm` | dev-mode TOTP enrolment (secret + `otpauth://` URI, first code activates) |
 | POST | `/api/v1/auth/mfa/step-up` | TOTP code → session rotated to `mfaLevel = mfa` |
-| POST | `/api/v1/auth/mfa/webauthn/registration`, `/assertion` | port only: `501` problem (deferred) |
+| GET | `/api/v1/auth/mfa` | second-factor status: TOTP, passkeys, whether WebAuthn is available, session level |
+| POST | `/api/v1/auth/mfa/webauthn/registration`, `…/registration/complete` | dev mode: enrol a passkey (step-up required once a factor exists); `501` in Keycloak mode |
+| POST | `/api/v1/auth/mfa/webauthn/challenge`, `…/webauthn/verify` | sign-in challenge answered with a passkey (login CSRF required) |
+| POST | `/api/v1/auth/mfa/webauthn/assertion`, `…/webauthn/step-up` | passkey step-up of the current session |
+| DELETE | `/api/v1/auth/mfa/webauthn/credentials/{id}`, `/api/v1/auth/mfa/totp` | remove a passkey / the authenticator app (step-up) |
+| GET/DELETE/POST | `/api/v1/auth/sessions`, `/sessions/{id}`, `/sessions/revoke-others` | own active sessions; revoke one / all others |
+| POST | `/api/v1/auth/oidc/backchannel-logout` | Keycloak back-channel logout (`logout_token`, revokes sessions of the IdP `sid`) |
+| GET/POST | `/api/v1/notifications[?unreadOnly&cursor&limit]`, `/unread-count`, `/{id}/read`, `/read-all` | own notification inbox |
+| GET/POST/PATCH | `/api/v1/notices[/{id}]`, `/notices/{id}/archive` | notices (read: audience; manage: administrators) |
+| GET/POST | `/api/v1/todos[?status]`, `/todos/{id}/complete|dismiss|reopen` | to-dos (own, assigned, created from domain events) |
+| GET/PATCH | `/api/v1/profile` | own profile + notification preferences (`If-Match`) |
 | GET | `/api/v1/auth/oidc/start`, `/api/v1/auth/oidc/callback` | Keycloak mode: Authorization Code + PKCE BFF flow |
 | GET | `/api/v1/platform/workspaces[?role=&group=]`, `/api/v1/platform/workspaces/{key}` | navigation catalog |
 | GET | `/api/v1/platform/modules` | module registry |
@@ -167,7 +180,7 @@ client adds `X-CSRF-Token` to unsafe requests; mock mode is unchanged.
 | Dev-realm | `deploy/keycloak/realm-sutra-dev.json`: confidential `sutra-web` client (PKCE S256), realm roles = SutraERP roles, `tenant_id`/`institution_id` user-attribute mappers, `CONFIGURE_TOTP` / `webauthn-register` required actions. |
 | TOTP MFA (dev mode) | `modules/platform/src/auth/mfa.rs`: RFC 6238 (SHA-1, 6 digits, 30 s, ±1 step), enrolment → `otpauth://` URI + QR, first code activates; last accepted step stored so a code cannot be replayed. Secret encrypted at rest with AES-256-GCM (`SUTRA_MFA_ENCRYPTION_KEY`, AAD = tenant\|subject\|kind) in `platform.mfa_factor`. Administrators require MFA when `SUTRA_DEV_MFA=true`. |
 | Session assurance | `platform.session.mfa_level` / `amr` / `idp_sid` (`migrations/20261012000001_platform_auth_mfa.sql`). `Permission::requires_step_up` (institution register) → `403` problem unless `mfa_level = mfa`; `POST /auth/mfa/step-up` rotates the session. |
-| WebAuthn | Port (`WebauthnPort`) + endpoints answering `501` (deferred; available in Keycloak mode via the `webauthn-register` required action). |
+| WebAuthn | Port (`WebauthnPort`); implemented in dev mode by Batch 1D (below). In Keycloak mode the endpoints answer `501` and Keycloak handles passkeys via the `webauthn-register` required action. |
 | Login CSRF | `GET /api/v1/auth/csrf`: HMAC-signed, expiring double-submit token (`SUTRA_CSRF_KEY`, `SUTRA_LOGIN_CSRF_TTL_SECS`); required on login and MFA verify. MFA challenges are bound to the token they were issued with. |
 | Origin guard | `sutra_web::auth::origin_guard` on every unsafe request (`SUTRA_ALLOWED_ORIGINS` for extra origins). |
 | `last_seen_at` throttle | Written at most once per `SUTRA_SESSION_TOUCH_SECS` (default 60 s) per session. |
@@ -186,3 +199,102 @@ enrolment screen (QR code) when `mfaEnrollmentRequired`; `oidc` mode shows an SS
 | Cache | `SUTRA_CACHE=off\|memory\|valkey` (default `memory` in dev/test, `off` in production because a process-local cache is incoherent across replicas). Keys `sutra:<env>:<owner>:t:<tenant>[:i:<institution>]:…` (`SUTRA_CACHE_NAMESPACE`), TTL `SUTRA_CACHE_TTL_SECS`, per-command timeout `SUTRA_CACHE_TIMEOUT_MS`, 5 s fail-fast cool-down after a Valkey error. Every error is a logged miss. Real use: read-through cache for `GET /api/v1/institution/institutions/{id}` keyed by the session tenant (checked after authorization), invalidated by the owner after register/rename — also when a rename fails the `If-Match` check, so the client's refetch is fresh. The cache is never session or authorization authority (ADR-L5-0037 §2.8). |
 | Readiness | NATS (connected + stream ensured) and Valkey (`PING`) are reported when enabled but are **non-critical**: the outbox buffers events while NATS is down and a cache outage is a miss, so a failure returns `200` with `status: degraded` instead of taking the replica out of rotation. PostgreSQL stays critical. |
 | Shutdown | After HTTP draining, the relay finishes its current pass and the sweepers their current run, then stop (10 s bound). |
+
+## Batch 1 slice D — notifications, notices, to-dos, profile/security, DB roles, WebAuthn, back-channel logout
+
+| Concern | Implementation |
+|---------|----------------|
+| Schema | `migrations/20261014000001_platform_inbox.sql` (`platform.profile`, `notification`, `notification_receipt`, `notification_delivery`, `notice`, `todo`, `event_receipt`), `…000002_platform_webauthn_logout.sql` (`webauthn_credential`, `replay_guard`), `…000003_runtime_db_roles.sql` (per-schema roles). Every query is filtered by the session tenant (and institution where the row has one); other tenants' rows are 404. |
+| Notifications | `modules/platform/src/inbox/notifications.rs`: addressed to a subject or to a role (tenant-wide), per-reader receipts, cursor paging, unread count, mark read / all read. Categories `institution · notice · todo · security · system`; per-category in-app / e-mail preferences in the profile. |
+| E-mail channel | `sutra_kernel::mail::MailSender` port, SMTP adapter `crates/infra/src/smtp.rs` (lettre, rustls; `SUTRA_NOTIFY_EMAIL=off\|smtp`). Rows queued in `notification_delivery` in the notification's transaction (only for recipients with a contact e-mail and e-mail enabled for the category); `inbox/delivery.rs` sends them from an advisory-locked job with exponential backoff, `failed` after `SUTRA_NOTIFY_MAX_ATTEMPTS`. Mailpit in development. |
+| Event consumer | `inbox/consumer.rs`: reads committed `platform.outbox` events by type (independent of the NATS relay), exactly-once per consumer via `platform.event_receipt` in the projection's transaction, savepoint per event (poison → `failed`, never blocks). `institution.registered` → notification to every administrator of the tenant + "Complete the setup of …" to-do for the registering user; `institution.renamed` → administrators; `platform.notice.published` → audience roles from `publishAt`; `platform.todo.assigned` → assignee. |
+| Notices | `inbox/notices.rs`: administrators create/update/archive (Idempotency-Key, `If-Match`), audience roles, pinned, scheduled `publishAt`, `expiresAt`; everyone reads the live notices of their role. |
+| To-dos | `inbox/todos.rs`: own and assigned to-dos (administrators/faculty may assign by login id), complete / dismiss / reopen with versions, overdue flag, open count. |
+| Profile | `inbox/profile.rs`: display name, locale, time zone, contact e-mail/phone, notification preferences; created on first sign-in; `PATCH` with `If-Match`. |
+| Security | `auth/http_security.rs`: own sessions (current flagged), revoke one / all others, MFA status, remove TOTP (step-up). |
+| Dev-mode WebAuthn | `auth/webauthn.rs` (`DevWebauthn`, webauthn-rs; `SUTRA_WEBAUTHN_RP_ID`, `SUTRA_WEBAUTHN_ORIGINS`): passkey registration, sign-in challenge (`…/webauthn/challenge` → `…/webauthn/verify`, the renewed challenge still accepts TOTP), step-up; ceremony state single use in `platform.pre_auth`; sign counter advanced atomically (non-increasing → refused). Session `amr` = `pwd, hwk, mfa`. Keycloak mode keeps `501` (Keycloak owns passkeys). |
+| Back-channel logout | `POST /api/v1/auth/oidc/backchannel-logout`: Keycloak's signed `logout_token` (JWKS, `iss`, `aud`, `iat`, back-channel event, `sid` required, no `nonce`), `jti` single use via `ReplayGuard` (`platform.replay_guard`), revokes every session with that IdP `sid`. Registered on the `sutra-web` client in the dev realm (`backchannel.logout.url` = `http://api:8080/…`, session required). |
+| Runtime DB roles | `sutra_<schema>` NOLOGIN roles with DML on their own schema only (+ INSERT on `platform.outbox`/`audit_log`), `sutra_app` member of all; `sutra-api migrate` runs as the owner (`SUTRA_MIGRATION_DATABASE_URL`) and provisions `SUTRA_DB_RUNTIME_USER` as a member of `sutra_app`. The API serves as that role: no DDL, no ownership, audit log append-only. The db-tests run the API as such a role. |
+| Sweepers | Read notifications, archived/expired notices, closed to-dos (`SUTRA_*_RETENTION_SECS`), consumer receipts and replay-guard entries (`inbox/jobs.rs`). |
+| Web | `/notifications`, `/notices`, `/todos`, `/profile`, `/account/security`; the bell shows the live unread count and the latest notifications; account menu → Profile, Notices, To-dos, Security, Two-step verification; sign-in MFA step offers **Use a passkey** when the account has one. Mock mode keeps an in-memory inbox per role. |
+
+## Local Docker verification
+
+Docker is not available in the CI sandbox that produced Batch 1, so the container stack is verified by
+reading the Dockerfiles/compose file; run these on your own machine (Docker 24+ with Compose v2). From
+`sutraerp/`:
+
+```sh
+# 1. Build and start everything: postgres 18, keycloak 26, valkey, nats (JetStream), mailpit,
+#    migrate (as the schema owner, provisions the runtime role) → api (runtime role) → web.
+docker compose --profile app up --build -d
+
+# 2. Migrations ran as the owner and exited 0; the API runs as `sutra_api`.
+docker compose ps -a migrate                      # STATUS: Exited (0)
+docker compose logs migrate | grep -E "migrations applied|runtime login role provisioned"
+docker compose exec postgres psql -U sutra -d sutra -c \
+  "SELECT usename, application_name FROM pg_stat_activity WHERE datname = 'sutra' AND usename = 'sutra_api' LIMIT 1;"
+#   → one row: sutra_api
+
+# (re-run migrations at any time — idempotent)
+docker compose --profile app run --rm migrate
+
+# 3. Health
+curl -s http://localhost:8080/health/live         # {"status":"ok"}
+curl -s http://localhost:8080/health/ready        # HTTP 200, status "ok", checks postgres/nats/valkey all ok:true
+curl -s http://localhost:8180/realms/sutra/.well-known/openid-configuration | head -c 200   # Keycloak realm
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8025/                              # Mailpit UI → 200
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/                              # web → 200
+curl -s http://localhost:3000/api/v1/auth/csrf    # web → API proxy: {"csrfToken":"…","expiresAt":"…"}
+```
+
+Expected: `/health/ready` returns **200** with `"status":"ok"` and `postgres` (critical), `nats` and
+`valkey` checks `ok: true`; Keycloak serves the `sutra` realm on http://localhost:8180 (admin/admin);
+Mailpit UI on http://localhost:8025; the web app on http://localhost:3000 (API mode, dev sign-in).
+
+Keycloak (SSO) mode for the logout check — rebuild the API and web with:
+
+```sh
+SUTRA_COMPOSE_AUTH_MODE=keycloak SUTRA_COMPOSE_WEB_AUTH_MODE=oidc docker compose --profile app up --build -d
+```
+
+Stop with `docker compose --profile app down` (add `-v` to wipe the database and JetStream volumes).
+
+### Click-through checklist (1C / 1D)
+
+Dev sign-in (default compose, http://localhost:3000, password `sutra` is built in):
+
+1. **Sign in** — choose *Administrator* (Dhruv Naik). The bell shows the unread count from
+   `GET /api/v1/notifications/unread-count`.
+2. **Profile edit** — account menu → *My profile*: set contact e-mail `admin@sutra.dev`, turn **e-mail on**
+   for *Institution*, *Save changes*; a reload keeps the values (a stale second tab gets a conflict message).
+3. **Register an institution** — `POST` through the API (no screen until Batch 2), from a signed-in browser
+   console on http://localhost:3000:
+   ```js
+   const s = await (await fetch("/api/v1/auth/session")).json();
+   await fetch("/api/v1/institution/institutions", { method: "POST",
+     headers: { "Content-Type": "application/json", "X-CSRF-Token": s.csrfToken, "Idempotency-Key": crypto.randomUUID() },
+     body: JSON.stringify({ code: "SIT-" + Date.now() % 100000, name: "Sutra Institute of Technology", timezone: "Asia/Kolkata" }) }).then(r => r.status) // 201
+   ```
+4. **Notification + setup to-do** — within a few seconds (consumer polls every 2 s) the bell shows
+   "Institution registered …"; *To-dos* lists "Complete the setup of Sutra Institute of Technology".
+   The outbox event also reaches JetStream: `curl -s localhost:8222/jsz?streams=1` shows `SUTRA_EVENTS` with messages.
+5. **E-mail in Mailpit** — http://localhost:8025 shows the institution notification e-mail to `admin@sutra.dev`
+   (delivery job runs every 5 s).
+6. **Post a notice** — account menu → *Notices* → *New notice*, audience *Students*, publish now. Switch role to
+   *Student* (account menu): the notice is on the Notices screen and in the student's bell.
+7. **Security sessions revoke** — sign in as Administrator in a second browser (or private window); in the first,
+   account menu → *Security* lists two sessions → *Sign out* on the other one (or *Sign out others*); the second
+   browser is sent to sign-in on its next request.
+8. **Passkey enrol** — *Security* → *Add a passkey* (name it) → the browser/OS passkey prompt (Chrome's
+   DevTools → *WebAuthn* virtual authenticator works too). The passkey is listed. Then require a second
+   factor for administrators and sign in again — the second-factor step offers **Use a passkey**:
+   ```sh
+   SUTRA_COMPOSE_DEV_MFA=true docker compose --profile app up -d api
+   ```
+9. **Keycloak logout revokes the session** — start in Keycloak mode (command above), sign in at
+   http://localhost:3000 via *Continue with SutraERP SSO* as `meera.shah@sutra.dev` / `sutra`. In the Keycloak
+   admin console (http://localhost:8180/admin, admin/admin) → realm *sutra* → *Sessions* → sign out Meera's
+   session (or *Users → meera.shah → Sessions → Sign out*). Keycloak POSTs the logout token to
+   `http://api:8080/api/v1/auth/oidc/backchannel-logout` (`docker compose logs api | grep -i backchannel`);
+   the next click in the SutraERP tab returns to sign-in (`GET /api/v1/auth/session` → 401).

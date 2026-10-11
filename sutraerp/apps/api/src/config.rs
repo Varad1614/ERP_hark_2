@@ -155,6 +155,73 @@ pub struct SweeperConfig {
     pub pre_auth_grace: Duration,
 }
 
+/// `SUTRA_NOTIFY_EMAIL`: out-of-band notification channel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MailMode {
+    Off,
+    Smtp,
+}
+
+/// `SUTRA_SMTP_TLS`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SmtpTlsMode {
+    None,
+    StartTls,
+    Tls,
+}
+
+/// Notification e-mail channel (SMTP; Mailpit in development).
+#[derive(Clone)]
+pub struct MailConfig {
+    pub mode: MailMode,
+    pub smtp_host: String,
+    pub smtp_port: u16,
+    pub smtp_tls: SmtpTlsMode,
+    pub smtp_username: Option<String>,
+    pub smtp_password: Option<String>,
+    pub from: String,
+    pub delivery_interval: Duration,
+    pub max_attempts: i32,
+    pub timeout: Duration,
+}
+
+impl std::fmt::Debug for MailConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MailConfig")
+            .field("mode", &self.mode)
+            .field("smtp_host", &self.smtp_host)
+            .field("smtp_port", &self.smtp_port)
+            .field("smtp_tls", &self.smtp_tls)
+            .field(
+                "smtp_password",
+                &self.smtp_password.as_ref().map(|_| "<redacted>"),
+            )
+            .finish_non_exhaustive()
+    }
+}
+
+/// Inbox consumer + retention of the Batch 1D tables.
+#[derive(Debug, Clone)]
+pub struct InboxConfig {
+    /// Run the outbox-driven inbox consumer in this process.
+    pub consumer: bool,
+    pub poll_interval: Duration,
+    pub lookback: Duration,
+    pub batch_size: u32,
+    pub sweep_interval: Duration,
+    pub notification_retention: Duration,
+    pub notice_retention: Duration,
+    pub todo_retention: Duration,
+}
+
+/// Dev-mode WebAuthn relying party.
+#[derive(Debug, Clone)]
+pub struct WebauthnConfig {
+    pub rp_id: String,
+    pub rp_name: String,
+    pub origins: Vec<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub env: Environment,
@@ -201,6 +268,26 @@ pub struct Config {
     pub nats: NatsConfig,
     pub cache: CacheConfig,
     pub sweepers: SweeperConfig,
+    /// Owner connection for `sutra-api migrate` (defaults to `DATABASE_URL`).
+    pub migration_database_url: Option<String>,
+    /// Runtime LOGIN role `migrate` creates/updates and grants `sutra_app` (dev/compose).
+    pub db_runtime_user: Option<String>,
+    pub db_runtime_password: Option<SecretString>,
+    /// Browser-facing base URL (links in e-mails).
+    pub public_url: String,
+    pub mail: MailConfig,
+    pub inbox: InboxConfig,
+    pub webauthn: WebauthnConfig,
+}
+
+/// A secret string whose `Debug` is redacted.
+#[derive(Clone, PartialEq, Eq)]
+pub struct SecretString(pub String);
+
+impl std::fmt::Debug for SecretString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("<redacted>")
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -471,6 +558,70 @@ impl Config {
             pre_auth_interval: secs_cfg(src, "SUTRA_SWEEP_PREAUTH_SECS", 300)?,
             pre_auth_grace: secs_cfg(src, "SUTRA_PREAUTH_PURGE_GRACE_SECS", 300)?,
         };
+        let smtp_tls = match src
+            .get("SUTRA_SMTP_TLS")
+            .as_deref()
+            .map(str::to_lowercase)
+            .as_deref()
+        {
+            None | Some("none") => SmtpTlsMode::None,
+            Some("starttls") => SmtpTlsMode::StartTls,
+            Some("tls") => SmtpTlsMode::Tls,
+            Some(v) => {
+                return Err(ConfigError::Invalid {
+                    key: "SUTRA_SMTP_TLS",
+                    value: v.into(),
+                })
+            }
+        };
+        let mail = MailConfig {
+            mode: match src
+                .get("SUTRA_NOTIFY_EMAIL")
+                .as_deref()
+                .map(str::to_lowercase)
+                .as_deref()
+            {
+                None | Some("off") => MailMode::Off,
+                Some("smtp") => MailMode::Smtp,
+                Some(v) => {
+                    return Err(ConfigError::Invalid {
+                        key: "SUTRA_NOTIFY_EMAIL",
+                        value: v.into(),
+                    })
+                }
+            },
+            smtp_host: string(src, "SUTRA_SMTP_HOST", "localhost"),
+            smtp_port: parse(src, "SUTRA_SMTP_PORT", 1025)?,
+            smtp_tls,
+            smtp_username: src.get("SUTRA_SMTP_USERNAME"),
+            smtp_password: src.get("SUTRA_SMTP_PASSWORD"),
+            from: string(src, "SUTRA_MAIL_FROM", "SutraERP <no-reply@sutra.dev>"),
+            delivery_interval: millis_cfg(src, "SUTRA_NOTIFY_DELIVERY_MS", 5000)?,
+            max_attempts: parse(src, "SUTRA_NOTIFY_MAX_ATTEMPTS", 5)?,
+            timeout: secs_cfg(src, "SUTRA_SMTP_TIMEOUT_SECS", 10)?,
+        };
+        let inbox = InboxConfig {
+            consumer: parse(src, "SUTRA_INBOX_CONSUMER", env != Environment::Test)?,
+            poll_interval: millis_cfg(src, "SUTRA_INBOX_POLL_MS", 2000)?,
+            lookback: secs_cfg(src, "SUTRA_INBOX_LOOKBACK_SECS", 7 * 24 * 3600)?,
+            batch_size: parse(src, "SUTRA_INBOX_BATCH_SIZE", 200)?,
+            sweep_interval: secs_cfg(src, "SUTRA_SWEEP_INBOX_SECS", 3600)?,
+            notification_retention: secs_cfg(
+                src,
+                "SUTRA_NOTIFICATION_RETENTION_SECS",
+                90 * 24 * 3600,
+            )?,
+            notice_retention: secs_cfg(src, "SUTRA_NOTICE_RETENTION_SECS", 180 * 24 * 3600)?,
+            todo_retention: secs_cfg(src, "SUTRA_TODO_RETENTION_SECS", 90 * 24 * 3600)?,
+        };
+        let webauthn = WebauthnConfig {
+            rp_id: string(src, "SUTRA_WEBAUTHN_RP_ID", "localhost"),
+            rp_name: string(src, "SUTRA_WEBAUTHN_RP_NAME", "SutraERP"),
+            origins: list(
+                "SUTRA_WEBAUTHN_ORIGINS",
+                "http://localhost:5173,http://localhost:3000",
+            ),
+        };
         let cfg = Config {
             env,
             http_addr: parse(
@@ -537,6 +688,13 @@ impl Config {
             nats,
             cache,
             sweepers,
+            migration_database_url: src.get("SUTRA_MIGRATION_DATABASE_URL"),
+            db_runtime_user: src.get("SUTRA_DB_RUNTIME_USER"),
+            db_runtime_password: src.get("SUTRA_DB_RUNTIME_PASSWORD").map(SecretString),
+            public_url: string(src, "SUTRA_PUBLIC_URL", "http://localhost:5173"),
+            mail,
+            inbox,
+            webauthn,
         };
         cfg.validate()?;
         Ok(cfg)
@@ -655,6 +813,44 @@ impl Config {
             return Err(ConfigError::Invalid {
                 key: "SUTRA_LOGIN_CSRF_TTL_SECS",
                 value: self.login_csrf_ttl_secs.to_string(),
+            });
+        }
+        if self.db_runtime_user.is_some() != self.db_runtime_password.is_some() {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_DB_RUNTIME_USER",
+                value: "SUTRA_DB_RUNTIME_USER and SUTRA_DB_RUNTIME_PASSWORD go together".into(),
+            });
+        }
+        if let Some(u) = &self.db_runtime_user {
+            let ok = !u.is_empty()
+                && u.len() <= 63
+                && u.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+                && !u.starts_with("pg_")
+                && !u.starts_with("sutra_app");
+            if !ok {
+                return Err(ConfigError::Invalid {
+                    key: "SUTRA_DB_RUNTIME_USER",
+                    value: format!("{u} (lowercase letters, digits and _; not pg_* / sutra_app)"),
+                });
+            }
+        }
+        if self.inbox.batch_size == 0 {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_INBOX_BATCH_SIZE",
+                value: "0".into(),
+            });
+        }
+        if self.mail.max_attempts <= 0 {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_NOTIFY_MAX_ATTEMPTS",
+                value: self.mail.max_attempts.to_string(),
+            });
+        }
+        if self.auth_provider == AuthProvider::Dev && self.webauthn.origins.is_empty() {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_WEBAUTHN_ORIGINS",
+                value: "<empty>".into(),
             });
         }
         if self.db_max_connections == 0 {
@@ -887,6 +1083,46 @@ mod tests {
             Err(ConfigError::Forbidden(_))
         ));
         assert!(prod(("SUTRA_OUTBOX_RELAY_ALLOW_OFF", "true")).is_ok());
+    }
+
+    #[test]
+    fn batch_1d_settings() {
+        let dev = Config::load(&HashMap::<&str, &str>::new()).unwrap();
+        assert_eq!(dev.mail.mode, MailMode::Off);
+        assert!(dev.inbox.consumer);
+        assert_eq!(dev.webauthn.rp_id, "localhost");
+        assert_eq!(dev.webauthn.origins.len(), 2);
+        assert!(dev.migration_database_url.is_none() && dev.db_runtime_user.is_none());
+        let test = Config::load(&HashMap::from([("SUTRA_ENV", "test")])).unwrap();
+        assert!(!test.inbox.consumer, "test profile has no database");
+        let c = Config::load(&HashMap::from([
+            ("SUTRA_NOTIFY_EMAIL", "smtp"),
+            ("SUTRA_SMTP_HOST", "mailpit"),
+            ("SUTRA_SMTP_TLS", "starttls"),
+            ("SUTRA_SMTP_PASSWORD", "pw-secret"),
+            ("SUTRA_DB_RUNTIME_USER", "sutra_api"),
+            ("SUTRA_DB_RUNTIME_PASSWORD", "x"),
+        ]))
+        .unwrap();
+        assert_eq!(c.mail.mode, MailMode::Smtp);
+        assert_eq!(c.mail.smtp_tls, SmtpTlsMode::StartTls);
+        assert!(!format!("{:?}", c.mail).contains("pw-secret"));
+        assert_eq!(c.db_runtime_user.as_deref(), Some("sutra_api"));
+        for bad in [
+            vec![("SUTRA_NOTIFY_EMAIL", "sms")],
+            vec![("SUTRA_SMTP_TLS", "ssl3")],
+            vec![("SUTRA_DB_RUNTIME_USER", "sutra_api")],
+            vec![
+                ("SUTRA_DB_RUNTIME_USER", "Robert'); DROP"),
+                ("SUTRA_DB_RUNTIME_PASSWORD", "x"),
+            ],
+            vec![("SUTRA_INBOX_BATCH_SIZE", "0")],
+        ] {
+            assert!(
+                Config::load(&bad.iter().copied().collect::<HashMap<&str, &str>>()).is_err(),
+                "{bad:?}"
+            );
+        }
     }
 
     #[test]

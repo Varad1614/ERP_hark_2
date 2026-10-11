@@ -91,7 +91,7 @@ fn kernel_and_contracts_are_framework_free() {
     }
 }
 
-/// Product SDKs (NATS, Valkey/Redis) live only in `sutra-infra` behind kernel ports
+/// Product SDKs (NATS, Valkey/Redis, SMTP) live only in `sutra-infra` behind kernel ports
 /// (ADR-L5-0022 / ADR-L5-0037): domain modules and the other shared crates never see them.
 #[test]
 fn broker_and_cache_sdks_stay_in_infra() {
@@ -101,7 +101,7 @@ fn broker_and_cache_sdks_stay_in_infra() {
     }
     for m in manifests {
         let text = fs::read_to_string(&m).unwrap();
-        for sdk in ["async-nats", "redis", "fred"] {
+        for sdk in ["async-nats", "redis", "fred", "lettre"] {
             assert!(
                 !text.contains(&format!("\n{sdk}")),
                 "{} depends on {sdk}; use the kernel port and the sutra-infra adapter",

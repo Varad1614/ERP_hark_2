@@ -27,7 +27,11 @@ use utoipa::OpenApi;
         (name = "health", description = "Liveness and readiness probes"),
         (name = "auth", description = "D01 authentication boundary (Keycloak-delegated, server-side session)"),
         (name = "platform", description = "A Platform: catalog and module registry"),
-        (name = "institution", description = "B Institution (reference aggregate)")
+        (name = "institution", description = "B Institution (reference aggregate)"),
+        (name = "notifications", description = "A Platform: in-app notifications (subject or role addressed, per-reader read state)"),
+        (name = "notices", description = "A Platform: institution-wide notices with role audience and publish/expiry window"),
+        (name = "todos", description = "A Platform: per-user to-do inbox"),
+        (name = "profile", description = "A Platform: self-service profile and notification preferences")
     ),
     components(schemas(sutra_web::Problem)),
     modifiers(&SecuritySchemes)

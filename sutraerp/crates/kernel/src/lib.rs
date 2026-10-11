@@ -16,6 +16,7 @@
 //! * [`cache`] – advisory, scope-namespaced `Cache` port (ADR-L5-0037)
 //! * [`audit`] – audit entry + sink port
 //! * [`idempotency`] – idempotency store port (ADR-L5-0034 §3.6)
+//! * [`mail`] – outbound e-mail port (notification e-mail channel)
 //! * [`health`] – readiness probe port (ADR-L5-0044)
 //! * [`module`] – module descriptors for the composition root
 //! * [`error`] – framework-neutral technical error taxonomy
@@ -31,6 +32,7 @@ pub mod events;
 pub mod health;
 pub mod id;
 pub mod idempotency;
+pub mod mail;
 pub mod messaging;
 pub mod module;
 pub mod money;

@@ -150,6 +150,42 @@
         ]
       }
     },
+    "/api/v1/auth/mfa": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Second-factor status of the signed-in account.",
+        "operationId": "mfa_status",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/mfa/step-up": {
       "post": {
         "tags": [
@@ -181,6 +217,67 @@
           },
           "401": {
             "description": "No session, wrong or replayed code",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "MFA is managed by Keycloak",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/totp": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Turn off the authenticator app (needs an MFA-verified session).",
+        "description": "Refused (`409`) when it is the last second factor of an account whose role requires MFA.",
+        "operationId": "totp_disable",
+        "responses": {
+          "204": {
+            "description": "Authenticator removed"
+          },
+          "403": {
+            "description": "Step-up required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No authenticator enrolled",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Last factor of an account that requires MFA",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -396,11 +493,169 @@
         "tags": [
           "auth"
         ],
-        "summary": "Begin a WebAuthn assertion (step-up) — **deferred** (`501`).",
+        "summary": "Begin a passkey assertion to step up the current session.",
         "operationId": "webauthn_assertion",
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebauthnCeremony"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No passkey registered",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "501": {
-            "description": "Deferred: WebAuthn is offered through Keycloak",
+            "description": "Passkeys are managed by Keycloak",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/webauthn/challenge": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Start the passkey option of a sign-in challenge.",
+        "description": "Consumes `challengeId` and returns a **new** one (carrying the WebAuthn ceremony) together\nwith the assertion options for `navigator.credentials.get`. The new id also still accepts a\nTOTP code at `/api/v1/auth/mfa/verify`. Requires the pre-session CSRF token the challenge\nwas issued to.",
+        "operationId": "webauthn_challenge",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebauthnChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebauthnChallengeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unknown/expired challenge or another browser",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No passkey registered",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Passkeys are managed by Keycloak",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "login_csrf": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/webauthn/credentials/{id}": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Remove one of the caller's passkeys (needs an MFA-verified session). Removing the last\nsecond factor of an account whose role requires MFA is refused (`409`).",
+        "operationId": "webauthn_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "403": {
+            "description": "Step-up required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Last factor of an account that requires MFA",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -423,11 +678,52 @@
         "tags": [
           "auth"
         ],
-        "summary": "Begin WebAuthn credential registration — **deferred** (`501`).",
+        "summary": "Begin registering a passkey for the signed-in account.",
+        "description": "Returns the creation options for `navigator.credentials.create` and a `ceremonyId`.\nAdding a passkey to an account that already has a second factor needs an MFA-verified\nsession (`403 mfa-step-up-required`).",
         "operationId": "webauthn_registration",
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebauthnCeremony"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Step-up required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Too many passkeys",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "501": {
-            "description": "Deferred: WebAuthn is offered through Keycloak",
+            "description": "Passkeys are managed by Keycloak",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -443,6 +739,243 @@
             "session_cookie": []
           }
         ]
+      }
+    },
+    "/api/v1/auth/mfa/webauthn/registration/complete": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Finish passkey registration; the session is rotated to `mfaLevel = mfa`.",
+        "operationId": "webauthn_registration_complete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebauthnRegistrationCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unknown or foreign ceremony",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Authenticator already registered",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Attestation could not be verified",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/webauthn/step-up": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Finish a passkey step-up; the session is rotated to `mfaLevel = mfa` (absolute expiry kept).",
+        "operationId": "webauthn_step_up",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebauthnAssertionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Assertion rejected",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Passkeys are managed by Keycloak",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/webauthn/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Finish a sign-in challenge with a passkey.",
+        "description": "Single use like the TOTP path: a failed assertion burns the challenge. On success the\nsession is created with `mfaLevel = mfa` (`amr` = `pwd`, `hwk`, `mfa`).",
+        "operationId": "webauthn_verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebauthnVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unknown challenge, wrong browser, or assertion rejected",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Passkeys are managed by Keycloak",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "login_csrf": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/oidc/backchannel-logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "OIDC Back-Channel Logout 1.0 receiver (Keycloak → SutraERP, server to server).",
+        "description": "Body: `application/x-www-form-urlencoded` with `logout_token`. The token is validated\n(JWKS signature, `iss`, `aud`, `iat`/`exp`, back-channel-logout `events`, `sid`/`sub`, no\n`nonce`), its `jti` must not have been seen before, and then every SutraERP session bound\nto the IdP session `sid` (or, without `sid`, every federated session of `sub`) is revoked.\nAnswers `200` (also when no session matched) or `400`; never sets cookies.",
+        "operationId": "backchannel_logout",
+        "requestBody": {
+          "description": "logout_token=<JWT>",
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Logout token accepted; matching sessions revoked"
+          },
+          "400": {
+            "description": "Missing, invalid or replayed logout token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "OIDC not configured (dev mode)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Identity provider keys unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/auth/oidc/callback": {
@@ -578,6 +1111,140 @@
         ]
       }
     },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Active sessions of the signed-in account (newest first; the current one is flagged).",
+        "operationId": "sessions",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/sessions/revoke-others": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign out every other session of this account (\"sign out other devices\").",
+        "operationId": "revoke_other_sessions",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokedCount"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/sessions/{id}": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign out one other session of this account. The current session ends with `POST /logout`.",
+        "operationId": "revoke_session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session revoked"
+          },
+          "404": {
+            "description": "Not a live session of this account",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That is the current session (use logout)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/institution/institutions": {
       "post": {
         "tags": [
@@ -701,7 +1368,7 @@
         ],
         "summary": "Get an institution of the caller's session tenant (`institution.read`).",
         "description": "Institutions of other tenants are indistinguishable from missing ones (404).",
-        "operationId": "get",
+        "operationId": "get_institution",
         "parameters": [
           {
             "name": "id",
@@ -891,6 +1558,623 @@
         ]
       }
     },
+    "/api/v1/notices": {
+      "get": {
+        "tags": [
+          "notices"
+        ],
+        "summary": "Notices: the caller's live notices (pinned first), or every notice (`view=manage`).",
+        "operationId": "list_notices",
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "current",
+                "manage"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (1–100, default 50).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoticeList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`view=manage` without `notice.manage`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "notices"
+        ],
+        "summary": "Publish a notice (`notice.manage`; `Idempotency-Key` required).",
+        "operationId": "create_notice",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewNotice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notice"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing `notice.manage`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notices/{id}": {
+      "get": {
+        "tags": [
+          "notices"
+        ],
+        "summary": "One notice. Readers only see live notices addressed to one of their roles (otherwise 404).",
+        "operationId": "get_notice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notice"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "notices"
+        ],
+        "summary": "Update a notice (`notice.manage`, `If-Match` required). Archived notices cannot change.",
+        "operationId": "update_notice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the version being modified",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notice"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Archived",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notices/{id}/archive": {
+      "post": {
+        "tags": [
+          "notices"
+        ],
+        "summary": "Archive a notice (`notice.manage`; idempotent). It disappears for readers immediately.",
+        "operationId": "archive_notice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notice"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "The caller's notifications, newest first (cursor pagination).",
+        "operationId": "list_notifications",
+        "parameters": [
+          {
+            "name": "unreadOnly",
+            "in": "query",
+            "description": "Only unread notifications.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (1–100, default 20).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "`nextCursor` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark every visible notification read.",
+        "operationId": "mark_all_notifications_read",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkedCount"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Number of unread notifications (the bell badge).",
+        "operationId": "unread_notification_count",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCount"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark one notification read (idempotent). Notifications not addressed to the caller → 404.",
+        "operationId": "mark_notification_read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Marked read"
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/platform/modules": {
       "get": {
         "tags": [
@@ -998,6 +2282,461 @@
         }
       }
     },
+    "/api/v1/profile": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "The caller's profile (created from the session's principal on first access).",
+        "operationId": "get_profile",
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Update the caller's profile (optimistic concurrency: `If-Match: \"<version>\"`).",
+        "operationId": "update_profile",
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the profile version being modified",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/todos": {
+      "get": {
+        "tags": [
+          "todos"
+        ],
+        "summary": "The caller's to-dos (newest first).",
+        "operationId": "list_todos",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Default `open`.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "completed",
+                "dismissed",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "todos"
+        ],
+        "summary": "Create a to-do for yourself, or assign one (`todo.assign`; `Idempotency-Key` required).",
+        "operationId": "create_todo",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTodo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Assigning needs `todo.assign`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid, or unknown assignee",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/todos/{id}/complete": {
+      "post": {
+        "tags": [
+          "todos"
+        ],
+        "summary": "Mark one of your to-dos done.",
+        "operationId": "complete_todo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not one of your to-dos",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/todos/{id}/dismiss": {
+      "post": {
+        "tags": [
+          "todos"
+        ],
+        "summary": "Dismiss one of your to-dos (no longer relevant).",
+        "operationId": "dismiss_todo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/todos/{id}/reopen": {
+      "post": {
+        "tags": [
+          "todos"
+        ],
+        "summary": "Reopen a completed or dismissed to-do.",
+        "operationId": "reopen_todo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/health/live": {
       "get": {
         "tags": [
@@ -1053,6 +2792,28 @@
   },
   "components": {
     "schemas": {
+      "CategoryPreference": {
+        "type": "object",
+        "description": "Per-category notification preference.",
+        "required": [
+          "category",
+          "inApp",
+          "email"
+        ],
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/NotificationCategory"
+          },
+          "email": {
+            "type": "boolean",
+            "description": "Also send by e-mail to `contactEmail`."
+          },
+          "inApp": {
+            "type": "boolean",
+            "description": "Show in the in-app inbox (security notifications cannot be muted)."
+          }
+        }
+      },
       "CheckResult": {
         "type": "object",
         "required": [
@@ -1117,6 +2878,14 @@
             "$ref": "#/components/schemas/TenantId"
           }
         }
+      },
+      "FactorAuthority": {
+        "type": "string",
+        "description": "Who manages the account's second factors.",
+        "enum": [
+          "sutra",
+          "keycloak"
+        ]
       },
       "FieldViolation": {
         "type": "object",
@@ -1309,6 +3078,19 @@
           }
         }
       },
+      "MarkedCount": {
+        "type": "object",
+        "required": [
+          "marked"
+        ],
+        "properties": {
+          "marked": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "MfaLevel": {
         "type": "string",
         "description": "Authentication assurance of a session (ADR-L5-0038 §3.8).\n\n`Mfa` means the session was established (or stepped up) with a second factor: a TOTP code\nverified by SutraERP in dev mode, or Keycloak-asserted `amr`/`acr` values in Keycloak mode.",
@@ -1324,6 +3106,45 @@
           "webauthn",
           "totp"
         ]
+      },
+      "MfaStatus": {
+        "type": "object",
+        "required": [
+          "managedBy",
+          "totpEnrolled",
+          "passkeys",
+          "webauthnAvailable",
+          "mfaRequired",
+          "sessionMfaLevel"
+        ],
+        "properties": {
+          "managedBy": {
+            "$ref": "#/components/schemas/FactorAuthority"
+          },
+          "mfaRequired": {
+            "type": "boolean",
+            "description": "The account's role requires a second factor."
+          },
+          "passkeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasskeyInfo"
+            },
+            "description": "Registered passkeys / security keys."
+          },
+          "sessionMfaLevel": {
+            "$ref": "#/components/schemas/MfaLevel",
+            "description": "Assurance of the current session."
+          },
+          "totpEnrolled": {
+            "type": "boolean",
+            "description": "An authenticator app (TOTP) is active."
+          },
+          "webauthnAvailable": {
+            "type": "boolean",
+            "description": "Dev-mode WebAuthn is available in this deployment."
+          }
+        }
       },
       "MfaVerifyRequest": {
         "type": "object",
@@ -1385,6 +3206,292 @@
           "scaffolded",
           "active"
         ]
+      },
+      "NewNotice": {
+        "type": "object",
+        "required": [
+          "title",
+          "body",
+          "audienceRoles"
+        ],
+        "properties": {
+          "audienceRoles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            },
+            "description": "Roles that see the notice (at least one)."
+          },
+          "body": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "publishAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Defaults to now."
+          },
+          "title": {
+            "type": "string",
+            "example": "Innovation Week begins 23 September"
+          }
+        }
+      },
+      "NewTodo": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "assigneeLoginId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Assign to this person (login id of someone who has signed in before); omitted = me."
+          },
+          "detail": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Application path (e.g. `/academics`)."
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "Notice": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "body",
+          "audienceRoles",
+          "pinned",
+          "publishAt",
+          "state",
+          "authorName",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "audienceRoles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            }
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "publishAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "$ref": "#/components/schemas/NoticeState"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "NoticeList": {
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "NoticeState": {
+        "type": "string",
+        "enum": [
+          "scheduled",
+          "live",
+          "expired",
+          "archived"
+        ]
+      },
+      "Notification": {
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "severity",
+          "title",
+          "body",
+          "createdAt"
+        ],
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/NotificationCategory"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Application path to open (e.g. `/todos`)."
+          },
+          "readAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the caller read it; `null` = unread."
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "NotificationCategory": {
+        "type": "string",
+        "description": "What a notification is about (also the unit of notification preferences).",
+        "enum": [
+          "institution",
+          "notice",
+          "todo",
+          "security",
+          "system"
+        ]
+      },
+      "NotificationPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "unreadCount"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Pass as `cursor` to fetch the next (older) page; absent on the last page."
+          },
+          "unreadCount": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PasskeyInfo": {
+        "type": "object",
+        "description": "A registered passkey / security key (public data only).",
+        "required": [
+          "id",
+          "label",
+          "createdAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
       },
       "Principal": {
         "type": "object",
@@ -1472,6 +3579,79 @@
           }
         }
       },
+      "Profile": {
+        "type": "object",
+        "required": [
+          "subject",
+          "loginId",
+          "displayName",
+          "roles",
+          "locale",
+          "timeZone",
+          "notificationPreferences",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "contactEmail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contactPhone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "E.164, e.g. `+919876543210`."
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "lastSignInAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "locale": {
+            "type": "string",
+            "description": "BCP 47 language tag, e.g. `en-IN`."
+          },
+          "loginId": {
+            "type": "string"
+          },
+          "notificationPreferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryPreference"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            }
+          },
+          "subject": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "IANA time zone, e.g. `Asia/Kolkata`."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "RegisterInstitution": {
         "type": "object",
         "required": [
@@ -1505,6 +3685,19 @@
         "properties": {
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "RevokedCount": {
+        "type": "object",
+        "required": [
+          "revoked"
+        ],
+        "properties": {
+          "revoked": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -1563,10 +3756,210 @@
           }
         }
       },
+      "SessionList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionView"
+            }
+          }
+        }
+      },
+      "SessionView": {
+        "type": "object",
+        "required": [
+          "id",
+          "createdAt",
+          "lastSeenAt",
+          "expiresAt",
+          "idleExpiresAt",
+          "mfaLevel",
+          "amr",
+          "federated",
+          "current"
+        ],
+        "properties": {
+          "amr": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current": {
+            "type": "boolean",
+            "description": "The session making this request."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "federated": {
+            "type": "boolean",
+            "description": "Signed in through single sign-on (Keycloak)."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idleExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mfaLevel": {
+            "$ref": "#/components/schemas/MfaLevel"
+          }
+        }
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "info",
+          "success",
+          "warning",
+          "critical"
+        ]
+      },
       "TenantId": {
         "type": "string",
         "format": "uuid",
         "description": "Root protected technical scope."
+      },
+      "Todo": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "detail",
+          "status",
+          "source",
+          "overdue",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "assignedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Subject that assigned it (`null` = created by the system or by the assignee)."
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "dismissedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Application path where the work happens."
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/TodoSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TodoStatus"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TodoPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "openCount"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Todo"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "openCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Open items of the caller (all pages)."
+          }
+        }
+      },
+      "TodoSource": {
+        "type": "string",
+        "enum": [
+          "manual",
+          "event"
+        ]
+      },
+      "TodoStatus": {
+        "type": "string",
+        "enum": [
+          "open",
+          "completed",
+          "dismissed"
+        ]
       },
       "TotpCodeRequest": {
         "type": "object",
@@ -1609,9 +4002,212 @@
           }
         }
       },
+      "UnreadCount": {
+        "type": "object",
+        "required": [
+          "unread"
+        ],
+        "properties": {
+          "unread": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UpdateNotice": {
+        "type": "object",
+        "description": "Partial update; omitted members are unchanged. `clearExpiry: true` removes the expiry.",
+        "properties": {
+          "audienceRoles": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            }
+          },
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "clearExpiry": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "pinned": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "publishAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UpdateProfile": {
+        "type": "object",
+        "description": "Partial update; omitted members are unchanged. An empty `contactEmail` / `contactPhone`\nclears it.",
+        "properties": {
+          "contactEmail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contactPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "locale": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notificationPreferences": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CategoryPreference"
+            }
+          },
+          "timeZone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "Version": {
         "type": "integer",
         "format": "int64"
+      },
+      "WebauthnAssertionRequest": {
+        "type": "object",
+        "required": [
+          "ceremonyId",
+          "credential"
+        ],
+        "properties": {
+          "ceremonyId": {
+            "type": "string"
+          },
+          "credential": {
+            "type": "object"
+          }
+        }
+      },
+      "WebauthnCeremony": {
+        "type": "object",
+        "description": "A WebAuthn ceremony handed to the browser: `options` is the JSON form of\n`PublicKeyCredentialCreationOptions` / `…RequestOptions` (binary members base64url encoded,\nunder `publicKey`); `ceremony_id` names the server-side state (single use, short lived).",
+        "required": [
+          "ceremonyId",
+          "options"
+        ],
+        "properties": {
+          "ceremonyId": {
+            "type": "string"
+          },
+          "options": {
+            "type": "object"
+          }
+        }
+      },
+      "WebauthnChallengeRequest": {
+        "type": "object",
+        "description": "Pre-session request naming the sign-in challenge.",
+        "required": [
+          "challengeId"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string"
+          }
+        }
+      },
+      "WebauthnChallengeResponse": {
+        "type": "object",
+        "description": "Sign-in challenge after the passkey option was started: use the **new** `challengeId` for\nboth `…/webauthn/verify` and the TOTP `…/mfa/verify` (the previous one was consumed).",
+        "required": [
+          "challengeId",
+          "options"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string"
+          },
+          "options": {
+            "type": "object",
+            "description": "`PublicKeyCredentialRequestOptions` (JSON form, under `publicKey`)."
+          }
+        }
+      },
+      "WebauthnRegistrationCompleteRequest": {
+        "type": "object",
+        "required": [
+          "ceremonyId",
+          "credential"
+        ],
+        "properties": {
+          "ceremonyId": {
+            "type": "string"
+          },
+          "credential": {
+            "type": "object",
+            "description": "`PublicKeyCredential` from `navigator.credentials.create` (binary members base64url)."
+          },
+          "label": {
+            "type": "string",
+            "description": "Name shown in the security page (defaults to \"Passkey\")."
+          }
+        }
+      },
+      "WebauthnVerifyRequest": {
+        "type": "object",
+        "required": [
+          "challengeId",
+          "credential"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string"
+          },
+          "credential": {
+            "type": "object",
+            "description": "`PublicKeyCredential` from `navigator.credentials.get` (binary members base64url)."
+          }
+        }
       },
       "WorkflowEntry": {
         "type": "object",
@@ -1734,6 +4330,22 @@
     {
       "name": "institution",
       "description": "B Institution (reference aggregate)"
+    },
+    {
+      "name": "notifications",
+      "description": "A Platform: in-app notifications (subject or role addressed, per-reader read state)"
+    },
+    {
+      "name": "notices",
+      "description": "A Platform: institution-wide notices with role audience and publish/expiry window"
+    },
+    {
+      "name": "todos",
+      "description": "A Platform: per-user to-do inbox"
+    },
+    {
+      "name": "profile",
+      "description": "A Platform: self-service profile and notification preferences"
     }
   ]
 }

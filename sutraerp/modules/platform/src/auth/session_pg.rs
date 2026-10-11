@@ -10,7 +10,8 @@ use super::session::{derive_csrf_token, new_session_token, token_hash};
 use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
 use sutra_contracts::platform::auth::{
-    IssuedSession, MfaLevel, NewSession, Principal, Role, Session, SessionPolicy, SessionStore,
+    IssuedSession, MfaLevel, NewSession, Principal, RevokedSession, Role, Session, SessionPolicy,
+    SessionStore, SessionSummary,
 };
 use sutra_kernel::error::KernelError;
 use sutra_kernel::scope::{ExecutionScope, InstitutionId, TenantId};
@@ -211,5 +212,120 @@ impl SessionStore for PgSessionStore {
         .await
         .map_err(map_db_error)?;
         Ok(())
+    }
+
+    async fn list_for_subject(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+    ) -> Result<Vec<SessionSummary>, KernelError> {
+        let rows = sqlx::query(
+            "SELECT id, created_at, last_seen_at, expires_at, mfa_level, amr, idp_sid \
+             FROM platform.session \
+             WHERE tenant_id = $1 AND subject = $2 AND revoked_at IS NULL \
+               AND expires_at > now() AND last_seen_at > now() - make_interval(secs => $3) \
+             ORDER BY created_at DESC, id DESC LIMIT 100",
+        )
+        .bind(scope.tenant_id.as_uuid())
+        .bind(subject)
+        .bind(Self::secs(self.policy.idle_timeout))
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_db_error)?;
+        rows.iter()
+            .map(|r| {
+                let last_seen_at: DateTime<Utc> =
+                    r.try_get("last_seen_at").map_err(map_db_error)?;
+                let expires_at: DateTime<Utc> = r.try_get("expires_at").map_err(map_db_error)?;
+                let idp_sid: Option<String> = r.try_get("idp_sid").map_err(map_db_error)?;
+                Ok(SessionSummary {
+                    id: r.try_get("id").map_err(map_db_error)?,
+                    created_at: r.try_get("created_at").map_err(map_db_error)?,
+                    last_seen_at,
+                    expires_at,
+                    idle_expires_at: (last_seen_at + self.policy.idle_timeout).min(expires_at),
+                    mfa_level: MfaLevel::parse(
+                        &r.try_get::<String, _>("mfa_level").map_err(map_db_error)?,
+                    ),
+                    amr: r.try_get("amr").map_err(map_db_error)?,
+                    federated: idp_sid.is_some(),
+                })
+            })
+            .collect()
+    }
+
+    async fn revoke_id(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+        id: uuid::Uuid,
+    ) -> Result<bool, KernelError> {
+        let n = sqlx::query(
+            "UPDATE platform.session SET revoked_at = now() \
+             WHERE id = $1 AND tenant_id = $2 AND subject = $3 AND revoked_at IS NULL",
+        )
+        .bind(id)
+        .bind(scope.tenant_id.as_uuid())
+        .bind(subject)
+        .execute(&self.pool)
+        .await
+        .map_err(map_db_error)?
+        .rows_affected();
+        Ok(n > 0)
+    }
+
+    async fn revoke_others(
+        &self,
+        scope: &ExecutionScope,
+        subject: &str,
+        keep: uuid::Uuid,
+    ) -> Result<u64, KernelError> {
+        Ok(sqlx::query(
+            "UPDATE platform.session SET revoked_at = now() \
+             WHERE tenant_id = $1 AND subject = $2 AND id <> $3 AND revoked_at IS NULL",
+        )
+        .bind(scope.tenant_id.as_uuid())
+        .bind(subject)
+        .bind(keep)
+        .execute(&self.pool)
+        .await
+        .map_err(map_db_error)?
+        .rows_affected())
+    }
+
+    async fn revoke_federated(
+        &self,
+        sid: Option<&str>,
+        sub: Option<&str>,
+    ) -> Result<Vec<RevokedSession>, KernelError> {
+        if sid.is_none() && sub.is_none() {
+            return Ok(vec![]);
+        }
+        let rows = sqlx::query(
+            "UPDATE platform.session SET revoked_at = now() \
+             WHERE revoked_at IS NULL AND idp_sid IS NOT NULL \
+               AND ($1::text IS NULL OR idp_sid = $1) \
+               AND ($2::text IS NULL OR subject = $2) \
+             RETURNING id, tenant_id, institution_id, subject",
+        )
+        .bind(sid)
+        .bind(sub)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_db_error)?;
+        rows.iter()
+            .map(|r| {
+                let institution_id: Option<uuid::Uuid> =
+                    r.try_get("institution_id").map_err(map_db_error)?;
+                Ok(RevokedSession {
+                    id: r.try_get("id").map_err(map_db_error)?,
+                    scope: ExecutionScope {
+                        tenant_id: TenantId(r.try_get("tenant_id").map_err(map_db_error)?),
+                        institution_id: institution_id.map(InstitutionId),
+                    },
+                    subject: r.try_get("subject").map_err(map_db_error)?,
+                })
+            })
+            .collect()
     }
 }

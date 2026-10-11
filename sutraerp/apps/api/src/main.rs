@@ -50,13 +50,33 @@ async fn main() -> ExitCode {
     }
 }
 
+/// Applies migrations as the schema owner (`SUTRA_MIGRATION_DATABASE_URL`, else `DATABASE_URL`)
+/// and, when `SUTRA_DB_RUNTIME_USER`/`_PASSWORD` are set, provisions the API's runtime login
+/// role (member of `sutra_app`, owns nothing).
 async fn migrate(cfg: Config) -> Result<(), String> {
-    let ctx = app::AppContext::from_config(&cfg).map_err(|e| e.to_string())?;
-    sutra_persistence::migrate::run(&ctx.pool)
+    let url = cfg
+        .migration_database_url
+        .clone()
+        .unwrap_or_else(|| cfg.database_url.clone());
+    let pool = sutra_persistence::pool::connect_lazy(&sutra_persistence::pool::PoolSettings {
+        url,
+        max_connections: 2,
+        min_connections: 0,
+        acquire_timeout: cfg.db_acquire_timeout,
+        application_name: "sutra-api-migrate".into(),
+    })
+    .map_err(|e| e.to_string())?;
+    sutra_persistence::migrate::run(&pool)
         .await
         .map_err(|e| e.to_string())?;
     tracing::info!("migrations applied");
-    ctx.pool.close().await;
+    if let (Some(user), Some(password)) = (&cfg.db_runtime_user, &cfg.db_runtime_password) {
+        sutra_persistence::migrate::provision_runtime_login(&pool, user, &password.0)
+            .await
+            .map_err(|e| format!("provisioning runtime role {user}: {e}"))?;
+        tracing::info!(role = %user, "runtime login role provisioned (member of sutra_app)");
+    }
+    pool.close().await;
     Ok(())
 }
 
