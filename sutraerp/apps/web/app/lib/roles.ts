@@ -149,6 +149,7 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     blurb: "Timetable, coursework, results and fees.",
     nav: [
       nav("home", "Home", I.House), nav("timetable", "Timetable", I.CalendarDays), nav("courses", "Courses", I.BookOpen),
+      nav("registration", "Registration", I.ClipboardCheck),
       nav("assignments", "Assignments", I.PencilLine), nav("results", "Results", I.Award), nav("fees", "Fees", I.Wallet),
       nav("documents", "Documents", I.FileText), nav("library", "Library", I.Library), nav("workspaces", "Workspaces", I.LayoutGrid),
     ],
@@ -188,6 +189,7 @@ export const BADGE_LABEL: Record<Todo["status"], string> = { attention: "Due soo
 export const SCREEN_BATCH: Record<string, { batch: number; area: string }> = {
   students: { batch: 3, area: "Student lifecycle (C)" },
   documents: { batch: 3, area: "Student lifecycle (C)" },
+  registration: { batch: 3, area: "Student lifecycle (C)" },
   academics: { batch: 2, area: "Institution (B)" },
   classes: { batch: 4, area: "Academic (D)" },
   attendance: { batch: 4, area: "Academic (D)" },

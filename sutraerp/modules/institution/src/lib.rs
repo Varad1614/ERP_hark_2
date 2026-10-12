@@ -24,9 +24,11 @@
 //! | `domain.rs`, `http.rs`, `repo.rs`, `lifecycle/`, `org/`, `position/` | 2A |
 //! | `campus/`, `curriculum/` | 2B |
 //! | `calendar/`, `readiness/` | 2C |
+//! | `reference.rs` (`InstitutionReferencePort` adapter for Domain C) | Batch 3 foundation |
 
 pub mod domain;
 pub mod http;
+pub mod reference;
 pub mod repo;
 pub mod shared;
 
@@ -46,6 +48,7 @@ use sutra_kernel::cache::AdvisoryCache;
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
+pub use reference::PgInstitutionReferences;
 pub use repo::PgInstitutionDirectory;
 pub use shared::InstitutionState;
 

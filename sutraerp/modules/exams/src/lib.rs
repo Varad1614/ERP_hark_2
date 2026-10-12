@@ -11,6 +11,10 @@
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
+/// Batch 3 stub adapter consumed by Domain C (see `sutra_contracts::exams`).
+pub mod results;
+pub use results::NoPublishedResults;
+
 pub const MODULE: ModuleDescriptor = ModuleDescriptor {
     domain: "I",
     key: "exams",

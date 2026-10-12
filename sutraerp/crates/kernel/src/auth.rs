@@ -149,10 +149,55 @@ pub enum Permission {
     CalendarPublish,
     /// Read the institution activation readiness checklist.
     InstitutionReadinessRead,
+    // ---- Batch 3 (Domain C). Staff reads use `StudentRead`; students use `StudentSelfService`. ----
+    /// Read students, StudentContexts, Student 360 and every Domain C record of the tenant (staff).
+    StudentRead,
+    /// Self-service on one's **own** student record (resolved from the session subject): view Student 360, request documents/certificates, update communication preferences.
+    StudentSelfService,
+    /// 3A: applications, review, offers, admission documents and verification, cancellation, withdrawal, expiry, readmission initiation.
+    AdmissionManage,
+    /// 3A: admission approval decision, financial-clearance decision, confirmation (the Admission Authority).
+    AdmissionDecide,
+    /// 3A: revoke an approved/confirmed admission (step-up).
+    AdmissionRevoke,
+    /// 3A: student creation/activation/enrolment, enrolment updates, academic assignment, intra-institute transfer, profile, communication preferences, document/certificate request processing.
+    StudentManage,
+    /// 3A: suspend, restore and inter-institute transfer of a student (step-up).
+    StudentLifecycle,
+    /// 3A: governed identity correction and duplicate resolution (step-up).
+    StudentIdentityManage,
+    /// 3A: student context archival and permanent record closure (step-up).
+    StudentArchive,
+    /// 3B: registration windows, holds, staff registration actions, approval, cancellation, finalisation.
+    RegistrationManage,
+    /// 3B: a student's own registration, add/drop and cancellation request inside an open window.
+    RegistrationSelf,
+    /// 3B: progression evaluation drafts, credit ledger, conditions, probation, detention, credit transfer, programme migration, academic break/rejoin, qualification eligibility, ABC sync.
+    ProgressionManage,
+    /// 3B: make progression decisions effective and revise them after re-evaluation/appeal.
+    ProgressionDecide,
+    /// 3B: institutional progression policy lifecycle.
+    ProgressionPolicyManage,
+    /// 3C: qualification completion evaluation, audit, clearance, deferral; exit cases and exit clearance; administrative closure.
+    CompletionManage,
+    /// 3C: approve and award (confer) a qualification, finalise the academic record, correct a conferred qualification (step-up).
+    QualificationConfer,
+    /// 3C: revoke a conferred qualification (step-up).
+    QualificationRevoke,
+    /// 3C: approve student exits incl. termination and deceased record closure (step-up).
+    ExitDecide,
+    /// 3C: guardian relationships, custody, consent, communication authorisation, emergency contacts, financial responsibility, pickup authorisation.
+    GuardianManage,
+    /// 3C: scholarship drafts, eligibility determinations, reassessment, renewal, bulk recalculation, external sync, financial-aid hand-off.
+    ScholarshipManage,
+    /// 3C: publish/activate/suspend/expire/archive scholarship definitions and eligibility policies.
+    ScholarshipPublish,
+    /// 3C: student → alumni transition, correction and archival.
+    AlumniManage,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 22] = [
+    pub const ALL: [Permission; 44] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -175,6 +220,28 @@ impl Permission {
         Permission::CalendarManage,
         Permission::CalendarPublish,
         Permission::InstitutionReadinessRead,
+        Permission::StudentRead,
+        Permission::StudentSelfService,
+        Permission::AdmissionManage,
+        Permission::AdmissionDecide,
+        Permission::AdmissionRevoke,
+        Permission::StudentManage,
+        Permission::StudentLifecycle,
+        Permission::StudentIdentityManage,
+        Permission::StudentArchive,
+        Permission::RegistrationManage,
+        Permission::RegistrationSelf,
+        Permission::ProgressionManage,
+        Permission::ProgressionDecide,
+        Permission::ProgressionPolicyManage,
+        Permission::CompletionManage,
+        Permission::QualificationConfer,
+        Permission::QualificationRevoke,
+        Permission::ExitDecide,
+        Permission::GuardianManage,
+        Permission::ScholarshipManage,
+        Permission::ScholarshipPublish,
+        Permission::AlumniManage,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -201,6 +268,28 @@ impl Permission {
             Permission::CalendarManage => "calendar.manage",
             Permission::CalendarPublish => "calendar.publish",
             Permission::InstitutionReadinessRead => "institution.readiness.read",
+            Permission::StudentRead => "student.read",
+            Permission::StudentSelfService => "student.self",
+            Permission::AdmissionManage => "admission.manage",
+            Permission::AdmissionDecide => "admission.decide",
+            Permission::AdmissionRevoke => "admission.revoke",
+            Permission::StudentManage => "student.manage",
+            Permission::StudentLifecycle => "student.lifecycle",
+            Permission::StudentIdentityManage => "student.identity.manage",
+            Permission::StudentArchive => "student.archive",
+            Permission::RegistrationManage => "registration.manage",
+            Permission::RegistrationSelf => "registration.self",
+            Permission::ProgressionManage => "progression.manage",
+            Permission::ProgressionDecide => "progression.decide",
+            Permission::ProgressionPolicyManage => "progression.policy.manage",
+            Permission::CompletionManage => "completion.manage",
+            Permission::QualificationConfer => "qualification.confer",
+            Permission::QualificationRevoke => "qualification.revoke",
+            Permission::ExitDecide => "exit.decide",
+            Permission::GuardianManage => "guardian.manage",
+            Permission::ScholarshipManage => "scholarship.manage",
+            Permission::ScholarshipPublish => "scholarship.publish",
+            Permission::AlumniManage => "alumni.manage",
         }
     }
 
@@ -213,6 +302,13 @@ impl Permission {
                 | Permission::InstitutionLifecycle
                 | Permission::InstitutionActivationDecide
                 | Permission::CampusDecommission
+                | Permission::AdmissionRevoke
+                | Permission::StudentLifecycle
+                | Permission::StudentIdentityManage
+                | Permission::StudentArchive
+                | Permission::QualificationConfer
+                | Permission::QualificationRevoke
+                | Permission::ExitDecide
         )
     }
 }
@@ -246,6 +342,27 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             CalendarManage,
             CalendarPublish,
             InstitutionReadinessRead,
+            // Batch 3 (Domain C): staff reads + every write.
+            StudentRead,
+            AdmissionManage,
+            AdmissionDecide,
+            AdmissionRevoke,
+            StudentManage,
+            StudentLifecycle,
+            StudentIdentityManage,
+            StudentArchive,
+            RegistrationManage,
+            ProgressionManage,
+            ProgressionDecide,
+            ProgressionPolicyManage,
+            CompletionManage,
+            QualificationConfer,
+            QualificationRevoke,
+            ExitDecide,
+            GuardianManage,
+            ScholarshipManage,
+            ScholarshipPublish,
+            AlumniManage,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -254,6 +371,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             TodoUse,
             TodoAssign,
             ProfileManage,
+            // Batch 3: read-only student directory / Student 360 (mentors, advisors).
+            StudentRead,
         ],
         Role::Student => &[
             InstitutionRead,
@@ -261,6 +380,9 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             NoticeRead,
             TodoUse,
             ProfileManage,
+            // Batch 3: own record only (handlers resolve the student from the session subject).
+            StudentSelfService,
+            RegistrationSelf,
         ],
     }
 }
@@ -402,7 +524,13 @@ mod tests {
     #[test]
     fn administrator_holds_institution_admin_permissions() {
         let a = ctx(vec![Role::Administrator]);
-        for p in Permission::ALL {
+        // Student self-service permissions belong to the student role only.
+        for p in Permission::ALL.into_iter().filter(|p| {
+            !matches!(
+                p,
+                Permission::StudentSelfService | Permission::RegistrationSelf
+            )
+        }) {
             assert!(a.require(p).is_ok(), "{p:?}");
         }
     }
@@ -454,6 +582,60 @@ mod tests {
             assert!(p.requires_step_up(), "{p:?}");
         }
         assert!(!Permission::CampusManage.requires_step_up());
+    }
+
+    #[test]
+    fn batch3_domain_c_grants() {
+        let admin_only = [
+            Permission::AdmissionManage,
+            Permission::AdmissionDecide,
+            Permission::AdmissionRevoke,
+            Permission::StudentManage,
+            Permission::StudentLifecycle,
+            Permission::StudentIdentityManage,
+            Permission::StudentArchive,
+            Permission::RegistrationManage,
+            Permission::ProgressionManage,
+            Permission::ProgressionDecide,
+            Permission::ProgressionPolicyManage,
+            Permission::CompletionManage,
+            Permission::QualificationConfer,
+            Permission::QualificationRevoke,
+            Permission::ExitDecide,
+            Permission::GuardianManage,
+            Permission::ScholarshipManage,
+            Permission::ScholarshipPublish,
+            Permission::AlumniManage,
+        ];
+        for p in admin_only {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
+        }
+        assert!(is_granted(&[Role::Faculty], Permission::StudentRead));
+        assert!(!is_granted(&[Role::Student], Permission::StudentRead));
+        for p in [Permission::StudentSelfService, Permission::RegistrationSelf] {
+            assert!(is_granted(&[Role::Student], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty], p), "{p:?}");
+        }
+        for p in [
+            Permission::AdmissionRevoke,
+            Permission::StudentLifecycle,
+            Permission::StudentIdentityManage,
+            Permission::StudentArchive,
+            Permission::QualificationConfer,
+            Permission::QualificationRevoke,
+            Permission::ExitDecide,
+        ] {
+            assert!(p.requires_step_up(), "{p:?}");
+        }
+        assert!(!Permission::StudentManage.requires_step_up());
+        let names: std::collections::HashSet<_> =
+            Permission::ALL.iter().map(|p| p.as_str()).collect();
+        assert_eq!(
+            names.len(),
+            Permission::ALL.len(),
+            "duplicate permission name"
+        );
     }
 
     #[test]

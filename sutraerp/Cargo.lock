@@ -2772,13 +2772,19 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "axum",
+ "chrono",
  "serde",
+ "serde_json",
+ "sqlx",
  "sutra-contracts",
  "sutra-kernel",
+ "sutra-persistence",
  "sutra-web",
  "tokio",
+ "tracing",
  "utoipa",
  "utoipa-axum",
+ "uuid",
 ]
 
 [[package]]

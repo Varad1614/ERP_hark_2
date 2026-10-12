@@ -5,6 +5,7 @@
 //! * [`ids`] — typed UUIDv7 ids of every Batch 2 aggregate (foundation-owned, append-only).
 //! * [`status`] — lifecycle state enums (foundation-owned; transitions are slice-owned).
 //! * [`events`] — released event type names + V1 payloads, one file per slice.
+//! * [`reference`] — Batch 3 read port over Domain B reference data (used by Domain C).
 
 use sutra_kernel::error::KernelError;
 use sutra_kernel::scope::{ExecutionScope, InstitutionId};
@@ -17,4 +18,5 @@ pub trait InstitutionDirectory: Send + Sync + 'static {
 
 pub mod events;
 pub mod ids;
+pub mod reference;
 pub mod status;

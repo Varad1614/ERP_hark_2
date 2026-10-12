@@ -8,7 +8,7 @@ SutraERP is delivered as a modular monolith in ten batches. Each batch ends gree
 | 0 | **Foundation** | all (scaffold) | Cargo + pnpm monorepo, kernel/contracts/web/persistence crates, 10 module crates with enforced boundaries, config, logging + tracing hooks, health, request id, tenant scope extractor, RFC 9457 problems, Idempotency-Key middleware, audit log + writer, transactional outbox, UUIDv7, optimistic concurrency reference aggregate, auth interfaces + dev stub, WorkflowPort + no-op adapter, OpenAPI 3.1 from code, typed TS client, Soft Bento UI library, app shell with role sign-in/switching, per-role Home, route stubs for all 99 workspaces, docker-compose, Dockerfiles, CI | ✅ this batch |
 | 1 | Platform | A | Keycloak 26 credential adapter (no ROPC), durable D01 sessions, MFA (WebAuthn/TOTP) UI, CSRF tokens, D02 authorization policy enforcement, session-bound scope, NATS JetStream outbox relay + `EventPublisher`, idempotency/outbox sweepers, Valkey cache adapter, notifications/notices, to-dos inbox, profile | ✅ complete (slices A–D, see below) |
 | 2 | Institution | B | Institutions, campuses, departments, programmes catalogue, academic calendar & business timezone, institution configuration; Batch 0 reference aggregate becomes the real model | ✅ complete (slices F, 2A–2C integrated, see below) |
-| 3 | Student lifecycle | C | Admissions → enrolment → progression → exit, guardians, documents & certificates, student workspace | planned |
+| 3 | Student lifecycle | C | Admissions → enrolment → progression → exit, guardians, documents & certificates, student workspace | ✅ complete (slices F, 3A–3C integrated, see below) |
 | 4 | Academic | D | Courses, sections, timetable, attendance, coursework/assignments, faculty "My classes" | planned |
 | 5 | Finance | F | Fee structures, demands, concessions, payments & receipts (rust_decimal end to end), reconciliation, student fees screen | planned |
 | 6 | Examinations | I | Exam scheduling, assessments & gradebook, moderation, results publication, grade cards | planned |
@@ -50,3 +50,20 @@ generated OpenAPI types and type-checked paths for every 2A/2B/2C endpoint). Cro
 campus → structure / programme / curriculum → published calendar + open year + assignment →
 readiness all met → submit → active). Container verification runs on the user's machine: README
 "Local Docker verification" → *Batch 2 Docker click-through*.
+
+## Batch 3 slices
+
+Contracts and file ownership: [`batch3-contracts.md`](batch3-contracts.md).
+
+| Slice | Scope | Status |
+|-------|-------|--------|
+| **3·F** | Foundation: Domain C ids / lifecycle states (shared Student + StudentContext machines) / V1 event contracts / permissions, `student` + `student_context` + status-history tables, lifecycle helper, Domain B reference port, Finance/Exams stub ports, ABC + external-scholarship no-op ports, student directory port, pre-mounted routers + OpenAPI tags, inbox rule hooks, web route placeholders | ✅ |
+| **3A** | Admissions (application → review → offer → acceptance → documents → approval via WorkflowPort → financial clearance → confirmation → student creation), cancellation/withdrawal/revocation/expiry/readmission, activation + enrolment, assignment, suspension/restoration, transfers, profile, identity correction, duplicates, documents and certificate requests, archival; Admin Students, admission flow, Student 360, Student Documents | <!-- batch3:3a:status -->✅ |
+| **3B** | Registration windows, registration, add/drop, cancellation, backlog/repeat, finalisation, holds; progression decisions, credit ledger, conditional promotion, probation, detention, credit transfer, programme migration, academic break/rejoin, qualification eligibility, ABC sync, decision revision, progression policy; registration/progression tabs + student registration | <!-- batch3:3b:status -->✅ |
+| **3C** | Qualification completion and conferment, record finalisation, MEME and other exits, exit clearance, closures, deferral, correction/revocation; guardians (relationships, custody, consent, communication, emergency contacts, financial responsibility, pickup); scholarships (definitions, policy, eligibility, renewal, expiry, external sync, bulk recalculation, financial-aid hand-off); alumni transition; exit, guardians and scholarship tabs | <!-- batch3:3c:status -->✅ |
+
+Batch 3 is complete: the slices were integrated 3A → 3B → 3C on top of `batch3/foundation` and
+squashed onto `erp_merge` (3C completion reads the newest 3B `qualification_eligibility` per student
+context, with a credit-ledger fallback; the OpenAPI spec and generated api-client types cover every
+3A/3B/3C endpoint). Cross-slice coverage: `apps/api/tests/db_b3_foundation.rs`, `db_b3a.rs`,
+`db_b3b.rs` and `db_b3c.rs` (the latter also exercises the 3B eligibility wiring).

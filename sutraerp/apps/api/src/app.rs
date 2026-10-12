@@ -521,6 +521,23 @@ fn build_scheduler(cfg: &Config, pool: &PgPool) -> Scheduler {
         }))
 }
 
+/// Domain C (Batch 3) adapters: Domain B reference reads, Finance/Exams stubs until Batches 5/6,
+/// no-op ABC and external-scholarship adapters. Tests reuse it to build a `StudentState` with
+/// `ApprovalMode::AwaitDecision` (`sutra_student::router_with_state`).
+pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_student::StudentDeps {
+    sutra_student::StudentDeps {
+        references: Arc::new(sutra_institution::PgInstitutionReferences::new(
+            pool.clone(),
+        )),
+        finance: Arc::new(sutra_finance::StubFinanceClearance),
+        results: Arc::new(sutra_exams::NoPublishedResults),
+        abc: Arc::new(sutra_student::adapters::NoopAbcRegistry),
+        external_scholarships: Arc::new(sutra_student::adapters::NoopExternalScholarships),
+        workflow,
+        pool,
+    }
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
@@ -538,7 +555,10 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
                 workflow: ctx.workflow.clone(),
             },
         ))
-        .merge(sutra_student::router())
+        .merge(sutra_student::router(student_deps(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+        )))
         .merge(sutra_academic::router())
         .merge(sutra_people::router())
         .merge(sutra_finance::router())

@@ -13,6 +13,10 @@ use utoipa_axum::router::OpenApiRouter;
 
 pub mod fees;
 
+/// Batch 3 stub adapter consumed by Domain C (see `sutra_contracts::finance`).
+pub mod clearance;
+pub use clearance::StubFinanceClearance;
+
 pub const MODULE: ModuleDescriptor = ModuleDescriptor {
     domain: "F",
     key: "finance",
