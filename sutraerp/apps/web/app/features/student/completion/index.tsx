@@ -6,11 +6,15 @@ import { Plus } from "lucide-react";
 import { BentoTile, Button, DataTable, EmptyState, Modal } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { Link } from "react-router";
 import { Actions, fmtDate, NoInstitution, QuickForm, REASON, useAsk, type RowAction } from "../../institution/forms";
-import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
+import { StatusBadge, statusLabel } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import type { CompletionCommand, EligibilityCommand, RelationshipCommand, ScholarshipCommand } from "./api";
 import { k3, useC3Api } from "./hooks";
+import { student360Path } from "../index";
+// The record command runner also refreshes the Student 360 header/overview (3A queries) after 3C commands.
+import { rkeys, useRecordApi, useRecordCommand } from "../record/hooks";
 import type { Clearance, ExitKind, GuardianRelationship, QualificationCompletion, Scholarship, ScholarshipEligibility, StudentExit } from "./types";
 
 export { C3ApiProvider } from "./hooks";
@@ -103,6 +107,15 @@ export function eligibilityActions(e: ScholarshipEligibility): EligibilityComman
 
 const label = (s: string) => statusLabel(s.replace(/-/g, "_"));
 
+/** The institution of a student's current (else latest) context — scopes guardian/scholarship pickers. */
+function useStudentInstitution(studentId: string): string | null {
+  const api = useRecordApi();
+  const q = useQuery({ queryKey: rkeys.scoped("student", studentId), queryFn: () => api.getStudent(studentId), enabled: !!studentId });
+  return q.data?.currentContext?.institutionId ?? q.data?.contexts[0]?.institutionId ?? null;
+}
+
+const fullName = (g: { givenName: string; familyName?: string | null }) => [g.givenName, g.familyName].filter(Boolean).join(" ");
+
 function ClearanceList({ items, onResolve }: { items: Clearance[]; onResolve?: (c: Clearance) => void }) {
   if (items.length === 0) return null;
   return (
@@ -126,10 +139,13 @@ function ClearanceList({ items, onResolve }: { items: Clearance[]; onResolve?: (
 
 export function ExitsAdminTab({ institution }: { institution: Institution | null }) {
   const api = useC3Api();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
+  const recordApi = useRecordApi();
   const q = useQuery({ queryKey: k3("exits", institution?.id ?? "-"), queryFn: () => api.listExits(institution!.id), enabled: !!institution });
+  const students = useQuery({ queryKey: rkeys.scoped(institution?.id ?? "-", "directory", ""), queryFn: () => recordApi.directory(institution!.id), enabled: !!institution });
   if (!institution) return <BentoTile span={12}><NoInstitution /></BentoTile>;
+  const studentName = (id: string) => students.data?.find((s) => s.id === id)?.displayName ?? "Student";
   const resolve = (e: StudentExit, c: Clearance) =>
     ask({
       title: `Resolve ${statusLabel(c.item)} clearance`,
@@ -161,6 +177,7 @@ export function ExitsAdminTab({ institution }: { institution: Institution | null
           rowKey={(e) => e.id}
           empty={<EmptyState title="No exits">Exits are initiated from a student's 360 view.</EmptyState>}
           columns={[
+            { key: "student", header: "Student", render: (e) => <Link to={student360Path(e.studentId, "completion")}>{studentName(e.studentId)}</Link> },
             { key: "kind", header: "Kind", render: (e) => <span data-exit={e.kind}>{statusLabel(e.kind)}</span> },
             { key: "reason", header: "Reason", render: (e) => e.reason, muted: true },
             { key: "clearance", header: "Clearance", render: (e) => <ClearanceList items={e.clearances} onResolve={e.status === "clearance_pending" ? (c) => resolve(e, c) : undefined} /> },
@@ -180,7 +197,7 @@ export function ExitsAdminTab({ institution }: { institution: Institution | null
 
 export function GuardiansAdminTab({ institution }: { institution: Institution | null }) {
   const api = useC3Api();
-  const { submit, dialog } = useCommand();
+  const { submit, dialog } = useRecordCommand();
   const [adding, setAdding] = useState(false);
   const q = useQuery({ queryKey: k3("guardians", institution?.id ?? "-"), queryFn: () => api.listGuardians(institution!.id), enabled: !!institution });
   if (!institution) return <BentoTile span={12}><NoInstitution /></BentoTile>;
@@ -234,7 +251,7 @@ export function GuardiansAdminTab({ institution }: { institution: Institution | 
 
 export function ScholarshipsAdminTab({ institution }: { institution: Institution | null }) {
   const api = useC3Api();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const [adding, setAdding] = useState(false);
   const q = useQuery({ queryKey: k3("scholarships", institution?.id ?? "-"), queryFn: () => api.listScholarships(institution!.id), enabled: !!institution });
@@ -350,11 +367,13 @@ export function ScholarshipsAdminTab({ institution }: { institution: Institution
 
 export function Student360Guardians({ studentId }: { studentId: string }) {
   const api = useC3Api();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const rels = useQuery({ queryKey: k3("relationships", studentId), queryFn: () => api.listRelationships(studentId) });
   const contacts = useQuery({ queryKey: k3("contacts", studentId), queryFn: () => api.listEmergencyContacts(studentId) });
   const pickups = useQuery({ queryKey: k3("pickups", studentId), queryFn: () => api.listPickups(studentId) });
+  const institutionId = useStudentInstitution(studentId);
+  const guardians = useQuery({ queryKey: k3("guardians", institutionId ?? "-"), queryFn: () => api.listGuardians(institutionId!), enabled: !!institutionId });
   const act = (r: GuardianRelationship, cmd: RelationshipCommand) => {
     if (cmd === "submit-verification")
       return ask({
@@ -378,7 +397,14 @@ export function Student360Guardians({ studentId }: { studentId: string }) {
       name: "guardian-link",
       submitLabel: "Propose",
       fields: [
-        { name: "guardianId", label: "Guardian id", required: true, wide: true },
+        {
+          name: "guardianId",
+          label: "Guardian",
+          type: "select",
+          required: true,
+          options: [{ value: "", label: "Choose a registered guardian" }, ...(guardians.data ?? []).map((g) => ({ value: g.id, label: `${fullName(g)}${g.phone ? ` · ${g.phone}` : ""}` }))],
+          wide: true,
+        },
         { name: "relationshipType", label: "Relationship", type: "select", initial: "mother", options: ["mother", "father", "legal_guardian", "grandparent", "sibling", "relative", "sponsor", "other"].map((x) => ({ value: x, label: statusLabel(x) })) },
         { name: "isPrimary", label: "Primary guardian", type: "checkbox" },
       ],
@@ -393,7 +419,10 @@ export function Student360Guardians({ studentId }: { studentId: string }) {
           rowKey={(r) => r.id}
           empty={<EmptyState title="No guardians linked">Link a registered guardian to this student.</EmptyState>}
           columns={[
-            { key: "name", header: "Guardian", render: (r) => <span data-relationship={r.relationshipType}>{r.guardian ? [r.guardian.givenName, r.guardian.familyName].filter(Boolean).join(" ") : r.guardianId}</span> },
+            { key: "name", header: "Guardian", render: (r) => {
+              const g = r.guardian ?? guardians.data?.find((x) => x.id === r.guardianId);
+              return <span data-relationship={r.relationshipType}>{g ? fullName(g) : "Guardian"}</span>;
+            } },
             { key: "type", header: "Relationship", render: (r) => `${statusLabel(r.relationshipType)}${r.isPrimary ? " · primary" : ""}${r.hasLegalCustody ? " · custody" : ""}`, muted: true },
             { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
             { key: "actions", header: "", render: (r) => <Actions disabled={busy} actions={relationshipActions(r).map((a) => ({ id: `relationship-${a}`, label: a === "verification-decision" ? "Approve verification" : label(a), onClick: () => act(r, a) }))} /> },
@@ -489,9 +518,15 @@ export function Student360Guardians({ studentId }: { studentId: string }) {
 
 export function Student360Scholarships({ studentId }: { studentId: string }) {
   const api = useC3Api();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const q = useQuery({ queryKey: k3("eligibilities", studentId), queryFn: () => api.listEligibilities(studentId) });
+  const institutionId = useStudentInstitution(studentId);
+  const scholarships = useQuery({ queryKey: k3("scholarships", institutionId ?? "-"), queryFn: () => api.listScholarships(institutionId!), enabled: !!institutionId });
+  const schName = (id: string) => {
+    const s = scholarships.data?.find((x) => x.id === id);
+    return s ? `${s.name} (${s.code})` : "Scholarship";
+  };
   const act = (e: ScholarshipEligibility, cmd: EligibilityCommand) => {
     if (cmd === "expire" || cmd === "withdraw-recommendation")
       return ask({ title: label(cmd), name: `eligibility-${cmd}`, submitLabel: label(cmd), fields: [REASON], onSubmit: (v) => submit(() => api.eligibilityCommand(e.id, e.version, cmd, { reason: v.reason!.trim() }), `${label(cmd)} done`) });
@@ -513,7 +548,17 @@ export function Student360Scholarships({ studentId }: { studentId: string }) {
                 name: "determine-eligibility",
                 submitLabel: "Determine",
                 fields: [
-                  { name: "scholarshipId", label: "Scholarship id", required: true, wide: true },
+                  {
+                    name: "scholarshipId",
+                    label: "Scholarship",
+                    type: "select",
+                    required: true,
+                    options: [
+                      { value: "", label: "Choose an active scholarship" },
+                      ...(scholarships.data ?? []).filter((s) => s.status === "active").map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })),
+                    ],
+                    wide: true,
+                  },
                   { name: "academicScore", label: "Academic score", type: "number" },
                   { name: "familyIncome", label: "Family income (INR)", type: "number" },
                 ],
@@ -540,7 +585,7 @@ export function Student360Scholarships({ studentId }: { studentId: string }) {
           rowKey={(e) => e.id}
           empty={<EmptyState title="No scholarship determinations" />}
           columns={[
-            { key: "sch", header: "Scholarship", render: (e) => <span data-eligibility={e.status}>{e.scholarshipId.slice(-8)}</span>, muted: true },
+            { key: "sch", header: "Scholarship", render: (e) => <span data-eligibility={e.status}>{schName(e.scholarshipId)}</span> },
             { key: "cond", header: "Conditions", render: (e) => (e.conditions.length ? e.conditions.join("; ") : "—"), muted: true },
             { key: "until", header: "Valid until", render: (e) => fmtDate(e.validUntil) },
             { key: "status", header: "Status", render: (e) => <StatusBadge status={e.status} /> },
@@ -558,7 +603,7 @@ export function Student360Scholarships({ studentId }: { studentId: string }) {
 
 export function Student360Completion({ studentId }: { studentId: string }) {
   const api = useC3Api();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const completions = useQuery({ queryKey: k3("completions", studentId), queryFn: () => api.listCompletions(studentId) });
   const exits = useQuery({ queryKey: k3("student-exits", studentId), queryFn: () => api.listStudentExits(studentId) });
@@ -581,12 +626,16 @@ export function Student360Completion({ studentId }: { studentId: string }) {
   };
   const openExit = (exits.data ?? []).find((e) => !["completed", "cancelled", "rejected"].includes(e.status));
   const concluded = (exits.data ?? []).some((e) => e.status === "completed");
+  // One completion at a time, and none once the student has exited.
+  const openCompletion = (completions.data ?? []).some((c) => !["exit_completed", "cancelled"].includes(c.status));
+  const canStart = !openCompletion && !openExit && !concluded;
   return (
     <>
       <BentoTile
         span={12}
         title="Qualification completion"
         action={
+          canStart ? (
           <div className="sb-row-actions">
             <Button size="sm" disabled={busy} onClick={() => void run(() => api.createCompletion(studentId, { outcome: "degree" }), "Completion initiated")} data-action="completion-start">
               Start completion
@@ -595,6 +644,7 @@ export function Student360Completion({ studentId }: { studentId: string }) {
               MEME exit
             </Button>
           </div>
+          ) : null
         }
       >
         <DataTable

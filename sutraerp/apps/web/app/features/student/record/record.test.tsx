@@ -158,7 +158,7 @@ describe("Student 360 (3A tabs)", () => {
     const { api: inst, inst: i } = await institution();
     const { api, studentId } = await seededMockRecordApi(i.id);
     await renderScreen(wrap(inst, api, <Student360 />), { path: "/students/record/:studentId/:tab?", entry: `/students/record/${studentId}` });
-    expect(await screen.findByText("Aarav Desai")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Aarav Desai", level: 1 })).toBeTruthy();
     await click("student-suspend");
     fillForm("student-suspend", { reason: "disciplinary hearing" });
     await waitFor(() => expect(document.querySelector("[data-current-context]")?.getAttribute("data-current-context")).toBe("suspended"));
@@ -192,7 +192,7 @@ describe("Student 360 (3A tabs)", () => {
     const { api: inst, inst: i } = await institution();
     const { api, studentId } = await seededMockRecordApi(i.id);
     await renderScreen(wrap(inst, api, <Student360 />), { path: "/students/record/:studentId/:tab?", entry: `/students/record/${studentId}`, role: "faculty" });
-    expect(await screen.findByText("Aarav Desai")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Aarav Desai", level: 1 })).toBeTruthy();
     expect(document.querySelector('[data-action="student-suspend"]')).toBeNull();
   });
 });

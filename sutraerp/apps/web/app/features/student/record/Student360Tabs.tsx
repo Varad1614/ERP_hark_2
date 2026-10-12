@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useSession } from "../../../lib/auth";
 import { Actions, fmtDate, REASON, useAsk } from "../../institution/forms";
-import { StatusBadge } from "../../institution/hooks";
+import { keys as instKeys, StatusBadge, useInstitutionApi, useInstitutions } from "../../institution/hooks";
 import { shortId, type Student } from "./api";
 import { rkeys, useRecordApi, useRecordCommand } from "./hooks";
 
@@ -180,6 +180,20 @@ export function Student360Overview({ studentId }: { studentId: string }) {
   );
 }
 
+/** Display names of the institutions and the programmes of `institutionId` (ids → names). */
+function useNames(institutionId: string | null | undefined) {
+  const instApi = useInstitutionApi();
+  const { list } = useInstitutions();
+  const programmes = useQuery({ queryKey: instKeys.scoped(institutionId ?? "-", "programmes"), queryFn: () => instApi.listProgrammes(institutionId!), enabled: !!institutionId });
+  return {
+    institution: (id: string | null | undefined) => list.find((i) => i.id === id)?.name ?? shortId(id),
+    programme: (id: string | null | undefined) => {
+      const p = programmes.data?.find((x) => x.id === id);
+      return p ? `${p.name} (${p.code})` : shortId(id);
+    },
+  };
+}
+
 export function Student360Enrolment({ studentId }: { studentId: string }) {
   const api = useRecordApi();
   const { role } = useSession();
@@ -187,6 +201,7 @@ export function Student360Enrolment({ studentId }: { studentId: string }) {
   const q = useStudent(studentId);
   const history = useQuery({ queryKey: rkeys.scoped("student", studentId, "record-history"), queryFn: () => api.recordHistory(studentId), enabled: !!studentId });
   const transfers = useQuery({ queryKey: rkeys.scoped("student", studentId, "transfers"), queryFn: () => api.listTransfers(studentId), enabled: !!studentId });
+  const names = useNames(q.data?.currentContext?.institutionId ?? q.data?.contexts[0]?.institutionId);
   const { submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   return (
@@ -290,7 +305,7 @@ export function Student360Enrolment({ studentId }: { studentId: string }) {
                       ["Enrolled on", fmtDate(c.enrolledOn)],
                       ["Term", c.currentTermNo ? `Term ${c.currentTermNo}` : null],
                       ["Batch · section", [c.batchCode, c.sectionCode].filter(Boolean).join(" · ") || null],
-                      ["Programme", shortId(c.programmeId)],
+                      ["Programme", names.programme(c.programmeId)],
                     ]}
                   />
                   {admin && <Actions disabled={busy} actions={actions} />}
@@ -305,7 +320,7 @@ export function Student360Enrolment({ studentId }: { studentId: string }) {
                 rows={s.contexts}
                 rowKey={(x) => x.id}
                 columns={[
-                  { key: "inst", header: "Institution", render: (x) => shortId(x.institutionId), muted: true },
+                  { key: "inst", header: "Institution", render: (x) => names.institution(x.institutionId), muted: true },
                   { key: "type", header: "Type", render: (x) => humanise(x.enrolmentType) },
                   { key: "status", header: "Status", render: (x) => <StatusBadge status={x.status} /> },
                   { key: "closed", header: "Closed", render: (x) => fmtDate(x.closedOn), muted: true },

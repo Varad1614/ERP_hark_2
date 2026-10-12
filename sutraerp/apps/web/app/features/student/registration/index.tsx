@@ -13,14 +13,24 @@ import { BentoTile, Button, DataTable, EmptyState, Modal, Select, StatTile } fro
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Actions, fmtDate, NoInstitution, QuickForm, REASON, todayIso, useAsk, type RowAction } from "../../institution/forms";
-import { StatusBadge, statusLabel, useCommand, useInstitutionApi } from "../../institution/hooks";
+import { StatusBadge, statusLabel, useInstitutionApi } from "../../institution/hooks";
+// The record command runner also refreshes the Student 360 header/overview (3A queries) after 3B commands.
+import { useRecordCommand } from "../record/hooks";
 import type { Institution } from "../../institution/types";
 import { rkeys, useRegistrationApi } from "./hooks";
-import type { HoldSource, ProgressionOutcome, Registration, RegistrationLineKind, RegistrationOptions } from "./types";
+import type { HoldSource, LineInput, ProgressionOutcome, Registration, RegistrationLineKind, RegistrationOptions } from "./types";
 
 export { RegistrationApiProvider } from "./hooks";
 
 const credits = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n} cr`);
+
+/** Finance evidence (`kind` is camelCase on the wire) in words. */
+const FINANCE_LABEL: Record<string, string> = {
+  cleared: "Cleared",
+  outstanding: "Dues outstanding",
+  pending: "Pending",
+  notApplicable: "No obligation configured",
+};
 
 const OUTCOMES: ProgressionOutcome[] = ["progressed", "conditionally_progressed", "probation", "detained", "repeat", "qualification_eligible"];
 const HOLD_SOURCES: HoldSource[] = ["academic", "administrative", "discipline", "documents", "finance"];
@@ -42,7 +52,7 @@ function useTerms(institutionId: string | null | undefined) {
 
 export function RegistrationAdminTab({ institution }: { institution: Institution | null }) {
   const api = useRegistrationApi();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const [adding, setAdding] = useState(false);
   const terms = useTerms(institution?.id);
@@ -147,7 +157,7 @@ export function RegistrationAdminTab({ institution }: { institution: Institution
 
 export function ProgressionAdminTab({ institution }: { institution: Institution | null }) {
   const api = useRegistrationApi();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const [adding, setAdding] = useState(false);
   const q = useQuery({ queryKey: rkeys.scoped(institution?.id ?? "-", "policies"), queryFn: () => api.listPolicies(institution!.id), enabled: !!institution });
@@ -269,23 +279,68 @@ export function ProgressionAdminTab({ institution }: { institution: Institution 
 
 // ================================================================== shared: registration card
 
+/** Components that can still be added to `r` (not earned, not already on a live line). */
+function addableComponents(r: Registration, options: RegistrationOptions | undefined) {
+  const taken = new Set(r.lines.filter((l) => l.status === "selected" || l.status === "registered").map((l) => l.curriculumComponentId));
+  return (options?.components ?? []).filter((c) => !c.earned && c.suggestedKind && !taken.has(c.curriculumComponentId));
+}
+
+/** The "Add component" dialog (add/drop): picks one of the addable components of `r`. */
+function askAddLine(
+  r: Registration,
+  options: RegistrationOptions | undefined,
+  ask: ReturnType<typeof useAsk>["ask"],
+  add: (line: LineInput) => Promise<unknown>,
+) {
+  const choices = addableComponents(r, options);
+  ask({
+    title: `Add a component to the term ${r.termNo} registration`,
+    name: "line-add",
+    submitLabel: "Add component",
+    fields: [
+      {
+        name: "curriculumComponentId",
+        label: "Component",
+        type: "select",
+        required: true,
+        initial: choices[0]?.curriculumComponentId ?? "",
+        options: choices.map((c) => ({
+          value: c.curriculumComponentId,
+          label: `${c.slotCode} · ${c.title} · ${credits(c.credits)}${c.suggestedKind && c.suggestedKind !== "regular" ? ` · ${statusLabel(c.suggestedKind)}` : ""}`,
+        })),
+        wide: true,
+      },
+    ],
+    onSubmit: (v) => {
+      const c = choices.find((x) => x.curriculumComponentId === v.curriculumComponentId);
+      return add({ curriculumComponentId: v.curriculumComponentId!, kind: c?.suggestedKind ?? "regular" });
+    },
+  });
+}
+
 function RegistrationCard({
   r,
   busy,
+  canAdd,
   onSubmit,
+  onAdd,
   onDrop,
   onCancel,
   onFinalise,
 }: {
   r: Registration;
   busy: boolean;
+  /** Whether a component is left to add (the add action is hidden otherwise). */
+  canAdd?: boolean;
   onSubmit?: () => void;
+  onAdd?: () => void;
   onDrop?: (lineId: string) => void;
   onCancel?: () => void;
   onFinalise?: () => void;
 }) {
   const editable = r.status === "draft" || r.status === "returned" || r.status === "registered";
   const actions: RowAction[] = [];
+  if (onAdd && canAdd && editable) actions.push({ id: "line-add", label: "Add component", onClick: onAdd });
   if (onSubmit && (r.status === "draft" || r.status === "returned")) actions.push({ id: "registration-submit", label: "Submit", variant: "primary", onClick: onSubmit });
   if (onFinalise && r.status === "registered") actions.push({ id: "registration-finalise", label: "Finalise", onClick: onFinalise });
   if (onCancel && !["finalised", "cancelled", "archived"].includes(r.status)) actions.push({ id: "registration-cancel", label: "Cancel registration", onClick: onCancel });
@@ -379,7 +434,7 @@ function NewRegistration({
 
 export function Student360Registration({ studentId }: { studentId: string }) {
   const api = useRegistrationApi();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const regs = useQuery({ queryKey: rkeys.scoped(studentId, "registrations"), queryFn: () => api.listRegistrations(studentId) });
   const opts = useQuery({ queryKey: rkeys.scoped(studentId, "options"), queryFn: () => api.options(studentId) });
@@ -405,7 +460,7 @@ export function Student360Registration({ studentId }: { studentId: string }) {
         }
       >
         <p className="is-muted" data-finance={holds.data?.financeEvidence.kind}>
-          Finance: {statusLabel(holds.data?.financeEvidence.kind ?? "—")}
+          Finance: {holds.data ? (FINANCE_LABEL[holds.data.financeEvidence.kind] ?? statusLabel(holds.data.financeEvidence.kind)) : "—"}
         </p>
         <DataTable
           caption="Holds"
@@ -453,6 +508,8 @@ export function Student360Registration({ studentId }: { studentId: string }) {
           key={r.id}
           r={r}
           busy={busy}
+          canAdd={addableComponents(r, opts.data).length > 0}
+          onAdd={() => askAddLine(r, opts.data, ask, (line) => submit(() => api.addLine(r.id, r.version, line), "Component added"))}
           onSubmit={() => void run(() => api.registrationCommand(r.id, r.version, "submit"), (x) => `Registration ${statusLabel(x.status).toLowerCase()}`)}
           onDrop={(lineId) => void run(() => api.dropLine(r.id, r.version, lineId), "Component dropped")}
           onFinalise={() => void run(() => api.registrationCommand(r.id, r.version, "finalise"), "Registration finalised")}
@@ -471,7 +528,7 @@ export function Student360Registration({ studentId }: { studentId: string }) {
 
 export function Student360Progression({ studentId }: { studentId: string }) {
   const api = useRegistrationApi();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const sum = useQuery({ queryKey: rkeys.scoped(studentId, "progression"), queryFn: () => api.summary(studentId) });
   const decisions = useQuery({ queryKey: rkeys.scoped(studentId, "decisions"), queryFn: () => api.listDecisions(studentId) });
@@ -725,7 +782,7 @@ export function Student360Progression({ studentId }: { studentId: string }) {
 /** Student-facing `/registration` (self-registration, add/drop, cancellation). */
 export function StudentRegistrationScreen() {
   const api = useRegistrationApi();
-  const { run, submit, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const opts = useQuery({ queryKey: rkeys.scoped("me", "options"), queryFn: () => api.myOptions() });
   const mine = useQuery({ queryKey: rkeys.scoped("me", "registrations"), queryFn: () => api.myRegistrations() });
@@ -753,6 +810,8 @@ export function StudentRegistrationScreen() {
           key={r.id}
           r={r}
           busy={busy}
+          canAdd={addableComponents(r, opts.data).length > 0}
+          onAdd={() => askAddLine(r, opts.data, ask, (line) => submit(() => api.addMyLine(r.id, r.version, line), "Component added"))}
           onSubmit={() => void run(() => api.submitMine(r.id, r.version), (x) => `Registration ${statusLabel(x.status).toLowerCase()}`)}
           onDrop={(lineId) => void run(() => api.dropMyLine(r.id, r.version, lineId), "Component dropped")}
           onCancel={() =>

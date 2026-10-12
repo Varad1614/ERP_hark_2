@@ -354,6 +354,8 @@ Student 360 registration/progression tabs, student-facing `/registration`).
 | Tests | Unit tests in `completion/{domain,eligibility}.rs`, guardian / scholarship / alumni domains and `inbox/rules/completion_3c.rs`. DB (`apps/api/tests/db_b3c.rs`, 18 PostgreSQL tests): completion → conferment → exit, MEME exits, withdrawal with clearance, Finance-blocked clearance, other exits, deceased closure, deferral, correction/revocation, guardian lifecycle + consents/responsibilities, scholarship policy/determination/hand-off, conditions/renewal/expiry, external sync + bulk recalculation, alumni, permissions + tenant isolation, `AwaitDecision`, and the 3B → 3C eligibility wiring. Web: `features/student/completion/completion.test.tsx`. |
 <!-- batch3:3c:end -->
 
+Batch 3 click-through: `pnpm e2e:student` (needs a fresh migrated DB in `DATABASE_URL`, default `sutra_e2e`; not part of `pnpm -r test`) seeds an active institution through the API, walks admissions → enrolment → Student 360 → registration (add/drop) → progression → guardians → scholarships → completion/alumni → exits as admin, student and faculty in Chromium, and writes numbered full-page screenshots to `$E2E_SHOTS`.
+
 ## Passkeys (dev mode)
 
 The browser half lives in `apps/web/app/lib/webauthn.ts`: it unwraps the API's `{ publicKey: … }`

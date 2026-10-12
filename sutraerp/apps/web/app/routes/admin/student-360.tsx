@@ -1,6 +1,10 @@
 import { BentoGrid, BentoTile } from "@sutra/ui";
-import { NavLink, useParams } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { GraduationCap } from "lucide-react";
+import { Link, NavLink, useParams } from "react-router";
 import { useSession } from "../../lib/auth";
+import { StatusBadge } from "../../features/institution/hooks";
+import { rkeys, useRecordApi } from "../../features/student/record/hooks";
 import { activeTab, STUDENT_360_TABS, student360Path } from "../../features/student";
 import { Student360Completion, Student360Guardians, Student360Scholarships } from "../../features/student/completion";
 import { Student360Documents, Student360Enrolment, Student360Overview } from "../../features/student/record";
@@ -18,6 +22,9 @@ export default function Student360() {
   const { studentId = "", tab } = useParams();
   const { role } = useSession();
   const current = activeTab(STUDENT_360_TABS, tab);
+  const api = useRecordApi();
+  // Same query key as the Overview tab, so the header and the tab share one request.
+  const student = useQuery({ queryKey: rkeys.scoped("student", studentId), queryFn: () => api.getStudent(studentId), enabled: !!studentId && role !== "student" });
   if (role === "student") {
     return (
       <BentoGrid data-screen="student-360">
@@ -50,11 +57,35 @@ export default function Student360() {
   };
   return (
     <BentoGrid data-screen="student-360" data-tab={current.key}>
-      <BentoTile variant="accent">
-        <h1>Student 360</h1>
-        <nav className="sb-actions-row" aria-label="Student 360 sections">
+      <BentoTile span={12} variant="accent">
+        <div className="sb-page-head">
+          <div>
+            <span className="sb-chip">
+              <GraduationCap strokeWidth={1.75} /> Student 360
+            </span>
+            <h1 data-student-name>{student.data?.displayName ?? (student.isLoading ? "Loading student…" : "Student")}</h1>
+            {student.data && (
+              <p>
+                {student.data.studentNumber}
+                {student.data.currentContext?.enrolmentNumber ? ` · ${student.data.currentContext.enrolmentNumber}` : ""} <StatusBadge status={student.data.status} />
+              </p>
+            )}
+          </div>
+          {role === "administrator" && (
+            <Link to="/students" className="sb-chip" style={{ marginLeft: "auto" }}>
+              All students
+            </Link>
+          )}
+        </div>
+        <nav className="sb-tabs" aria-label="Student 360 sections">
           {STUDENT_360_TABS.map((t) => (
-            <NavLink key={t.key} to={student360Path(studentId, t.key)} aria-current={t.key === current.key ? "page" : undefined}>
+            <NavLink
+              key={t.key}
+              to={student360Path(studentId, t.key)}
+              className={t.key === current.key ? "on" : ""}
+              aria-current={t.key === current.key ? "page" : undefined}
+              data-tab-link={t.key}
+            >
               {t.label}
             </NavLink>
           ))}

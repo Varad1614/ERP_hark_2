@@ -13,7 +13,8 @@
     "test": "pnpm -r test",
     "build": "pnpm -r build",
     "dev": "pnpm --filter @sutra/web dev",
-    "e2e:passkey": "pnpm --filter @sutra/web e2e:passkey"
+    "e2e:passkey": "pnpm --filter @sutra/web e2e:passkey",
+    "e2e:student": "pnpm --filter @sutra/web e2e:student"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

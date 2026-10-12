@@ -242,7 +242,7 @@ function AuthenticatedShell({
         footer={
           <div className="sb-env-tag">
             <i />
-            {AUTH_MODE === "mock" ? "Batch 1 · mock data" : AUTH_MODE === "oidc" ? "Batch 1 · live API · SSO" : "Batch 1 · live API"}
+            {AUTH_MODE === "mock" ? "Demo · mock data" : AUTH_MODE === "oidc" ? "Live API · SSO" : "Live API"}
           </div>
         }
       >

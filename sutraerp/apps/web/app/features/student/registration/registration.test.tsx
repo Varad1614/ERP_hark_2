@@ -33,6 +33,33 @@ describe("slice 3B screens", () => {
     expect(screen.getAllByText("Registered").length).toBeGreaterThan(0);
   });
 
+  it("adds and drops a component on a draft registration (add/drop)", async () => {
+    const renderScreen = await harness();
+    const { StudentRegistrationScreen } = await import("./index");
+    await renderScreen(<StudentRegistrationScreen />, { path: "/registration", role: "student" });
+    const cs = await waitFor(() => {
+      const el = document.querySelector<HTMLInputElement>("[data-component='CS101']");
+      expect(el).toBeTruthy();
+      return el!;
+    });
+    fireEvent.click(cs);
+    fireEvent.click(document.querySelector("[data-action='registration-create']")!);
+    await waitFor(() => expect(document.querySelector("[data-action='line-add']")).toBeTruthy());
+    fireEvent.click(document.querySelector("[data-action='line-add']")!);
+    const form = await waitFor(() => {
+      const f = document.querySelector<HTMLFormElement>("[data-form='line-add']");
+      expect(f).toBeTruthy();
+      return f!;
+    });
+    const select = form.querySelector<HTMLSelectElement>("select[name='curriculumComponentId']")!;
+    const md = [...select.options].find((o) => o.textContent?.startsWith("MD101"));
+    expect(md).toBeTruthy();
+    fireEvent.change(select, { target: { value: md!.value } });
+    fireEvent.click(form.querySelector("button[type=submit]")!);
+    await waitFor(() => expect(screen.getByText(/MD101 ·/)).toBeTruthy());
+    expect(document.querySelectorAll("[data-registration] [data-action='line-drop']").length).toBe(2);
+  });
+
   it("shows holds and the progression record in Student 360", async () => {
     const renderScreen = await harness();
     const { Student360Registration, Student360Progression } = await import("./index");
@@ -45,6 +72,7 @@ describe("slice 3B screens", () => {
     );
     expect(await screen.findByText("No holds")).toBeTruthy();
     await waitFor(() => expect(document.querySelector("[data-finance='notApplicable']")).toBeTruthy());
+    expect(screen.getByText("Finance: No obligation configured")).toBeTruthy();
     expect(screen.getByText("Progression decisions")).toBeTruthy();
     expect(screen.getByText("Not evaluated yet")).toBeTruthy();
     fireEvent.click(document.querySelector("[data-action='eligibility-evaluate']")!);
