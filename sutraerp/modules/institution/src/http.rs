@@ -4,7 +4,6 @@ use axum::extract::{Path, State};
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use sqlx::PgPool;
 use sutra_kernel::auth::{AuthContext, Permission};
 use sutra_kernel::cache::{AdvisoryCache, CacheKey};
 use sutra_kernel::concurrency::Version;
@@ -24,12 +23,8 @@ fn with_etag(status: StatusCode, inst: Institution) -> Response {
     res
 }
 
-/// Handler state: the owner's pool plus the advisory read-through cache (ADR-L5-0037).
-#[derive(Clone)]
-pub struct InstitutionState {
-    pub pool: PgPool,
-    pub cache: AdvisoryCache,
-}
+/// Shared Domain B handler state (pool, advisory cache, workflow port).
+pub use crate::shared::InstitutionState;
 
 /// Cache owner segment: entries belong to the institution module.
 const CACHE_OWNER: &str = "institution";
@@ -43,6 +38,49 @@ fn cache_key(cache: &AdvisoryCache, scope: &ExecutionScope, id: InstitutionId) -
         &ExecutionScope::tenant(scope.tenant_id),
         &["institution", &id.to_string()],
     )
+}
+
+/// Drops the cached copy of one institution after a 2A lifecycle/profile mutation.
+pub(crate) async fn invalidate(st: &InstitutionState, scope: &ExecutionScope, id: InstitutionId) {
+    st.cache.invalidate(&cache_key(&st.cache, scope, id)).await;
+}
+
+/// Query of `GET /institutions`.
+#[derive(Debug, Default, serde::Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct InstitutionListQuery {
+    /// Only institutions in this lifecycle state.
+    pub status: Option<sutra_contracts::institution::status::InstitutionStatus>,
+}
+
+/// Institution collection.
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct InstitutionList {
+    pub items: Vec<Institution>,
+}
+
+/// List the institutions of the caller's session tenant (`institution.read`).
+#[utoipa::path(
+    get,
+    path = "/api/v1/institution/institutions",
+    operation_id = "institution_list",
+    tag = "institution",
+    params(InstitutionListQuery),
+    security(("session_cookie" = [])),
+    responses(
+        (status = 200, body = InstitutionList),
+        (status = 401, description = "No live session", body = Problem, content_type = "application/problem+json"),
+        (status = 403, description = "Missing `institution.read` permission", body = Problem, content_type = "application/problem+json"),
+    )
+)]
+pub async fn list(
+    State(st): State<InstitutionState>,
+    auth: Authenticated,
+    axum::extract::Query(q): axum::extract::Query<InstitutionListQuery>,
+) -> ApiResult<Json<InstitutionList>> {
+    let ctx = auth.require(Permission::InstitutionRead)?;
+    let items = repo::list(&st.pool, &ctx.scope, q.status).await?;
+    Ok(Json(InstitutionList { items }))
 }
 
 fn actor(ctx: &AuthContext) -> Actor {
@@ -184,10 +222,10 @@ pub async fn rename(
     Ok(with_etag(StatusCode::OK, result?))
 }
 
-/// Institution routes. `cache` is advisory: pass `AdvisoryCache::disabled()` to turn it off.
-pub fn router(pool: PgPool, cache: AdvisoryCache) -> OpenApiRouter {
+/// Reference-aggregate routes (register / get / rename). Owned by slice 2A.
+pub fn router(state: InstitutionState) -> OpenApiRouter {
     OpenApiRouter::new()
-        .routes(routes!(register))
+        .routes(routes!(register, list))
         .routes(routes!(get, rename))
-        .with_state(InstitutionState { pool, cache })
+        .with_state(state)
 }

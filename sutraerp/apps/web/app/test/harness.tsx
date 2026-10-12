@@ -17,8 +17,11 @@ function Gate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/** Renders `element` at `path` signed in as `role` (mock mode); other paths render a marker. */
-export async function renderScreen(element: ReactNode, { role = "administrator", path = "/" }: { role?: Role; path?: string } = {}) {
+/**
+ * Renders `element` at route `path` signed in as `role` (mock mode); other paths render a marker.
+ * `entry` is the initial URL when `path` is a pattern (e.g. `path: "/campus/:tab?"`, `entry: "/campus"`).
+ */
+export async function renderScreen(element: ReactNode, { role = "administrator", path = "/", entry }: { role?: Role; path?: string; entry?: string } = {}) {
   window.sessionStorage.setItem("sutra.devRole", role);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 60_000 } } });
   const router = createMemoryRouter(
@@ -35,7 +38,7 @@ export async function renderScreen(element: ReactNode, { role = "administrator",
         ],
       },
     ],
-    { initialEntries: [path] },
+    { initialEntries: [entry ?? path] },
   );
   const utils = render(
     <QueryClientProvider client={client}>

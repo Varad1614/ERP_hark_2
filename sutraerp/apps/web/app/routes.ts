@@ -13,6 +13,9 @@ export default [
     route("notices", "routes/notices.tsx"),
     route("todos", "routes/todos.tsx"),
     route("profile", "routes/profile.tsx"),
+    // Batch 2 (Domain B) admin screens — slice 2C fills these files (docs/batch2-contracts.md §8).
+    route("academics/:tab?", "routes/admin/academics.tsx"),
+    route("campus/:tab?", "routes/admin/campus-setup.tsx"),
     // One route module serves every workspace in the catalog (99); unknown keys render a 404 tile.
     route("workspaces/:key/:tab?", "routes/workspace.tsx"),
     // Role navigation screens (students, finance, timetable, …) — stubs until their batch lands.

@@ -7,7 +7,7 @@ SutraERP is delivered as a modular monolith in ten batches. Each batch ends gree
 |---|-------|-----------|------------------|--------|
 | 0 | **Foundation** | all (scaffold) | Cargo + pnpm monorepo, kernel/contracts/web/persistence crates, 10 module crates with enforced boundaries, config, logging + tracing hooks, health, request id, tenant scope extractor, RFC 9457 problems, Idempotency-Key middleware, audit log + writer, transactional outbox, UUIDv7, optimistic concurrency reference aggregate, auth interfaces + dev stub, WorkflowPort + no-op adapter, OpenAPI 3.1 from code, typed TS client, Soft Bento UI library, app shell with role sign-in/switching, per-role Home, route stubs for all 99 workspaces, docker-compose, Dockerfiles, CI | ✅ this batch |
 | 1 | Platform | A | Keycloak 26 credential adapter (no ROPC), durable D01 sessions, MFA (WebAuthn/TOTP) UI, CSRF tokens, D02 authorization policy enforcement, session-bound scope, NATS JetStream outbox relay + `EventPublisher`, idempotency/outbox sweepers, Valkey cache adapter, notifications/notices, to-dos inbox, profile | ✅ complete (slices A–D, see below) |
-| 2 | Institution | B | Institutions, campuses, departments, programmes catalogue, academic calendar & business timezone, institution configuration; Batch 0 reference aggregate becomes the real model | planned |
+| 2 | Institution | B | Institutions, campuses, departments, programmes catalogue, academic calendar & business timezone, institution configuration; Batch 0 reference aggregate becomes the real model | ✅ complete (slices F, 2A–2C integrated, see below) |
 | 3 | Student lifecycle | C | Admissions → enrolment → progression → exit, guardians, documents & certificates, student workspace | planned |
 | 4 | Academic | D | Courses, sections, timetable, attendance, coursework/assignments, faculty "My classes" | planned |
 | 5 | Finance | F | Fee structures, demands, concessions, payments & receipts (rust_decimal end to end), reconciliation, student fees screen | planned |
@@ -30,3 +30,23 @@ Screens in the web app link to their batch (`apps/web/app/lib/roles.ts → SCREE
 Batch 1 is complete. Container verification (`docker compose --profile app up --build`) could not be run in
 the build sandbox (no Docker); the Dockerfiles and compose file were checked by reading, and the README section
 "Local Docker verification" lists the commands and the 1C/1D click-through checklist to run locally.
+
+## Batch 2 slices
+
+Contracts and file ownership: [`batch2-contracts.md`](batch2-contracts.md).
+
+| Slice | Scope | Status |
+|-------|-------|--------|
+| **2·F** | Foundation: shared ids / lifecycle states / V1 event contracts / permissions, module layout with pre-mounted routers, inbox rule hooks, readiness aggregation, approval helper over the WorkflowPort, institution `status` column, web route placeholders | ✅ |
+| **2A** | Institution lifecycle + activation decision, profile, business timezone, policies, organisation units tree, type blueprints, governance, restructuring, position definitions | <!-- batch2:2a:status -->✅ |
+| **2B** | Campuses, academic structure, programme catalogue, curriculum framework (immutable versions), school academic model | <!-- batch2:2b:status -->✅ |
+| **2C** | Academic calendar (years, terms, key dates, assignments, revisions, exceptions, closure, simulation), activation readiness, Admin → Academics and Campus setup screens, Docker click-through | <!-- batch2:2c:status -->✅ |
+
+Batch 2 is complete: the slices were merged 2A → 2B → 2C onto `erp_merge` and integrated (all three
+readiness providers feed `shared::readiness::evaluate`, so `submit` is gated on the full checklist;
+campus decommissioning also checks 2C campus-scoped calendar assignments; the web layer uses the
+generated OpenAPI types and type-checked paths for every 2A/2B/2C endpoint). Cross-slice test:
+`apps/api/tests/db_b2_integration.rs` (register → profile → configure → blueprint + root unit →
+campus → structure / programme / curriculum → published calendar + open year + assignment →
+readiness all met → submit → active). Container verification runs on the user's machine: README
+"Local Docker verification" → *Batch 2 Docker click-through*.

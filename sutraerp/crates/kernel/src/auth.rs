@@ -117,10 +117,42 @@ pub enum Permission {
     TodoAssign,
     /// View and update one's own profile, preferences and sessions.
     ProfileManage,
+    // ---- Batch 2 (Domain B). Reads of every Domain B resource use `InstitutionRead`. ----
+    // 2A
+    /// Configure an institution: profile revision, business timezone, configure + submit for
+    /// activation, withdraw a returned request.
+    InstitutionManage,
+    /// Suspend, reactivate and archive an institution (step-up).
+    InstitutionLifecycle,
+    /// Decide an institution activation request: approve / reject / return (step-up). The
+    /// abstract "Institution Activation Authority" of the L2-B01 amendment.
+    InstitutionActivationDecide,
+    /// Draft and make effective institutional business policies.
+    InstitutionPolicyManage,
+    /// Organisation units, type blueprints, governance configuration, restructuring.
+    OrganisationManage,
+    /// Effective-dated position definitions.
+    PositionManage,
+    // 2B
+    /// Register, activate, modify, suspend and restore campuses.
+    CampusManage,
+    /// Decommission and archive campuses (step-up).
+    CampusDecommission,
+    /// Draft academic structure, programmes, curriculum versions and the school model.
+    CurriculumManage,
+    /// Publish / supersede / retire academic structure, programmes, curricula, school model.
+    CurriculumPublish,
+    // 2C
+    /// Draft calendars, years, terms, key dates, assignments, exceptions and simulations.
+    CalendarManage,
+    /// Publish calendar versions, open/close academic years, approve exceptions, retire.
+    CalendarPublish,
+    /// Read the institution activation readiness checklist.
+    InstitutionReadinessRead,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 9] = [
+    pub const ALL: [Permission; 22] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -130,6 +162,19 @@ impl Permission {
         Permission::TodoUse,
         Permission::TodoAssign,
         Permission::ProfileManage,
+        Permission::InstitutionManage,
+        Permission::InstitutionLifecycle,
+        Permission::InstitutionActivationDecide,
+        Permission::InstitutionPolicyManage,
+        Permission::OrganisationManage,
+        Permission::PositionManage,
+        Permission::CampusManage,
+        Permission::CampusDecommission,
+        Permission::CurriculumManage,
+        Permission::CurriculumPublish,
+        Permission::CalendarManage,
+        Permission::CalendarPublish,
+        Permission::InstitutionReadinessRead,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -143,13 +188,32 @@ impl Permission {
             Permission::TodoUse => "todo.use",
             Permission::TodoAssign => "todo.assign",
             Permission::ProfileManage => "profile.manage",
+            Permission::InstitutionManage => "institution.manage",
+            Permission::InstitutionLifecycle => "institution.lifecycle",
+            Permission::InstitutionActivationDecide => "institution.activation.decide",
+            Permission::InstitutionPolicyManage => "institution.policy.manage",
+            Permission::OrganisationManage => "organisation.manage",
+            Permission::PositionManage => "position.manage",
+            Permission::CampusManage => "campus.manage",
+            Permission::CampusDecommission => "campus.decommission",
+            Permission::CurriculumManage => "curriculum.manage",
+            Permission::CurriculumPublish => "curriculum.publish",
+            Permission::CalendarManage => "calendar.manage",
+            Permission::CalendarPublish => "calendar.publish",
+            Permission::InstitutionReadinessRead => "institution.readiness.read",
         }
     }
 
     /// Admin-sensitive permissions that additionally need an MFA-verified session when step-up
     /// is enforced ([`AuthContext::step_up_enforced`]).
     pub fn requires_step_up(&self) -> bool {
-        matches!(self, Permission::InstitutionRegister)
+        matches!(
+            self,
+            Permission::InstitutionRegister
+                | Permission::InstitutionLifecycle
+                | Permission::InstitutionActivationDecide
+                | Permission::CampusDecommission
+        )
     }
 }
 
@@ -168,6 +232,20 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             TodoUse,
             TodoAssign,
             ProfileManage,
+            // Batch 2 (Domain B): administrators only.
+            InstitutionManage,
+            InstitutionLifecycle,
+            InstitutionActivationDecide,
+            InstitutionPolicyManage,
+            OrganisationManage,
+            PositionManage,
+            CampusManage,
+            CampusDecommission,
+            CurriculumManage,
+            CurriculumPublish,
+            CalendarManage,
+            CalendarPublish,
+            InstitutionReadinessRead,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -345,6 +423,37 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn batch2_domain_b_writes_are_administrator_only() {
+        let writes = [
+            Permission::InstitutionManage,
+            Permission::InstitutionLifecycle,
+            Permission::InstitutionActivationDecide,
+            Permission::InstitutionPolicyManage,
+            Permission::OrganisationManage,
+            Permission::PositionManage,
+            Permission::CampusManage,
+            Permission::CampusDecommission,
+            Permission::CurriculumManage,
+            Permission::CurriculumPublish,
+            Permission::CalendarManage,
+            Permission::CalendarPublish,
+            Permission::InstitutionReadinessRead,
+        ];
+        for p in writes {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
+        }
+        for p in [
+            Permission::InstitutionLifecycle,
+            Permission::InstitutionActivationDecide,
+            Permission::CampusDecommission,
+        ] {
+            assert!(p.requires_step_up(), "{p:?}");
+        }
+        assert!(!Permission::CampusManage.requires_step_up());
     }
 
     #[test]

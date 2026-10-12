@@ -12,6 +12,7 @@ pub mod jobs;
 pub mod notices;
 pub mod notifications;
 pub mod profile;
+pub mod rules;
 pub mod todos;
 
 use chrono::{DateTime, Utc};

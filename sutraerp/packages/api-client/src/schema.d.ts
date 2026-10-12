@@ -467,7 +467,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/institution/institutions": {
+    "/api/v1/institution/academic-structures/{structureId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one academic structure version with its nodes (`institution.read`). */
+        get: operations["academic_structure_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Replace the content of a draft structure (`curriculum.manage`). Published versions are
+         *     immutable (409).
+         */
+        patch: operations["academic_structure_update"];
+        trace?: never;
+    };
+    "/api/v1/institution/academic-structures/{structureId}/decision": {
         parameters: {
             query?: never;
             header?: never;
@@ -475,6 +496,938 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        put?: never;
+        /**
+         * Decide an `in_review` structure (`curriculum.publish`): approve publishes it; reject or
+         *     return sends it back to draft (reason required).
+         */
+        post: operations["academic_structure_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/academic-structures/{structureId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft structure for publication (`curriculum.publish`; WorkflowPort
+         *     `ACADEMIC_STRUCTURE_PUBLICATION`). Auto-approval publishes it at once and supersedes the
+         *     previously published version in the same transaction.
+         */
+        post: operations["academic_structure_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/academic-structures/{structureId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire the published structure (L3-B-025, `curriculum.publish`, reason required). Blocked
+         *     while published programmes depend on it.
+         */
+        post: operations["academic_structure_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/academic-structures/{structureId}/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create the successor draft of a published structure (`curriculum.manage`); the published
+         *     version stays authoritative until the successor is published.
+         */
+        post: operations["academic_structure_revise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/academic-years/{yearId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an academic year. */
+        get: operations["academic_year_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/academic-years/{yearId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close the academic year into the next-cycle foundation (L3-B-031): closure evidence →
+         *     approval step → closed + planned successor year with a draft version (never opened).
+         */
+        post: operations["academic_year_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/academic-years/{yearId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a closure awaiting approval (approve → closed, reject → back to open). */
+        post: operations["academic_year_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/academic-years/{yearId}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open the academic year (the open academic context). Needs a published version. */
+        post: operations["academic_year_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-assignments/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a calendar assignment. */
+        get: operations["calendar_assignment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-assignments/{assignmentId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make an assignment effective (published version, existing scope, no overlapping authority). */
+        post: operations["calendar_assignment_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-assignments/{assignmentId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire an assignment (kept for historical resolution). */
+        post: operations["calendar_assignment_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-exceptions/{exceptionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a calendar exception. */
+        get: operations["calendar_exception_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-exceptions/{exceptionId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply an approved exception (only within its period, institution timezone). */
+        post: operations["calendar_exception_apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-exceptions/{exceptionId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete (expire) an exception; its governing effect ends, the record stays. */
+        post: operations["calendar_exception_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-exceptions/{exceptionId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a requested exception (approve / reject). */
+        post: operations["calendar_exception_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-exceptions/{exceptionId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a requested or approved (not yet applied) exception. */
+        post: operations["calendar_exception_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-simulations/{simulationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a calendar simulation. */
+        get: operations["calendar_simulation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-simulations/{simulationId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the impact decision (accept / discard). Accepting applies nothing. */
+        post: operations["calendar_simulation_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a calendar version. */
+        get: operations["calendar_version_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a draft version's period or notes (published versions are immutable). */
+        patch: operations["calendar_version_update"];
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a version awaiting publication approval (approve → published, reject → draft). */
+        post: operations["calendar_version_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}/key-dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a key date (holiday, exam window, …) to a draft version. */
+        post: operations["calendar_version_add_key_date"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}/key-dates/{keyDateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a key date from a draft version. */
+        delete: operations["calendar_version_remove_key_date"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a draft version: validation → approval step (auto-approved in Batch 2) → published,
+         *     timezone snapshotted, predecessor superseded. Assignments are not migrated.
+         */
+        post: operations["calendar_version_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a published version (or discard a draft); history is preserved. */
+        post: operations["calendar_version_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revise a published version into a successor draft (same calendar identity, L3-B-029). */
+        post: operations["calendar_version_revise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a term to a draft version (`If-Match` of the version + `Idempotency-Key`). */
+        post: operations["calendar_version_add_term"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendar-versions/{versionId}/terms/{termId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a term from a draft version. */
+        delete: operations["calendar_version_remove_term"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendars/{calendarId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an academic calendar. */
+        get: operations["calendar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendars/{calendarId}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the assignments of a calendar. */
+        get: operations["calendar_assignment_list"];
+        put?: never;
+        /** Create a draft assignment of a calendar version to a governing scope. */
+        post: operations["calendar_assignment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendars/{calendarId}/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the exceptions (temporary deviations) of a calendar. */
+        get: operations["calendar_exception_list"];
+        put?: never;
+        /** Request a temporary deviation; the approval step runs at once (auto-approved in Batch 2). */
+        post: operations["calendar_exception_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendars/{calendarId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire a calendar with historical preservation (L3-B-033). Refused while an assignment is
+         *     effective or an academic year is open.
+         */
+        post: operations["calendar_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendars/{calendarId}/simulations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the change simulations of a calendar (newest first). */
+        get: operations["calendar_simulation_list"];
+        put?: never;
+        /**
+         * Simulate a proposed change against a point-in-time baseline and return the impact report.
+         *     Changes no calendar state and publishes no event.
+         */
+        post: operations["calendar_simulation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/calendars/{calendarId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the versions of a calendar (with terms and key dates). */
+        get: operations["calendar_version_list"];
+        put?: never;
+        /** Create the first draft version of a calendar for an academic year. */
+        post: operations["calendar_version_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/campuses/{campusId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one campus (`institution.read`). */
+        get: operations["campus_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Governed modification of campus metadata (L3-B-019). Code, institution, type and declared
+         *     capacity are immutable; the previous metadata is kept in the revision history.
+         */
+        patch: operations["campus_modify"];
+        trace?: never;
+    };
+    "/api/v1/institution/campuses/{campusId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request the activation decision (L3-B-018, `campus.manage`). Address line 1, city, state and
+         *     postal code must be set. With Batch 2 auto-approval the campus is returned `active`.
+         */
+        post: operations["campus_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/campuses/{campusId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a decommissioned campus as terminal history (L3-B-022, `campus.decommission`, step-up). */
+        post: operations["campus_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/campuses/{campusId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending activation (`campus.manage`) or decommissioning (`campus.decommission`,
+         *     step-up). Used when approvals await a human decision (WorkflowPort `AwaitDecision`).
+         */
+        post: operations["campus_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/campuses/{campusId}/decommission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decommission an active campus (L3-B-021, `campus.decommission`, step-up). Requires an
+         *     explicit effective date and reason; blocked while non-retired programmes are offered there.
+         */
+        post: operations["campus_decommission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/campuses/{campusId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a suspended campus to active (L3-B-020, `campus.manage`). */
+        post: operations["campus_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/campuses/{campusId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Change history of a campus (registration, modifications, lifecycle transitions). */
+        get: operations["campus_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/campuses/{campusId}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporarily close an active campus (L3-B-020, `campus.manage`; reason required). */
+        post: operations["campus_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/curricula/{curriculumId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one curriculum (`institution.read`). */
+        get: operations["curriculum_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/curricula/{curriculumId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire a curriculum (L3-B-025, `curriculum.publish`, reason required): the curriculum and,
+         *     as its explicit governed cascade, its published version become `retired`; history stays.
+         *     Publishes the canonical `CurriculumRetired` (`curriculum.retired`) only (amendment
+         *     2026-08-24). Refused while a draft / in-review version is open.
+         */
+        post: operations["curriculum_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/curricula/{curriculumId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revise the published curriculum: creates the successor draft version linked to the
+         *     published predecessor (`curriculum.manage`). The predecessor stays authoritative until the
+         *     successor is published (L3-B-024).
+         */
+        post: operations["curriculum_revise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/curricula/{curriculumId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version history of a curriculum, newest first (`institution.read`). */
+        get: operations["curriculum_version_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/curriculum-versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one curriculum version with its slots (`institution.read`). */
+        get: operations["curriculum_version_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Replace the content of a draft version (`curriculum.manage`). Published, superseded and
+         *     retired versions are immutable (409).
+         */
+        patch: operations["curriculum_version_update"];
+        trace?: never;
+    };
+    "/api/v1/institution/curriculum-versions/{versionId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide an `in_review` version (`curriculum.publish`). */
+        post: operations["curriculum_version_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/curriculum-versions/{versionId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft version for publication (`curriculum.publish`; WorkflowPort
+         *     `CURRICULUM_PUBLICATION`). Auto-approval publishes it and supersedes the predecessor.
+         */
+        post: operations["curriculum_version_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/curriculum-versions/{versionId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire one published version (`curriculum.publish`, reason required). */
+        post: operations["curriculum_version_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/governance-configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One governance configuration revision (`institution.read`). */
+        get: operations["governance_config_get"];
+        /** Replace a draft governance configuration (`organisation.manage`). */
+        put: operations["governance_config_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/governance-configs/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a draft governance configuration of an active unit (`organisation.manage`).
+         * @description It governs from `effectiveFrom` (not before today, after the predecessor's date); the
+         *     predecessor becomes `superseded` and ends the day before.
+         */
+        post: operations["governance_config_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the institutions of the caller's session tenant (`institution.read`). */
+        get: operations["institution_list"];
         put?: never;
         /**
          * Register an institution (reference aggregate) in the caller's session tenant.
@@ -509,6 +1462,1069 @@ export interface paths {
          * @description Requires the `institution.rename` permission (administrators).
          */
         patch: operations["rename"];
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/academic-structures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the academic structure versions of an institution (`institution.read`). */
+        get: operations["academic_structure_list"];
+        put?: never;
+        /**
+         * Create the first academic structure draft of an institution (`curriculum.manage`). Once a
+         *     structure is published, changes go through `POST /academic-structures/{id}/revise`.
+         */
+        post: operations["academic_structure_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/academic-years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the academic years of an institution. */
+        get: operations["academic_year_list"];
+        put?: never;
+        /** Plan an academic year in a calendar (no overlap with the calendar's other years). */
+        post: operations["academic_year_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/activation-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Activation readiness checklist of an institution (computed live).
+         * @description `ready` is true when no required item is `unmet`. Items carry a `link` to the screen that
+         *     fixes them.
+         */
+        get: operations["readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/activation-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Activation request cycles of an institution, newest first (`institution.read`). */
+        get: operations["institution_list_activation_requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive an institution (`active | suspended → archived`, terminal and read-only).
+         * @description Identity, history and policy versions are preserved; nothing cascades. Requires
+         *     `institution.lifecycle` (MFA step-up).
+         */
+        post: operations["institution_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/calendar-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List every calendar assignment of an institution. */
+        get: operations["calendar_assignment_list_for_institution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/calendar-resolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which calendar version governs a scope on a business date (institution fallback). */
+        get: operations["calendar_resolve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/calendars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the academic calendars of an institution. */
+        get: operations["calendar_list"];
+        put?: never;
+        /** Establish an academic calendar (the stable identity its versions live under). */
+        post: operations["calendar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/campuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the campuses of an institution (`institution.read`). */
+        get: operations["campus_list"];
+        put?: never;
+        /**
+         * Register an institutional campus (L3-B-017). It starts in `registered` (Proposed).
+         * @description Requires `campus.manage`. Code is unique within the institution and never reused.
+         */
+        post: operations["campus_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/configure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark the institution configured (`draft | returned | rejected → configured`).
+         * @description Validates the mandatory master information (L2-B01 §7) and the timezone; 422 lists the
+         *     missing members. Requires `institution.manage`.
+         */
+        post: operations["institution_configure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide the pending activation request: `approve` (→ active, re-validated against the current
+         *     readiness), `return` (→ returned) or `reject` (→ rejected); `return`/`reject` need a reason.
+         * @description Institution Activation Authority: `institution.activation.decide` (MFA step-up).
+         */
+        post: operations["institution_decide_activation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/org-restructures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Structure transformations of an institution, newest first (`institution.read`). */
+        get: operations["org_restructure_list"];
+        put?: never;
+        /**
+         * Request an organisation structure transformation (`organisation.manage`).
+         * @description Validated against the current structure (409 on a hierarchy cycle or a blueprint parent
+         *     rule); approved through the WorkflowPort — in the Batch 2 auto-approval mode the response is
+         *     already `applied`.
+         */
+        post: operations["org_restructure_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/org-type-blueprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Type blueprint versions of an institution, newest first (`institution.read`). */
+        get: operations["org_type_blueprint_list"];
+        put?: never;
+        /** Create the next draft type blueprint version (`organisation.manage`). */
+        post: operations["org_type_blueprint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/org-units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Organisation units of an institution in tree order (`institution.read`). */
+        get: operations["org_unit_list"];
+        put?: never;
+        /**
+         * Register an organisation unit in `draft` (`organisation.manage`).
+         * @description Needs a published type blueprint whose rules allow the unit type under the parent (or at the
+         *     root; one live root per institution).
+         */
+        post: operations["org_unit_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Policies of an institution (`institution.read`). */
+        get: operations["institution_policy_list"];
+        put?: never;
+        /** Create a policy with its first draft revision (`institution.policy.manage`). */
+        post: operations["institution_policy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Position definitions of an institution as of a date (`institution.read`). */
+        get: operations["position_list"];
+        put?: never;
+        /**
+         * Establish a position definition in `draft` (`position.manage`). Creates no occupant and no
+         *     assignment.
+         */
+        post: operations["position_establish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Revise the institution profile / master information (L3-B-004).
+         * @description Absent members stay unchanged; an empty string or list clears a member. Previous values are
+         *     kept in the revision history. Not allowed while pending approval, suspended or archived.
+         *     Requires `institution.manage`.
+         */
+        put: operations["institution_revise_profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/profile/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Applied profile revisions, newest first (`institution.read`). */
+        get: operations["institution_list_profile_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/programmes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the programme catalogue of an institution (`institution.read`). */
+        get: operations["programme_list"];
+        put?: never;
+        /** Register a draft programme in the catalogue (`curriculum.manage`). */
+        post: operations["programme_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a suspended institution (`suspended → active`); the resolution reason is mandatory.
+         * @description Requires `institution.lifecycle` (MFA step-up).
+         */
+        post: operations["institution_reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/school-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the school academic model versions of an institution (`institution.read`). */
+        get: operations["school_model_list"];
+        put?: never;
+        /** Establish the first school academic model draft (L3-B-026, `curriculum.manage`). */
+        post: operations["school_model_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the activation request (`configured → pending_approval`).
+         * @description Refused with 409 while a required activation-readiness item is unmet (the detail lists the
+         *     blocking keys). The approval step runs through the WorkflowPort; in the Batch 2 auto-approval
+         *     mode the response already shows the decided (`active`) institution. Requires
+         *     `institution.manage`.
+         */
+        post: operations["institution_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend an active institution (`active → suspended`); the reason is mandatory.
+         * @description While suspended the institution and all its downstream structure are read-only.
+         *     Requires `institution.lifecycle` (MFA step-up).
+         */
+        post: operations["institution_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/institutions/{id}/timezone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the business timezone (validated IANA zone). Every business-local date of the
+         *     institution (effective dates of policies, governance, positions) is read in this zone.
+         * @description Requires `institution.manage`.
+         */
+        put: operations["institution_change_timezone"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-restructures/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One structure transformation (`institution.read`). */
+        get: operations["org_restructure_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-restructures/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending transformation (`organisation.manage`): `approve` applies it if the
+         *     structure baseline is unchanged (409 otherwise); `reject` needs a reason.
+         */
+        post: operations["org_restructure_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-type-blueprints/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One type blueprint version (`institution.read`). */
+        get: operations["org_type_blueprint_get"];
+        /** Replace a draft version's unit types and effective date (`organisation.manage`). */
+        put: operations["org_type_blueprint_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-type-blueprints/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide an in-review publication: `approve` publishes, `reject` (reason required) returns it
+         *     to draft (`organisation.manage`).
+         */
+        post: operations["org_type_blueprint_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-type-blueprints/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a draft version through the approval step; the previous published version becomes
+         *     `superseded` (`organisation.manage`). Units keep their version until migrated.
+         */
+        post: operations["org_type_blueprint_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One organisation unit (`institution.read`). */
+        get: operations["org_unit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modify a draft or active unit's name / description (`organisation.manage`). `parentId`,
+         *     `unitType`, `status` and `code` are refused (422).
+         */
+        patch: operations["org_unit_modify"];
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a draft unit (`organisation.manage`): its blueprint version must be the published one and its parent active. */
+        post: operations["org_unit_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a decommissioned unit (terminal, read-only); reason required (`organisation.manage`). */
+        post: operations["org_unit_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/decommission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decommission an active or suspended unit; reason required. Refused while live child units or draft/active positions remain (`organisation.manage`). */
+        post: operations["org_unit_decommission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/effective-governance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The governance configuration in force for a unit on `asOf` (`institution.read`); 404 when none. */
+        get: operations["governance_config_effective"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/governance-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Governance revisions of a unit, newest first (`institution.read`). */
+        get: operations["governance_config_list"];
+        put?: never;
+        /** Create the next draft governance configuration of a unit (`organisation.manage`). */
+        post: operations["governance_config_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every recorded version of a unit, oldest first (`institution.read`). */
+        get: operations["org_unit_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/migrate-type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Migrate a unit to the published type blueprint version (`organisation.manage`). */
+        post: operations["org_unit_migrate_type"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a suspended unit to active; its parent must be active (`organisation.manage`). */
+        post: operations["org_unit_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/org-units/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an active unit; reason required (`organisation.manage`). Suspended units take no new units or positions. */
+        post: operations["org_unit_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One policy with the revision in force on `asOf` (`institution.read`). */
+        get: operations["institution_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/policies/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the draft revision: it governs from its `effectiveFrom` (not before today in the
+         *     institution timezone, strictly after the current revision's date); the predecessor becomes
+         *     `superseded` (`institution.policy.manage`).
+         */
+        post: operations["institution_policy_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/policies/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every revision of a policy, newest first (`institution.read`). */
+        get: operations["institution_policy_list_revisions"];
+        put?: never;
+        /**
+         * Create the successor draft revision, or replace the open draft (`institution.policy.manage`).
+         * @description The effective revision is never edited in place.
+         */
+        post: operations["institution_policy_draft_revision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/positions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One position definition as of a date (`institution.read`). */
+        get: operations["position_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a draft definition in place (`position.manage`). */
+        patch: operations["position_update_draft"];
+        trace?: never;
+    };
+    "/api/v1/institution/positions/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a draft definition (`position.manage`); its organisation unit must be active. */
+        post: operations["position_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/positions/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a retired definition (`position.manage`; terminal). */
+        post: operations["position_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/positions/{id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record an effective-dated change of an active definition (`position.manage`).
+         * @description Creates the successor revision from `effectiveFrom` (not before today, after the latest
+         *     revision); the predecessor stays in force until the day before. Existing assignments are
+         *     not touched.
+         */
+        post: operations["position_change"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/positions/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire an active definition (`position.manage`); reason required. */
+        post: operations["position_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/positions/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every revision of a definition, oldest first (`institution.read`). */
+        get: operations["position_list_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/programmes/{programmeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one programme (`institution.read`). */
+        get: operations["programme_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a draft programme (`curriculum.manage`). Published programmes are immutable (409). */
+        patch: operations["programme_update"];
+        trace?: never;
+    };
+    "/api/v1/institution/programmes/{programmeId}/curricula": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the curricula of a programme (`institution.read`). */
+        get: operations["curriculum_list"];
+        put?: never;
+        /** Create a curriculum for a programme with its first draft version (`curriculum.manage`). */
+        post: operations["curriculum_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/programmes/{programmeId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a draft programme (`curriculum.publish`). Its level / degree type must exist in the
+         *     published academic structure (coherent publication set, L4-B-023-BH-002).
+         */
+        post: operations["programme_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/programmes/{programmeId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire a published programme (L3-B-025, `curriculum.publish`, reason required). Blocked while
+         *     one of its curricula is still published.
+         */
+        post: operations["programme_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/school-models/{schoolModelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one school academic model version (`institution.read`). */
+        get: operations["school_model_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace the content of a draft school model (`curriculum.manage`). */
+        patch: operations["school_model_update"];
+        trace?: never;
+    };
+    "/api/v1/institution/school-models/{schoolModelId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide an `in_review` school model (`curriculum.publish`). A rejected proposal leaves the
+         *     published model authoritative.
+         */
+        post: operations["school_model_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/school-models/{schoolModelId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft school model for publication (`curriculum.publish`; WorkflowPort
+         *     `SCHOOL_MODEL_PUBLICATION`). Needs a published school / mixed academic structure.
+         */
+        post: operations["school_model_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/institution/school-models/{schoolModelId}/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create the successor draft of the published school model (`curriculum.manage`). */
+        post: operations["school_model_revise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/notices": {
@@ -808,6 +2824,462 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * Format: uuid
+         * @description Academic calendar (the version series for one academic cycle family).
+         */
+        AcademicCalendarId: string;
+        /**
+         * @description Which academic model the institution runs.
+         * @enum {string}
+         */
+        AcademicModel: "higher_education" | "school" | "mixed";
+        /**
+         * @description Academic pattern (operational master information).
+         * @enum {string}
+         */
+        AcademicPattern: "annual" | "semester" | "trimester" | "term";
+        AcademicStructure: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            id: components["schemas"]["AcademicStructureId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            model: components["schemas"]["AcademicModel"];
+            name: string;
+            nepAligned: boolean;
+            nodes: components["schemas"]["StructureNode"][];
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            retiredAt?: string | null;
+            status: components["schemas"]["PublicationStatus"];
+            statusReason?: string | null;
+            supersedesId?: null | components["schemas"]["AcademicStructureId"];
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /**
+         * Format: uuid
+         * @description Versioned academic structure (levels → streams → disciplines …).
+         */
+        AcademicStructureId: string;
+        AcademicStructureList: {
+            items: components["schemas"]["AcademicStructure"][];
+        };
+        /**
+         * Format: uuid
+         * @description Term / semester / trimester inside an academic year.
+         */
+        AcademicTermId: string;
+        AcademicYear: {
+            calendarId: components["schemas"]["AcademicCalendarId"];
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            endsOn: string;
+            id: components["schemas"]["AcademicYearId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            /** @description e.g. `2026-27`. */
+            label: string;
+            /** Format: date-time */
+            openedAt?: string | null;
+            predecessorYearId?: null | components["schemas"]["AcademicYearId"];
+            /**
+             * Format: date
+             * @description Business-local dates (institution timezone).
+             */
+            startsOn: string;
+            status: components["schemas"]["AcademicYearStatus"];
+            successorYearId?: null | components["schemas"]["AcademicYearId"];
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /**
+         * @description Result of a closure request: the year (closed, or `closing` while awaiting a decision) and
+         *     the closure evidence evaluated.
+         */
+        AcademicYearClosure: {
+            evidence: components["schemas"]["ClosureEvidence"][];
+            year: components["schemas"]["AcademicYear"];
+        };
+        /**
+         * Format: uuid
+         * @description Academic year (the open academic context).
+         */
+        AcademicYearId: string;
+        /** @description `{ "items": [...] }` collection of academic years. */
+        AcademicYearList: {
+            items: components["schemas"]["AcademicYear"][];
+        };
+        /**
+         * @description Academic year (open academic context) lifecycle (L2-B05).
+         * @enum {string}
+         */
+        AcademicYearStatus: "planned" | "open" | "closing" | "closed";
+        /**
+         * @description Outcome chosen by the Institution Activation Authority.
+         * @enum {string}
+         */
+        ActivationDecision: "approve" | "return" | "reject";
+        /** @description One governed activation request cycle. */
+        ActivationRequest: {
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            id: components["schemas"]["ActivationRequestId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            processInstanceId?: string | null;
+            /** @description Readiness evidence evaluated at submission. */
+            readiness: components["schemas"]["ReadinessReport"];
+            /** @description `pending`, `approved`, `returned` or `rejected`. */
+            status: string;
+            /** Format: date-time */
+            submittedAt: string;
+            submittedBy?: string | null;
+            /** Format: int64 */
+            submittedVersion: number;
+        };
+        /**
+         * Format: uuid
+         * @description Governed activation request of an institution (one per submission cycle).
+         */
+        ActivationRequestId: string;
+        /** @description Activation request cycles of an institution. */
+        ActivationRequestList: {
+            items: components["schemas"]["ActivationRequest"][];
+        };
+        /**
+         * @description Decision on a blueprint publication / restructure awaiting approval.
+         * @enum {string}
+         */
+        ApprovalDecision: "approve" | "reject";
+        BaselineAssignment: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            scopeId: string;
+            scopeKind: components["schemas"]["ScopeKind"];
+            status: components["schemas"]["CalendarAssignmentStatus"];
+        };
+        BaselineException: {
+            /** Format: date */
+            endsOn: string;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["ExceptionKind"];
+            /** Format: date */
+            startsOn: string;
+            status: components["schemas"]["CalendarExceptionStatus"];
+        };
+        /** @description Academic calendar: the stable identity of a calendar series (versions live under it). */
+        Calendar: {
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            description?: string | null;
+            id: components["schemas"]["AcademicCalendarId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            name: string;
+            /** Format: date-time */
+            retiredAt?: string | null;
+            status: components["schemas"]["PublicationStatus"];
+            statusReason?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        CalendarAssignment: {
+            /** Format: date-time */
+            activatedAt?: string | null;
+            calendarId: components["schemas"]["AcademicCalendarId"];
+            calendarVersionId: components["schemas"]["CalendarVersionId"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /** @description `effective` and today (institution timezone) inside the effective period. */
+            governing: boolean;
+            id: components["schemas"]["CalendarAssignmentId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            /** Format: date-time */
+            retiredAt?: string | null;
+            /** Format: uuid */
+            scopeId: string;
+            scopeKind: components["schemas"]["ScopeKind"];
+            status: components["schemas"]["CalendarAssignmentStatus"];
+            statusReason?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /**
+         * Format: uuid
+         * @description Assignment of a calendar version to a governing scope (institution / campus / unit / programme).
+         */
+        CalendarAssignmentId: string;
+        /** @description `{ "items": [...] }` collection of calendar assignments. */
+        CalendarAssignmentList: {
+            items: components["schemas"]["CalendarAssignment"][];
+        };
+        /**
+         * @description Calendar → governing-scope assignment lifecycle.
+         * @enum {string}
+         */
+        CalendarAssignmentStatus: "draft" | "effective" | "retired";
+        CalendarException: {
+            /** Format: date-time */
+            appliedAt?: string | null;
+            calendarId: components["schemas"]["AcademicCalendarId"];
+            /** @description The immutable base version this deviation applies to (never rewritten). */
+            calendarVersionId: components["schemas"]["CalendarVersionId"];
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decisionReason?: string | null;
+            /**
+             * Format: date
+             * @description Expiry (inclusive): the deviation stops governing after this business date.
+             */
+            endsOn: string;
+            /** @description `in_effect` and today (institution timezone) inside the period. */
+            governing: boolean;
+            id: components["schemas"]["CalendarExceptionId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            kind: components["schemas"]["ExceptionKind"];
+            /** @description Accountable owner (subject of the requester). */
+            ownerSubject: string;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            scopeId: string;
+            scopeKind: components["schemas"]["ScopeKind"];
+            /** Format: date */
+            startsOn: string;
+            status: components["schemas"]["CalendarExceptionStatus"];
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /**
+         * Format: uuid
+         * @description Approved temporary deviation from a calendar (closure, rescheduled day, …).
+         */
+        CalendarExceptionId: string;
+        /** @description `{ "items": [...] }` collection of calendar exceptions. */
+        CalendarExceptionList: {
+            items: components["schemas"]["CalendarException"][];
+        };
+        /**
+         * @description Calendar exception (temporary deviation) lifecycle.
+         * @enum {string}
+         */
+        CalendarExceptionStatus: "requested" | "approved" | "rejected" | "in_effect" | "completed" | "withdrawn";
+        /** @description `{ "items": [...] }` collection of calendars. */
+        CalendarList: {
+            items: components["schemas"]["Calendar"][];
+        };
+        /** @description Which calendar governs a scope on a business date. */
+        CalendarResolution: {
+            assignment?: null | components["schemas"]["CalendarAssignment"];
+            calendarVersion?: null | components["schemas"]["CalendarVersion"];
+            /** @description Exceptions of that calendar in effect on that date for the scope or the institution. */
+            exceptions: components["schemas"]["CalendarException"][];
+            /**
+             * Format: date
+             * @description Business date resolved (defaults to today in the institution timezone).
+             */
+            on: string;
+            resolvedVia?: null | components["schemas"]["ScopeKind"];
+            /** Format: uuid */
+            scopeId: string;
+            scopeKind: components["schemas"]["ScopeKind"];
+            timezone: string;
+        };
+        /** @description A recorded change simulation: point-in-time baseline + proposal + impact report. */
+        CalendarSimulation: {
+            baseline: components["schemas"]["SimulationBaseline"];
+            baselineVersionId: components["schemas"]["CalendarVersionId"];
+            calendarId: components["schemas"]["AcademicCalendarId"];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string | null;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            id: components["schemas"]["CalendarSimulationId"];
+            impact: components["schemas"]["ImpactReport"];
+            institutionId: components["schemas"]["InstitutionId"];
+            outcome: components["schemas"]["SimulationOutcome"];
+            proposal: components["schemas"]["SimulationProposal"];
+            status: components["schemas"]["SimulationStatus"];
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /**
+         * Format: uuid
+         * @description Calendar change simulation (what-if impact assessment).
+         */
+        CalendarSimulationId: string;
+        /** @description `{ "items": [...] }` collection of calendar simulations. */
+        CalendarSimulationList: {
+            items: components["schemas"]["CalendarSimulation"][];
+        };
+        /** @description One calendar version (Draft → Published → Superseded / Retired) with its terms and key dates. */
+        CalendarVersion: {
+            academicYearId: components["schemas"]["AcademicYearId"];
+            calendarId: components["schemas"]["AcademicCalendarId"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            endsOn: string;
+            id: components["schemas"]["CalendarVersionId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            keyDates: components["schemas"]["KeyDate"][];
+            notes?: string | null;
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            retiredAt?: string | null;
+            /** Format: date */
+            startsOn: string;
+            status: components["schemas"]["PublicationStatus"];
+            statusReason?: string | null;
+            supersedesVersionId?: null | components["schemas"]["CalendarVersionId"];
+            terms: components["schemas"]["Term"][];
+            /**
+             * @description IANA zone the dates are expressed in: the snapshot taken at publication, or the current
+             *     institution business timezone while the version is a draft.
+             */
+            timezone: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /**
+         * Format: uuid
+         * @description One calendar version (Draft → Published → Superseded/Retired).
+         */
+        CalendarVersionId: string;
+        /** @description `{ "items": [...] }` collection of calendar versions. */
+        CalendarVersionList: {
+            items: components["schemas"]["CalendarVersion"][];
+        };
+        /**
+         * @description An institutional campus (B03). Physical facts (buildings, spaces, authoritative capacity)
+         *     are Domain G's and are not part of this resource.
+         */
+        Campus: {
+            address: components["schemas"]["CampusAddress"];
+            campusType: components["schemas"]["CampusType"];
+            code: string;
+            contactEmail?: string | null;
+            contactPhone?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: int32
+             * @description Capacity declared at registration (informational; authoritative physical capacity is
+             *     owned by Domain G and never changed by a campus modification).
+             */
+            declaredCapacity?: number | null;
+            /** Format: date */
+            decommissionEffectiveOn?: string | null;
+            description?: string | null;
+            /** Format: date */
+            establishedOn?: string | null;
+            geo?: null | components["schemas"]["GeoPoint"];
+            id: components["schemas"]["CampusId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            isMain: boolean;
+            name: string;
+            /** @description Governed decision awaiting a decision-maker (`activation` / `decommission`), if any. */
+            pendingAction?: string | null;
+            processInstanceId?: string | null;
+            status: components["schemas"]["CampusStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** @description IANA zone overriding the institution's business timezone for this campus. */
+            timezone?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+            workingHours?: string | null;
+        };
+        /** @description Registered institutional address. */
+        CampusAddress: {
+            city?: string | null;
+            /**
+             * @description ISO 3166-1 alpha-2 (default `IN`).
+             * @example IN
+             */
+            country?: string | null;
+            line1?: string | null;
+            line2?: string | null;
+            postalCode?: string | null;
+            state?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description Institutional campus (physical/operational site owned by Domain B).
+         */
+        CampusId: string;
+        CampusList: {
+            items: components["schemas"]["Campus"][];
+        };
+        /** @description One entry of a campus' change history. */
+        CampusRevision: {
+            actor?: string | null;
+            changedFields: string[];
+            /** Format: date-time */
+            createdAt: string;
+            fromStatus?: string | null;
+            /** @description `registered`, `modified` or `status`. */
+            kind: string;
+            reason?: string | null;
+            /** Format: int64 */
+            revision: number;
+            /** @description The campus as it was after this change. */
+            snapshot: Record<string, never>;
+            toStatus?: string | null;
+        };
+        CampusRevisionList: {
+            items: components["schemas"]["CampusRevision"][];
+        };
+        /**
+         * @description Institutional campus lifecycle (L2-B03).
+         * @enum {string}
+         */
+        CampusStatus: "registered" | "pending_activation" | "active" | "suspended" | "decommissioned" | "archived";
+        /**
+         * @description Institutional classification of a campus (L2-B03 §23 "Campus Type").
+         * @enum {string}
+         */
+        CampusType: "main" | "satellite" | "city" | "medical" | "engineering" | "research" | "off_campus" | "online" | "other";
         /** @description Per-category notification preference. */
         CategoryPreference: {
             category: components["schemas"]["NotificationCategory"];
@@ -815,6 +3287,32 @@ export interface components {
             email: boolean;
             /** @description Show in the in-app inbox (security notifications cannot be muted). */
             inApp: boolean;
+        };
+        /**
+         * @description `POST …/positions/{id}/changes`: an effective-dated successor revision of an active
+         *     definition (absent members carry over from the latest revision).
+         */
+        ChangePosition: {
+            description?: string | null;
+            /**
+             * Format: date
+             * @description Not before today (institution timezone) and after the latest revision's date.
+             */
+            effectiveFrom: string;
+            grade?: string | null;
+            /** Format: int32 */
+            headcount?: number | null;
+            orgUnitId?: null | components["schemas"]["OrgUnitId"];
+            reason: string;
+            title?: string | null;
+        };
+        /** @description `PUT …/institutions/{id}/timezone`. */
+        ChangeTimezone: {
+            /**
+             * @description IANA zone, e.g. `Asia/Kolkata`.
+             * @example Asia/Kolkata
+             */
+            timezone: string;
         };
         CheckResult: {
             /**
@@ -826,6 +3324,53 @@ export interface components {
             name: string;
             ok: boolean;
         };
+        CloseAcademicYear: {
+            /** @description Governed exception permitting closure before the year's end date (recorded as evidence). */
+            earlyClosureReason?: string | null;
+            /** @description `false` = close without preparing a next-cycle foundation. */
+            prepareSuccessor?: boolean;
+            reason?: string | null;
+            successor?: null | components["schemas"]["SuccessorYear"];
+        };
+        ClosureEvidence: {
+            detail: string;
+            key: string;
+            mandatory: boolean;
+            /** @description Owning domain of the evidence (Academic Calendar evaluates, never modifies it). */
+            owner: string;
+            status: components["schemas"]["EvidenceStatus"];
+        };
+        /** @description Optional body of a state command (`{ "reason": "…" }`). */
+        CommandBody: {
+            /** @description Business reason / decision note. */
+            reason?: string | null;
+        };
+        /**
+         * @description NEP 2020 course categories of a slot.
+         * @enum {string}
+         */
+        ComponentCategory: "major_core" | "major_elective" | "minor" | "multidisciplinary" | "ability_enhancement" | "skill_enhancement" | "value_added" | "internship" | "research_project" | "open_elective";
+        /** @description `POST /programmes/{id}/curricula`: the curriculum and its first draft version. */
+        CreateCurriculum: {
+            /** @example BTECH-CSE-2026 */
+            code: string;
+            initialVersion: components["schemas"]["CurriculumVersionContent"];
+            title: string;
+        };
+        /** @description `POST …/institutions/{id}/policies`: the policy and its first draft revision. */
+        CreatePolicy: {
+            body: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /**
+             * @description Lowercase key: `a-z0-9`, `.`, `_` (3–100 characters).
+             * @example attendance.minimum_percentage
+             */
+            key: string;
+            title: string;
+        };
+        /** @enum {string} */
+        CreditFramework: "nep2020" | "cbcs" | "custom";
         CsrfTokenResponse: {
             /**
              * @description Pre-session CSRF token; echo it as `X-CSRF-Token` on login and MFA verification. The
@@ -835,6 +3380,203 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        Curriculum: {
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            currentVersionId?: null | components["schemas"]["CurriculumVersionId"];
+            id: components["schemas"]["CurriculumId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            openVersionId?: null | components["schemas"]["CurriculumVersionId"];
+            programmeId: components["schemas"]["ProgrammeId"];
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            retiredAt?: string | null;
+            /** @description `draft` until the first version is published; `retired` once the curriculum is retired. */
+            status: components["schemas"]["PublicationStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /** @description One course slot of a curriculum version. */
+        CurriculumComponent: {
+            /** @description Elective basket the slot belongs to. */
+            basketCode?: string | null;
+            category: components["schemas"]["ComponentCategory"];
+            /** @description Course master code, when bound. */
+            courseCode?: string | null;
+            /**
+             * Format: double
+             * @description Credits in half-credit steps.
+             */
+            credits: number;
+            /** Format: int32 */
+            lectureHours?: number;
+            /** Format: int32 */
+            practicalHours?: number;
+            /** @example CS101 */
+            slotCode: string;
+            /**
+             * Format: int32
+             * @description 1-based term (semester) number.
+             */
+            termNo: number;
+            title: string;
+            /** Format: int32 */
+            tutorialHours?: number;
+        };
+        /**
+         * Format: uuid
+         * @description Curriculum framework of a programme (the version series).
+         */
+        CurriculumId: string;
+        CurriculumList: {
+            items: components["schemas"]["Curriculum"][];
+        };
+        CurriculumVersion: components["schemas"]["CurriculumVersionContent"] & {
+            /** Format: date-time */
+            createdAt: string;
+            curriculumId: components["schemas"]["CurriculumId"];
+            id: components["schemas"]["CurriculumVersionId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            processInstanceId?: string | null;
+            programmeId: components["schemas"]["ProgrammeId"];
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            retiredAt?: string | null;
+            status: components["schemas"]["PublicationStatus"];
+            statusReason?: string | null;
+            supersedesVersionId?: null | components["schemas"]["CurriculumVersionId"];
+            /**
+             * Format: double
+             * @description Sum of the slot credits.
+             */
+            totalCredits: number;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /** @description Editable content of a curriculum version (create, revise, `PATCH` full replacement). */
+        CurriculumVersionContent: {
+            /** @description Academic Bank of Credits participation. */
+            abcEnabled?: boolean;
+            /** @description Academic-year label of the first cohort that follows it (existing cohorts never migrate). */
+            appliesFromCohort?: string | null;
+            changeSummary?: string | null;
+            components?: components["schemas"]["CurriculumComponent"][];
+            creditFramework: components["schemas"]["CreditFramework"];
+            /**
+             * Format: date
+             * @description Business-local date from which new cohorts follow this version.
+             */
+            effectiveFrom: string;
+            exitAwards?: components["schemas"]["ExitAward"][];
+            /** Format: double */
+            maxCreditsPerTerm?: number | null;
+            /** Format: double */
+            minCreditsPerTerm?: number | null;
+            /** Format: double */
+            minTotalCredits?: number | null;
+            multipleEntryExit?: boolean;
+            nepAligned?: boolean;
+            /** Format: double */
+            nheqfLevel?: number | null;
+            /** Format: int32 */
+            termCount: number;
+            termStructure: components["schemas"]["TermStructure"];
+        };
+        /**
+         * Format: uuid
+         * @description One immutable curriculum version (Draft → Published → Superseded/Retired).
+         */
+        CurriculumVersionId: string;
+        CurriculumVersionList: {
+            items: components["schemas"]["CurriculumVersion"][];
+        };
+        /** @description `POST …/decision` body of blueprint publications and restructures. */
+        Decide: {
+            decision: components["schemas"]["ApprovalDecision"];
+            /** @description Required for `reject`. */
+            reason?: string | null;
+        };
+        /** @description `POST …/institutions/{id}/decision`. */
+        DecideActivation: {
+            decision: components["schemas"]["ActivationDecision"];
+            /** @description Required for `return` and `reject`. */
+            reason?: string | null;
+        };
+        /**
+         * @description Outcome chosen by a decision-maker on a pending governed step.
+         * @enum {string}
+         */
+        Decision: "approve" | "reject" | "return";
+        /** @description Body of `POST …/decision`. */
+        DecisionBody: {
+            decision: components["schemas"]["Decision"];
+            reason?: string | null;
+        };
+        /**
+         * @description Decision on a pending approval step (used with `ApprovalMode::AwaitDecision`).
+         * @enum {string}
+         */
+        DecisionKind: "approve" | "reject";
+        /** @description `POST /campuses/{id}/decommission` (L3-B-021): explicit effective context + reason. */
+        DecommissionCampus: {
+            /**
+             * Format: date
+             * @description Business-local date from which the campus is decommissioned.
+             */
+            effectiveOn: string;
+            reason: string;
+        };
+        /** @description `POST …/org-type-blueprints` and `PUT …/org-type-blueprints/{id}` (draft only). */
+        DraftBlueprint: {
+            /** Format: date */
+            effectiveFrom: string;
+            unitTypes: components["schemas"]["UnitType"][];
+        };
+        /** @description `POST …/org-units/{id}/governance-configs` / `PUT …/governance-configs/{id}` (draft only). */
+        DraftGovernanceConfig: {
+            /** Format: date */
+            effectiveFrom: string;
+            settings: components["schemas"]["GovernanceSettings"];
+        };
+        /** @description `POST …/policies/{id}/revisions`: creates or replaces the open draft revision. */
+        DraftPolicyRevision: {
+            body: string;
+            /** Format: date */
+            effectiveFrom: string;
+            title: string;
+        };
+        /** @description `POST …/institutions/{id}/positions` (created in `draft`, revision 1). */
+        EstablishPosition: {
+            /** @example HOD-CSE */
+            code: string;
+            description?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            grade?: string | null;
+            /**
+             * Format: int32
+             * @description Sanctioned headcount (default 1).
+             */
+            headcount?: number | null;
+            orgUnitId: components["schemas"]["OrgUnitId"];
+            title: string;
+        };
+        /** @enum {string} */
+        EvidenceStatus: "satisfied" | "waived" | "missing" | "failed" | "not_available";
+        /**
+         * @description Kind of a temporary calendar deviation.
+         * @enum {string}
+         */
+        ExceptionKind: "closure" | "rescheduled_working_day" | "extended_term" | "additional_holiday" | "other";
         /**
          * @description The validated scope a protected operation executes in. Must be carried across every
          *     synchronous, asynchronous, workflow and persistence hand-off.
@@ -842,6 +3584,21 @@ export interface components {
         ExecutionScope: {
             institutionId?: null | components["schemas"]["InstitutionId"];
             tenantId: components["schemas"]["TenantId"];
+        };
+        /** @description NEP multiple entry / exit: the award a student may exit with after `afterTerms` terms. */
+        ExitAward: {
+            /**
+             * Format: int32
+             * @example 2
+             */
+            afterTerms: number;
+            /** @example UG Certificate */
+            award: string;
+            /**
+             * Format: double
+             * @example 40
+             */
+            minCredits: number;
         };
         /**
          * @description Who manages the account's second factors.
@@ -857,17 +3614,121 @@ export interface components {
             /** @description Human readable explanation. */
             message: string;
         };
+        /** @description Geographic reference of the campus. */
+        GeoPoint: {
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+        };
+        /** @description Governance configuration revision of a unit. */
+        GovernanceConfig: {
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date
+             * @description Business-local date from which the revision governs.
+             */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Last business-local day it governs (set when a successor is activated).
+             */
+            effectiveTo?: string | null;
+            id: components["schemas"]["GovernanceConfigId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            orgUnitId: components["schemas"]["OrgUnitId"];
+            /** Format: date-time */
+            publishedAt?: string | null;
+            publishedBy?: string | null;
+            /** Format: int32 */
+            revision: number;
+            settings: components["schemas"]["GovernanceSettings"];
+            status: components["schemas"]["PublicationStatus"];
+            supersedesId?: null | components["schemas"]["GovernanceConfigId"];
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /**
+         * Format: uuid
+         * @description Governance configuration of an organisation unit (heads, committees, delegations).
+         */
+        GovernanceConfigId: string;
+        /** @description Governance revisions of a unit. */
+        GovernanceConfigList: {
+            items: components["schemas"]["GovernanceConfig"][];
+        };
+        /** @description Governance settings of an organisation unit. */
+        GovernanceSettings: {
+            /**
+             * Format: int32
+             * @description Approval levels for unit decisions (1–5).
+             */
+            approvalLevels: number;
+            /** @description Standing committees (at most 20). */
+            committees?: string[];
+            delegationAllowed?: boolean;
+            /** @description Title of the head of the unit, e.g. `Head of Department`. */
+            headTitle: string;
+            /**
+             * Format: int32
+             * @description Decision quorum of the governing body (1–50), if any.
+             */
+            quorum?: number | null;
+        };
+        /** @description A grade level (class) with its sections and subjects. */
+        GradeLevel: {
+            /**
+             * @description Lowercase key, e.g. `nursery`, `1` … `12`.
+             * @example 6
+             */
+            key: string;
+            /** @example Class 6 */
+            name: string;
+            nepStage?: null | components["schemas"]["NepStage"];
+            sections?: string[];
+            subjects?: components["schemas"]["SchoolSubject"][];
+        };
         HealthStatus: {
             checks?: components["schemas"]["CheckResult"][];
             /** @description `ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`. */
             status: string;
         };
+        ImpactItem: {
+            /** @description Ids of affected records (assignments, exceptions) where applicable. */
+            affected: string[];
+            /** @description Stable code, e.g. `term.outside_period`. */
+            code: string;
+            message: string;
+            /** @description Where the evidence came from (`baseline`, `proposal`, or the owning domain). */
+            provenance: string;
+            severity: components["schemas"]["ImpactSeverity"];
+        };
+        ImpactReport: {
+            /** Format: int64 */
+            baselineInstructionalDays: number;
+            items: components["schemas"]["ImpactItem"][];
+            outcome: components["schemas"]["SimulationOutcome"];
+            /** Format: int64 */
+            periodShiftDays: number;
+            /** Format: int64 */
+            proposedInstructionalDays: number;
+        };
+        /** @enum {string} */
+        ImpactSeverity: "info" | "warning" | "uncertain" | "blocking";
         Institution: {
             code: string;
             /** Format: date-time */
             createdAt: string;
             id: components["schemas"]["InstitutionId"];
             name: string;
+            /** @description Profile / master information (L2-B01 §7), revised through `PUT …/profile`. */
+            profile: components["schemas"]["InstitutionProfile"];
+            /** @description Lifecycle state (L2-B01 §6). */
+            status: components["schemas"]["InstitutionStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
             tenantId: components["schemas"]["TenantId"];
             /** @description IANA timezone governing business-local dates for this institution. */
             timezone: string;
@@ -880,6 +3741,72 @@ export interface components {
          * @description Institution scope, always a descendant of a Tenant.
          */
         InstitutionId: string;
+        /** @description Institution collection. */
+        InstitutionList: {
+            items: components["schemas"]["Institution"][];
+        };
+        /**
+         * Format: uuid
+         * @description Versioned institutional business policy (not authorization policy).
+         */
+        InstitutionPolicyId: string;
+        /**
+         * @description Profile / master information of an institution (L2-B01 §7). Name, code and timezone live on
+         *     the institution itself.
+         */
+        InstitutionProfile: {
+            academicPattern?: null | components["schemas"]["AcademicPattern"];
+            address?: string | null;
+            /** @description Assigned Institution Administrator (contact e-mail). */
+            administratorEmail?: string | null;
+            /** @description Required when `institutionType` is `affiliated`. */
+            affiliatedUniversity?: string | null;
+            contactPhone?: string | null;
+            /** @description BCP 47 language tag, e.g. `en-IN`. */
+            defaultLanguage?: string | null;
+            institutionType?: null | components["schemas"]["InstitutionType"];
+            officialEmail?: string | null;
+            registrationNumber?: string | null;
+            regulatoryBodies: string[];
+            /**
+             * Format: int32
+             * @description Number of applied profile revisions.
+             */
+            revision: number;
+            shortName?: string | null;
+            website?: string | null;
+            /** @description Subset of `mon`…`sun`. */
+            workingDays: string[];
+        };
+        /**
+         * @description L2-B01 §6 institution lifecycle (+ activation-authority amendment 2026-08-24).
+         * @enum {string}
+         */
+        InstitutionStatus: "draft" | "configured" | "pending_approval" | "returned" | "rejected" | "active" | "suspended" | "archived";
+        /**
+         * @description Institution type (identity master information). `school` drives 2B's school-model readiness.
+         * @enum {string}
+         */
+        InstitutionType: "school" | "college" | "university" | "autonomous" | "affiliated" | "other";
+        KeyDate: {
+            /** Format: date */
+            endsOn: string;
+            id: components["schemas"]["KeyDateId"];
+            kind: components["schemas"]["KeyDateKind"];
+            name: string;
+            /** Format: date */
+            startsOn: string;
+        };
+        /**
+         * Format: uuid
+         * @description Key date (holiday, exam window, instruction start, …) of a calendar version.
+         */
+        KeyDateId: string;
+        /**
+         * @description Kind of a key date of a calendar version.
+         * @enum {string}
+         */
+        KeyDateKind: "holiday" | "instruction_start" | "instruction_end" | "exam_window" | "registration_window" | "break" | "event";
         /** @enum {string} */
         LoginOutcome: "authenticated" | "mfaRequired";
         LoginRequest: {
@@ -956,6 +3883,47 @@ export interface components {
              */
             code: string;
         };
+        /** @description `POST …/org-units/{id}/migrate-type`. */
+        MigrateOrgUnitType: {
+            /** @description Target (published) blueprint version. */
+            targetBlueprintId: components["schemas"]["OrgTypeBlueprintId"];
+            /** @description Target unit type key; default: the current key. */
+            unitType?: string | null;
+        };
+        /**
+         * @description `PATCH /campuses/{id}`: governed modification of B03 metadata (L3-B-019). Absent members
+         *     stay unchanged; `null` clears an optional member. Code, institution, type and declared
+         *     capacity are not modifiable.
+         */
+        ModifyCampus: {
+            address?: null | components["schemas"]["CampusAddress"];
+            contactEmail?: string | null;
+            contactPhone?: string | null;
+            description?: string | null;
+            geo?: null | components["schemas"]["GeoPoint"];
+            isMain?: boolean | null;
+            name?: string | null;
+            timezone?: string | null;
+            workingHours?: string | null;
+        };
+        /**
+         * @description `PATCH …/org-units/{id}`: ordinary governed modification of descriptive attributes.
+         *     Reparenting is a restructure, a type change is a type migration and decommissioning has
+         *     its own command: those members are refused with 422 (L4-B-008-BH-002..004).
+         */
+        ModifyOrgUnit: {
+            /** @description Refused: the code is the unit's business identity. */
+            code?: unknown;
+            /** @description Empty string clears it. */
+            description?: string | null;
+            name?: string | null;
+            /** @description Refused: use an organisation restructure. */
+            parentId?: unknown;
+            /** @description Refused: use the lifecycle commands. */
+            status?: unknown;
+            /** @description Refused: use `POST …/migrate-type`. */
+            unitType?: unknown;
+        };
         ModuleDescriptor: {
             /**
              * Format: int32
@@ -973,6 +3941,85 @@ export interface components {
         };
         /** @enum {string} */
         ModuleStatus: "scaffolded" | "active";
+        /**
+         * @description NEP 2020 school stage (5+3+3+4).
+         * @enum {string}
+         */
+        NepStage: "foundational" | "preparatory" | "middle" | "secondary";
+        NewAcademicYear: {
+            calendarId: components["schemas"]["AcademicCalendarId"];
+            /**
+             * Format: date
+             * @example 2027-05-31
+             */
+            endsOn: string;
+            /** @example 2026-27 */
+            label: string;
+            /**
+             * Format: date
+             * @example 2026-06-01
+             */
+            startsOn: string;
+        };
+        NewAssignment: {
+            calendarVersionId: components["schemas"]["CalendarVersionId"];
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /**
+             * Format: uuid
+             * @description Required except for `institution` (defaults to the calendar's institution).
+             */
+            scopeId?: string | null;
+            scopeKind: components["schemas"]["ScopeKind"];
+        };
+        NewCalendar: {
+            /**
+             * @description `A-Z0-9-`, 2–32 chars, unique per institution.
+             * @example MAIN
+             */
+            code: string;
+            description?: string | null;
+            /** @example Main academic calendar */
+            name: string;
+        };
+        NewCalendarVersion: {
+            academicYearId: components["schemas"]["AcademicYearId"];
+            /** Format: date */
+            endsOn?: string | null;
+            notes?: string | null;
+            /**
+             * Format: date
+             * @description Defaults to the academic year's dates.
+             */
+            startsOn?: string | null;
+        };
+        NewException: {
+            calendarVersionId: components["schemas"]["CalendarVersionId"];
+            /** Format: date */
+            endsOn: string;
+            kind: components["schemas"]["ExceptionKind"];
+            /** @example Heavy rain: campus closed by district order */
+            reason: string;
+            /** Format: uuid */
+            scopeId?: string | null;
+            scopeKind?: null | components["schemas"]["ScopeKind"];
+            /** Format: date */
+            startsOn: string;
+        };
+        NewKeyDate: {
+            /**
+             * Format: date
+             * @description Defaults to `startsOn` (single day).
+             */
+            endsOn?: string | null;
+            kind: components["schemas"]["KeyDateKind"];
+            /** @example Independence Day */
+            name: string;
+            /** Format: date */
+            startsOn: string;
+        };
         NewNotice: {
             /** @description Roles that see the notice (at least one). */
             audienceRoles: components["schemas"]["Role"][];
@@ -988,6 +4035,22 @@ export interface components {
             /** @example Innovation Week begins 23 September */
             title: string;
         };
+        NewSimulation: {
+            baselineVersionId: components["schemas"]["CalendarVersionId"];
+            proposal: components["schemas"]["SimulationProposal"];
+        };
+        NewTerm: {
+            /** @example T1 */
+            code: string;
+            /** Format: date */
+            endsOn: string;
+            /** @example Semester 1 */
+            name: string;
+            /** Format: int32 */
+            sequence: number;
+            /** Format: date */
+            startsOn: string;
+        };
         NewTodo: {
             /** @description Assign to this person (login id of someone who has signed in before); omitted = me. */
             assigneeLoginId?: string | null;
@@ -998,6 +4061,11 @@ export interface components {
             link?: string | null;
             title: string;
         };
+        /**
+         * @description Kind of a structure node.
+         * @enum {string}
+         */
+        NodeKind: "level" | "degree_type" | "stream" | "discipline";
         Notice: {
             audienceRoles: components["schemas"]["Role"][];
             authorName: string;
@@ -1057,6 +4125,136 @@ export interface components {
             /** Format: int64 */
             unreadCount: number;
         };
+        /** @description Structure transformation request. */
+        OrgRestructure: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            id: components["schemas"]["OrgRestructureId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            kind: components["schemas"]["RestructureKind"];
+            mergeTargetId?: null | components["schemas"]["OrgUnitId"];
+            moves: components["schemas"]["RestructureMove"][];
+            processInstanceId?: string | null;
+            reason: string;
+            requestedBy?: string | null;
+            /** @description `pending_approval`, `applied`, `returned` or `rejected`. */
+            status: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /**
+         * Format: uuid
+         * @description Approved organisation-structure transformation (merge / split / move set).
+         */
+        OrgRestructureId: string;
+        /** @description Transformation collection. */
+        OrgRestructureList: {
+            items: components["schemas"]["OrgRestructure"][];
+        };
+        /** @description Organisation type blueprint version. */
+        OrgTypeBlueprint: {
+            /** Format: date-time */
+            createdAt: string;
+            decisionReason?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            id: components["schemas"]["OrgTypeBlueprintId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            publishedBy?: string | null;
+            status: components["schemas"]["PublicationStatus"];
+            supersedesId?: null | components["schemas"]["OrgTypeBlueprintId"];
+            unitTypes: components["schemas"]["UnitType"][];
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /**
+         * Format: uuid
+         * @description Organisation type blueprint (allowed unit types + parent/child rules), versioned.
+         */
+        OrgTypeBlueprintId: string;
+        /** @description Blueprint collection. */
+        OrgTypeBlueprintList: {
+            items: components["schemas"]["OrgTypeBlueprint"][];
+        };
+        /** @description Organisation unit (node of the tree). */
+        OrgUnit: {
+            /** @description Type blueprint version the unit is associated with. */
+            blueprintId: components["schemas"]["OrgTypeBlueprintId"];
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            depth: number;
+            description?: string | null;
+            id: components["schemas"]["OrgUnitId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            name: string;
+            parentId?: null | components["schemas"]["OrgUnitId"];
+            /** @description Materialised path `/<root id>/…/<id>/`. */
+            path: string;
+            status: components["schemas"]["OrgUnitStatus"];
+            statusReason?: string | null;
+            unitType: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /** @description Unit history. */
+        OrgUnitHistory: {
+            items: components["schemas"]["OrgUnitHistoryEntry"][];
+        };
+        /** @description One version of a unit in its append-only history. */
+        OrgUnitHistoryEntry: {
+            blueprintId: components["schemas"]["OrgTypeBlueprintId"];
+            /**
+             * @description `registered`, `modified`, `activated`, `suspended`, `restored`, `decommissioned`,
+             *     `archived`, `moved`, `merged_into`, `type_migrated`.
+             */
+            change: string;
+            code: string;
+            description?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            name: string;
+            parentId?: null | components["schemas"]["OrgUnitId"];
+            path: string;
+            reason?: string | null;
+            /** Format: date-time */
+            recordedAt: string;
+            recordedBy?: string | null;
+            restructureId?: null | components["schemas"]["OrgRestructureId"];
+            status: components["schemas"]["OrgUnitStatus"];
+            unitType: string;
+            /** Format: int64 */
+            unitVersion: number;
+        };
+        /**
+         * Format: uuid
+         * @description Node of the organisation-unit tree (faculty, school, department, cell, …).
+         */
+        OrgUnitId: string;
+        /** @description Unit collection. */
+        OrgUnitList: {
+            items: components["schemas"]["OrgUnit"][];
+        };
+        /**
+         * @description Organisation unit lifecycle (L2-B02).
+         * @enum {string}
+         */
+        OrgUnitStatus: "draft" | "active" | "suspended" | "decommissioned" | "archived";
         /** @description A registered passkey / security key (public data only). */
         PasskeyInfo: {
             /** Format: date-time */
@@ -1067,6 +4265,149 @@ export interface components {
             /** Format: date-time */
             lastUsedAt?: string | null;
         };
+        /** @description An institutional policy. */
+        Policy: {
+            /** Format: date-time */
+            createdAt: string;
+            currentRevision?: null | components["schemas"]["PolicyRevision"];
+            draftRevision?: null | components["schemas"]["PolicyRevision"];
+            /**
+             * Format: date
+             * @description Effective date of the latest published revision.
+             */
+            effectiveFrom?: string | null;
+            id: components["schemas"]["InstitutionPolicyId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            /** @description Stable key, e.g. `attendance.minimum_percentage`. */
+            key: string;
+            /**
+             * Format: int32
+             * @description Latest published revision number (0 = none yet).
+             */
+            revision: number;
+            /** @description `draft` until the first revision is published, then `effective`. */
+            status: components["schemas"]["PolicyStatus"];
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /** @description Policy collection. */
+        PolicyList: {
+            items: components["schemas"]["Policy"][];
+        };
+        /** @description One revision of a policy. */
+        PolicyRevision: {
+            body: string;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date
+             * @description Business-local date (institution timezone) from which the revision governs.
+             */
+            effectiveFrom: string;
+            /** Format: uuid */
+            id: string;
+            policyId: components["schemas"]["InstitutionPolicyId"];
+            /** Format: date-time */
+            publishedAt?: string | null;
+            publishedBy?: string | null;
+            /** Format: int32 */
+            revision: number;
+            status: components["schemas"]["PolicyStatus"];
+            title: string;
+        };
+        /** @description Revision collection. */
+        PolicyRevisionList: {
+            items: components["schemas"]["PolicyRevision"][];
+        };
+        /**
+         * @description Institutional policy revision state.
+         * @enum {string}
+         */
+        PolicyStatus: "draft" | "effective" | "superseded";
+        /** @description A position definition as of a business-local date. Never an occupant or an appointment. */
+        Position: {
+            /**
+             * Format: date
+             * @description Business-local date this view was computed for.
+             */
+            asOf: string;
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            description?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            grade?: string | null;
+            /** Format: int32 */
+            headcount: number;
+            id: components["schemas"]["PositionId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            /**
+             * Format: int32
+             * @description Highest revision number.
+             */
+            latestRevision: number;
+            /** @description Fields of the revision in force on `asOf` (or the first revision when none is yet). */
+            orgUnitId: components["schemas"]["OrgUnitId"];
+            /** Format: date */
+            retiredOn?: string | null;
+            /** Format: int32 */
+            revision: number;
+            scheduledRevision?: null | components["schemas"]["PositionRevision"];
+            status: components["schemas"]["PositionStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+        };
+        /**
+         * Format: uuid
+         * @description Effective-dated position definition (not a person or an appointment).
+         */
+        PositionId: string;
+        /** @description Position collection. */
+        PositionList: {
+            items: components["schemas"]["Position"][];
+        };
+        /** @description One effective-dated revision of a definition. */
+        PositionRevision: {
+            /** Format: date-time */
+            createdAt: string;
+            description?: string | null;
+            /**
+             * Format: date
+             * @description Business-local date (institution timezone) from which the revision applies.
+             */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Last business-local day it applies (closed by a successor or the retirement).
+             */
+            effectiveTo?: string | null;
+            grade?: string | null;
+            /** Format: int32 */
+            headcount: number;
+            orgUnitId: components["schemas"]["OrgUnitId"];
+            reason?: string | null;
+            recordedBy?: string | null;
+            /** Format: int32 */
+            revision: number;
+            title: string;
+        };
+        /** @description Revision collection. */
+        PositionRevisionList: {
+            items: components["schemas"]["PositionRevision"][];
+        };
+        /**
+         * @description Effective-dated position definition lifecycle.
+         * @enum {string}
+         */
+        PositionStatus: "draft" | "active" | "retired" | "archived";
         /** @description The authenticated principal (technical identity bound to a SutraERP canonical identity). */
         Principal: {
             displayName: string;
@@ -1112,6 +4453,133 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description One applied profile revision (previous and new values of the changed members). */
+        ProfileRevision: {
+            changedFields: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date
+             * @description Business-local date (institution timezone) the revision applied from.
+             */
+            effectiveFrom: string;
+            newValues: unknown;
+            previousValues: unknown;
+            revisedBy?: string | null;
+            /** Format: int32 */
+            revision: number;
+        };
+        /** @description Applied profile revisions of an institution. */
+        ProfileRevisionList: {
+            items: components["schemas"]["ProfileRevision"][];
+        };
+        Programme: {
+            /** @description Campuses offering the programme. */
+            campusIds: components["schemas"]["CampusId"][];
+            /** @example BTECH-CSE */
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Degree-type key of the academic structure (e.g. `btech`). */
+            degreeType?: string | null;
+            /** Format: int32 */
+            durationTerms: number;
+            id: components["schemas"]["ProgrammeId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            /** @description Level key of the academic structure (e.g. `ug`). */
+            level: string;
+            name: string;
+            orgUnitId?: null | components["schemas"]["OrgUnitId"];
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            retiredAt?: string | null;
+            status: components["schemas"]["PublicationStatus"];
+            statusReason?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /**
+         * Format: uuid
+         * @description Programme of the programme catalogue (e.g. B.Tech CSE).
+         */
+        ProgrammeId: string;
+        ProgrammeList: {
+            items: components["schemas"]["Programme"][];
+        };
+        /**
+         * @description Governed publication lifecycle of versioned definitions. A Published version is
+         *     **immutable**: a change creates a successor Draft that supersedes it on publication.
+         * @enum {string}
+         */
+        PublicationStatus: "draft" | "in_review" | "published" | "superseded" | "retired";
+        /**
+         * @description Area a check belongs to (drives grouping in the web checklist).
+         * @enum {string}
+         */
+        ReadinessArea: "institution" | "organisation" | "campus" | "curriculum" | "calendar";
+        /** @description One checklist line. */
+        ReadinessItem: {
+            area: components["schemas"]["ReadinessArea"];
+            /** @description Why it is unmet / what was found, e.g. "2 campuses registered, none active". */
+            detail?: string | null;
+            /** @description Stable key from the table above, e.g. `campus.active_campus`. */
+            key: string;
+            /** @description Short human label, e.g. "At least one active campus". */
+            label: string;
+            /** @description Web route that fixes it, e.g. `/campus/campuses`. */
+            link?: string | null;
+            /** @description Required for activation (`false` = advisory). */
+            required: boolean;
+            status: components["schemas"]["ReadinessStatus"];
+        };
+        /** @description The aggregated checklist. */
+        ReadinessReport: {
+            /** Format: date-time */
+            evaluatedAt: string;
+            institutionId: components["schemas"]["InstitutionId"];
+            institutionStatus: components["schemas"]["InstitutionStatus"];
+            items: components["schemas"]["ReadinessItem"][];
+            /** @description No required item is unmet. */
+            ready: boolean;
+        };
+        /**
+         * @description Outcome of one readiness check.
+         * @enum {string}
+         */
+        ReadinessStatus: "met" | "unmet" | "not_applicable";
+        /** @description Body of a state command: optional business reason. */
+        ReasonBody: {
+            /** @description Business reason / decision note (max 2000 characters). */
+            reason?: string | null;
+        };
+        /** @description `POST /institutions/{id}/campuses`. */
+        RegisterCampus: {
+            address?: components["schemas"]["CampusAddress"];
+            campusType: components["schemas"]["CampusType"];
+            /**
+             * @description Unique within the institution (`A-Z0-9-`, 2–32), never reused.
+             * @example MAIN
+             */
+            code: string;
+            contactEmail?: string | null;
+            contactPhone?: string | null;
+            /** Format: int32 */
+            declaredCapacity?: number | null;
+            description?: string | null;
+            /** Format: date */
+            establishedOn?: string | null;
+            geo?: null | components["schemas"]["GeoPoint"];
+            isMain?: boolean;
+            /** @example Main Campus */
+            name: string;
+            /** @example Asia/Kolkata */
+            timezone?: string | null;
+            workingHours?: string | null;
+        };
         RegisterInstitution: {
             /**
              * @description Short institution code, unique within the tenant (`A-Z0-9-`, 2–32 chars).
@@ -1123,8 +4591,126 @@ export interface components {
             /** @example Asia/Kolkata */
             timezone?: string | null;
         };
+        /** @description `POST …/institutions/{id}/org-units` (created in `draft`). */
+        RegisterOrgUnit: {
+            /** @example CSE */
+            code: string;
+            description?: string | null;
+            name: string;
+            parentId?: null | components["schemas"]["OrgUnitId"];
+            /** @description Unit type key of the institution's published type blueprint. */
+            unitType: string;
+        };
+        /** @description `POST /institutions/{id}/programmes`. */
+        RegisterProgramme: {
+            campusIds?: components["schemas"]["CampusId"][];
+            /** @example BTECH-CSE */
+            code: string;
+            degreeType?: string | null;
+            /**
+             * Format: int32
+             * @example 8
+             */
+            durationTerms: number;
+            /** @example ug */
+            level: string;
+            /** @example B.Tech Computer Science and Engineering */
+            name: string;
+            orgUnitId?: null | components["schemas"]["OrgUnitId"];
+        };
         RenameInstitution: {
             name: string;
+        };
+        /** @description `POST …/institutions/{id}/org-restructures`. */
+        RequestRestructure: {
+            /**
+             * Format: date
+             * @description Business-local effective date; must be today (institution timezone) in Batch 2 — the
+             *     current structure stays authoritative until the transformation is applied.
+             */
+            effectiveFrom?: string | null;
+            kind: components["schemas"]["RestructureKind"];
+            /** @description `merge`: units merged into `mergeTargetId` (then decommissioned). */
+            mergeSourceIds?: components["schemas"]["OrgUnitId"][];
+            mergeTargetId?: null | components["schemas"]["OrgUnitId"];
+            /** @description `move`: the units to reparent. */
+            moves?: components["schemas"]["RequestedMove"][];
+            reason: string;
+        };
+        /** @description One requested move. */
+        RequestedMove: {
+            orgUnitId: components["schemas"]["OrgUnitId"];
+            toParentId: components["schemas"]["OrgUnitId"];
+        };
+        /**
+         * @description Kind of structure transformation.
+         * @enum {string}
+         */
+        RestructureKind: "move" | "merge";
+        /** @description One applied move (or merge source) of a restructure. */
+        RestructureMove: {
+            /**
+             * Format: int64
+             * @description Unit version the request was validated against (stale-baseline check).
+             */
+            baselineVersion: number;
+            fromParentId?: null | components["schemas"]["OrgUnitId"];
+            orgUnitId: components["schemas"]["OrgUnitId"];
+            /** @description `move` or `merge_source`. */
+            role: string;
+            toParentId?: null | components["schemas"]["OrgUnitId"];
+        };
+        /** @description `POST …/positions/{id}/retire`. */
+        RetirePosition: {
+            /**
+             * Format: date
+             * @description Last business-local day the definition applies (default today; not before today).
+             */
+            effectiveTo?: string | null;
+            reason?: string | null;
+        };
+        /** @description `POST …/revise`: successor draft of a published structure (content copied, then edited). */
+        ReviseBody: {
+            /** Format: date */
+            effectiveFrom?: string | null;
+        };
+        /**
+         * @description `POST /curricula/{id}/revisions`: successor draft of the published version (content is copied
+         *     and then edited with `PATCH /curriculum-versions/{id}`).
+         */
+        ReviseCurriculum: {
+            appliesFromCohort?: string | null;
+            /** @description What changes and why (academic / regulatory basis). */
+            changeSummary: string;
+            /**
+             * Format: date
+             * @description Must not precede the predecessor's effective date.
+             */
+            effectiveFrom: string;
+        };
+        /**
+         * @description `PUT …/institutions/{id}/profile`: every member is optional; an absent member is unchanged,
+         *     an empty string / empty list clears it.
+         */
+        ReviseProfile: {
+            academicPattern?: null | components["schemas"]["AcademicPattern"];
+            address?: string | null;
+            administratorEmail?: string | null;
+            affiliatedUniversity?: string | null;
+            contactPhone?: string | null;
+            defaultLanguage?: string | null;
+            institutionType?: null | components["schemas"]["InstitutionType"];
+            officialEmail?: string | null;
+            registrationNumber?: string | null;
+            regulatoryBodies?: string[] | null;
+            shortName?: string | null;
+            website?: string | null;
+            workingDays?: string[] | null;
+        };
+        /** @description `POST /school-models/{id}/revise` body. */
+        ReviseSchoolModel: {
+            /** Format: date */
+            effectiveFrom?: string | null;
         };
         RevokedCount: {
             /** Format: int64 */
@@ -1136,6 +4722,60 @@ export interface components {
          * @enum {string}
          */
         Role: "administrator" | "faculty" | "student";
+        /**
+         * Format: uuid
+         * @description School academic model (grade levels, sections policy, boards) — K-12 institutions.
+         */
+        SchoolAcademicModelId: string;
+        SchoolModel: {
+            /** @description Board / affiliation key, e.g. `cbse`. */
+            board?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            gradeLevels: components["schemas"]["GradeLevel"][];
+            id: components["schemas"]["SchoolAcademicModelId"];
+            institutionId: components["schemas"]["InstitutionId"];
+            name: string;
+            nepStageAligned: boolean;
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            status: components["schemas"]["PublicationStatus"];
+            statusReason?: string | null;
+            supersedesId?: null | components["schemas"]["SchoolAcademicModelId"];
+            /** Format: date-time */
+            updatedAt: string;
+            version: components["schemas"]["Version"];
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /** @description Draft content (create and full replacement on `PATCH`). */
+        SchoolModelDraft: {
+            /** @example cbse */
+            board?: string | null;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            gradeLevels?: components["schemas"]["GradeLevel"][];
+            name: string;
+            nepStageAligned?: boolean;
+        };
+        SchoolModelList: {
+            items: components["schemas"]["SchoolModel"][];
+        };
+        /** @description A subject taught in a grade level. */
+        SchoolSubject: {
+            /** @example MATH */
+            code: string;
+            kind: components["schemas"]["SubjectKind"];
+            name: string;
+        };
+        /**
+         * @description Governing scope a calendar is assigned to (contract §4.3 `scopeKind`).
+         * @enum {string}
+         */
+        ScopeKind: "institution" | "campus" | "org_unit" | "programme";
         SessionInfo: {
             /** @description Authentication methods references (`pwd`, `otp`, …). */
             amr: string[];
@@ -1180,11 +4820,114 @@ export interface components {
         };
         /** @enum {string} */
         Severity: "info" | "success" | "warning" | "critical";
+        /** @description Immutable point-in-time baseline a simulation is bound to (L4-B-032-BH-001). */
+        SimulationBaseline: {
+            /**
+             * Format: int64
+             * @description Aggregate version (`ETag`) of the baseline at simulation time.
+             */
+            aggregateVersion: number;
+            assignments: components["schemas"]["BaselineAssignment"][];
+            calendarVersionId: components["schemas"]["CalendarVersionId"];
+            /** Format: date-time */
+            capturedAt: string;
+            /** Format: date */
+            endsOn: string;
+            exceptions: components["schemas"]["BaselineException"][];
+            keyDates: components["schemas"]["NewKeyDate"][];
+            /** Format: date */
+            startsOn: string;
+            status: components["schemas"]["PublicationStatus"];
+            terms: components["schemas"]["NewTerm"][];
+            timezone: string;
+            /** Format: int32 */
+            versionNo: number;
+            /** Format: date */
+            yearEndsOn: string;
+            /** Format: date */
+            yearStartsOn: string;
+        };
+        SimulationDecision: {
+            decision: components["schemas"]["SimulationDecisionKind"];
+            reason?: string | null;
+        };
+        /** @enum {string} */
+        SimulationDecisionKind: "accept" | "discard";
+        /** @enum {string} */
+        SimulationOutcome: "favourable" | "unfavourable" | "uncertain";
+        /** @description Proposed change; omitted members keep the baseline's value. */
+        SimulationProposal: {
+            /** Format: date */
+            endsOn?: string | null;
+            keyDates?: components["schemas"]["NewKeyDate"][] | null;
+            /** Format: date */
+            startsOn?: string | null;
+            terms?: components["schemas"]["NewTerm"][] | null;
+        };
+        /**
+         * @description Calendar change simulation lifecycle.
+         * @enum {string}
+         */
+        SimulationStatus: "draft" | "evaluated" | "accepted" | "discarded";
+        /** @description Optional reason carried by a state command. */
+        StateCommand: {
+            reason?: string | null;
+        };
+        /** @description Draft content (create and full replacement on `PATCH`). */
+        StructureDraft: {
+            /** Format: date */
+            effectiveFrom?: string | null;
+            model: components["schemas"]["AcademicModel"];
+            name: string;
+            nepAligned?: boolean;
+            nodes?: components["schemas"]["StructureNode"][];
+        };
+        /** @description One node of the structure tree. */
+        StructureNode: {
+            /**
+             * @description Lowercase key, unique in the structure (e.g. `ug`, `btech`).
+             * @example ug
+             */
+            key: string;
+            kind: components["schemas"]["NodeKind"];
+            name: string;
+            /**
+             * Format: double
+             * @description NHEQF level (4.5 … 8, NEP 2020) for levels / degree types.
+             */
+            nheqfLevel?: number | null;
+            /** @description Key of the parent node (levels have none). */
+            parentKey?: string | null;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        /** @enum {string} */
+        SubjectKind: "core" | "elective" | "language" | "co_scholastic";
+        SuccessorYear: {
+            /** Format: date */
+            endsOn?: string | null;
+            label?: string | null;
+            /** Format: date */
+            startsOn?: string | null;
+        };
         /**
          * Format: uuid
          * @description Root protected technical scope.
          */
         TenantId: string;
+        Term: {
+            code: string;
+            /** Format: date */
+            endsOn: string;
+            id: components["schemas"]["AcademicTermId"];
+            name: string;
+            /** Format: int32 */
+            sequence: number;
+            /** Format: date */
+            startsOn: string;
+        };
+        /** @enum {string} */
+        TermStructure: "semester" | "trimester" | "annual";
         Todo: {
             /** @description Subject that assigned it (`null` = created by the system or by the assignee). */
             assignedBy?: string | null;
@@ -1241,9 +4984,38 @@ export interface components {
             /** @description Base32 shared secret for manual entry. */
             secret: string;
         };
+        /** @description One unit type of a blueprint version. */
+        UnitType: {
+            /** @description May be the root unit (no parent). */
+            allowRoot?: boolean;
+            /** @description Unit type keys allowed as parent (may include the type itself). */
+            allowedParentTypes?: string[];
+            /** @description `a-z0-9_`, starting with a letter (2–40 characters), e.g. `department`. */
+            key: string;
+            label: string;
+        };
         UnreadCount: {
             /** Format: int64 */
             unread: number;
+        };
+        /** @description Draft-only changes (a published version is immutable — revise it instead). */
+        UpdateCalendarVersion: {
+            /** Format: date */
+            endsOn?: string | null;
+            notes?: string | null;
+            /** Format: date */
+            startsOn?: string | null;
+        };
+        /** @description `PATCH …/positions/{id}`: edits the (non-authoritative) draft in place. */
+        UpdateDraftPosition: {
+            description?: string | null;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            grade?: string | null;
+            /** Format: int32 */
+            headcount?: number | null;
+            orgUnitId?: null | components["schemas"]["OrgUnitId"];
+            title?: string | null;
         };
         /** @description Partial update; omitted members are unchanged. `clearExpiry: true` removes the expiry. */
         UpdateNotice: {
@@ -1268,6 +5040,16 @@ export interface components {
             locale?: string | null;
             notificationPreferences?: components["schemas"]["CategoryPreference"][] | null;
             timeZone?: string | null;
+        };
+        /** @description `PATCH /programmes/{id}` (draft only): full replacement of the editable members. */
+        UpdateProgramme: {
+            campusIds?: components["schemas"]["CampusId"][];
+            degreeType?: string | null;
+            /** Format: int32 */
+            durationTerms: number;
+            level: string;
+            name: string;
+            orgUnitId?: null | components["schemas"]["OrgUnitId"];
         };
         /** Format: int64 */
         Version: number;
@@ -2278,6 +6060,2827 @@ export interface operations {
             };
         };
     };
+    academic_structure_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                structureId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicStructure"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_structure_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being modified */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                structureId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StructureDraft"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicStructure"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not a draft */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_structure_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                structureId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicStructure"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_structure_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                structureId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicStructure"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Publication validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_structure_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                structureId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicStructure"];
+                };
+            };
+            /** @description Not published or still in use */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_structure_revise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Published structure */
+                structureId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReviseBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicStructure"];
+                };
+            };
+            /** @description Not published, or a successor draft is already open */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_year_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                yearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYear"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_year_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the year */
+                "If-Match": string;
+            };
+            path: {
+                yearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseAcademicYear"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYearClosure"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_year_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the year */
+                "If-Match": string;
+            };
+            path: {
+                yearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Decision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYear"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_year_open: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the year */
+                "If-Match": string;
+            };
+            path: {
+                yearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYear"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_assignment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarAssignment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_assignment_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+            };
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarAssignment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_assignment_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+            };
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarAssignment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_exception_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarException"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_exception_apply: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarException"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_exception_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarException"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_exception_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Decision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarException"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_exception_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarException"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_simulation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                simulationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSimulation"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_simulation_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the simulation */
+                "If-Match": string;
+            };
+            path: {
+                simulationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulationDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSimulation"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCalendarVersion"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Decision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_add_key_date: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the calendar version */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewKeyDate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_remove_key_date: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the calendar version */
+                "If-Match": string;
+            };
+            path: {
+                versionId: string;
+                keyDateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_revise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the published version */
+                "If-Match": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        /** @description `reason` becomes the successor's notes */
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_add_term: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the calendar version */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTerm"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_remove_term: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the calendar version */
+                "If-Match": string;
+            };
+            path: {
+                versionId: string;
+                termId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Calendar"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_assignment_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["CalendarAssignmentStatus"];
+            };
+            header?: never;
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarAssignmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_assignment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAssignment"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarAssignment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_exception_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["CalendarExceptionStatus"];
+            };
+            header?: never;
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarExceptionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_exception_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewException"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarException"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["StateCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Calendar"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_simulation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSimulationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_simulation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSimulation"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSimulation"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PublicationStatus"];
+            };
+            header?: never;
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_version_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                calendarId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewCalendarVersion"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarVersion"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_modify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being modified */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModifyCampus"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Mandatory metadata missing */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or institution read-only */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No pending decision */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_decommission: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecommissionCampus"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            /** @description Missing permission or step-up */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or unresolved usages */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or institution read-only */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_revisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusRevisionList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or institution read-only */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                curriculumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Curriculum"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the curriculum */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                curriculumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Curriculum"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_revise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                curriculumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviseCurriculum"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumVersion"];
+                };
+            };
+            /** @description No published version, or a draft is already open */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_version_list: {
+        parameters: {
+            query?: {
+                status?: "draft" | "in_review" | "published" | "superseded" | "retired";
+            };
+            header?: never;
+            path: {
+                curriculumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumVersionList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_version_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumVersion"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_version_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being modified */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CurriculumVersionContent"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumVersion"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_version_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumVersion"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_version_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumVersion"];
+                };
+            };
+            /** @description Not a draft, programme not published, or stale revision */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Credit / NEP rules failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_version_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumVersion"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    governance_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfig"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    governance_config_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftGovernanceConfig"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfig"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    governance_config_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfig"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_list: {
+        parameters: {
+            query?: {
+                /** @description Only institutions in this lifecycle state. */
+                status?: components["schemas"]["InstitutionStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstitutionList"];
+                };
+            };
+            /** @description No live session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     register: {
         parameters: {
             query?: never;
@@ -2462,6 +9065,5117 @@ export interface operations {
                 };
             };
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_structure_list: {
+        parameters: {
+            query?: {
+                status?: "draft" | "in_review" | "published" | "superseded" | "retired";
+            };
+            header?: never;
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicStructureList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_structure_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StructureDraft"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicStructure"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A draft is already open, a structure is published, or the institution is read-only */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_year_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["AcademicYearStatus"];
+                calendarId?: components["schemas"]["AcademicCalendarId"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYearList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    academic_year_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAcademicYear"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYear"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readiness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessReport"];
+                };
+            };
+            /** @description No live session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.readiness.read` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_list_activation_requests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivationRequestList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_assignment_list_for_institution: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["CalendarAssignmentStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarAssignmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_resolve: {
+        parameters: {
+            query?: {
+                scopeKind?: components["schemas"]["ScopeKind"];
+                scopeId?: string;
+                /** @description Business date `YYYY-MM-DD` (default: today in the institution timezone). */
+                on?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarResolution"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PublicationStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewCalendar"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Calendar"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_list: {
+        parameters: {
+            query?: {
+                /** @description Only campuses in this state. */
+                status?: "registered" | "pending_activation" | "active" | "suspended" | "decommissioned" | "archived";
+            };
+            header?: never;
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusList"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_register: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterCampus"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate code, second main campus, or institution suspended/archived */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_configure: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_decide_activation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideActivation"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_restructure_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgRestructureList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_restructure_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestRestructure"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgRestructure"];
+                };
+            };
+            /** @description Missing `Idempotency-Key` or malformed request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Parent resource missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate code, illegal state or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_type_blueprint_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PublicationStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgTypeBlueprintList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_type_blueprint_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftBlueprint"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgTypeBlueprint"];
+                };
+            };
+            /** @description Missing `Idempotency-Key` or malformed request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Parent resource missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate code, illegal state or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["OrgUnitStatus"];
+                /** @description Only direct children of this unit. */
+                parentId?: components["schemas"]["OrgUnitId"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnitList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_register: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterOrgUnit"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description Missing `Idempotency-Key` or malformed request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Parent resource missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate code, illegal state or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_policy_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PolicyStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_policy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePolicy"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                };
+            };
+            /** @description Missing `Idempotency-Key` or malformed request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Parent resource missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate code, illegal state or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PositionStatus"];
+                /** @description Only definitions placed in this unit on `asOf`. */
+                orgUnitId?: components["schemas"]["OrgUnitId"];
+                /** @description Business-local date (`YYYY-MM-DD`); default today in the institution timezone. */
+                asOf?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_establish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstablishPosition"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Position"];
+                };
+            };
+            /** @description Missing `Idempotency-Key` or malformed request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Parent resource missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate code, illegal state or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_revise_profile: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviseProfile"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_list_profile_revisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileRevisionList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    programme_list: {
+        parameters: {
+            query?: {
+                status?: "draft" | "in_review" | "published" | "superseded" | "retired";
+            };
+            header?: never;
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgrammeList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    programme_register: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterProgramme"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programme"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_reactivate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    school_model_list: {
+        parameters: {
+            query?: {
+                status?: "draft" | "in_review" | "published" | "superseded" | "retired";
+            };
+            header?: never;
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolModelList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    school_model_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchoolModelDraft"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolModel"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_change_timezone: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeTimezone"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institution"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_restructure_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgRestructure"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_restructure_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Decide"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgRestructure"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_type_blueprint_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgTypeBlueprint"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_type_blueprint_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftBlueprint"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgTypeBlueprint"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_type_blueprint_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Decide"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgTypeBlueprint"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_type_blueprint_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgTypeBlueprint"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_modify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModifyOrgUnit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional `{ reason }` */
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional `{ reason }` */
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_decommission: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional `{ reason }` */
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    governance_config_effective: {
+        parameters: {
+            query?: {
+                /** @description Business-local date (`YYYY-MM-DD`); default today in the institution timezone. */
+                asOf?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfig"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    governance_config_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfigList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    governance_config_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftGovernanceConfig"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfig"];
+                };
+            };
+            /** @description Missing `Idempotency-Key` or malformed request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Parent resource missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate code, illegal state or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnitHistory"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_migrate_type: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MigrateOrgUnitType"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional `{ reason }` */
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    org_unit_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional `{ reason }` */
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_policy_get: {
+        parameters: {
+            query?: {
+                /** @description Business-local date (`YYYY-MM-DD`, institution timezone); default today. */
+                asOf?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_policy_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_policy_list_revisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyRevisionList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    institution_policy_draft_revision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftPolicyRevision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_get: {
+        parameters: {
+            query?: {
+                /** @description Business-local date (`YYYY-MM-DD`); default today in the institution timezone. */
+                asOf?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Position"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_update_draft: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDraftPosition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Position"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional `{ reason }` */
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Position"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional `{ reason }` */
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Position"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_change: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePosition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Position"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetirePosition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Position"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    position_list_revisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionRevisionList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `institution.read` permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    programme_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                programmeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programme"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    programme_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being modified */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                programmeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProgramme"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programme"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_list: {
+        parameters: {
+            query?: {
+                status?: "draft" | "in_review" | "published" | "superseded" | "retired";
+            };
+            header?: never;
+            path: {
+                programmeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    curriculum_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                programmeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCurriculum"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Curriculum"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    programme_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                programmeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programme"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    programme_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                programmeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programme"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    school_model_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schoolModelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolModel"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    school_model_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being modified */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                schoolModelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchoolModelDraft"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolModel"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    school_model_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                schoolModelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolModel"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    school_model_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the current version */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                schoolModelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolModel"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    school_model_revise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                schoolModelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReviseSchoolModel"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolModel"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

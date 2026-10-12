@@ -37,13 +37,20 @@ use sutra_persistence::jobs::SweepJob;
 /// Consumer name in `platform.event_receipt`.
 pub const CONSUMER: &str = "platform.inbox";
 
-/// Event types this consumer projects.
+/// Batch 0/1 event types this consumer projects (Batch 2 types come from [`super::rules`]).
 pub const EVENT_TYPES: [&str; 4] = [
     INSTITUTION_REGISTERED,
     INSTITUTION_RENAMED,
     NOTICE_PUBLISHED,
     TODO_ASSIGNED,
 ];
+
+/// Every event type this consumer projects: [`EVENT_TYPES`] + the Batch 2 rule files.
+pub fn event_types() -> Vec<&'static str> {
+    let mut v = EVENT_TYPES.to_vec();
+    v.extend(super::rules::event_types());
+    v
+}
 
 /// One projection decided for an event.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -58,6 +65,10 @@ fn data<T: serde::de::DeserializeOwned>(env: &EventEnvelope) -> Result<T, String
 
 /// Decides the projections of one event (pure). Unknown types yield nothing.
 pub fn plan(env: &EventEnvelope) -> Result<Vec<InboxAction>, String> {
+    // Batch 2 (Domain B) rules live in one file per slice (`inbox/rules/`).
+    if let Some(planned) = super::rules::plan(env) {
+        return planned;
+    }
     let tenant = TenantId(env.tenantid);
     // Institution lifecycle events concern the whole tenant (their envelope carries the new
     // institution's id, not the actor's session institution); everything else keeps its scope.
@@ -227,7 +238,7 @@ impl SweepJob for InboxProjector {
                                WHERE r.consumer = $3 AND r.event_id = o.id) \
              ORDER BY o.created_at, o.id LIMIT $4",
         )
-        .bind(&EVENT_TYPES[..])
+        .bind(event_types())
         .bind(self.lookback.as_secs_f64())
         .bind(CONSUMER)
         .bind(i64::from(self.batch_size.max(1)))

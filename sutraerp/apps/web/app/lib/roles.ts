@@ -188,7 +188,7 @@ export const BADGE_LABEL: Record<Todo["status"], string> = { attention: "Due soo
 export const SCREEN_BATCH: Record<string, { batch: number; area: string }> = {
   students: { batch: 3, area: "Student lifecycle (C)" },
   documents: { batch: 3, area: "Student lifecycle (C)" },
-  academics: { batch: 4, area: "Academic (D)" },
+  academics: { batch: 2, area: "Institution (B)" },
   classes: { batch: 4, area: "Academic (D)" },
   attendance: { batch: 4, area: "Academic (D)" },
   timetable: { batch: 4, area: "Academic (D)" },
@@ -201,7 +201,7 @@ export const SCREEN_BATCH: Record<string, { batch: number; area: string }> = {
   results: { batch: 6, area: "Examinations (I)" },
   people: { batch: 7, area: "People & workforce (E)" },
   leave: { batch: 7, area: "People & workforce (E)" },
-  campus: { batch: 8, area: "Campus (G)" },
+  campus: { batch: 2, area: "Institution (B) campus setup; Campus (G) in Batch 8" },
   resources: { batch: 8, area: "Resources (J)" },
   library: { batch: 8, area: "Resources (J)" },
   reports: { batch: 9, area: "Reporting projections" },

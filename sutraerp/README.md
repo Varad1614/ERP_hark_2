@@ -218,6 +218,68 @@ enrolment screen (QR code) when `mfaEnrollmentRequired`; `oidc` mode shows an SS
 | Sweepers | Read notifications, archived/expired notices, closed to-dos (`SUTRA_*_RETENTION_SECS`), consumer receipts and replay-guard entries (`inbox/jobs.rs`). |
 | Web | `/notifications`, `/notices`, `/todos`, `/profile`, `/account/security`; the bell shows the live unread count and the latest notifications; account menu → Profile, Notices, To-dos, Security, Two-step verification; sign-in MFA step offers **Use a passkey** when the account has one; the home **Your to-dos** card shows the first four open to-dos from `GET /api/v1/todos` (overdue / due badges, the checkbox completes the to-do, *See all* → `/todos`) with loading, empty and error states. Mock mode keeps an in-memory inbox per role and the persona's sample to-dos on home. |
 
+## Batch 2 — Institution (Domain B)
+
+Built in three parallel slices on top of `batch2/foundation`; the shared contracts (ids, states,
+events, permissions, paths, file ownership, migration ranges) are in
+[`docs/batch2-contracts.md`](docs/batch2-contracts.md).
+
+<!-- batch2:2a:begin (slice 2A edits only inside this region) -->
+#### 2A — Institution lifecycle, policies, organisation, positions
+
+All under `/api/v1/institution` (tags `institution` and `organisation`); writes are
+administrator-only, reads need `institution.read`. Creates need `Idempotency-Key`, updates and
+state commands `If-Match` (428 / 412). Business dates are read in the institution's IANA
+timezone.
+
+| Area | Endpoints | Rules |
+|------|-----------|-------|
+| Lifecycle | `POST /institutions/{id}/configure · submit · decision · suspend · reactivate · archive`, `GET …/activation-requests`, `GET /institutions` | `draft → configured → pending_approval → active / returned / rejected`, `returned / rejected → configured`, `active ⇄ suspended`, `→ archived` (terminal). `submit` is refused with 409 while a required activation-readiness item is unmet (detail lists the keys); approval goes through the WorkflowPort (auto-approved in Batch 2, actor `system:auto-approval`). `decision` = Institution Activation Authority (`institution.activation.decide`, step-up), re-validates readiness on approve; `return`/`reject` need a reason. Suspend / reactivate / archive need `institution.lifecycle` (step-up) and a reason. Suspended / archived institutions are read-only (also for every downstream write). |
+| Profile & timezone | `PUT /institutions/{id}/profile`, `GET …/profile/revisions`, `PUT …/timezone` | L2-B01 §7 master information (`configure` 422 lists what is missing); every revision keeps previous/new values; timezone must be in PostgreSQL's IANA catalogue. Locked while pending approval. |
+| Policies | `POST/GET /institutions/{id}/policies`, `GET /policies/{id}[?asOf=]`, `POST /policies/{id}/revisions · publish`, `GET …/revisions` | Versioned revisions; drafts never govern; publication not retroactive and strictly after the current revision's date; predecessor `superseded` but in force until the successor's date. |
+| Type blueprints | `POST/GET /institutions/{id}/org-type-blueprints`, `GET/PUT /org-type-blueprints/{id}`, `POST …/publish · decision` | Unit types + allowed parent types; published versions immutable; publication through the WorkflowPort supersedes the previous version. |
+| Organisation units | `POST/GET /institutions/{id}/org-units`, `GET/PATCH /org-units/{id}`, `POST …/activate · suspend · restore · decommission · archive · migrate-type`, `GET …/history` | Tree with materialised path, one live root, placement by the published blueprint; activate needs the effective blueprint version and an active parent; `PATCH` changes name/description only (reparenting = restructure, type = migration); decommission refused while live children or draft/active positions remain; append-only history. |
+| Restructure | `POST/GET /institutions/{id}/org-restructures`, `GET /org-restructures/{id}`, `POST …/decision` | `move` / `merge`, cycle and blueprint checks, WorkflowPort approval, stale structure baseline → 409, takes effect today. |
+| Governance | `POST/GET /org-units/{id}/governance-configs`, `GET /org-units/{id}/effective-governance[?asOf=]`, `GET/PUT /governance-configs/{id}`, `POST …/activate` | Revisions per unit; activation for active units only, not retroactive, no overlapping authority (predecessor closed the day before). |
+| Positions | `POST/GET /institutions/{id}/positions`, `GET/PATCH /positions/{id}[?asOf=]`, `POST …/activate · changes · retire · archive`, `GET …/revisions` | `draft → active → retired → archived`; effective-dated successor revisions (predecessor in force until the day before); never creates an occupant or assignment; codes never reused. |
+
+Activation readiness keys provided by 2A: `institution.profile_complete`,
+`institution.timezone_set`, `organisation.root_unit_active` (required),
+`institution.policies_effective`, `organisation.governance_active`,
+`position.definitions_active` (advisory). Inbox: activation submission → to-do + warning;
+activation outcome, suspension, restoration, archival and restructures → administrator
+notifications. Tests: `cargo test -p sutra-api --features db-tests --test db_b2a`.
+<!-- batch2:2a:end -->
+<!-- batch2:2b:begin (slice 2B edits only inside this region) -->
+### Slice 2B — campuses, academic structure, programmes, curriculum framework, school model
+
+| Concern | Implementation |
+|---------|----------------|
+| Schema | `migrations/20261015000010_institution_campus.sql` (`institution.campus`, `campus_revision`), `…000011_institution_curriculum.sql` (`academic_structure`, `academic_structure_node`, `programme`, `curriculum`, `curriculum_version`, `curriculum_component`, `school_academic_model`, `school_grade_level`). Codes unique per institution and never reused; one live main campus, one published + one open draft per lineage (partial unique indexes). Triggers make published / superseded / retired content immutable even to direct SQL (only status bookkeeping may move). |
+| Campuses (L3-B-017…022) | `modules/institution/src/campus/`: register (`registered`, code, name, type, address, geo, timezone override, establishment date, declared capacity, contacts, working hours) → `POST …/activate` (address required; WorkflowPort `CAMPUS_ACTIVATION`: `pending_activation`, then `active` under auto-approval, actor `system:auto-approval`) → governed `PATCH` (name, address, geo, timezone, contacts, description, working hours, main flag; code / type / declared capacity immutable; every change snapshotted in `GET …/revisions`) → `suspend` (reason) / `restore` → `decommission` (`campus.decommission` + step-up; reason + `effectiveOn`; WorkflowPort `CAMPUS_DECOMMISSION`; refused while a non-retired programme is offered there) → `archive` (step-up, terminal). `POST …/decision` completes a pending activation / decommissioning when approvals await a human (`ApprovalMode::AwaitDecision`). |
+| Academic structure | `curriculum/structure.rs`: versioned tree of `level` / `degree_type` / `stream` / `discipline` nodes with NHEQF levels, model `higher_education` / `school` / `mixed`, NEP flag. Draft → `publish` (WorkflowPort `ACADEMIC_STRUCTURE_PUBLICATION`; `in_review`, then `published` superseding the previous version) → `revise` (successor draft) → `retire` (blocked while programmes are published). |
+| Programme catalogue | `curriculum/programme.rs`: code, name, level + degree-type keys, duration in terms, owning org unit (validated against 2A's table when present), offering campuses (live campuses only). `draft → published` (keys must exist in the published structure) `→ retired` (blocked while a curriculum is published). |
+| Curriculum framework (L3-B-023…025) | `curriculum/framework.rs`: a curriculum per programme with immutable versions: term structure + count, credit framework (`nep2020` / `cbcs` / `custom`), min total / per-term credit rules, NEP fields (NHEQF level, multiple entry / exit with exit awards, Academic Bank of Credits), cohort applicability, course slots (term, NEP category, credits in half steps, L-T-P hours, basket, course code). Publish (WorkflowPort `CURRICULUM_PUBLICATION`) checks the coherent set (programme published), the credit rules, term count = programme duration and refuses a stale successor; `POST /curricula/{id}/revisions` creates the successor linked to the published version, publishing it supersedes the predecessor in the same transaction. `curriculum-versions/{id}/retire` retires one version; `curricula/{id}/retire` retires the curriculum and, as its explicit cascade, its published version, emitting the canonical `curriculum.retired` only. |
+| School academic model (L3-B-026) | `curriculum/school.rs`: board, NEP 5+3+3+4 stage alignment, grade levels with sections and subjects (not a programme). Draft → publish (WorkflowPort `SCHOOL_MODEL_PUBLICATION`, needs a published school / mixed structure) → `revise` successor; a rejected proposal leaves the published model authoritative. |
+| Events / inbox | `campus.{registered, activated, modified, suspended, restored, decommissioned, archived}`, `academic_structure.{published, retired}`, `programme.{registered, published, retired}`, `curriculum_version.{published, retired}`, `curriculum.retired`, `school_model.published` (outbox + audit in the owner transaction). `inbox/rules/structure_2b.rs`: `campus.activated`, `campus.decommissioned`, `curriculum_version.published` → administrator notifications. |
+| Readiness | `campus/readiness.rs`: `campus.active_campus`, `curriculum.academic_structure_published`, `curriculum.programme_published`, `curriculum.curriculum_published`, `curriculum.school_model_published`; programme / curriculum keys are `not_applicable` for a school-only model, the school-model key unless the model is `school` / `mixed`. |
+| Guard + API profile | Writes take `shared::guard::lock_institution_for_change` (allowed in draft / configured / pending_approval / returned / rejected / active, 409 when suspended / archived); creates need `Idempotency-Key`, updates and commands `If-Match` (428 / 412); illegal transitions 409; foreign tenant 404. Tags `campuses` and `curriculum`; operation ids `campus_*`, `academic_structure_*`, `programme_*`, `curriculum_*`, `school_model_*`. DB tests: `apps/api/tests/db_b2b.rs`. |
+<!-- batch2:2b:end -->
+<!-- batch2:2c:begin (slice 2C edits only inside this region) -->
+### Slice 2C — academic calendar, activation readiness, admin screens
+
+| Concern | Implementation |
+|---------|----------------|
+| Schema | `migrations/20261015000020_institution_academic_calendar.sql`: `academic_calendar`, `academic_year`, `calendar_version` (+ `academic_term`, `calendar_key_date`), `calendar_assignment`, `calendar_exception`, `calendar_simulation`, `academic_year_closure`. Business dates are `date` in the institution business timezone; a published version snapshots it (`calendar_version.timezone`). Partial unique indexes: one open year per calendar, one draft and one published version per calendar + year. Nothing is deleted — retirement, supersession, closure and completion are states. |
+| Domain | `modules/institution/src/calendar/domain.rs` — pure, unit-tested transitions (`version_can_transition`, `year_can_transition`, `assignment_can_transition`, `exception_can_transition`, `simulation_can_transition`), definition validation (terms inside the version, no overlap, unique sequence, version inside its year), closure evidence, the change-simulation impact model (instructional days, uncovered assignments, `uncertain` instead of assuming downstream impact). |
+| API (`tag calendar`) | `/institutions/{id}/calendars`, `/calendars/{id}` (`/retire`, `/versions`, `/assignments`, `/exceptions`, `/simulations`), `/calendar-versions/{id}` (`PATCH` draft, `/terms`, `/key-dates`, `/publish`, `/decision`, `/revise`, `/retire`), `/institutions/{id}/academic-years`, `/academic-years/{id}` (`/open`, `/close`, `/decision`), `/calendar-assignments/{id}` (`/activate`, `/retire`), `/institutions/{id}/calendar-assignments`, `/calendar-exceptions/{id}` (`/decision`, `/apply`, `/complete`, `/withdraw`), `/calendar-simulations/{id}` (`/decision`), `/institutions/{id}/calendar-resolution?scopeKind&scopeId&on`. Creates need `Idempotency-Key` (201 + `ETag`), commands `If-Match` (428/412); illegal transitions 409; reads `institution.read`, drafts `calendar.manage`, publish/open/close/activate/apply/retire `calendar.publish`. Every write locks the institution (`shared::guard`, read-only while suspended/archived) and writes outbox + audit in the same transaction. |
+| Scenarios | B-027 establish → publish (approval step via `WorkflowPort`, auto-approved) → open academic year (needs a published version; creates no assignment). B-028 draft assignment → effective (published version, scope exists in 2A/2B tables, no overlapping effective assignment for the scope). B-029 `revise` = successor draft with copied structure, `supersedesVersionId`; publishing it supersedes the predecessor in the same tx; assignments are not migrated. B-030 exceptions are approved through the approval step, `apply` only inside their period in the institution timezone, `complete` ends them. B-031 closure evaluates evidence (year ended or a governed early-closure reason, no pending exception decisions), completes temporary exceptions and prepares the next year as **planned** + draft version (never opened). B-032 simulations bind a point-in-time baseline, return the impact report, write only the simulation row + audit (no event, no calendar change); the decision records `accepted`/`discarded` and applies nothing. B-033 version / calendar retirement refused while an assignment is effective or the year is open; retired never returns. |
+| Events | `calendar_version.published`, `calendar_version.retired` (**added by 2C**, `StatusChangedV1`), `calendar.retired`, `academic_year.opened/closed`, `calendar_assignment.effective/retired`, `calendar_exception.approved/completed`. Inbox (`inbox/rules/calendar_2c.rs`): administrators are notified of publications and year open/close; approved exceptions reach every role. |
+| Readiness | `calendar/readiness.rs` returns `calendar.version_published`, `calendar.academic_year_open` (open, or planned with a published version), `calendar.assignment_effective` (institution-level, not ended). `GET /institutions/{id}/activation-readiness` (`institution.readiness.read`, tag `readiness`) serves `shared::readiness::evaluate` over all three slice providers. |
+| Web | Admin → **Campus setup** (`/campus/:tab?`): Institution (Register institution, profile, Mark configured / Submit / activation decision / Suspend / Restore / Archive with the shared step-up dialog, rename), Activation readiness (grouped checklist with *Fix* links, submit when ready), Campuses, Organisation (unit tree), Positions, Policies. Admin → **Academics** (`/academics/:tab?`): Academic structure, Programmes, Curriculum (versions, successor revisions), School model, Academic calendar (calendars, years open/close, versions with terms / key dates, publish / revise / retire, assignments, exceptions, simulation preview). Data layer `features/institution/api.ts` (one interface; HTTP with CSRF, `Idempotency-Key`, `If-Match`, `ApiProblem`; every 2A/2B/2C path type-checked against the generated OpenAPI `paths`, all types generated) and `mock.ts` for mock mode. The step-up dialog moved to `components/StepUpDialog.tsx` (shared with Security). |
+| Tests | `calendar/domain.rs` + `calendar/readiness.rs` unit tests; `inbox/rules/calendar_2c.rs`; `apps/api/tests/db_b2c.rs` (8 PostgreSQL tests: lifecycle + illegal transitions, invalid/overlapping dates, successor revision, timezone (Pacific/Kiritimati vs Pacific/Pago_Pago), side-effect-free simulation, closure + retirement, tenant isolation / permissions / `If-Match` / idempotency replay / suspended guard, `AwaitDecision` mode); `features/institution/institution.test.tsx` (screens in mock mode + HTTP conventions). |
+<!-- batch2:2c:end -->
+
 ## Passkeys (dev mode)
 
 The browser half lives in `apps/web/app/lib/webauthn.ts`: it unwraps the API's `{ publicKey: … }`
@@ -313,14 +375,8 @@ Dev sign-in (default compose, http://localhost:3000, password `sutra` is built i
    `GET /api/v1/notifications/unread-count`.
 2. **Profile edit** — account menu → *My profile*: set contact e-mail `admin@sutra.dev`, turn **e-mail on**
    for *Institution*, *Save changes*; a reload keeps the values (a stale second tab gets a conflict message).
-3. **Register an institution** — `POST` through the API (no screen until Batch 2), from a signed-in browser
-   console on http://localhost:3000:
-   ```js
-   const s = await (await fetch("/api/v1/auth/session")).json();
-   await fetch("/api/v1/institution/institutions", { method: "POST",
-     headers: { "Content-Type": "application/json", "X-CSRF-Token": s.csrfToken, "Idempotency-Key": crypto.randomUUID() },
-     body: JSON.stringify({ code: "SIT-" + Date.now() % 100000, name: "Sutra Institute of Technology", timezone: "Asia/Kolkata" }) }).then(r => r.status) // 201
-   ```
+3. **Register an institution** — *Campus setup* → *Institution* → **Register institution** (code `SIT`, name
+   `Sutra Institute of Technology`, timezone `Asia/Kolkata`) → *Register*.
 4. **Notification + setup to-do** — within a few seconds (consumer polls every 2 s) the bell shows
    "Institution registered …"; *To-dos* lists "Complete the setup of Sutra Institute of Technology".
    The outbox event also reaches JetStream: `curl -s localhost:8222/jsz?streams=1` shows `SUTRA_EVENTS` with messages.
@@ -347,3 +403,90 @@ Dev sign-in (default compose, http://localhost:3000, password `sutra` is built i
    session (or *Users → meera.shah → Sessions → Sign out*). Keycloak POSTs the logout token to
    `http://api:8080/api/v1/auth/oidc/backchannel-logout` (`docker compose logs api | grep -i backchannel`);
    the next click in the SutraERP tab returns to sign-in (`GET /api/v1/auth/session` → 401).
+
+### Click-through checklist (Batch 2)
+
+<!-- batch2:2c-docker:begin (slice 2C writes the Docker click-through for Admin → Academics / Campus setup here) -->
+#### Batch 2 Docker click-through (Windows / PowerShell)
+
+Covers 2A + 2B + 2C end to end. From `sutraerp\` in PowerShell (Docker Desktop running). The
+`migrate` image embeds `migrations/` at build time, so `--build` is what picks up the Batch 2
+migrations (`20261015000000` … `20261015000020`):
+
+```powershell
+# 1. Rebuild and start the stack; migrate runs as a one-shot job before the API.
+docker compose --profile app up --build -d
+docker compose ps -a migrate                 # STATUS: Exited (0)
+docker compose logs migrate | Select-String "migrations applied"
+# (re-run at any time — idempotent)
+docker compose --profile app run --rm migrate
+
+# 2. Schema check: the Batch 2 migrations and tables exist.
+docker compose exec postgres psql -U sutra -d sutra -c "SELECT version, description FROM _sqlx_migrations WHERE version >= 20261015000000 ORDER BY version;"
+#   → 8 rows: 20261015000000 … 000004 (foundation + 2A), 000010 / 000011 (2B), 000020 (2C)
+docker compose exec postgres psql -U sutra -d sutra -c "\dt institution.*"
+#   → institution, org_unit, org_type_blueprint, position_definition, campus, academic_structure, programme,
+#     curriculum_version, academic_calendar, calendar_version, academic_year, calendar_assignment, …
+curl.exe -s http://localhost:8080/health/ready   # HTTP 200, "status":"ok"
+```
+
+Open **http://localhost:3000** and sign in as **Administrator** (Dhruv Naik). Then:
+
+1. **Register institution** — navigation *Campus* (Campus setup) → *Institution* → **Register institution**:
+   code `SIT`, name `Sutra Institute of Technology`, timezone `Asia/Kolkata` → *Register*. Status **Draft**.
+2. **Profile → configured** — **Mark configured** first: refused with "… missing: shortName, institutionType, …"
+   (422). **Edit profile**: short name `SIT`, type `college`, registration number `REG-001`, address
+   `1 Campus Road, Pune`, phone `+91 20 1234 5678`, official e-mail `office@sit.edu`, administrator e-mail
+   `admin@sit.edu`, pattern `semester`, working days `mon, tue, wed, thu, fri` → *Save profile* (Profile shows
+   "revision 1") → **Mark configured** → status **Configured**.
+3. **Organisation** — *Organisation* → *Unit types*: keep `university, faculty, department` → **Publish unit types**
+   (shows "Blueprint v1"). **Add unit**: parent *— root unit —*, type `university`, code `SIT`, name
+   `Sutra Institute of Technology` → *Add* → **Activate**. **Add unit** again: parent *Sutra Institute of Technology*,
+   type `department`, code `CSE`, name `Computer Science` → *Add* (indented under the root).
+4. **Campus** — *Campuses* → **Register campus**: code `MAIN`, name `Main campus`, address `1 University Road`,
+   `Pune`, `Maharashtra`, PIN `411007`, *Main campus* ticked → *Register* → **Activate** (status *Active*).
+5. **Structure, programme, curriculum** — navigation *Academics* → *Academic structure*: keep the levels
+   `ug:Undergraduate, pg:Postgraduate` → *Create draft structure* → **Publish** (status *Published*).
+   *Programmes* → **Register programme**: `BTECH-CSE`, `B.Tech Computer Science`, level *Undergraduate (ug)*,
+   `4` terms, owning unit *Computer Science* → *Register* → **Publish**. *Curriculum* → programme
+   *B.Tech Computer Science* → *Add curriculum*: code `CSE-2026`, title `CSE scheme 2026`, effective from
+   `2026-07-01`, course slots `1:CS101:20, 2:CS201:20, 3:CS301:20, 4:CS401:20` → *Add curriculum* (version 1,
+   *Draft*) → **Publish** (*Published*). **Revise** (what changes `BoS 2027`, effective `2027-07-01`) creates
+   version 2 as a draft successor; publishing it later supersedes version 1.
+6. **Calendar** — *Academics* → *Academic calendar*: *Create calendar* (`MAIN`, `Main academic calendar`) →
+   **Plan academic year** (`2026-27`, `2026-06-01` → `2027-05-31`) → *Create draft version* → add terms
+   (`T1` Semester 1 `2026-06-15`–`2026-11-30`, `T2` Semester 2 `2026-12-01`–`2027-04-30`) and a key date
+   (holiday *Independence Day* `2026-08-15`) → **Publish** (*Published*, "dates in Asia/Kolkata") → **Open year**
+   (*Open*) → *Create assignment* with scope *Whole institution*, effective from `2026-06-01` → **Make effective**
+   (*Effective · governing*). Optional: a second assignment with scope *Campus · Main campus* shows that campus
+   scopes come from the real campus register; *Change simulation* → proposed end `2026-10-31` → *Run simulation*
+   shows **Unfavourable** and changes nothing.
+7. **Readiness all green** — *Campus setup* → *Activation readiness* → *Refresh*: every **required** item is *Met*
+   (profile, timezone, root unit, active campus, structure / programme / curriculum published, calendar version
+   published, year open, institution assignment effective); *School academic model* is *Not applicable*;
+   advisory items (policies, governance, positions) may stay open. Header: "Every required item is met".
+8. **Submit / activate** — *Institution* → **Submit for activation**. With the Batch 2 auto-approval (no
+   activation authority configured) the institution goes straight to **Active**, and the bell shows the
+   activation notification. Submitting before step 7 is green is refused with "activation readiness incomplete: …".
+9. **Suspend / restore** — **Suspend** (reason `Audit`) → *Suspended*; every setup screen now refuses changes
+   (e.g. *Register campus* → "… is suspended …"). **Restore** (reason `Audit closed`) → *Active* again. To see the
+   step-up dialog, enforce MFA for sensitive admin actions and repeat:
+   ```powershell
+   $env:SUTRA_COMPOSE_DEV_MFA = "true"; docker compose --profile app up -d api
+   ```
+   *Suspend* then opens **Verify it’s you** (passkey or authenticator code) and completes after verification.
+   Campus **Decommission** asks for a reason and effective date, and is refused while a programme is offered at the
+   campus or a campus-scoped calendar assignment still governs it.
+10. **Evidence in the database**:
+   ```powershell
+   docker compose exec postgres psql -U sutra -d sutra -c "SELECT event_type, created_at FROM platform.outbox WHERE event_type LIKE 'sutraerp.institution.%' ORDER BY created_at DESC LIMIT 20;"
+   docker compose exec postgres psql -U sutra -d sutra -c "SELECT action, actor_id FROM platform.audit_log WHERE action LIKE 'institution.%' ORDER BY occurred_at DESC LIMIT 20;"
+   ```
+   → `institution.configured`, `org_type_blueprint.published`, `org_unit.activated`, `campus.activated`,
+   `academic_structure.published`, `programme.published`, `curriculum_version.published`,
+   `calendar_version.published`, `academic_year.opened`, `calendar_assignment.effective`,
+   `institution.submitted_for_approval`, `institution.activated`, `institution.suspended`,
+   `institution.reactivated`, with matching audit actions (approval steps by `system:auto-approval`).
+
+Mock mode (`VITE_AUTH_MODE` unset, `pnpm dev`) runs the same screens against an in-memory store.
+<!-- batch2:2c-docker:end -->

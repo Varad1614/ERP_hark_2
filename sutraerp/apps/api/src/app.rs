@@ -14,6 +14,7 @@ use sutra_contracts::platform::auth::{
     CredentialAuthenticator, MfaFactorStore, MfaPolicy, OidcIdentityProvider, PreAuthStore,
     ReplayGuard, SessionPolicy, SessionStore, WebauthnPort,
 };
+use sutra_contracts::platform::workflow::WorkflowPort;
 use sutra_infra::nats::{JetStreamPublisher, JetStreamSettings, NatsReadiness};
 use sutra_infra::smtp::{SmtpMailSender, SmtpSettings, SmtpTls};
 use sutra_infra::valkey::{ValkeyCache, ValkeyReadiness, ValkeySettings};
@@ -90,6 +91,8 @@ pub struct AppContext {
     pub request_timeout: Duration,
     /// Advisory cache handed to modules (ADR-L5-0037).
     pub cache: AdvisoryCache,
+    /// Workflow orchestration port for approval steps (no-op adapter until Flowable, ADR-L5-0023).
+    pub workflow: Arc<dyn WorkflowPort>,
     /// Outbox relay + sweepers; started by `serve` via [`AppContext::take_background`].
     pub background: BackgroundTasks,
 }
@@ -322,6 +325,7 @@ impl AppContext {
             idempotency,
             request_timeout: cfg.request_timeout,
             cache,
+            workflow: Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
             background: BackgroundTasks {
                 relay,
                 scheduler,
@@ -528,8 +532,11 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
         .merge(sutra_institution::router(
-            ctx.pool.clone(),
-            ctx.cache.clone(),
+            sutra_institution::InstitutionDeps {
+                pool: ctx.pool.clone(),
+                cache: ctx.cache.clone(),
+                workflow: ctx.workflow.clone(),
+            },
         ))
         .merge(sutra_student::router())
         .merge(sutra_academic::router())
