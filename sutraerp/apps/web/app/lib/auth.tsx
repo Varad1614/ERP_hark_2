@@ -38,7 +38,7 @@ interface AuthContextValue {
    * new one that also still accepts a TOTP code; `onNewChallenge` receives it before the browser
    * prompt so a cancelled passkey prompt can fall back to the authenticator code.
    */
-  verifyPasskey: (challengeId: string, onNewChallenge?: (id: string) => void) => Promise<ClientSession>;
+  verifyPasskey: (challengeId: string, onNewChallenge?: (id: string) => void, signal?: AbortSignal) => Promise<ClientSession>;
   /** Adopts the response of an endpoint that rotated the session (MFA enrolment, step-up). */
   adoptSession: (res: LoginResponse) => ClientSession;
   signOut: () => Promise<void>;
@@ -127,10 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return s;
   }, []);
 
-  const verifyPasskey = useCallback(async (challengeId: string, onNewChallenge?: (id: string) => void) => {
+  const verifyPasskey = useCallback(async (challengeId: string, onNewChallenge?: (id: string) => void, signal?: AbortSignal) => {
     const started = unwrap(await api.POST("/api/v1/auth/mfa/webauthn/challenge", { body: { challengeId } }));
     onNewChallenge?.(started.challengeId);
-    const credential = await getPasskeyAssertion(started.options);
+    const credential = await getPasskeyAssertion(started.options, signal);
     const res = unwrap(await api.POST("/api/v1/auth/mfa/webauthn/verify", { body: { challengeId: started.challengeId, credential } }));
     const s = sessionFromLogin(res, "administrator");
     setSession(s);

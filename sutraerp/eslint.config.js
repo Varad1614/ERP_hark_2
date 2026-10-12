@@ -19,4 +19,9 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
+  {
+    // Playwright end-to-end scripts run in Node and evaluate snippets in the browser.
+    files: ["apps/web/e2e/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser }, ecmaVersion: 2023, sourceType: "module" },
+  },
 );

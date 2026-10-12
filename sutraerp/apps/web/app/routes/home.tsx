@@ -1,8 +1,12 @@
 import { ArrowUpRight, BadgeCheck, Check, ChevronRight, CircleCheck, ListTodo, Megaphone, Sun } from "lucide-react";
-import { Badge, BentoGrid, BentoTile, Button, Drawer, IconChip, StatTile, useToast } from "@sutra/ui";
+import type { Todo as LiveTodo } from "@sutra/api-client";
+import { Badge, BentoGrid, BentoTile, Button, Drawer, EmptyState, IconChip, StatTile, useToast } from "@sutra/ui";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { USES_API } from "../lib/api";
 import { useSession } from "../lib/auth";
+import { inboxKeys, useInbox, useInboxRefresh } from "../lib/inbox";
 import { ANNOUNCEMENT, BADGE_LABEL, ROLE_CONFIG, routeFor, type Todo } from "../lib/roles";
 
 export function meta() {
@@ -11,6 +15,121 @@ export function meta() {
 
 function today(): string {
   return new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
+}
+
+/** How many open to-dos the home card shows (the rest are one click away on /todos). */
+export const HOME_TODO_LIMIT = 4;
+
+const shortDue = (d: Date) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(d);
+const timeOfDay = (d: Date) => new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" }).format(d);
+
+/** Due badge of a live to-do: overdue, due today, due tomorrow, or the date; none without a due date. */
+export function dueBadge(t: Pick<LiveTodo, "dueAt" | "overdue">, now: Date = new Date()): { kind: "attention" | "review" | "neutral"; label: string } | null {
+  if (!t.dueAt) return null;
+  const due = new Date(t.dueAt);
+  if (t.overdue || due.getTime() < now.getTime()) return { kind: "attention", label: "Overdue" };
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(due) - startOfDay(now)) / 86_400_000);
+  if (days === 0) return { kind: "attention", label: `Due ${timeOfDay(due)}` };
+  if (days === 1) return { kind: "review", label: "Due tomorrow" };
+  return { kind: "neutral", label: `Due ${shortDue(due)}` };
+}
+
+/**
+ * "Your to-dos" with live data (API / OIDC mode): the first open items of
+ * `GET /api/v1/todos?status=open`, due/overdue badges, the checkbox completes through
+ * `POST /api/v1/todos/{id}/complete` (CSRF header from the client middleware).
+ */
+function LiveTodosTile() {
+  const { role } = useSession();
+  const inbox = useInbox();
+  const refresh = useInboxRefresh();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const q = useQuery({ queryKey: inboxKeys.todos(role, "open"), queryFn: () => inbox.todos("open") });
+  const [completing, setCompleting] = useState<Record<string, boolean>>({});
+  const items = (q.data?.items ?? []).filter((t) => t.status === "open").slice(0, HOME_TODO_LIMIT);
+  const more = Math.max(0, (q.data?.openCount ?? 0) - items.length);
+
+  const complete = async (t: LiveTodo) => {
+    if (completing[t.id]) return;
+    setCompleting((c) => ({ ...c, [t.id]: true }));
+    try {
+      await inbox.setTodo(t.id, "complete");
+      toast(`Done: ${t.title}`);
+      await refresh();
+    } catch (e) {
+      toast(e instanceof Error ? `Couldn’t complete “${t.title}”: ${e.message}` : "Could not update");
+    } finally {
+      setCompleting((c) => Object.fromEntries(Object.entries(c).filter(([id]) => id !== t.id)));
+    }
+  };
+
+  return (
+    <BentoTile
+      span={7}
+      title={q.data && q.data.openCount > 0 ? `Your to-dos · ${q.data.openCount}` : "Your to-dos"}
+      action={
+        <button type="button" onClick={() => navigate("/todos")} data-todos-see-all>
+          See all
+        </button>
+      }
+    >
+      <div data-home-todos={q.isLoading ? "loading" : q.isError ? "error" : items.length === 0 ? "empty" : "ready"}>
+        {q.isLoading ? (
+          <>
+            <div className="sb-skeleton" style={{ width: "70%" }} />
+            <div className="sb-skeleton" style={{ width: "55%" }} />
+            <div className="sb-skeleton" style={{ width: "62%" }} />
+          </>
+        ) : q.isError ? (
+          <EmptyState icon={ListTodo} title="To-dos are unavailable">
+            <span role="alert">{q.error instanceof Error ? q.error.message : "Try again shortly."}</span>{" "}
+            <Button size="sm" variant="ghost" onClick={() => q.refetch()} data-todos-retry>
+              Retry
+            </Button>
+          </EmptyState>
+        ) : items.length === 0 ? (
+          <EmptyState icon={ListTodo} title="Nothing to do — enjoy the calm" />
+        ) : (
+          <>
+            {items.map((t) => {
+              const badge = dueBadge(t);
+              const busy = !!completing[t.id];
+              return (
+                <div key={t.id} className={`sb-row${busy ? " is-done" : ""}`} data-home-todo={t.id}>
+                  <button
+                    type="button"
+                    className="sb-check"
+                    role="checkbox"
+                    aria-checked={busy}
+                    aria-label={`Mark “${t.title}” done`}
+                    disabled={busy}
+                    onClick={() => complete(t)}
+                    data-home-todo-complete={t.id}
+                  >
+                    {busy && <Check strokeWidth={2} />}
+                  </button>
+                  <div role="link" tabIndex={0} style={{ cursor: "pointer" }} onClick={() => navigate(t.link ?? "/todos")} onKeyDown={(e) => e.key === "Enter" && navigate(t.link ?? "/todos")}>
+                    <b>{t.title}</b>
+                    <small>
+                      {t.detail || (t.source === "event" ? "Automatic" : t.assignedBy ? "Assigned to you" : "Personal")}
+                    </small>
+                  </div>
+                  {badge && <Badge kind={badge.kind}>{badge.label}</Badge>}
+                </div>
+              );
+            })}
+            {more > 0 && (
+              <button type="button" className="sb-row" onClick={() => navigate("/todos")} data-todos-more>
+                <small>+{more} more open</small>
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </BentoTile>
+  );
 }
 
 export default function Home() {
@@ -72,26 +191,30 @@ export default function Home() {
         <StatTile key={k.label} icon={k.icon} tone={k.tone} label={k.label} value={k.value} hint={k.hint} onClick={() => go(k.to)} />
       ))}
 
-      <BentoTile
-        span={7}
-        title="Your to-dos"
-        action={
-          <button type="button" onClick={() => navigate("/todos")}>
-            See all
-          </button>
-        }
-      >
-        {cfg.todos.map((t, i) => (
-          <button key={t.title} type="button" className={`sb-row${done[i] ? " is-done" : ""}`} onClick={() => setOpenTodo(i)}>
-            <i className="sb-check">{done[i] && <Check strokeWidth={2} />}</i>
-            <div>
-              <b>{t.title}</b>
-              <small>{t.meta}</small>
-            </div>
-            {done[i] ? <Badge kind="done">Done</Badge> : <Badge kind={t.status}>{BADGE_LABEL[t.status]}</Badge>}
-          </button>
-        ))}
-      </BentoTile>
+      {USES_API ? (
+        <LiveTodosTile />
+      ) : (
+        <BentoTile
+          span={7}
+          title="Your to-dos"
+          action={
+            <button type="button" onClick={() => navigate("/todos")}>
+              See all
+            </button>
+          }
+        >
+          {cfg.todos.map((t, i) => (
+            <button key={t.title} type="button" className={`sb-row${done[i] ? " is-done" : ""}`} onClick={() => setOpenTodo(i)}>
+              <i className="sb-check">{done[i] && <Check strokeWidth={2} />}</i>
+              <div>
+                <b>{t.title}</b>
+                <small>{t.meta}</small>
+              </div>
+              {done[i] ? <Badge kind="done">Done</Badge> : <Badge kind={t.status}>{BADGE_LABEL[t.status]}</Badge>}
+            </button>
+          ))}
+        </BentoTile>
+      )}
 
       <div className="sb-side sb-span-5">
         <BentoTile title="Shortcuts">

@@ -2,13 +2,13 @@ import { ArrowUpRight, KeyRound } from "lucide-react";
 import { ApiProblem, type MfaMethod } from "@sutra/api-client";
 import { Button, Logo, ROLE_ACCENTS, RoleTheme, useToast } from "@sutra/ui";
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router";
 import { TotpChallenge } from "../components/TotpChallenge";
 import { AUTH_MODE, oidcStartUrl } from "../lib/api";
 import { useAuth, type ClientSession } from "../lib/auth";
 import { ROLE_CONFIG, ROLES, type Role } from "../lib/roles";
-import { webauthnSupported } from "../lib/webauthn";
+import { PasskeyCancelled, passkeyErrorMessage, webauthnSupported } from "../lib/webauthn";
 
 export function meta() {
   return [{ title: "Sign in · SutraERP" }];
@@ -24,8 +24,9 @@ const AUTH_ERRORS: Record<string, string> = {
 };
 
 function describe(e: unknown): string {
-  if (e instanceof DOMException && e.name === "NotAllowedError") return "The passkey prompt was cancelled. Try again or use your authenticator code.";
   if (e instanceof ApiProblem && e.problem.status === 401) return "That didn’t work. Sign in again to get a new challenge.";
+  if (e instanceof ApiProblem) return e.message;
+  if (e instanceof PasskeyCancelled || e instanceof DOMException) return passkeyErrorMessage(e, "get");
   return e instanceof Error ? e.message : "Sign-in failed";
 }
 
@@ -38,6 +39,9 @@ export default function SignIn() {
   const [challenge, setChallenge] = useState<{ role: Role; id: string; methods: MfaMethod[] } | null>(null);
   const [mfaBusy, setMfaBusy] = useState(false);
   const [mfaError, setMfaError] = useState<string | null>(null);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const passkeyAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => passkeyAbort.current?.abort(), []);
   if (ready && session && !challenge) return <Navigate to="/" replace />;
 
   const finish = (s: ClientSession) => {
@@ -77,16 +81,22 @@ export default function SignIn() {
 
   const passkey = async () => {
     if (!challenge) return;
+    const abort = new AbortController();
+    passkeyAbort.current = abort;
     setMfaBusy(true);
+    setPasskeyBusy(true);
     setMfaError(null);
     try {
-      const s = await verifyPasskey(challenge.id, (id) => setChallenge((c) => (c ? { ...c, id } : c)));
+      const s = await verifyPasskey(challenge.id, (id) => setChallenge((c) => (c ? { ...c, id } : c)), abort.signal);
       setChallenge(null);
       finish(s);
     } catch (e) {
-      setMfaError(describe(e));
+      // The renewed challenge still accepts the authenticator code after a cancelled prompt.
+      setMfaError(describe(e) + (e instanceof ApiProblem ? "" : challenge.methods.includes("totp") ? " You can try again or use your authenticator code." : " You can try again."));
     } finally {
+      if (passkeyAbort.current === abort) passkeyAbort.current = null;
       setMfaBusy(false);
+      setPasskeyBusy(false);
     }
   };
 
@@ -112,8 +122,13 @@ export default function SignIn() {
                   disabled={mfaBusy || !webauthnSupported()}
                   data-passkey-signin
                 >
-                  {mfaBusy ? "Waiting for your passkey…" : "Use a passkey"}
+                  {passkeyBusy ? "Waiting for your passkey…" : "Use a passkey"}
                 </Button>
+                {passkeyBusy && (
+                  <Button variant="ghost" onClick={() => passkeyAbort.current?.abort()} data-passkey-cancel>
+                    Cancel
+                  </Button>
+                )}
                 {!webauthnSupported() && <small>This browser cannot use passkeys here.</small>}
               </div>
             )}
@@ -131,7 +146,7 @@ export default function SignIn() {
             ) : (
               <>
                 {mfaError && (
-                  <p className="sb-field-error" role="alert">
+                  <p className="sb-field-error" role="alert" data-mfa-error>
                     {mfaError}
                   </p>
                 )}

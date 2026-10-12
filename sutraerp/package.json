@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "dev": "pnpm --filter @sutra/web dev"
+    "dev": "pnpm --filter @sutra/web dev",
+    "e2e:passkey": "pnpm --filter @sutra/web e2e:passkey"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

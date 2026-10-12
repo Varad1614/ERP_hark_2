@@ -2,13 +2,13 @@ import { KeyRound, LaptopMinimal, LogOut, ShieldCheck, Smartphone, Trash2 } from
 import { ApiProblem, type LoginResponse, type MfaStatus, type SessionView } from "@sutra/api-client";
 import { Badge, BentoGrid, BentoTile, Button, EmptyState, IconChip, Input, Modal, useToast } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { TotpChallenge } from "../components/TotpChallenge";
 import { api, AUTH_MODE, unwrap, USES_API } from "../lib/api";
 import { useAuth, useSession } from "../lib/auth";
 import { inboxKeys, relativeTime, useInbox, useInboxRefresh } from "../lib/inbox";
-import { createPasskey, getPasskeyAssertion, webauthnSupported } from "../lib/webauthn";
+import { createPasskey, getPasskeyAssertion, PasskeyCancelled, passkeyErrorMessage, webauthnSupported } from "../lib/webauthn";
 
 export function meta() {
   return [{ title: "Security · SutraERP" }];
@@ -21,31 +21,63 @@ export function describeSession(s: Pick<SessionView, "amr" | "federated" | "mfaL
   return how + second;
 }
 
-function problemMessage(e: unknown): string {
+function problemMessage(e: unknown, ceremony: "create" | "get" = "create"): string {
   if (e instanceof ApiProblem) {
     if (e.problem.errorCode === "mfa-step-up-required") return "Verify it’s you first.";
-    return e.problem.detail ?? e.problem.title;
+    const violation = (e.problem as { validationErrors?: { message?: string }[] }).validationErrors?.[0]?.message;
+    return violation ? `The passkey wasn’t accepted: ${violation}.` : (e.problem.detail ?? e.problem.title);
   }
-  if (e instanceof DOMException && e.name === "NotAllowedError") return "The passkey prompt was cancelled.";
+  if (e instanceof PasskeyCancelled || e instanceof DOMException) return passkeyErrorMessage(e, ceremony);
   return e instanceof Error ? e.message : "Something went wrong";
+}
+
+/** One cancellable WebAuthn ceremony at a time; aborted on unmount. */
+function useCeremony() {
+  const ref = useRef<AbortController | null>(null);
+  const [running, setRunning] = useState(false);
+  useEffect(() => () => ref.current?.abort(), []);
+  const run = async <T,>(fn: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+    ref.current?.abort();
+    const abort = new AbortController();
+    ref.current = abort;
+    setRunning(true);
+    try {
+      return await fn(abort.signal);
+    } finally {
+      if (ref.current === abort) {
+        ref.current = null;
+        setRunning(false);
+      }
+    }
+  };
+  return { running, run, cancel: () => ref.current?.abort() };
 }
 
 /** Step-up dialog: passkey or authenticator code; resolves with the rotated session. */
 function StepUp({ status, open, onClose, onDone }: { status: MfaStatus; open: boolean; onClose: () => void; onDone: (res: LoginResponse) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const ceremony = useCeremony();
   const viaPasskey = async () => {
     setBusy(true);
     setError(null);
     try {
-      const c = unwrap(await api.POST("/api/v1/auth/mfa/webauthn/assertion"));
-      const credential = await getPasskeyAssertion(c.options);
-      onDone(unwrap(await api.POST("/api/v1/auth/mfa/webauthn/step-up", { body: { ceremonyId: c.ceremonyId, credential } })));
+      const res = await ceremony.run(async (signal) => {
+        const c = unwrap(await api.POST("/api/v1/auth/mfa/webauthn/assertion"));
+        const credential = await getPasskeyAssertion(c.options, signal);
+        return unwrap(await api.POST("/api/v1/auth/mfa/webauthn/step-up", { body: { ceremonyId: c.ceremonyId, credential } }));
+      });
+      onDone(res);
     } catch (e) {
-      setError(problemMessage(e));
+      setError(e instanceof ApiProblem && e.problem.status === 401 ? "That passkey wasn’t accepted. Try again." : problemMessage(e, "get"));
     } finally {
       setBusy(false);
     }
+  };
+  const close = () => {
+    ceremony.cancel();
+    setError(null);
+    onClose();
   };
   const viaCode = async (code: string) => {
     setBusy(true);
@@ -59,18 +91,34 @@ function StepUp({ status, open, onClose, onDone }: { status: MfaStatus; open: bo
     }
   };
   return (
-    <Modal open={open} onClose={onClose} label="Verify it’s you">
+    <Modal open={open} onClose={close} label="Verify it’s you">
       <h2>Verify it’s you</h2>
       <p>Changing your second factors needs a fresh verification.</p>
       {status.passkeys.length > 0 && (
         <div className="sb-actions-row">
           <Button icon={<KeyRound strokeWidth={1.75} />} iconPosition="start" onClick={viaPasskey} disabled={busy || !webauthnSupported()} data-stepup-passkey>
-            Use a passkey
+            {ceremony.running ? "Waiting for your passkey…" : "Use a passkey"}
           </Button>
+          {ceremony.running && (
+            <Button variant="ghost" onClick={ceremony.cancel} data-stepup-cancel>
+              Cancel
+            </Button>
+          )}
         </div>
       )}
       {status.totpEnrolled && <TotpChallenge title="Authenticator code" submitLabel="Verify" busy={busy} error={error} onSubmit={viaCode} />}
-      {!status.totpEnrolled && error && <p className="sb-field-error">{error}</p>}
+      {!status.totpEnrolled && error && (
+        <p className="sb-field-error" role="alert" data-stepup-error>
+          {error}
+        </p>
+      )}
+      {!status.totpEnrolled && !ceremony.running && (
+        <div className="sb-actions-row">
+          <Button variant="ghost" onClick={close}>
+            Close
+          </Button>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -86,7 +134,8 @@ export default function Security() {
   const sessions = useQuery({ queryKey: inboxKeys.sessions(session.role), queryFn: () => inbox.sessions() });
   const mfa = useQuery({ queryKey: inboxKeys.mfa(session.role), queryFn: () => inbox.mfa() });
   const [label, setLabel] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const enrol = useCeremony();
   const [stepUp, setStepUp] = useState<null | (() => Promise<void>)>(null);
 
   /** Runs `action`; on a step-up problem opens the verification dialog and retries after it. */
@@ -99,22 +148,33 @@ export default function Security() {
     }
   };
 
-  const registerPasskey = () =>
-    guarded(async () => {
-      setBusy(true);
-      try {
+  /**
+   * Registration: options → browser/OS prompt → verify + store. The prompt can be cancelled from
+   * the page (the old UI stayed on "Waiting for your device…" until the 5-minute timeout); every
+   * failure ends in a message next to the button.
+   */
+  const registerPasskey = async () => {
+    setPasskeyError(null);
+    const attempt = async () => {
+      const res = await enrol.run(async (signal) => {
         const c = unwrap(await api.POST("/api/v1/auth/mfa/webauthn/registration"));
-        const credential = await createPasskey(c.options);
-        adoptSession(
-          unwrap(await api.POST("/api/v1/auth/mfa/webauthn/registration/complete", { body: { ceremonyId: c.ceremonyId, credential, label: label.trim() } })),
+        const credential = await createPasskey(c.options, signal);
+        return unwrap(
+          await api.POST("/api/v1/auth/mfa/webauthn/registration/complete", { body: { ceremonyId: c.ceremonyId, credential, label: label.trim() } }),
         );
-        setLabel("");
-        toast("Passkey added");
-        await refresh();
-      } finally {
-        setBusy(false);
-      }
-    });
+      });
+      adoptSession(res);
+      setLabel("");
+      toast("Passkey added");
+      await refresh();
+    };
+    try {
+      await attempt();
+    } catch (e) {
+      if (e instanceof ApiProblem && e.problem.errorCode === "mfa-step-up-required") setStepUp(() => attempt);
+      else setPasskeyError(problemMessage(e, "create"));
+    }
+  };
 
   const removePasskey = (id: string) =>
     guarded(async () => {
@@ -252,10 +312,25 @@ export default function Security() {
               <div className="sb-form" data-passkey-form>
                 <Input label="Passkey name" name="label" placeholder="Work laptop" maxLength={64} value={label} onChange={(e) => setLabel(e.target.value)} />
                 <div className="sb-actions-row">
-                  <Button icon={<KeyRound strokeWidth={1.75} />} iconPosition="start" onClick={registerPasskey} disabled={busy || !webauthnSupported()} data-add-passkey>
-                    {busy ? "Waiting for your device…" : "Add a passkey"}
+                  <Button icon={<KeyRound strokeWidth={1.75} />} iconPosition="start" onClick={registerPasskey} disabled={enrol.running || !webauthnSupported()} data-add-passkey>
+                    {enrol.running ? "Waiting for your device…" : "Add a passkey"}
                   </Button>
+                  {enrol.running && (
+                    <Button variant="ghost" onClick={enrol.cancel} data-passkey-cancel>
+                      Cancel
+                    </Button>
+                  )}
                 </div>
+                {enrol.running && (
+                  <p>
+                    <small>Follow your browser’s prompt. On Windows choose Windows Hello (PIN, face or fingerprint), a phone, or a security key.</small>
+                  </p>
+                )}
+                {passkeyError && (
+                  <p className="sb-field-error" role="alert" data-passkey-error>
+                    {passkeyError}
+                  </p>
+                )}
                 {!webauthnSupported() && <p className="sb-field-error">This browser cannot use passkeys here (https or localhost is required).</p>}
               </div>
             ) : (

@@ -31,13 +31,106 @@ use sutra_persistence::map_db_error;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
     CredentialID, Passkey, PasskeyAuthentication, PasskeyRegistration, PublicKeyCredential,
-    RegisterPublicKeyCredential, Url, Webauthn, WebauthnBuilder,
+    RegisterPublicKeyCredential, Url, Webauthn, WebauthnBuilder, WebauthnError,
 };
 
 /// Lifetime of a registration / authentication ceremony.
 pub const CEREMONY_TTL_SECS: i64 = 300;
 /// Maximum passkeys per subject.
 pub const MAX_CREDENTIALS: usize = 10;
+/// How long the browser / OS prompt waits for the authenticator (`timeout` member, ms). Shorter
+/// than the server-side ceremony TTL so the prompt always expires first.
+pub const PROMPT_TIMEOUT_MS: u64 = 120_000;
+
+/// Browser-facing tweaks of the creation options `webauthn-rs` generates
+/// (`{"publicKey": {…}}`, the JSON form `PublicKeyCredential.parseCreationOptionsFromJSON` takes).
+///
+/// * `residentKey: "preferred"` (was `"discouraged"`, `requireResidentKey` stays `false`):
+///   platform authenticators — Windows Hello, Touch ID, Android screen lock — then create a
+///   regular passkey instead of being skipped by some clients, while security keys without
+///   resident-key storage still work. The server never requires a discoverable credential.
+/// * `hints: ["client-device"]` (WebAuthn L3): ask the browser to offer this device's own
+///   authenticator (Windows Hello) first instead of the phone / security-key choice.
+/// * `authenticatorAttachment` stays unset so security keys and phones remain possible.
+/// * `userVerification: "required"` is kept: a webauthn-rs `Passkey` is a UV credential and
+///   the ceremony state enforces it; every platform authenticator performs UV anyway.
+/// * `attestation: "none"` (already) and a [`PROMPT_TIMEOUT_MS`] prompt timeout.
+pub fn tune_creation_options(mut options: serde_json::Value) -> serde_json::Value {
+    if let Some(pk) = options
+        .get_mut("publicKey")
+        .and_then(serde_json::Value::as_object_mut)
+    {
+        let sel = pk
+            .entry("authenticatorSelection")
+            .or_insert_with(|| serde_json::json!({}));
+        if let Some(sel) = sel.as_object_mut() {
+            sel.insert("residentKey".into(), "preferred".into());
+            sel.insert("requireResidentKey".into(), false.into());
+            sel.insert("userVerification".into(), "required".into());
+            sel.remove("authenticatorAttachment");
+        }
+        pk.insert("hints".into(), serde_json::json!(["client-device"]));
+        pk.insert("attestation".into(), "none".into());
+        pk.insert("timeout".into(), PROMPT_TIMEOUT_MS.into());
+        strip_nulls(pk);
+    }
+    options
+}
+
+/// Browser-facing tweaks of the request (assertion) options: same hint and prompt timeout.
+pub fn tune_request_options(mut options: serde_json::Value) -> serde_json::Value {
+    if let Some(pk) = options
+        .get_mut("publicKey")
+        .and_then(serde_json::Value::as_object_mut)
+    {
+        pk.insert("hints".into(), serde_json::json!(["client-device"]));
+        pk.insert("timeout".into(), PROMPT_TIMEOUT_MS.into());
+        strip_nulls(pk);
+    }
+    options
+}
+
+/// WebIDL dictionaries reject `null` for non-nullable members (`TypeError` in the browser).
+fn strip_nulls(map: &mut serde_json::Map<String, serde_json::Value>) {
+    map.retain(|_, v| !v.is_null());
+    for v in map.values_mut() {
+        if let Some(inner) = v.as_object_mut() {
+            strip_nulls(inner);
+        }
+    }
+}
+
+/// User-facing reason for a rejected attestation. Nothing secret: the checks are public and
+/// the details (expected origin etc.) stay in the server log.
+pub fn registration_failure_message(e: &WebauthnError) -> &'static str {
+    match e {
+        WebauthnError::InvalidRPOrigin => {
+            "this page's address is not an allowed passkey origin (SUTRA_WEBAUTHN_ORIGINS) — open the app at the configured address, e.g. http://localhost:3000"
+        }
+        WebauthnError::InvalidRPIDHash => {
+            "the passkey was created for another site (relying party id, SUTRA_WEBAUTHN_RP_ID)"
+        }
+        WebauthnError::UserNotVerified => {
+            "the authenticator did not verify you — set up a PIN, fingerprint or face unlock on it"
+        }
+        WebauthnError::MismatchedChallenge => {
+            "the passkey prompt answered an older request — try again"
+        }
+        _ => "the authenticator response could not be verified",
+    }
+}
+
+/// Signature counter the authenticator reported at registration (0 for counter-less passkeys).
+/// Stored as the starting `sign_count`, so the first assertion is compared against it.
+pub fn registration_counter(passkey: &Passkey) -> i64 {
+    serde_json::to_value(passkey)
+        .ok()
+        .and_then(|v| {
+            v.pointer("/cred/counter")
+                .and_then(serde_json::Value::as_i64)
+        })
+        .unwrap_or(0)
+}
 
 /// Relying-party settings (`SUTRA_WEBAUTHN_*`).
 #[derive(Clone, Debug)]
@@ -104,7 +197,11 @@ pub trait WebauthnCredentialStore: Send + Sync + 'static {
     ) -> Result<bool, KernelError>;
 }
 
-fn counter_advances(new: i64, stored: i64) -> bool {
+/// WebAuthn §7.2 step 21: when either the reported or the stored counter is non-zero the
+/// reported one must be greater; authenticators that do not implement a counter (synced
+/// passkeys — Google Password Manager, iCloud Keychain, 1Password, some Windows Hello builds)
+/// always report 0, which is accepted while the stored value is 0 as well.
+pub fn counter_advances(new: i64, stored: i64) -> bool {
     new > stored || (new == 0 && stored == 0)
 }
 
@@ -169,7 +266,7 @@ impl WebauthnCredentialStore for InMemoryWebauthnStore {
             id: sutra_kernel::id::new_v7(),
             label: label.to_owned(),
             passkey: passkey.clone(),
-            sign_count: 0,
+            sign_count: registration_counter(passkey),
             created_at: (self.clock)(),
             last_used_at: None,
         };
@@ -265,14 +362,15 @@ impl WebauthnCredentialStore for PgWebauthnStore {
         let json = serde_json::to_value(passkey).map_err(KernelError::internal)?;
         let row = sqlx::query(&format!(
             "INSERT INTO platform.webauthn_credential \
-               (tenant_id, subject, credential_id, label, passkey) \
-             VALUES ($1, $2, $3, $4, $5) RETURNING {PG_COLUMNS}"
+               (tenant_id, subject, credential_id, label, passkey, sign_count) \
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING {PG_COLUMNS}"
         ))
         .bind(scope.tenant_id.as_uuid())
         .bind(subject)
         .bind(passkey.cred_id().as_slice())
         .bind(label)
         .bind(json)
+        .bind(registration_counter(passkey))
         .fetch_one(&self.pool)
         .await
         .map_err(|e| match map_db_error(e) {
@@ -478,7 +576,7 @@ impl WebauthnPort for DevWebauthn {
             PreAuthKind::WebauthnRegistration,
             p,
             serde_json::to_value(&state).map_err(KernelError::internal)?,
-            serde_json::to_value(&ccr).map_err(KernelError::internal)?,
+            tune_creation_options(serde_json::to_value(&ccr).map_err(KernelError::internal)?),
         )
         .await
     }
@@ -496,20 +594,20 @@ impl WebauthnPort for DevWebauthn {
             .await?;
         let state: PasskeyRegistration =
             serde_json::from_value(state).map_err(KernelError::internal)?;
-        let invalid = |why: String| {
+        let invalid = |why: String, message: &'static str| {
             tracing::warn!(subject = %p.subject, reason = %why, "WebAuthn registration rejected");
-            KernelError::Validation(vec![FieldViolation::new(
-                "credential",
-                "invalid",
-                "the authenticator response could not be verified",
-            )])
+            KernelError::Validation(vec![FieldViolation::new("credential", "invalid", message)])
         };
-        let reg: RegisterPublicKeyCredential =
-            serde_json::from_value(response).map_err(|e| invalid(e.to_string()))?;
+        let reg: RegisterPublicKeyCredential = serde_json::from_value(response).map_err(|e| {
+            invalid(
+                e.to_string(),
+                "the authenticator response could not be verified",
+            )
+        })?;
         let passkey = self
             .webauthn
             .finish_passkey_registration(&reg, &state)
-            .map_err(|e| invalid(e.to_string()))?;
+            .map_err(|e| invalid(e.to_string(), registration_failure_message(&e)))?;
         Ok(self
             .store
             .insert(&p.scope, &p.subject, &label, &passkey)
@@ -536,7 +634,7 @@ impl WebauthnPort for DevWebauthn {
             PreAuthKind::WebauthnAuthentication,
             p,
             serde_json::to_value(&state).map_err(KernelError::internal)?,
-            serde_json::to_value(&rcr).map_err(KernelError::internal)?,
+            tune_request_options(serde_json::to_value(&rcr).map_err(KernelError::internal)?),
         )
         .await
     }
@@ -1056,6 +1154,143 @@ mod tests {
                 Err(KernelError::Unauthenticated)
             ));
         }
+    }
+
+    #[tokio::test]
+    async fn options_offer_platform_authenticators_and_strip_nulls() {
+        let rp = rp();
+        let p = principal();
+        let c = rp.start_registration(&p).await.unwrap();
+        let pk = &c.options["publicKey"];
+        let sel = &pk["authenticatorSelection"];
+        assert_eq!(sel["residentKey"], "preferred");
+        assert_eq!(sel["requireResidentKey"], false);
+        assert_eq!(sel["userVerification"], "required");
+        assert!(sel.get("authenticatorAttachment").is_none());
+        assert_eq!(pk["hints"], serde_json::json!(["client-device"]));
+        assert_eq!(pk["attestation"], "none");
+        assert_eq!(pk["timeout"], PROMPT_TIMEOUT_MS);
+        // base64url (no padding) binary members, as parseCreationOptionsFromJSON expects.
+        for v in [&pk["challenge"], &pk["user"]["id"]] {
+            let s = v.as_str().unwrap();
+            assert!(
+                !s.contains('=') && !s.contains('+') && !s.contains('/'),
+                "{s}"
+            );
+        }
+        // A discoverable credential (residentKey preferred) still registers and asserts.
+        let mut auth = SoftAuthenticator::new("localhost", ORIGIN);
+        rp.finish_registration(&p, &c.ceremony_id, auth.create(&c.options), "Hello")
+            .await
+            .unwrap();
+        let a = rp.start_authentication(&p).await.unwrap();
+        assert_eq!(
+            a.options["publicKey"]["hints"],
+            serde_json::json!(["client-device"])
+        );
+        assert_eq!(a.options["publicKey"]["timeout"], PROMPT_TIMEOUT_MS);
+        let resp = auth.get(&a.options, true);
+        rp.finish_authentication(&p, &a.ceremony_id, resp)
+            .await
+            .unwrap();
+
+        let tuned = tune_creation_options(serde_json::json!({
+            "publicKey": {"hints": null, "authenticatorSelection": {"authenticatorAttachment": null}, "x": {"y": null}}
+        }));
+        assert_eq!(
+            tuned["publicKey"]["hints"],
+            serde_json::json!(["client-device"])
+        );
+        assert!(tuned["publicKey"]["x"].get("y").is_none());
+        assert!(tuned["publicKey"]["authenticatorSelection"]
+            .get("authenticatorAttachment")
+            .is_none());
+    }
+
+    /// Synced passkeys (Google Password Manager, iCloud Keychain, Windows Hello on some builds)
+    /// never implement a counter: every assertion reports 0 and must be accepted (§7.2 step 21).
+    #[tokio::test]
+    async fn zero_counter_authenticators_are_accepted_repeatedly() {
+        let rp = rp();
+        let p = principal();
+        let mut auth = registered(&rp, &p).await;
+        assert_eq!(auth.counter, 0);
+        for _ in 0..3 {
+            let c = rp.start_authentication(&p).await.unwrap();
+            let resp = auth.get(&c.options, false);
+            rp.finish_authentication(&p, &c.ceremony_id, resp)
+                .await
+                .unwrap();
+        }
+        assert!(rp.credentials(&p).await.unwrap()[0].last_used_at.is_some());
+        // Once a counter shows up it must keep advancing; falling back to 0 is refused.
+        let c = rp.start_authentication(&p).await.unwrap();
+        let resp = auth.get(&c.options, true);
+        rp.finish_authentication(&p, &c.ceremony_id, resp)
+            .await
+            .unwrap();
+        auth.counter = 0;
+        let c = rp.start_authentication(&p).await.unwrap();
+        let resp = auth.get(&c.options, false);
+        assert!(rp
+            .finish_authentication(&p, &c.ceremony_id, resp)
+            .await
+            .is_err());
+    }
+
+    /// The stored counter starts at the value reported during registration, so the first
+    /// assertion of a counting authenticator is checked against it (not against 0).
+    #[tokio::test]
+    async fn stored_counter_starts_at_the_registration_counter() {
+        let store = Arc::new(InMemoryWebauthnStore::default());
+        let rp = DevWebauthn::new(
+            &WebauthnSettings {
+                rp_id: "localhost".into(),
+                rp_name: "SutraERP".into(),
+                origins: vec![ORIGIN.into()],
+            },
+            store.clone(),
+            Arc::new(InMemoryPreAuthStore::default()),
+        )
+        .unwrap();
+        let p = principal();
+        let mut auth = SoftAuthenticator::new("localhost", ORIGIN);
+        auth.counter = 7;
+        let c = rp.start_registration(&p).await.unwrap();
+        rp.finish_registration(&p, &c.ceremony_id, auth.create(&c.options), "k")
+            .await
+            .unwrap();
+        let stored = store.list(&p.scope, &p.subject).await.unwrap();
+        assert_eq!(stored[0].sign_count, 7);
+        assert_eq!(registration_counter(&stored[0].passkey), 7);
+        // A lower counter than at registration is a clone signal.
+        auth.counter = 3;
+        let c = rp.start_authentication(&p).await.unwrap();
+        let resp = auth.get(&c.options, false);
+        assert!(rp
+            .finish_authentication(&p, &c.ceremony_id, resp)
+            .await
+            .is_err());
+        let c = rp.start_authentication(&p).await.unwrap();
+        auth.counter = 7;
+        let resp = auth.get(&c.options, true);
+        rp.finish_authentication(&p, &c.ceremony_id, resp)
+            .await
+            .unwrap();
+    }
+
+    #[test]
+    fn counter_rules_follow_the_spec() {
+        assert!(counter_advances(0, 0), "counter-less authenticator");
+        assert!(counter_advances(1, 0));
+        assert!(counter_advances(9, 8));
+        assert!(!counter_advances(8, 8), "replay / clone");
+        assert!(!counter_advances(0, 8), "counter went back to 0");
+        assert!(
+            registration_failure_message(&WebauthnError::InvalidRPOrigin)
+                .contains("SUTRA_WEBAUTHN_ORIGINS")
+        );
+        assert!(registration_failure_message(&WebauthnError::UserNotVerified).contains("PIN"));
     }
 
     #[test]

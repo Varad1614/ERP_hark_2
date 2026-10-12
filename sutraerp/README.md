@@ -212,11 +212,49 @@ enrolment screen (QR code) when `mfaEnrollmentRequired`; `oidc` mode shows an SS
 | To-dos | `inbox/todos.rs`: own and assigned to-dos (administrators/faculty may assign by login id), complete / dismiss / reopen with versions, overdue flag, open count. |
 | Profile | `inbox/profile.rs`: display name, locale, time zone, contact e-mail/phone, notification preferences; created on first sign-in; `PATCH` with `If-Match`. |
 | Security | `auth/http_security.rs`: own sessions (current flagged), revoke one / all others, MFA status, remove TOTP (step-up). |
-| Dev-mode WebAuthn | `auth/webauthn.rs` (`DevWebauthn`, webauthn-rs; `SUTRA_WEBAUTHN_RP_ID`, `SUTRA_WEBAUTHN_ORIGINS`): passkey registration, sign-in challenge (`…/webauthn/challenge` → `…/webauthn/verify`, the renewed challenge still accepts TOTP), step-up; ceremony state single use in `platform.pre_auth`; sign counter advanced atomically (non-increasing → refused). Session `amr` = `pwd, hwk, mfa`. Keycloak mode keeps `501` (Keycloak owns passkeys). |
+| Dev-mode WebAuthn | `auth/webauthn.rs` (`DevWebauthn`, webauthn-rs; `SUTRA_WEBAUTHN_RP_ID`, `SUTRA_WEBAUTHN_ORIGINS`): passkey registration, sign-in challenge (`…/webauthn/challenge` → `…/webauthn/verify`, the renewed challenge still accepts TOTP), step-up; ceremony state single use in `platform.pre_auth`. Creation options ask for `residentKey: preferred`, `userVerification: required`, `attestation: none`, no `authenticatorAttachment`, `hints: ["client-device"]` (Windows Hello / Touch ID offered first) and a 2-minute prompt timeout. Sign counter starts at the registration value and advances atomically; authenticators without a counter (always `0`, e.g. synced passkeys) are accepted, a counter that stops advancing is refused. Session `amr` = `pwd, hwk, mfa`. Keycloak mode keeps `501` (Keycloak owns passkeys). See [Passkeys (dev mode)](#passkeys-dev-mode). |
 | Back-channel logout | `POST /api/v1/auth/oidc/backchannel-logout`: Keycloak's signed `logout_token` (JWKS, `iss`, `aud`, `iat`, back-channel event, `sid` required, no `nonce`), `jti` single use via `ReplayGuard` (`platform.replay_guard`), revokes every session with that IdP `sid`. Registered on the `sutra-web` client in the dev realm (`backchannel.logout.url` = `http://api:8080/…`, session required). |
 | Runtime DB roles | `sutra_<schema>` NOLOGIN roles with DML on their own schema only (+ INSERT on `platform.outbox`/`audit_log`), `sutra_app` member of all; `sutra-api migrate` runs as the owner (`SUTRA_MIGRATION_DATABASE_URL`) and provisions `SUTRA_DB_RUNTIME_USER` as a member of `sutra_app`. The API serves as that role: no DDL, no ownership, audit log append-only. The db-tests run the API as such a role. |
 | Sweepers | Read notifications, archived/expired notices, closed to-dos (`SUTRA_*_RETENTION_SECS`), consumer receipts and replay-guard entries (`inbox/jobs.rs`). |
-| Web | `/notifications`, `/notices`, `/todos`, `/profile`, `/account/security`; the bell shows the live unread count and the latest notifications; account menu → Profile, Notices, To-dos, Security, Two-step verification; sign-in MFA step offers **Use a passkey** when the account has one. Mock mode keeps an in-memory inbox per role. |
+| Web | `/notifications`, `/notices`, `/todos`, `/profile`, `/account/security`; the bell shows the live unread count and the latest notifications; account menu → Profile, Notices, To-dos, Security, Two-step verification; sign-in MFA step offers **Use a passkey** when the account has one; the home **Your to-dos** card shows the first four open to-dos from `GET /api/v1/todos` (overdue / due badges, the checkbox completes the to-do, *See all* → `/todos`) with loading, empty and error states. Mock mode keeps an in-memory inbox per role and the persona's sample to-dos on home. |
+
+## Passkeys (dev mode)
+
+The browser half lives in `apps/web/app/lib/webauthn.ts`: it unwraps the API's `{ publicKey: … }`
+options, uses the browser's `PublicKeyCredential.parseCreationOptionsFromJSON` /
+`parseRequestOptionsFromJSON` and `credential.toJSON()` when present (manual base64url conversion
+otherwise), refuses to prompt when the page host is not the relying-party id (for example the app
+opened as `http://127.0.0.1:3000` while `SUTRA_WEBAUTHN_RP_ID=localhost` — open `http://localhost:3000`),
+and passes an `AbortSignal`, so **Add a passkey**, the sign-in **Use a passkey** step and the step-up
+dialog all show a **Cancel** button while the browser / Windows Security prompt is open and end
+with a plain message on cancel, timeout or rejection (they used to stay on “Waiting for your device…”).
+
+Requirements: the page origin must be listed in `SUTRA_WEBAUTHN_ORIGINS` (compose:
+`http://localhost:3000,http://localhost:5173`) and its host must equal `SUTRA_WEBAUTHN_RP_ID`
+(`localhost`). On Windows, **Windows Hello** is offered only when a PIN, fingerprint or face is set
+up in *Settings → Accounts → Sign-in options*; without it Windows Security lists only
+“iPhone, iPad, or Android device” and “Security key”.
+
+### Passkey end-to-end check (Playwright)
+
+`pnpm e2e:passkey` (not part of `pnpm -r test`) drives Chromium with a CDP virtual authenticator
+(CTAP2, internal, resident keys, user verification — what Chrome DevTools → *WebAuthn* offers) through:
+sign in as Administrator → *Security* → name + **Add a passkey** → listed; an unanswered prompt →
+**Cancel** → idle with a message; password-only session → **Remove** → step-up dialog →
+**Use a passkey**; then restarts the API with `SUTRA_DEV_MFA=true` → sign out → sign in →
+**Use a passkey** (Cancel once, then succeed) → signed in with `mfaLevel = mfa`. Unexpected console
+errors, page errors and failed `/api` calls fail the run. It starts the API binary and the web app
+itself; it needs a migrated PostgreSQL and `psql` (to clear the administrator's factors before and after):
+
+```sh
+cargo build -p sutra-api && cargo run -p sutra-api -- migrate        # DATABASE_URL as in .env
+pnpm --filter @sutra/web exec playwright install --with-deps chromium  # once
+pnpm e2e:passkey                                                     # web: Vite dev server on :5173
+VITE_AUTH_MODE=api pnpm --filter @sutra/web build && E2E_WEB=preview pnpm e2e:passkey   # built SPA on :3000
+```
+
+Options: `SUTRA_API_BIN` (default `$CARGO_TARGET_DIR/debug/sutra-api`), `CHROMIUM_PATH` (use an installed
+Chrome/Chromium instead of Playwright's), `E2E_HEADED=1`, `E2E_API_PORT` (default 8080, must be free).
 
 ## Local Docker verification
 
@@ -260,6 +298,13 @@ SUTRA_COMPOSE_AUTH_MODE=keycloak SUTRA_COMPOSE_WEB_AUTH_MODE=oidc docker compose
 
 Stop with `docker compose --profile app down` (add `-v` to wipe the database and JetStream volumes).
 
+**Restarts.** postgres, keycloak, valkey, nats, mailpit, api and web have `restart: unless-stopped`:
+after a Docker Desktop or PC restart the stack comes back by itself (Docker starts the containers
+directly, without compose's `depends_on` ordering — the API tolerates a database that is still
+starting and reports `/health/ready` 503 until it is up). `migrate` is a one-shot job without a restart
+policy; re-run it after pulling new migrations. `docker compose --profile app stop` (or `down`) keeps
+the stack stopped across restarts.
+
 ### Click-through checklist (1C / 1D)
 
 Dev sign-in (default compose, http://localhost:3000, password `sutra` is built in):
@@ -286,9 +331,13 @@ Dev sign-in (default compose, http://localhost:3000, password `sutra` is built i
 7. **Security sessions revoke** — sign in as Administrator in a second browser (or private window); in the first,
    account menu → *Security* lists two sessions → *Sign out* on the other one (or *Sign out others*); the second
    browser is sent to sign-in on its next request.
-8. **Passkey enrol** — *Security* → *Add a passkey* (name it) → the browser/OS passkey prompt (Chrome's
-   DevTools → *WebAuthn* virtual authenticator works too). The passkey is listed. Then require a second
-   factor for administrators and sign in again — the second-factor step offers **Use a passkey**:
+8. **Passkey enrol** — open the app at **http://localhost:3000** (not 127.0.0.1). *Security* → *Add a passkey*
+   (name it) → the browser/OS passkey prompt. On Windows choose **Windows Hello** (needs a PIN or
+   biometric in *Settings → Accounts → Sign-in options*); a phone or security key works too, and Chrome
+   DevTools → *WebAuthn* → *Enable virtual authenticator environment* (ctap2, internal, resident keys,
+   user verification) replaces the OS prompt. **Cancel** next to “Waiting for your device…” closes the
+   prompt. The passkey is listed. Then require a second factor for administrators and sign in again —
+   the second-factor step offers **Use a passkey**:
    ```sh
    SUTRA_COMPOSE_DEV_MFA=true docker compose --profile app up -d api
    ```
