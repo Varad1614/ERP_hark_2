@@ -337,6 +337,13 @@ export function createMockInstitutionApi(): InstitutionApi {
       structures.set(s.id, s);
       return { ...s };
     },
+    async updateStructure(id, ver, input) {
+      const s = structures.get(id);
+      if (!s || s.status !== "draft" || s.version !== ver) throw new Error("academic structure: not an editable draft");
+      const u: AcademicStructure = { ...s, name: input.name, model: input.model, nepAligned: input.nepAligned ?? s.nepAligned, nodes: input.nodes ?? [], effectiveFrom: input.effectiveFrom ?? null, version: s.version + 1, updatedAt: now() };
+      structures.set(id, u);
+      return { ...u };
+    },
     async structureCommand(id, ver, cmd) {
       return move(structures.get(id), ver, cmd === "publish" ? { draft: "published" } : { published: "retired" }, "academic structure");
     },

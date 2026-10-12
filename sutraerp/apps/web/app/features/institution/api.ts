@@ -107,6 +107,7 @@ export interface InstitutionApi {
   campusCommand(id: string, version: number, cmd: CampusCommand, body?: Partial<DecommissionCampus>): Promise<Campus>;
   listStructures(institutionId: string): Promise<AcademicStructure[]>;
   createStructure(institutionId: string, input: NewStructure): Promise<AcademicStructure>;
+  updateStructure(structureId: string, version: number, input: NewStructure): Promise<AcademicStructure>;
   structureCommand(id: string, version: number, cmd: PublishCommand, reason?: string): Promise<AcademicStructure>;
   listProgrammes(institutionId: string): Promise<Programme[]>;
   createProgramme(institutionId: string, input: NewProgramme): Promise<Programme>;
@@ -186,6 +187,7 @@ export const PATHS = {
   campusDecommission: `${B}/campuses/{campusId}/decommission`,
   campusArchive: `${B}/campuses/{campusId}/archive`,
   structures: `${B}/institutions/{id}/academic-structures`,
+  structure: `${B}/academic-structures/{structureId}`,
   structurePublish: `${B}/academic-structures/{structureId}/publish`,
   structureRetire: `${B}/academic-structures/{structureId}/retire`,
   programmes: `${B}/institutions/{id}/programmes`,
@@ -317,6 +319,7 @@ export function createHttpInstitutionApi(fetchImpl: Fetch = (i, init) => fetch(i
     campusCommand: (campusId, version, cmd, body) => command(fill(P[CAMPUS_COMMAND[cmd]], { campusId }), version, body ?? {}),
     listStructures: (id) => items(fill(P.structures, { id })),
     createStructure: (id, input) => create(fill(P.structures, { id }), input),
+    updateStructure: (structureId, version, input) => request("PATCH", fill(P.structure, { structureId }), { body: input, ifMatch: version }),
     structureCommand: (structureId, version, cmd, reason) => command(fill(cmd === "publish" ? P.structurePublish : P.structureRetire, { structureId }), version, reasonBody(reason)),
     listProgrammes: (id) => items(fill(P.programmes, { id })),
     createProgramme: (id, input) => create(fill(P.programmes, { id }), input),

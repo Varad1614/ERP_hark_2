@@ -151,9 +151,11 @@ describe("pure helpers", () => {
       { key: "faculty", label: "Faculty", allowRoot: false, allowedParentTypes: ["university", "faculty", "department"] },
       { key: "department", label: "Department", allowRoot: false, allowedParentTypes: ["university", "faculty", "department"] },
     ]);
-    expect(parseLevels("ug:Undergraduate, PG")).toEqual([
-      { kind: "level", key: "ug", name: "Undergraduate" },
-      { kind: "level", key: "pg", name: "pg" },
+    expect(parseLevels("ug:Undergraduate, PG, ms:Masters:7, x:Other")).toEqual([
+      { kind: "level", key: "ug", name: "Undergraduate", nheqfLevel: 6 },
+      { kind: "level", key: "pg", name: "pg", nheqfLevel: 6.5 },
+      { kind: "level", key: "ms", name: "Masters", nheqfLevel: 7 },
+      { kind: "level", key: "x", name: "Other" },
     ]);
     expect(parseSlots("1:cs101:20, 2:MD201:4:multidisciplinary")).toEqual([
       { termNo: 1, slotCode: "CS101", title: "CS101", credits: 20, category: "major_core" },

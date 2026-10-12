@@ -14,16 +14,27 @@ import type { AcademicModel, AcademicStructure, ComponentCategory, CurriculumCom
 export const MODELS: AcademicModel[] = ["higher_education", "school", "mixed"];
 const CATEGORIES: ComponentCategory[] = ["major_core", "major_elective", "minor", "multidisciplinary", "ability_enhancement", "skill_enhancement", "value_added", "internship", "research_project", "open_elective"];
 
-/** `ug:Undergraduate, pg:Postgraduate` → level nodes of an academic structure. */
+/** Default NHEQF level (NEP 2020) for common level keys when none is typed. */
+const NHEQF_DEFAULTS: Record<string, number> = { certificate: 4.5, diploma: 5, ug: 6, pg: 6.5, phd: 8 };
+
+/** `ug:Undergraduate:6, pg:Postgraduate:6.5` → level nodes (key : name [: NHEQF level]). */
 export function parseLevels(text: string): StructureNode[] {
   return text
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean)
     .map((x) => {
-      const [key = "", ...name] = x.split(":");
-      const k = key.trim().toLowerCase();
-      return { kind: "level" as const, key: k, name: name.join(":").trim() || k };
+      const parts = x.split(":").map((p) => p.trim());
+      const k = (parts[0] ?? "").toLowerCase();
+      let level: number | undefined;
+      const last = parts.length > 2 ? Number(parts[parts.length - 1]) : NaN;
+      if (parts.length > 2 && Number.isFinite(last)) {
+        level = last;
+        parts.pop();
+      }
+      const name = parts.slice(1).join(":").trim() || k;
+      level ??= NHEQF_DEFAULTS[k];
+      return level === undefined ? { kind: "level" as const, key: k, name } : { kind: "level" as const, key: k, name, nheqfLevel: level };
     });
 }
 
@@ -69,6 +80,7 @@ export function StructureTab({ institution }: { institution: Institution | null 
   const { ask, prompt } = useAsk();
   const q = useQuery({ queryKey: keys.scoped(institution?.id ?? "-", "structures"), queryFn: () => api.listStructures(institution!.id), enabled: !!institution });
   if (!institution) return <Needs institution={institution} />;
+  const draft = (q.data ?? []).find((s) => s.status === "draft");
   return (
     <>
       <BentoTile span={12} title="Academic structure">
@@ -103,17 +115,20 @@ export function StructureTab({ institution }: { institution: Institution | null 
         />
         <QuickForm
           name="new-structure"
-          submitLabel="Create draft structure"
+          submitLabel={draft ? `Update draft v${draft.versionNo}` : "Create draft structure"}
           fields={[
             { name: "name", label: "Name", required: true, initial: "Academic structure" },
             { name: "model", label: "Model", type: "select", initial: "higher_education", options: MODELS.map((m) => ({ value: m, label: m.replace(/_/g, " ") })) },
-            { name: "levels", label: "Levels (key:name, comma separated)", required: true, wide: true, initial: "ug:Undergraduate, pg:Postgraduate" },
+            { name: "levels", label: "Levels (key:name:NHEQF level, comma separated)", required: true, wide: true, initial: "ug:Undergraduate:6, pg:Postgraduate:6.5" },
             { name: "effectiveFrom", label: "Effective from", type: "date" },
           ]}
           onSubmit={(v) =>
             submit(
-              () => api.createStructure(institution.id, { name: v.name!.trim(), model: v.model as AcademicModel, nepAligned: true, nodes: parseLevels(v.levels!), effectiveFrom: v.effectiveFrom || null }),
-              "Draft structure created",
+              () => {
+                const input = { name: v.name!.trim(), model: v.model as AcademicModel, nepAligned: true, nodes: parseLevels(v.levels!), effectiveFrom: v.effectiveFrom || null };
+                return draft ? api.updateStructure(draft.id, draft.version, input) : api.createStructure(institution.id, input);
+              },
+              draft ? `Draft v${draft.versionNo} updated` : "Draft structure created",
             )
           }
         />

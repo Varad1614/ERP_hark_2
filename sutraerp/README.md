@@ -446,7 +446,7 @@ Open **http://localhost:3000** and sign in as **Administrator** (Dhruv Naik). Th
 4. **Campus** — *Campuses* → **Register campus**: code `MAIN`, name `Main campus`, address `1 University Road`,
    `Pune`, `Maharashtra`, PIN `411007`, *Main campus* ticked → *Register* → **Activate** (status *Active*).
 5. **Structure, programme, curriculum** — navigation *Academics* → *Academic structure*: keep the levels
-   `ug:Undergraduate, pg:Postgraduate` → *Create draft structure* → **Publish** (status *Published*).
+   `ug:Undergraduate:6, pg:Postgraduate:6.5` (key : name : NHEQF level) → *Create draft structure* → **Publish** (status *Published*).
    *Programmes* → **Register programme**: `BTECH-CSE`, `B.Tech Computer Science`, level *Undergraduate (ug)*,
    `4` terms, owning unit *Computer Science* → *Register* → **Publish**. *Curriculum* → programme
    *B.Tech Computer Science* → *Add curriculum*: code `CSE-2026`, title `CSE scheme 2026`, effective from
