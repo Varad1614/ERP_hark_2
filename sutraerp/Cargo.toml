@@ -115,3 +115,12 @@ debug = false
 lto = "thin"
 codegen-units = 4
 strip = "symbols"
+
+# Lighter profile for local Docker images (Docker Desktop / WSL with ~8 GB): no LTO, more but
+# smaller codegen units, less optimisation -> far lower peak rustc memory and a much faster build.
+[profile.docker]
+inherits = "release"
+opt-level = 1
+lto = false
+codegen-units = 16
+incremental = false

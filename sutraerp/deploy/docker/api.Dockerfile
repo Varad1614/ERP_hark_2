@@ -6,7 +6,11 @@
 # rust:1-bookworm ships pkg-config + libssl-dev, and the distroless cc runtime ships libssl3.
 FROM rust:1-bookworm AS build
 WORKDIR /src
-ENV SQLX_OFFLINE=true CARGO_INCREMENTAL=0
+# CARGO_PROFILE=release for production images; the default `docker` profile keeps local builds
+# within Docker Desktop memory. CARGO_BUILD_JOBS caps parallel rustc (set 1 on 8 GB machines).
+ARG CARGO_PROFILE=docker
+ARG CARGO_BUILD_JOBS=2
+ENV SQLX_OFFLINE=true CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS}
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY .cargo .cargo
 COPY crates crates
@@ -16,7 +20,7 @@ COPY migrations migrations
 COPY catalog catalog
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
-    cargo build --release --locked -p sutra-api && cp target/release/sutra-api /sutra-api
+    cargo build --profile ${CARGO_PROFILE} --locked -p sutra-api && cp target/${CARGO_PROFILE}/sutra-api /sutra-api
 
 # ---- runtime ----
 FROM gcr.io/distroless/cc-debian12:nonroot
