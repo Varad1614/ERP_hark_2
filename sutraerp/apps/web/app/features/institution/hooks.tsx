@@ -201,9 +201,16 @@ const BADGES: Record<string, BadgeKind> = {
   favourable: "done",
   unfavourable: "attention",
   uncertain: "review",
+  // Batch 4 (academic delivery)
+  enrollment_open: "done",
+  enrollment_closed: "neutral",
+  enrolled: "done",
 };
 
-export const statusLabel = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+/** Contract states spelled the US way (`enrollment_*`) read in the app's en-IN spelling. */
+const LABELS: Record<string, string> = { enrollment_open: "Enrolment open", enrollment_closed: "Enrolment closed" };
+
+export const statusLabel = (s: string) => LABELS[s] ?? s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
 export function StatusBadge({ status }: { status: string }) {
   return <Badge kind={BADGES[status] ?? "neutral"}>{statusLabel(status)}</Badge>;

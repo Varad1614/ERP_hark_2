@@ -12,10 +12,12 @@
 //! | Path | Owner |
 //! |------|-------|
 //! | `lib.rs`, `shared/`, `directory.rs`, `adapters.rs` | foundation (contract changes only) |
+//! | `academic_ports.rs` | Batch 4 foundation (Domain D's `RegistrationReader` / `CreditPostingPort`) |
 //! | `admission/`, `record/` | 3A |
 //! | `registration/`, `progression/` | 3B |
 //! | `completion/`, `guardian/`, `scholarship/`, `alumni/` | 3C |
 
+pub mod academic_ports; // Batch 4 foundation: ports Domain D calls
 pub mod adapters;
 pub mod directory;
 pub mod shared;
@@ -40,6 +42,7 @@ use sutra_contracts::student::ports::{AbcRegistryPort, ExternalScholarshipPort};
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
+pub use academic_ports::{PgCreditPosting, PgRegistrationReader};
 pub use directory::PgStudentDirectory;
 pub use shared::StudentState;
 

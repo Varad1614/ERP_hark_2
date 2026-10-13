@@ -538,6 +538,28 @@ pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_stud
     }
 }
 
+/// Domain D (Batch 4) adapters: Domain B reference reads, Domain C student directory,
+/// registration reader and credit posting, the Campus teaching-space stub (Batch 8) and the
+/// People staff stub (Batch 7). Tests reuse it to build an `AcademicState` with
+/// `ApprovalMode::AwaitDecision` (`sutra_academic::router_with_state`).
+pub fn academic_deps(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+) -> sutra_academic::AcademicDeps {
+    sutra_academic::AcademicDeps {
+        references: Arc::new(sutra_institution::PgInstitutionReferences::new(
+            pool.clone(),
+        )),
+        students: Arc::new(sutra_student::PgStudentDirectory::new(pool.clone())),
+        registrations: Arc::new(sutra_student::PgRegistrationReader::new(pool.clone())),
+        credits: Arc::new(sutra_student::PgCreditPosting::new(pool.clone())),
+        spaces: Arc::new(sutra_campus::NoTeachingSpaces),
+        staff: Arc::new(sutra_people::SubjectOnlyStaff),
+        workflow,
+        pool,
+    }
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
@@ -559,7 +581,10 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.pool.clone(),
             ctx.workflow.clone(),
         )))
-        .merge(sutra_academic::router())
+        .merge(sutra_academic::router(academic_deps(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+        )))
         .merge(sutra_people::router())
         .merge(sutra_finance::router())
         .merge(sutra_campus::router())

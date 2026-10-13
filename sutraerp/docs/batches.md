@@ -9,7 +9,7 @@ SutraERP is delivered as a modular monolith in ten batches. Each batch ends gree
 | 1 | Platform | A | Keycloak 26 credential adapter (no ROPC), durable D01 sessions, MFA (WebAuthn/TOTP) UI, CSRF tokens, D02 authorization policy enforcement, session-bound scope, NATS JetStream outbox relay + `EventPublisher`, idempotency/outbox sweepers, Valkey cache adapter, notifications/notices, to-dos inbox, profile | ✅ complete (slices A–D, see below) |
 | 2 | Institution | B | Institutions, campuses, departments, programmes catalogue, academic calendar & business timezone, institution configuration; Batch 0 reference aggregate becomes the real model | ✅ complete (slices F, 2A–2C integrated, see below) |
 | 3 | Student lifecycle | C | Admissions → enrolment → progression → exit, guardians, documents & certificates, student workspace | ✅ complete (slices F, 3A–3C integrated, see below) |
-| 4 | Academic | D | Courses, sections, timetable, attendance, coursework/assignments, faculty "My classes" | planned |
+| 4 | Academic | D | Courses, sections, timetable, attendance, coursework/assignments, faculty "My classes" | ✅ complete (slices F, 4A–4C integrated, see below) |
 | 5 | Finance | F | Fee structures, demands, concessions, payments & receipts (rust_decimal end to end), reconciliation, student fees screen | planned |
 | 6 | Examinations | I | Exam scheduling, assessments & gradebook, moderation, results publication, grade cards | planned |
 | 7 | People & workforce | E | Staff records, recruitment/onboarding, leave, payroll inputs, staff directory | planned |
@@ -67,3 +67,23 @@ squashed onto `erp_merge` (3C completion reads the newest 3B `qualification_elig
 context, with a credit-ledger fallback; the OpenAPI spec and generated api-client types cover every
 3A/3B/3C endpoint). Cross-slice coverage: `apps/api/tests/db_b3_foundation.rs`, `db_b3a.rs`,
 `db_b3b.rs` and `db_b3c.rs` (the latter also exercises the 3B eligibility wiring).
+
+## Batch 4 slices
+
+Contracts and file ownership: [`batch4-contracts.md`](batch4-contracts.md).
+
+| Slice | Scope | Status |
+|-------|-------|--------|
+| **4·F** | Foundation: Domain D ids / lifecycle states (shared Course Offering, Section, Faculty Assignment, Section Enrolment machines) / V1 event contracts / permissions incl. faculty-scoped `academic.teach`, `course_offering` + `offering_section` + `faculty_assignment` + `section_enrolment` + status-history tables, lifecycle helper, offering read port (`OfferingDirectory`), Domain C `RegistrationReader` + `CreditPostingPort`, Campus teaching-space and People staff stub ports, pre-mounted routers + OpenAPI tags + operation-id rule, inbox rule hooks, web frames (admin Academic delivery, student Courses/Timetable/Assignments/Library, faculty My classes/My students/Timetable/Attendance/Resources; faculty nav no longer links the admin-only Students page), `pnpm e2e:academic` skeleton | ✅ |
+| **4A** | Course offerings (establishment → approval via WorkflowPort → publication → enrolment → activation), suspension/reactivation, cancellation, capacity, eligibility (gated on 3B registrations), waitlist, cross-campus, revision/rollback, archive, merge/split, templates, freeze/unfreeze, windows, quotas, change simulation; sections + enrolment; faculty assignment, operational change, governance; Offerings/Faculty tabs, student Courses, faculty My classes + My students | <!-- batch4:4a:status -->✅ |
+| **4B** | Timetable (requirement → generation → validation → publication, revision, retirement), teaching sessions, attendance capture/finalisation/correction/thresholds, syllabus coverage, academic monitoring, internal assessment + coursework/assignments; Timetable/Attendance/Monitoring/Assessment tabs, student Timetable + Assignments, faculty Timetable + Attendance | <!-- batch4:4b:status -->✅ |
+| **4C** | Flexible/external learning (opportunities, providers, policy, allocation, waitlist, external registration, completion, archival, conflicts, exceptions), certificate verification, credit mapping, credit recognition posted to the Domain C ledger, reconciliation; course resources; Flexible/Recognition tabs, student Library, faculty Resources | <!-- batch4:4c:status -->✅ |
+
+Batch 4 is complete: the foundation and slices 4A → 4B → 4C were integrated on `batch4/integrate` and
+squashed onto `erp_merge` (4B and 4C read 4A's offerings, sections, rosters and faculty through
+`OfferingDirectory`; recognised flexible-learning credits post to the Domain C ledger only through
+`CreditPostingPort`; the OpenAPI spec and generated api-client types cover every 4A/4B/4C endpoint).
+Gates at integration: fmt, clippy `-D warnings`, API DB tests 131/131 (`db_b4_foundation`, `db_b4a`,
+`db_b4b`, `db_b4c` plus the Batch 2/3 suites), `cargo test --workspace` 366, web typecheck/lint/test/build,
+and the `pnpm e2e:academic` click-through (admin, student and faculty) with `pnpm e2e:student` as the
+Batch 3 regression.

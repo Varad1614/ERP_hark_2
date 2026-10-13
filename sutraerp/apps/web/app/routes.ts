@@ -21,6 +21,16 @@ export default [
     route("students/:tab?", "routes/admin/students.tsx"),
     route("documents", "routes/student/documents.tsx"),
     route("registration", "routes/student/registration.tsx"),
+    // Batch 4 (Domain D) screens — owners in docs/batch4-contracts.md §10.
+    route("academic-delivery/:tab?", "routes/admin/academic-delivery.tsx"),
+    route("courses", "routes/student/courses.tsx"),
+    route("assignments", "routes/student/assignments.tsx"),
+    route("library", "routes/student/library.tsx"),
+    route("timetable", "routes/shared/timetable.tsx"),
+    route("classes", "routes/faculty/classes.tsx"),
+    route("my-students", "routes/faculty/my-students.tsx"),
+    route("attendance", "routes/faculty/attendance.tsx"),
+    route("resources", "routes/faculty/resources.tsx"),
     // One route module serves every workspace in the catalog (99); unknown keys render a 404 tile.
     route("workspaces/:key/:tab?", "routes/workspace.tsx"),
     // Role navigation screens (students, finance, timetable, …) — stubs until their batch lands.

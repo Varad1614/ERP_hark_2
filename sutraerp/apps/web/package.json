@@ -10,7 +10,8 @@
     "typecheck": "react-router typegen && tsc -p tsconfig.json",
     "test": "vitest run",
     "e2e:passkey": "node e2e/passkey.e2e.mjs",
-    "e2e:student": "node e2e/student.e2e.mjs"
+    "e2e:student": "node e2e/student.e2e.mjs",
+    "e2e:academic": "node e2e/academic.e2e.mjs"
   },
   "dependencies": {
     "@react-router/node": "^8.4.0",

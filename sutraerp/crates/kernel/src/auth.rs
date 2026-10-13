@@ -194,10 +194,50 @@ pub enum Permission {
     ScholarshipPublish,
     /// 3C: student → alumni transition, correction and archival.
     AlumniManage,
+    // ---- Batch 4 (Domain D). Staff reads use `AcademicRead`; students use `AcademicSelfService`;
+    // faculty act on their own sections with `AcademicTeach`. ----
+    /// Read offerings, sections, rosters, timetables, sessions, attendance, coursework and every Domain D record of the tenant (staff).
+    AcademicRead,
+    /// Self-service on one's **own** academic delivery (resolved from the session subject): timetable, courses, attendance, assignments and submissions, resources, flexible-learning requests.
+    AcademicSelfService,
+    /// Faculty-scoped teaching actions (sessions, attendance capture, syllabus coverage, coursework marking, resources) — only on sections where the caller holds an **active** faculty assignment (checked by `sutra_academic::shared::faculty`).
+    AcademicTeach,
+    /// 4A: course offering drafts, sections, capacity, quotas, enrolment windows, templates, simulation, revisions.
+    OfferingManage,
+    /// 4A: offering approval decision, publication, enrolment open/close, activation, suspension/reactivation, freeze.
+    OfferingDecide,
+    /// 4A: cancel, archive, merge/split, governed unfreeze and rollback of offerings (step-up).
+    OfferingLifecycle,
+    /// 4A: seat students in sections, withdraw/transfer seats, waitlist resolution, eligibility overrides.
+    OfferingEnrolmentManage,
+    /// 4A: faculty assignment drafts, operational changes, governance configuration.
+    FacultyAssignmentManage,
+    /// 4A: approve / reject / activate / revoke faculty assignments.
+    FacultyAssignmentDecide,
+    /// 4B: scheduling requirements, timetable drafts and slots, validation, revision requests, session scheduling.
+    TimetableManage,
+    /// 4B: approve, publish, activate, freeze, revise and retire timetables.
+    TimetablePublish,
+    /// 4B: attendance policy, capture and finalisation on any section, threshold evaluation, syllabus coverage publication.
+    AttendanceManage,
+    /// 4B: governed correction of finalised attendance (step-up).
+    AttendanceCorrect,
+    /// 4B: academic monitoring cases, risk assessment, exceptions, interventions, governance review, closure and reopening.
+    MonitoringManage,
+    /// 4B: internal assessment blueprints, windows / assignments, moderation on any section.
+    AssessmentManage,
+    /// 4B: finalise, archive and correct internal assessment (step-up).
+    AssessmentFinalize,
+    /// 4C: providers, opportunities, policies, credit mapping rules, allocation, external registration, completion, certificate verification, reconciliation, exceptions.
+    FlexibleLearningManage,
+    /// 4C: approve credit recognition and post credits to the Domain C ledger (step-up).
+    CreditRecognitionDecide,
+    /// 4C: course resources and library links on any offering / section.
+    CourseResourceManage,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 44] = [
+    pub const ALL: [Permission; 63] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -242,6 +282,25 @@ impl Permission {
         Permission::ScholarshipManage,
         Permission::ScholarshipPublish,
         Permission::AlumniManage,
+        Permission::AcademicRead,
+        Permission::AcademicSelfService,
+        Permission::AcademicTeach,
+        Permission::OfferingManage,
+        Permission::OfferingDecide,
+        Permission::OfferingLifecycle,
+        Permission::OfferingEnrolmentManage,
+        Permission::FacultyAssignmentManage,
+        Permission::FacultyAssignmentDecide,
+        Permission::TimetableManage,
+        Permission::TimetablePublish,
+        Permission::AttendanceManage,
+        Permission::AttendanceCorrect,
+        Permission::MonitoringManage,
+        Permission::AssessmentManage,
+        Permission::AssessmentFinalize,
+        Permission::FlexibleLearningManage,
+        Permission::CreditRecognitionDecide,
+        Permission::CourseResourceManage,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -290,6 +349,25 @@ impl Permission {
             Permission::ScholarshipManage => "scholarship.manage",
             Permission::ScholarshipPublish => "scholarship.publish",
             Permission::AlumniManage => "alumni.manage",
+            Permission::AcademicRead => "academic.read",
+            Permission::AcademicSelfService => "academic.self",
+            Permission::AcademicTeach => "academic.teach",
+            Permission::OfferingManage => "offering.manage",
+            Permission::OfferingDecide => "offering.decide",
+            Permission::OfferingLifecycle => "offering.lifecycle",
+            Permission::OfferingEnrolmentManage => "offering.enrolment.manage",
+            Permission::FacultyAssignmentManage => "faculty_assignment.manage",
+            Permission::FacultyAssignmentDecide => "faculty_assignment.decide",
+            Permission::TimetableManage => "timetable.manage",
+            Permission::TimetablePublish => "timetable.publish",
+            Permission::AttendanceManage => "attendance.manage",
+            Permission::AttendanceCorrect => "attendance.correct",
+            Permission::MonitoringManage => "monitoring.manage",
+            Permission::AssessmentManage => "assessment.manage",
+            Permission::AssessmentFinalize => "assessment.finalize",
+            Permission::FlexibleLearningManage => "flexible_learning.manage",
+            Permission::CreditRecognitionDecide => "credit_recognition.decide",
+            Permission::CourseResourceManage => "course_resource.manage",
         }
     }
 
@@ -309,6 +387,10 @@ impl Permission {
                 | Permission::QualificationConfer
                 | Permission::QualificationRevoke
                 | Permission::ExitDecide
+                | Permission::OfferingLifecycle
+                | Permission::AttendanceCorrect
+                | Permission::AssessmentFinalize
+                | Permission::CreditRecognitionDecide
         )
     }
 }
@@ -363,6 +445,25 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             ScholarshipManage,
             ScholarshipPublish,
             AlumniManage,
+            // Batch 4 (Domain D): staff reads + every write. Faculty-scoped teaching is the faculty
+            // role's (`AcademicTeach`); administrators act on any section through the manage permissions.
+            AcademicRead,
+            OfferingManage,
+            OfferingDecide,
+            OfferingLifecycle,
+            OfferingEnrolmentManage,
+            FacultyAssignmentManage,
+            FacultyAssignmentDecide,
+            TimetableManage,
+            TimetablePublish,
+            AttendanceManage,
+            AttendanceCorrect,
+            MonitoringManage,
+            AssessmentManage,
+            AssessmentFinalize,
+            FlexibleLearningManage,
+            CreditRecognitionDecide,
+            CourseResourceManage,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -373,6 +474,9 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             ProfileManage,
             // Batch 3: read-only student directory / Student 360 (mentors, advisors).
             StudentRead,
+            // Batch 4: academic reads + teaching on sections with an active faculty assignment.
+            AcademicRead,
+            AcademicTeach,
         ],
         Role::Student => &[
             InstitutionRead,
@@ -383,6 +487,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             // Batch 3: own record only (handlers resolve the student from the session subject).
             StudentSelfService,
             RegistrationSelf,
+            // Batch 4: own timetable, courses, attendance, assignments, resources.
+            AcademicSelfService,
         ],
     }
 }
@@ -528,7 +634,10 @@ mod tests {
         for p in Permission::ALL.into_iter().filter(|p| {
             !matches!(
                 p,
-                Permission::StudentSelfService | Permission::RegistrationSelf
+                Permission::StudentSelfService
+                    | Permission::RegistrationSelf
+                    | Permission::AcademicSelfService
+                    | Permission::AcademicTeach
             )
         }) {
             assert!(a.require(p).is_ok(), "{p:?}");
@@ -636,6 +745,59 @@ mod tests {
             Permission::ALL.len(),
             "duplicate permission name"
         );
+    }
+
+    #[test]
+    fn batch4_domain_d_grants() {
+        let admin_only = [
+            Permission::OfferingManage,
+            Permission::OfferingDecide,
+            Permission::OfferingLifecycle,
+            Permission::OfferingEnrolmentManage,
+            Permission::FacultyAssignmentManage,
+            Permission::FacultyAssignmentDecide,
+            Permission::TimetableManage,
+            Permission::TimetablePublish,
+            Permission::AttendanceManage,
+            Permission::AttendanceCorrect,
+            Permission::MonitoringManage,
+            Permission::AssessmentManage,
+            Permission::AssessmentFinalize,
+            Permission::FlexibleLearningManage,
+            Permission::CreditRecognitionDecide,
+            Permission::CourseResourceManage,
+        ];
+        for p in admin_only {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
+        }
+        for r in [Role::Administrator, Role::Faculty] {
+            assert!(is_granted(&[r], Permission::AcademicRead), "{r:?}");
+        }
+        assert!(!is_granted(&[Role::Student], Permission::AcademicRead));
+        assert!(is_granted(&[Role::Faculty], Permission::AcademicTeach));
+        assert!(!is_granted(
+            &[Role::Administrator, Role::Student],
+            Permission::AcademicTeach
+        ));
+        assert!(is_granted(
+            &[Role::Student],
+            Permission::AcademicSelfService
+        ));
+        assert!(!is_granted(
+            &[Role::Administrator, Role::Faculty],
+            Permission::AcademicSelfService
+        ));
+        for p in [
+            Permission::OfferingLifecycle,
+            Permission::AttendanceCorrect,
+            Permission::AssessmentFinalize,
+            Permission::CreditRecognitionDecide,
+        ] {
+            assert!(p.requires_step_up(), "{p:?}");
+        }
+        assert!(!Permission::OfferingManage.requires_step_up());
+        assert!(!Permission::AcademicTeach.requires_step_up());
     }
 
     #[test]

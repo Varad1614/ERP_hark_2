@@ -4,6 +4,4200 @@
  */
 
 export interface paths {
+    "/api/v1/academic/assessment-blueprints/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An assessment blueprint. */
+        get: operations["assessment_blueprint_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a draft blueprint. */
+        patch: operations["assessment_blueprint_update"];
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-blueprints/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a validated blueprint (`assessment.manage`; supersedes the current one). */
+        post: operations["assessment_blueprint_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An assessment window. */
+        get: operations["assessment_window_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a window without submissions (reason required). */
+        post: operations["assessment_window_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close the window (no new submissions) → `assessment_window.closed`. */
+        post: operations["assessment_window_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Extend the due date (`assessment.manage`, reason required; the revised deadline is kept). */
+        post: operations["assessment_window_extend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Moderation cases of a window. */
+        get: operations["assessment_moderation_list"];
+        put?: never;
+        /** Propose a moderated outcome for a marked submission (`ASSESSMENT_MODERATION`). */
+        post: operations["assessment_moderation_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}/moderation/{moderationId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Independent moderation decision (approve → moderated outcome; reject → original marks stay). */
+        post: operations["assessment_moderation_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open the window to students → `assessment_window.opened`. */
+        post: operations["assessment_window_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Submissions of a window (seated students without one are listed as `pending`). */
+        get: operations["assessment_submission_list"];
+        put?: never;
+        /** Record an outcome for a student without a submission (offline assessment or absence). */
+        post: operations["assessment_submission_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/assessment-windows/{id}/submissions/{submissionId}/mark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a submission (a change of recorded marks needs a reason and is kept in the history). */
+        post: operations["assessment_submission_mark"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/attendance-corrections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An attendance correction. */
+        get: operations["attendance_correction_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/attendance-corrections/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending correction (approve → corrected record + history; reject → finalised fact stays). */
+        post: operations["attendance_correction_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/attendance-corrections/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a pending correction. */
+        post: operations["attendance_correction_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/attendance-policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An attendance policy version. */
+        get: operations["attendance_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/attendance-policies/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approval decision on a policy in review. */
+        post: operations["attendance_policy_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/attendance-policies/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a policy version. */
+        post: operations["attendance_policy_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/attendance-policies/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft policy for approval (`ATTENDANCE_POLICY`; approval supersedes the effective one). */
+        post: operations["attendance_policy_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/certificate-verifications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A certificate verification with its history. */
+        get: operations["certificate_verification_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/certificate-verifications/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Explicit verification outcome (accepted / rejected / flagged). */
+        post: operations["certificate_verification_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/certificate-verifications/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the verification checks (`CERTIFICATE_VERIFICATION`; auto-approval records the derived outcome). */
+        post: operations["certificate_verification_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/credit-mapping-rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A mapping rule version with its history. */
+        get: operations["credit_mapping_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/credit-mapping-rules/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide the pending mapping approval. */
+        post: operations["credit_mapping_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/credit-mapping-rules/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a mapping version. */
+        post: operations["credit_mapping_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/credit-mapping-rules/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit for approval (`CREDIT_MAPPING_RULE`; auto-approval publishes it). */
+        post: operations["credit_mapping_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/credit-recognitions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A credit recognition with postings and history. */
+        get: operations["credit_recognition_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/credit-recognitions/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Governed recognition decision (approve — optionally partial — or reject). */
+        post: operations["credit_recognition_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/credit-recognitions/{id}/post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post approved credits into the Domain C ledger through `CreditPostingPort` (idempotent). */
+        post: operations["credit_recognition_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/enrolments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One section enrolment (`academic.read`). */
+        get: operations["section_enrolment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/enrolments/{id}/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Drop a seat while enrolment is open (`offering.enrolment.manage`). */
+        post: operations["section_enrolment_drop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/enrolments/{id}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a seat to another active section of the same offering (`offering.enrolment.manage`). */
+        post: operations["section_enrolment_transfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/enrolments/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a seat after enrolment (reason required, `offering.enrolment.manage`). */
+        post: operations["section_enrolment_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignment-policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One policy version (`academic.read`). */
+        get: operations["faculty_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a draft version (`faculty_assignment.manage`). */
+        patch: operations["faculty_policy_update"];
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignment-policies/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve (→ effective, superseding the prior version) or reject (→ draft) a reviewed version
+         *     (`faculty_assignment.decide`).
+         */
+        post: operations["faculty_policy_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignment-policies/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire the effective version (`faculty_assignment.decide`); assignments keep their history. */
+        post: operations["faculty_policy_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignment-policies/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the impact / architecture review outcome (`faculty_assignment.decide`). Incompatible
+         *     returns the version to draft; compatible starts the approval through the WorkflowPort
+         *     (`faculty_assignment_policy`) — auto-approval makes it effective at once.
+         */
+        post: operations["faculty_policy_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignment-policies/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a draft to impact / architecture review (draft → in_review, `faculty_assignment.manage`). */
+        post: operations["faculty_policy_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One faculty assignment (`academic.read`). */
+        get: operations["faculty_assignment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a draft assignment (`faculty_assignment.manage`). */
+        patch: operations["faculty_assignment_update"];
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate an approved assignment: the faculty member now teaches the section (`faculty_assignment.decide`). */
+        post: operations["faculty_assignment_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive an ended assignment (completed / revoked / rejected / withdrawn, `faculty_assignment.decide`). */
+        post: operations["faculty_assignment_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Operational changes of an assignment (`academic.read`). */
+        get: operations["faculty_assignment_change_list"];
+        put?: never;
+        /**
+         * Request an operational change (L3-D-018, `faculty_assignment.manage`). Validated at once,
+         *     approved through the WorkflowPort (`faculty_assignment_change`) and applied when approved.
+         */
+        post: operations["faculty_assignment_change_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/changes/{changeId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending operational change (`faculty_assignment.decide`). */
+        post: operations["faculty_assignment_change_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete an active assignment (`faculty_assignment.decide`). */
+        post: operations["faculty_assignment_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or reject a submitted assignment (`faculty_assignment.decide`). */
+        post: operations["faculty_assignment_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an active assignment (reason required, `faculty_assignment.decide`). */
+        post: operations["faculty_assignment_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft assignment for approval (`faculty_assignment.manage`). */
+        post: operations["faculty_assignment_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/faculty-assignments/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw an assignment that is not yet active (`faculty_assignment.manage`). */
+        post: operations["faculty_assignment_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A flexible enrolment with allocations, registrations, completion and history. */
+        get: operations["flexible_enrolment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}/certificates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Certificates recorded for a flexible enrolment. */
+        get: operations["certificate_verification_list"];
+        put?: never;
+        /** Record certificate evidence for a registered / completed participation. */
+        post: operations["certificate_verification_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}/completion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the institutional learning completion (validated; no automatic credit). */
+        post: operations["flexible_enrolment_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}/credit-recognitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open the credit recognition of a completed participation (a repeat returns the live one). */
+        post: operations["credit_recognition_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Academic decision on a request that needs human review (approve → eligible, reject → rejected). */
+        post: operations["flexible_enrolment_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record learning progress (registered → in_progress; hours). */
+        post: operations["flexible_enrolment_progress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registration hand-off (open elective: registered; external: provider registration requested). */
+        post: operations["flexible_enrolment_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}/registration-outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the provider's registration acknowledgement (accepted / rejected / recovery_required). */
+        post: operations["flexible_enrolment_registration_outcome"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-enrolments/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authorised removal (reason required; a held seat is released, history kept). */
+        post: operations["flexible_enrolment_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-exceptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An exception case with its history. */
+        get: operations["flexible_exception_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-exceptions/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a resolved case (evidence present, no hold). */
+        post: operations["flexible_exception_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-exceptions/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide the pending corrective plan. */
+        post: operations["flexible_exception_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-exceptions/{id}/hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Place or lift an investigation / regulatory hold. */
+        post: operations["flexible_exception_hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-exceptions/{id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Propose the corrective plan (`FLEXIBLE_EXCEPTION`; overrides need a justification). */
+        post: operations["flexible_exception_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-exceptions/{id}/reopen-correction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The correction failed: back to the approved plan (reason required). */
+        post: operations["flexible_exception_reopen_correction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-exceptions/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the corrective action and its resolution evidence. */
+        post: operations["flexible_exception_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-learning-policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A policy version with its history. */
+        get: operations["flexible_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-learning-policies/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide the pending publication. */
+        post: operations["flexible_policy_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-learning-policies/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a policy version (history kept). */
+        post: operations["flexible_policy_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/flexible-learning-policies/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit for publication (`FLEXIBLE_LEARNING_POLICY`; auto-approval makes it effective). */
+        post: operations["flexible_policy_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/attendance-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attendance policy versions of an institution. */
+        get: operations["attendance_policy_list"];
+        put?: never;
+        /** Draft an attendance policy (threshold rules). */
+        post: operations["attendance_policy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/certificate-verifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Certificate verifications of an institution (verification queue). */
+        get: operations["certificate_verification_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/credit-mapping-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Credit mapping rule versions of an institution (`?opportunityId=`, `?status=`). */
+        get: operations["credit_mapping_list"];
+        put?: never;
+        /** Draft a new mapping version for an opportunity. */
+        post: operations["credit_mapping_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/credit-recognitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Credit recognitions of an institution. */
+        get: operations["credit_recognition_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/faculty-assignment-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Policy versions of an institution, newest first (`academic.read`). */
+        get: operations["faculty_policy_list"];
+        put?: never;
+        /** Draft a new governance configuration version (L3-D-019, `faculty_assignment.manage`). */
+        post: operations["faculty_policy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/flexible-exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Flexible-learning exception cases of an institution. */
+        get: operations["flexible_exception_list"];
+        put?: never;
+        /** Raise an exception case (a repeated `sourceKey` returns the existing case). */
+        post: operations["flexible_exception_raise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/flexible-learning-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Flexible-learning policy versions of an institution. */
+        get: operations["flexible_policy_list"];
+        put?: never;
+        /** Draft a new policy version (rules + effective period). */
+        post: operations["flexible_policy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/learning-opportunities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Learning opportunities of an institution (`?status=`, `?academicTermId=`). */
+        get: operations["learning_opportunity_list"];
+        put?: never;
+        /** Establish a learning opportunity (draft) against authoritative references. */
+        post: operations["learning_opportunity_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/learning-opportunities/archive-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive the D06 records of an academic session (term) after its closure (L3-D-047). */
+        post: operations["learning_opportunity_session_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/learning-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Learning providers of an institution. */
+        get: operations["learning_provider_list"];
+        put?: never;
+        /** Propose a learning provider (onboarding starts in `proposed`). */
+        post: operations["learning_provider_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/monitoring-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monitoring cases of an institution. */
+        get: operations["monitoring_case_list"];
+        put?: never;
+        /** Open a monitoring case over a section, offering or student (a repeated `sourceKey` returns the existing case). */
+        post: operations["monitoring_case_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/offering-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offering templates of an institution (`academic.read`). */
+        get: operations["offering_template_list"];
+        put?: never;
+        /** Define an offering template in `draft` (L3-D-012, `offering.manage`). */
+        post: operations["offering_template_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/offerings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Course offerings of an institution (`academic.read`). */
+        get: operations["offering_list"];
+        put?: never;
+        /** Establish a course offering in `draft` (L3-D-001, `offering.manage`). */
+        post: operations["offering_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/reconciliation-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reconciliation runs of an institution. */
+        get: operations["reconciliation_list"];
+        put?: never;
+        /** Compare provider records with the institutional records of an opportunity. */
+        post: operations["reconciliation_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/scheduling-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scheduling requirements of an institution. */
+        get: operations["scheduling_requirement_list"];
+        put?: never;
+        /** Record a section's scheduling requirement (sessions a week, length, preferred days, room). */
+        post: operations["scheduling_requirement_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/teaching-sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sections of the offerings of a term (read through the offering read port). */
+        get: operations["timetable_section_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/timetables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Timetables of an institution (newest first). */
+        get: operations["timetable_list"];
+        put?: never;
+        /** Start planning a timetable for an academic term. */
+        post: operations["timetable_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/internal-assessment-results/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a finalised result (historical; no pending correction). */
+        post: operations["internal_assessment_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/internal-assessment-results/{id}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Corrections of a finalised result. */
+        get: operations["internal_assessment_correction_list"];
+        put?: never;
+        /** Request a governed correction (`ASSESSMENT_CORRECTION`; approval re-finalises a new result version → `internal_assessment.corrected`). */
+        post: operations["internal_assessment_correction_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/internal-assessment-results/{id}/corrections/{correctionId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending correction. */
+        post: operations["internal_assessment_correction_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A learning opportunity with seat counts and status history. */
+        get: operations["learning_opportunity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/allocate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Allocate seats to eligible demand by priority (rest waitlisted or unallocated). */
+        post: operations["learning_opportunity_allocate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive the opportunity (refused while enrolment / recognition / exception / reconciliation obligations remain). */
+        post: operations["learning_opportunity_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/capacity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change capacity, reserved seats, waitlist or window (below allocations → `overAllocated`). */
+        post: operations["learning_opportunity_capacity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide the pending activation (approve → active, reject → draft). */
+        post: operations["learning_opportunity_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Flexible enrolments (demand) of an opportunity. */
+        get: operations["flexible_enrolment_list"];
+        put?: never;
+        /** Record a student's request on their behalf (a repeated `sourceKey` returns the existing one). */
+        post: operations["flexible_enrolment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/promote-waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote the next eligible waitlist entries into free seats (expired entries recorded). */
+        post: operations["learning_opportunity_waitlist_promote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate a suspended opportunity (readiness re-checked). */
+        post: operations["learning_opportunity_reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/resolve-conflicts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve allocation conflicts (release over-capacity allocations back to the waitlist). */
+        post: operations["learning_opportunity_conflict_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit for activation (`LEARNING_OPPORTUNITY_APPROVAL`; auto-approval activates). */
+        post: operations["learning_opportunity_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-opportunities/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an active opportunity (reason required; existing enrolments are kept). */
+        post: operations["learning_opportunity_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-providers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A learning provider with its status history. */
+        get: operations["learning_provider_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-providers/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide the pending onboarding (approve → active, reject → proposed). */
+        post: operations["learning_provider_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-providers/{id}/offboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Offboard the provider (reason required; blocked while live opportunities use it). */
+        post: operations["learning_provider_offboard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-providers/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate a suspended provider (accreditation re-checked). */
+        post: operations["learning_provider_reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-providers/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit the provider for onboarding review (`LEARNING_PROVIDER_ONBOARDING`; auto-approval activates). */
+        post: operations["learning_provider_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/learning-providers/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an active provider (reason required; no new enrolments). */
+        post: operations["learning_provider_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in student's coursework and assessments with their own submission. */
+        get: operations["assessment_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/assignments/{id}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit an open assignment (once; `late` after the due date while the window is extended). */
+        post: operations["assessment_self_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in student's attendance per seated section. */
+        get: operations["attendance_self_student"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["offering_self_courses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/courses/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offerings open for enrolment that I could join, with my registration coverage (`academic.self`). */
+        get: operations["offering_self_available"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My seats (any status) and waitlist entries (`academic.self`). */
+        get: operations["offering_self_enrolment_list"];
+        put?: never;
+        /** Enrol myself in a section — allowed only when my registration covers the course (`academic.self`). */
+        post: operations["offering_self_enrol"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/enrolments/{id}/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Drop my own seat while enrolment is open (`academic.self`). */
+        post: operations["offering_self_drop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/flexible-learning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My flexible learning (open opportunities + my requests and their progress). */
+        get: operations["flexible_self_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/flexible-learning/recognitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My credit recognitions. */
+        get: operations["flexible_self_recognitions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/flexible-learning/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request a flexible-learning opportunity for myself. */
+        post: operations["flexible_self_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/flexible-learning/{id}/certificates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a certificate for one of my own flexible enrolments. */
+        post: operations["flexible_self_certificate_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/flexible-learning/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw my request / participation (allowed up to the policy's withdrawal status). */
+        post: operations["flexible_self_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Student Library: published resources of my sections. */
+        get: operations["resource_self_library"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/timetable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in student's weekly timetable (operational timetables of their seated sections). */
+        get: operations["timetable_self_student"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join the waitlist of a full offering (`academic.self`; registration must cover the course). */
+        post: operations["offering_self_waitlist_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/me/waitlist/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept the seat I was offered from the waitlist (`academic.self`). */
+        post: operations["offering_self_waitlist_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A monitoring case with its assessments, exceptions, interventions and decisions. */
+        get: operations["monitoring_case_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/certify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request certification of monitoring completion (`MONITORING_CLOSURE`; blocked by open exceptions/interventions). */
+        post: operations["monitoring_case_certify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a certified case (final immutable snapshot). */
+        post: operations["monitoring_case_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide the pending governance, certification or reopening decision (`AwaitDecision`). */
+        post: operations["monitoring_case_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Raise a governance exception on the case (owner and independent reviewer required). */
+        post: operations["monitoring_exception_raise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/exceptions/{exceptionId}/escalate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Escalate the open exception (`reason`). */
+        post: operations["monitoring_exception_escalate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/exceptions/{exceptionId}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the authorised resolution plan (`resolutionPlan`). */
+        post: operations["monitoring_exception_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/exceptions/{exceptionId}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the completed corrective action (`resolutionNotes`). */
+        post: operations["monitoring_exception_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/exceptions/{exceptionId}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Independent validation of the resolution → closed (not by the owner). */
+        post: operations["monitoring_exception_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/exceptions/{exceptionId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw the exception (`reason`). */
+        post: operations["monitoring_exception_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/interventions/{interventionId}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign the accountable intervention owner (`ownerSubject`, `dueOn`). */
+        post: operations["monitoring_intervention_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/interventions/{interventionId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel the intervention (`reason`). */
+        post: operations["monitoring_intervention_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/interventions/{interventionId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete the intervention (`outcome`). */
+        post: operations["monitoring_intervention_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/interventions/{interventionId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The owner begins the corrective action. */
+        post: operations["monitoring_intervention_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/interventions/{interventionId}/trigger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trigger the intervention (owner required) → `monitoring_intervention.triggered`. */
+        post: operations["monitoring_intervention_trigger"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/publish-outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the monitoring outcome of this cycle (immutable snapshot of the latest assessment). */
+        post: operations["monitoring_outcome_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request reopening of a closed case (`MONITORING_DECISION`; approval starts a new case, the closed one is kept). */
+        post: operations["monitoring_case_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/risk-assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a risk assessment (level derived from finalised attendance under the D05 rule, else reviewer-set). */
+        post: operations["monitoring_risk_assess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/monitoring-cases/{id}/submit-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit the case to governance review (`MONITORING_DECISION`; an approved decision may require an intervention). */
+        post: operations["monitoring_review_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/my/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in faculty member's sections with their recent sessions. */
+        get: operations["attendance_self_faculty"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/my/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sections I actively teach (`academic.teach`). */
+        get: operations["faculty_self_classes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/my/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Faculty: the sections I teach and their resources. */
+        get: operations["course_resource_my"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/my/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Students seated in the sections I teach (`academic.teach`). */
+        get: operations["faculty_self_students"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/my/timetable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in faculty member's teaching timetable (sections with an active assignment). */
+        get: operations["timetable_self_faculty"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offering-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One offering template (`academic.read`). */
+        get: operations["offering_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offering-templates/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a draft template for generation (draft → active, `offering.decide`). */
+        post: operations["offering_template_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offering-templates/{id}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate independent draft offerings from an active template (L3-D-012,
+         *     `offering.manage`). Duplicates (a live offering of the component in the term, or a taken
+         *     code) fail per component; `atomic` turns any failure into a 409 with nothing generated.
+         */
+        post: operations["offering_template_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offering-templates/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire an active template (`offering.decide`). */
+        post: operations["offering_template_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One course offering with sections, faculty and seat counts (`academic.read`). */
+        get: operations["offering_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit a draft offering (code, title, delivery mode, campus, org unit, capacity). Later changes
+         *     go through governed revisions (L3-D-009).
+         */
+        patch: operations["offering_update"];
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate (enrollment_closed → active) when readiness holds: every active section has an active instructor (`offering.decide`). */
+        post: operations["offering_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a completed or cancelled offering when nothing blocks (L3-D-010, `offering.lifecycle`, step-up). */
+        post: operations["offering_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Administrative cancellation through the WorkflowPort (L3-D-004, reason required, `offering.lifecycle`, step-up). Only offerings without seats; registrations are never touched. */
+        post: operations["offering_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/capacity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Capacity history of an offering, newest first (`academic.read`). */
+        get: operations["offering_capacity_history"];
+        put?: never;
+        /**
+         * Change the offering or a section capacity (L3-D-005, `offering.manage`). Never below the
+         *     seated count, never below the effective quotas; lifecycle unchanged; history kept.
+         */
+        post: operations["offering_capacity_change"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/close-enrolment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close enrolment (enrollment_open → enrollment_closed) (`offering.decide`). */
+        post: operations["offering_close_enrolment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete an active offering: seats, sections and faculty assignments complete (`offering.decide`). */
+        post: operations["offering_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending offering (`offering.decide`): approve → approved, reject → draft (reason
+         *     required). Used when approvals await a human decision.
+         */
+        post: operations["offering_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Freeze an active offering (L3-D-013, reason required, `offering.decide`); only a governed unfreeze restores it. */
+        post: operations["offering_freeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge other active offerings of the same course and term into this one (L3-D-011,
+         *     `offering.lifecycle`, step-up). Seats and active faculty move to successor sections.
+         */
+        post: operations["offering_merge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/open-enrolment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open enrolment (published / enrollment_closed → enrollment_open; planned sections activate) (`offering.decide`). */
+        post: operations["offering_open_enrolment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish an approved offering (`offering.decide`; needs a live section and a capacity). */
+        post: operations["offering_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/quotas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quotas of an offering (`academic.read`; `?status=effective` for the current position). */
+        get: operations["offering_quota_list"];
+        put?: never;
+        /**
+         * Make a quota effective (L3-D-015, `offering.manage`). A previous effective quota of the same
+         *     category is superseded (kept as history); the effective total never exceeds the capacity.
+         */
+        post: operations["offering_quota_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/quotas/{quotaId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire an effective quota (`offering.manage`). */
+        post: operations["offering_quota_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate a suspended offering once its suspension reason is resolved (L3-D-003, resolution required, `offering.decide`). */
+        post: operations["offering_reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Activation readiness of an offering (`academic.read`; read only). */
+        get: operations["offering_readiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/reorganisations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reorganisations requested on an offering (`academic.read`). */
+        get: operations["offering_reorganisation_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/reorganisations/{reorganisationId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending merge / split (`offering.lifecycle`, step-up). */
+        post: operations["offering_reorganisation_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All resources of an offering (offering-wide and per section). */
+        get: operations["course_resource_list_offering"];
+        put?: never;
+        /** Add an offering-wide resource (`course_resource.manage`). */
+        post: operations["course_resource_create_offering"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Restrictions of an offering (`academic.read`). */
+        get: operations["offering_restriction_list"];
+        put?: never;
+        /**
+         * Record an eligibility / restriction reference or a cross-campus / cross-institution permit
+         *     (L3-D-006/008, `offering.enrolment.manage`). Every reference must be authoritative (Domain B).
+         */
+        post: operations["offering_restriction_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/restrictions/{restrictionId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a restriction (`offering.enrolment.manage`). */
+        post: operations["offering_restriction_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Governed requests of an offering, newest first (`academic.read`). */
+        get: operations["offering_revision_list"];
+        put?: never;
+        /**
+         * Request a revision, replacement or rollback (L3-D-009). Revision / replacement need
+         *     `offering.manage`, rollback `offering.lifecycle`.
+         */
+        post: operations["offering_revision_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/revisions/{revisionId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending governed request (`offering.decide`; cancellation / unfreeze / rollback
+         *     need `offering.lifecycle`). Approve applies it; reject keeps the offering as it was.
+         */
+        post: operations["offering_revision_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/revisions/{revisionId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a pending governed request (`offering.manage`). */
+        post: operations["offering_revision_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sections of an offering (`academic.read`). */
+        get: operations["offering_section_list"];
+        put?: never;
+        /** Add a planned section to an offering (`offering.manage`). */
+        post: operations["offering_section_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/simulations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Simulations of an offering, newest first (`academic.read`). */
+        get: operations["offering_simulation_list"];
+        put?: never;
+        /**
+         * Simulate a proposed change and store the read-only impact report (L3-D-016,
+         *     `offering.manage`). Nothing operational changes.
+         */
+        post: operations["offering_simulation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/simulations/{simulationId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the governed impact decision on a simulation (`offering.decide`): proceed, revise or
+         *     reject. The decision never executes the change; that is a separate governed command.
+         */
+        post: operations["offering_simulation_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Split an active offering into successor offerings (L3-D-011, `offering.lifecycle`, step-up). */
+        post: operations["offering_split"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft offering for approval through the WorkflowPort (L3-D-001, `offering.manage`).
+         *     With auto-approval (Batch 4) the offering comes back `approved`.
+         */
+        post: operations["offering_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an active offering (L3-D-002, reason required, `offering.decide`). */
+        post: operations["offering_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/unfreeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Governed unfreeze through the WorkflowPort (L3-D-013, reason required, `offering.lifecycle`, step-up): restores the preserved pre-freeze position. */
+        post: operations["offering_unfreeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Waitlist of an offering (`academic.read`). */
+        get: operations["offering_waitlist_list"];
+        put?: never;
+        /** Put a student on the waitlist (`offering.enrolment.manage`; eligibility is re-checked). */
+        post: operations["offering_waitlist_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/waitlist/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve the waitlist when a seat is available (L3-D-007, `offering.enrolment.manage`):
+         *     expired offers lapse, the FIFO policy selects the first still-eligible entry (ineligible
+         *     entries are removed) and offers it a seat (`offering_waitlist.seat_offered`).
+         */
+        post: operations["offering_waitlist_promote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/waitlist/{entryId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept the seat offered to a waitlist entry on the student's behalf (`offering.enrolment.manage`). */
+        post: operations["offering_waitlist_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/waitlist/{entryId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove a waiting / offered entry (reason required, `offering.enrolment.manage`). */
+        post: operations["offering_waitlist_remove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/windows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Enrolment windows of an offering (`academic.read`). */
+        get: operations["offering_window_list"];
+        put?: never;
+        /** Schedule an enrolment window (L3-D-014, `offering.manage`). */
+        post: operations["offering_window_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/windows/{windowId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a window; when no window stays open the offering closes enrolment (`offering.decide`). */
+        post: operations["offering_window_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/windows/{windowId}/close-permanently": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a window permanently (reason required, `offering.decide`). */
+        post: operations["offering_window_close_permanently"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/windows/{windowId}/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Extend a window's deadline (`closesOn` later than now, `offering.decide`). */
+        post: operations["offering_window_extend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/windows/{windowId}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open a scheduled window; a published offering moves to enrollment_open (`offering.decide`). */
+        post: operations["offering_window_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/windows/{windowId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a suspended window (`offering.decide`). */
+        post: operations["offering_window_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/offerings/{id}/windows/{windowId}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an open window (reason required, `offering.decide`). */
+        post: operations["offering_window_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/reconciliation-runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A reconciliation run with both evidence sets and its discrepancies. */
+        get: operations["reconciliation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/reconciliation-runs/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve the discrepancies (uphold the institutional record, or escalate to an exception case). */
+        post: operations["reconciliation_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/resources/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A resource. */
+        get: operations["course_resource_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a resource (title, kind, url, description). */
+        patch: operations["course_resource_update"];
+        trace?: never;
+    };
+    "/api/v1/academic/resources/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a resource (visible in the students' Library). */
+        post: operations["course_resource_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/resources/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a resource (kept for history, hidden from the Library). */
+        post: operations["course_resource_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/scheduling-requirements/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a scheduling requirement. */
+        post: operations["scheduling_requirement_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One section with its faculty and seat count (`academic.read`). */
+        get: operations["offering_section_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a section's code (planned only) or campus (`offering.manage`). */
+        patch: operations["offering_section_update"];
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a planned section of a published offering (`offering.manage`). */
+        post: operations["offering_section_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/assessment-blueprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assessment blueprints of a section. */
+        get: operations["assessment_blueprint_list"];
+        put?: never;
+        /** Draft an internal-assessment blueprint (weighted components + policy). */
+        post: operations["assessment_blueprint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/assessment-windows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assessment windows (coursework = kind `assignment`) of a section. */
+        get: operations["assessment_window_list"];
+        put?: never;
+        /** Create an assessment window / assignment for a component of the published blueprint. */
+        post: operations["assessment_window_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/attendance-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-student attendance of a section under the effective policy. */
+        get: operations["attendance_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/attendance-summary/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-evaluate thresholds of a section now (raises `attendance.threshold_breached` for new breaches). */
+        post: operations["attendance_evaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a section without seated students (reason required, `offering.manage`). */
+        post: operations["offering_section_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roster of a section (`academic.read`; `?status=`, `?limit=` ≤ 200, `nextCursor`). */
+        get: operations["section_enrolment_list"];
+        put?: never;
+        /**
+         * Seat a student in a section (`offering.enrolment.manage`). Gated on the student's 3B
+         *     registration; `overrideEligibility` + reason records an override.
+         */
+        post: operations["section_enrolment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/faculty-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Faculty assignments of a section (`academic.read`). */
+        get: operations["faculty_assignment_list"];
+        put?: never;
+        /** Establish a faculty assignment on a section in `draft` (L3-D-017, `faculty_assignment.manage`). */
+        post: operations["faculty_assignment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/internal-assessment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Internal-assessment results of a section (all versions). */
+        get: operations["internal_assessment_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/internal-assessment/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalisation decision for results awaiting one (`AwaitDecision`). */
+        post: operations["internal_assessment_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/internal-assessment/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assemble and finalise the internal assessment (`assessment.finalize`, `ASSESSMENT_FINALIZATION`) → `internal_assessment.finalized`. */
+        post: operations["internal_assessment_finalize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resources of a section (faculty teaching it, or `course_resource.manage`). */
+        get: operations["course_resource_list_section"];
+        put?: never;
+        /** Add a resource / library link to a section (draft unless `publish`). */
+        post: operations["course_resource_create_section"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Teaching sessions of a section (newest first). */
+        get: operations["teaching_session_list"];
+        put?: never;
+        /** Schedule a teaching session (from an operational timetable slot, or ad hoc times). */
+        post: operations["teaching_session_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/syllabus-coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Syllabus coverage records of a section (newest first). */
+        get: operations["syllabus_coverage_list"];
+        put?: never;
+        /** Start a coverage record (topics given, or copied from the latest published record). */
+        post: operations["syllabus_coverage_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A session with its attendance lines. */
+        get: operations["teaching_session_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/abandon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abandon a started session — exceptional outcome, administrators only (reason required). */
+        post: operations["teaching_session_abandon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attendance lines of a session. */
+        get: operations["attendance_list"];
+        put?: never;
+        /** Record marks for seated students (one canonical record per student; re-marking updates it). */
+        post: operations["attendance_capture"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/attendance-corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Corrections requested for a session. */
+        get: operations["attendance_correction_list"];
+        put?: never;
+        /** Request a governed correction of a finalised record (`ATTENDANCE_CORRECTION`). */
+        post: operations["attendance_correction_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a scheduled session (reason required). */
+        post: operations["teaching_session_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete a running session (optional topic / notes of instructional progress). */
+        post: operations["teaching_session_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/finalise-attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalise the attendance (immutable afterwards; evaluates thresholds → `attendance.threshold_breached`). */
+        post: operations["attendance_finalise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lock a session with a terminal outcome (completed sessions need finalised attendance). */
+        post: operations["teaching_session_lock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause (interrupt) a running session. */
+        post: operations["teaching_session_pause"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused session. */
+        post: operations["teaching_session_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a scheduled session (faculty on their section, or staff). */
+        post: operations["teaching_session_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sessions/{id}/submit-attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit the complete attendance register for finalisation. */
+        post: operations["attendance_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/syllabus-coverage/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A coverage record with its topics. */
+        get: operations["syllabus_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/syllabus-coverage/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a submitted coverage record (`attendance.manage`; immutable afterwards). */
+        post: operations["syllabus_coverage_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/syllabus-coverage/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a coverage record for publication. */
+        post: operations["syllabus_coverage_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/syllabus-coverage/{id}/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the topics of a draft/submitted record (a submitted record returns to draft). */
+        put: operations["syllabus_coverage_topics"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A timetable version with its slots. */
+        get: operations["timetable_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a published (or frozen) timetable operational; a revised version replaces its base. */
+        post: operations["timetable_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a retired or revised timetable (historical, never operational again). */
+        post: operations["timetable_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approval decision on a submitted timetable (`AwaitDecision`; reject → draft). */
+        post: operations["timetable_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Freeze the operational timetable. */
+        post: operations["timetable_freeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a draft from the term's scheduling requirements (replaces the current slots). */
+        post: operations["timetable_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish an approved timetable version (immutable from here). */
+        post: operations["timetable_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire the operational timetable (reason required). */
+        post: operations["timetable_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request a governed revision of the operational timetable: creates the revised draft version. */
+        post: operations["timetable_revision_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a weekly slot to a planning/draft timetable. */
+        post: operations["timetable_slot_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/slots/{slotId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a slot from a planning/draft timetable. */
+        delete: operations["timetable_slot_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a validated timetable for approval (`TIMETABLE_APPROVAL` / `TIMETABLE_REVISION`). */
+        post: operations["timetable_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate faculty, room, section and requirement constraints; a valid draft becomes `validated`. */
+        post: operations["timetable_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/timetables/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw an unpublished revision draft. */
+        post: operations["timetable_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/csrf": {
         parameters: {
             query?: never;
@@ -7267,6 +11461,18 @@ export interface components {
          * @enum {string}
          */
         AdmissionVerificationOutcome: "verified" | "rejected" | "waived";
+        AllocationRun: {
+            allocated: string[];
+            /** @description Waitlist entries whose validity ended (no allocation). */
+            expired: string[];
+            /** @description Waitlist entries no longer eligible on revalidation. */
+            ineligible: string[];
+            opportunity?: null | components["schemas"]["LearningOpportunity"];
+            /** @description Allocations released by conflict resolution. */
+            released: string[];
+            unallocated: string[];
+            waitlisted: string[];
+        };
         /** @enum {string} */
         AlumniBasis: "qualification" | "eligible_exit";
         AlumniCorrection: {
@@ -7361,11 +11567,303 @@ export interface components {
          * @enum {string}
          */
         ApprovalDecision: "approve" | "reject";
+        AssessmentBlueprint: {
+            components: components["schemas"]["BlueprintComponent"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            offeringId: string;
+            policy: components["schemas"]["BlueprintPolicy"];
+            /** Format: date-time */
+            publishedAt?: string | null;
+            publishedBy?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            status: components["schemas"]["AssessmentBlueprintStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            title: string;
+            /** Format: double */
+            totalMarks: number;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AssessmentBlueprintList: {
+            items: components["schemas"]["AssessmentBlueprint"][];
+        };
+        /**
+         * @description Internal assessment blueprint (L2-D07 §5).
+         * @enum {string}
+         */
+        AssessmentBlueprintStatus: "draft" | "published" | "superseded" | "archived";
+        AssessmentCorrection: {
+            /** Format: uuid */
+            correctedResultId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            evidence?: string | null;
+            /** Format: double */
+            fromMarks: number;
+            /** Format: uuid */
+            id: string;
+            processInstanceId?: string | null;
+            reason: string;
+            requestedBy?: string | null;
+            /** Format: uuid */
+            resultId: string;
+            status: components["schemas"]["ChangeRequestStatus"];
+            statusReason?: string | null;
+            /** Format: double */
+            toMarks: number;
+            /** Format: int64 */
+            version: number;
+        };
+        AssessmentCorrectionList: {
+            items: components["schemas"]["AssessmentCorrection"][];
+        };
+        /**
+         * @description Kind of an assessment window (coursework assignments are `assignment`).
+         * @enum {string}
+         */
+        AssessmentKind: "assignment" | "quiz" | "test" | "lab" | "project" | "presentation" | "viva";
+        AssessmentModeration: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            evidence?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            originalMarks: number;
+            processInstanceId?: string | null;
+            /** Format: double */
+            proposedMarks: number;
+            reason: string;
+            requestedBy?: string | null;
+            status: components["schemas"]["ChangeRequestStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            submissionId: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: uuid */
+            windowId: string;
+        };
+        AssessmentModerationList: {
+            items: components["schemas"]["AssessmentModeration"][];
+        };
+        AssessmentSubmission: {
+            attachmentUrl?: string | null;
+            content?: string | null;
+            displayName: string;
+            feedback?: string | null;
+            /**
+             * Format: uuid
+             * @description `null` for a seated student with nothing recorded yet (status `pending`).
+             */
+            id?: string | null;
+            /** Format: date-time */
+            markedAt?: string | null;
+            /** Format: double */
+            marks?: number | null;
+            /** Format: double */
+            moderatedMarks?: number | null;
+            status: components["schemas"]["AssessmentSubmissionStatus"];
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            /** Format: int64 */
+            version?: number | null;
+            /** Format: uuid */
+            windowId: string;
+        };
+        AssessmentSubmissionList: {
+            items: components["schemas"]["AssessmentSubmission"][];
+        };
+        /**
+         * @description A student's submission (L3-D-053/054).
+         * @enum {string}
+         */
+        AssessmentSubmissionStatus: "pending" | "submitted" | "late" | "marked" | "moderated" | "finalized" | "absent";
+        /** @description An assessment window; coursework is kind `assignment` (contract §5.3). */
+        AssessmentWindow: {
+            /** Format: uuid */
+            blueprintId: string;
+            componentKey: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            dueAt: string;
+            /** Format: date-time */
+            extendedDueAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            instructions?: string | null;
+            kind: components["schemas"]["AssessmentKind"];
+            /** Format: double */
+            maxMarks: number;
+            /** Format: uuid */
+            offeringId: string;
+            /** Format: date-time */
+            opensAt: string;
+            /** Format: uuid */
+            sectionId: string;
+            status: components["schemas"]["AssessmentWindowStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AssessmentWindowList: {
+            items: components["schemas"]["AssessmentWindow"][];
+        };
+        /**
+         * @description Assessment window / assignment (L3-D-052).
+         * @enum {string}
+         */
+        AssessmentWindowStatus: "scheduled" | "open" | "extended" | "closed" | "cancelled";
         /**
          * @description Lifecycle of a time-bound assignment (emergency contact, pickup authorisation, financial responsibility, communication authorisation).
          * @enum {string}
          */
         AssignmentStatus: "active" | "suspended" | "revoked" | "expired";
+        /**
+         * @description Attendance capture state of a session (L3-D-024).
+         * @enum {string}
+         */
+        AttendanceCaptureStatus: "not_started" | "capturing" | "submitted" | "finalised";
+        /** @description Governed correction of a finalised attendance record. */
+        AttendanceCorrection: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            evidence?: string | null;
+            fromMark: components["schemas"]["AttendanceMark"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            recordId: string;
+            requestedBy?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            status: components["schemas"]["ChangeRequestStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            toMark: components["schemas"]["AttendanceMark"];
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AttendanceCorrectionList: {
+            items: components["schemas"]["AttendanceCorrection"][];
+        };
+        /**
+         * @description One attendance mark (L2-D04 attendance status).
+         * @enum {string}
+         */
+        AttendanceMark: "present" | "absent" | "late" | "excused";
+        /** @description Attendance policy version (threshold rules). */
+        AttendancePolicy: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            excludeExcused: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            lateCountsAsPresent: boolean;
+            /** Format: int32 */
+            minSessions: number;
+            name: string;
+            processInstanceId?: string | null;
+            status: components["schemas"]["PolicyVersionStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: double */
+            thresholdPercent: number;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AttendancePolicyList: {
+            items: components["schemas"]["AttendancePolicy"][];
+        };
+        /** @description One student's attendance line of a session (roster entry + recorded mark, if any). */
+        AttendanceRecord: {
+            displayName: string;
+            /**
+             * Format: uuid
+             * @description `null` until a mark is recorded.
+             */
+            id?: string | null;
+            mark?: null | components["schemas"]["AttendanceMark"];
+            remarks?: string | null;
+            /** @description `false` when the student is no longer seated (kept for finalised history). */
+            seated?: boolean;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: int64 */
+            version?: number | null;
+        };
+        AttendanceSummary: {
+            /** Format: int64 */
+            finalisedSessions: number;
+            items: components["schemas"]["AttendanceSummaryLine"][];
+            /**
+             * Format: uuid
+             * @description The effective policy (`null` = default 75 % rule, no breach events).
+             */
+            policyId?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: double */
+            thresholdPercent: number;
+        };
+        /** @description One student's attendance in a section (contract §5.3). */
+        AttendanceSummaryLine: {
+            /** Format: int32 */
+            attended: number;
+            belowThreshold: boolean;
+            displayName: string;
+            /** Format: double */
+            percent: number;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: int32 */
+            total: number;
+        };
         /** @description Degree / qualification audit basis (L4-C-039-BH-002). */
         AuditResult: {
             /** Format: date-time */
@@ -7377,6 +11875,37 @@ export interface components {
             passed: boolean;
             /** Format: double */
             requiredCredits?: number | null;
+        };
+        /** @description An offering open for enrolment in one of the student's institutions. */
+        AvailableCourse: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** @description The student's registration covers the course component (seat allowed). */
+            covered: boolean;
+            /** Format: double */
+            credits: number;
+            offeringCode: string;
+            /** Format: uuid */
+            offeringId: string;
+            seated: boolean;
+            sections: components["schemas"]["AvailableSection"][];
+            status: components["schemas"]["CourseOfferingStatus"];
+            title: string;
+            waitlisted: boolean;
+        };
+        AvailableCourseList: {
+            items: components["schemas"]["AvailableCourse"][];
+        };
+        /** @description Section of an available offering. */
+        AvailableSection: {
+            /** Format: int32 */
+            capacity?: number | null;
+            full: boolean;
+            /** Format: int64 */
+            seatsTaken: number;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
         };
         /** @description Confer the approved qualification (step-up). */
         AwardQualification: {
@@ -7412,6 +11941,25 @@ export interface components {
         };
         /** @enum {string} */
         BenefitType: "fixed_amount" | "fee_percentage" | "fee_waiver" | "stipend";
+        /** @description One weighted blueprint component. */
+        BlueprintComponent: {
+            /** @description Stable key windows refer to (e.g. `assign1`). */
+            key: string;
+            kind: components["schemas"]["AssessmentKind"];
+            title: string;
+            /**
+             * Format: double
+             * @description Weight in percent of the internal total (all components add up to 100).
+             */
+            weight: number;
+        };
+        /** @description Blueprint policy switches. */
+        BlueprintPolicy: {
+            /** @description Submissions after the original due date are accepted (as `late`) while the window is extended. */
+            allowLateSubmission?: boolean;
+            /** @description Every marked submission needs an approved moderation before finalisation. */
+            moderationRequired?: boolean;
+        };
         /** @description Academic calendar: the stable identity of a calendar series (versions live under it). */
         Calendar: {
             code: string;
@@ -7707,6 +12255,9 @@ export interface components {
          * @enum {string}
          */
         CampusType: "main" | "satellite" | "city" | "medical" | "engineering" | "research" | "off_campus" | "online" | "other";
+        CaptureAttendance: {
+            records: components["schemas"]["MarkInput"][];
+        };
         /**
          * @description Lifecycle of a governed request/decision case (identity correction, duplicate case, transfer, credit transfer, programme migration, progression revision, completion deferral, qualification correction, …).
          * @enum {string}
@@ -7720,6 +12271,59 @@ export interface components {
             /** @description Show in the in-app inbox (security notifications cannot be muted). */
             inApp: boolean;
         };
+        /** @description Verification checks (absent = not yet established). */
+        CertificateChecks: {
+            authenticityConfirmed?: boolean | null;
+            fraudIndicators?: string[];
+            identityMatched?: boolean | null;
+            /** @description Derived from the provider's status and accreditation validity when not given. */
+            providerAccredited?: boolean | null;
+        };
+        CertificateDecision: {
+            /** @description `accepted` | `rejected` | `flagged`. */
+            outcome: components["schemas"]["CertificateVerificationStatus"];
+            reason?: string | null;
+        };
+        CertificateVerification: {
+            certificateNumber: string;
+            certificateUrl?: string | null;
+            checks: components["schemas"]["CertificateChecks"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: uuid */
+            enrolmentId: string;
+            history?: components["schemas"]["FlexibleHistoryEntry"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: date */
+            issuedOn?: string | null;
+            learnerName?: string | null;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            providerId?: string | null;
+            status: components["schemas"]["CertificateVerificationStatus"];
+            /** Format: uuid */
+            studentId: string;
+            submittedBy?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        CertificateVerificationList: {
+            items: components["schemas"]["CertificateVerification"][];
+        };
+        /**
+         * @description External certificate verification (L3-D-043).
+         * @enum {string}
+         */
+        CertificateVerificationStatus: "submitted" | "under_verification" | "accepted" | "rejected" | "flagged";
         /**
          * @description `POST …/positions/{id}/changes`: an effective-dated successor revision of an active
          *     definition (absent members carry over from the latest revision).
@@ -7738,6 +12342,11 @@ export interface components {
             reason: string;
             title?: string | null;
         };
+        /**
+         * @description Governed change request (L2-D02 operational change: requested → validated → approved → applied).
+         * @enum {string}
+         */
+        ChangeRequestStatus: "requested" | "validated" | "approved" | "applied" | "rejected" | "withdrawn";
         /** @description `PUT …/institutions/{id}/timezone`. */
         ChangeTimezone: {
             /**
@@ -7861,6 +12470,25 @@ export interface components {
          * @enum {string}
          */
         ComponentCategory: "major_core" | "major_elective" | "minor" | "multidisciplinary" | "ability_enhancement" | "skill_enhancement" | "value_added" | "internship" | "research_project" | "open_elective";
+        /** @description A computed component line of a result. */
+        ComponentMark: {
+            /**
+             * Format: double
+             * @description Weighted contribution to the internal total.
+             */
+            contribution: number;
+            key: string;
+            /** Format: double */
+            max: number;
+            /**
+             * Format: double
+             * @description Raw marks obtained over all windows of the component.
+             */
+            obtained: number;
+            title: string;
+            /** Format: double */
+            weight: number;
+        };
         ConditionInput: {
             /** Format: uuid */
             curriculumComponentId?: string | null;
@@ -7904,6 +12532,18 @@ export interface components {
          * @enum {string}
          */
         ConferredQualificationStatus: "conferred" | "corrected" | "revoked";
+        /** @description One validation finding. */
+        Conflict: {
+            /**
+             * @description `section_overlap`, `faculty_overlap`, `room_overlap`, `section_not_schedulable`,
+             *     `requirement_shortfall`, `empty_timetable`.
+             */
+            code: string;
+            message: string;
+            /** @description `critical` blocks approval; `warning` does not. */
+            severity: string;
+            slotIds: string[];
+        };
         /**
          * @description Kind of guardian consent (L3-C-054).
          * @enum {string}
@@ -7929,6 +12569,55 @@ export interface components {
         CorrectionKind: "correction" | "revocation";
         /** @enum {string} */
         CorrectionResolution: "corrected" | "revoked" | "no_change";
+        /**
+         * @description Course Offering lifecycle (L2-D01 §10 + §71 state transition matrix).
+         * @enum {string}
+         */
+        CourseOfferingStatus: "draft" | "pending_approval" | "approved" | "published" | "enrollment_open" | "enrollment_closed" | "active" | "suspended" | "frozen" | "completed" | "archived" | "cancelled" | "merged" | "split";
+        CourseResource: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string | null;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            kind: components["schemas"]["CourseResourceKind"];
+            /** Format: uuid */
+            offeringId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: uuid */
+            sectionId?: string | null;
+            status: components["schemas"]["CourseResourceStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            url: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Kind of a course resource.
+         * @enum {string}
+         */
+        CourseResourceKind: "document" | "link" | "video" | "reading" | "library_item";
+        CourseResourceList: {
+            items: components["schemas"]["CourseResource"][];
+        };
+        CourseResourcePatch: {
+            description?: string | null;
+            kind?: null | components["schemas"]["CourseResourceKind"];
+            title?: string | null;
+            url?: string | null;
+        };
+        /**
+         * @description Course resource / library link.
+         * @enum {string}
+         */
+        CourseResourceStatus: "draft" | "published" | "withdrawn";
         /** @description Applicant details of a new application. */
         CreateApplication: {
             /** Format: uuid */
@@ -8015,6 +12704,36 @@ export interface components {
             toProgrammeId: string;
             /** Format: int32 */
             toTermNo: number;
+        };
+        CreateOffering: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: uuid */
+            campusId?: string | null;
+            /**
+             * Format: int32
+             * @description Offering-wide seat cap (sections carry their own); omitted = unlimited.
+             */
+            capacity?: number | null;
+            /**
+             * Format: uuid
+             * @description The curriculum component offered; alternatively give its `slotCode` in the version.
+             */
+            curriculumComponentId?: string | null;
+            /** Format: uuid */
+            curriculumVersionId: string;
+            /** @description `in_person` (default) | `online` | `hybrid`. */
+            deliveryMode?: string | null;
+            /** @description Business code, unique per institution and term among live offerings (e.g. `CS101-T1`). */
+            offeringCode: string;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** @description Initial sections (planned), e.g. `[{"sectionCode": "A", "capacity": 60}]`. */
+            sections?: components["schemas"]["NewOfferingSection"][];
+            /** @description Slot code of the component in the curriculum version (e.g. `CS101`) when the id is not known. */
+            slotCode?: string | null;
+            /** @description Defaults to the curriculum component title. */
+            title?: string | null;
         };
         /** @description `POST …/institutions/{id}/policies`: the policy and its first draft revision. */
         CreatePolicy: {
@@ -8125,6 +12844,124 @@ export interface components {
             /** Format: uuid */
             toComponentId?: string | null;
         };
+        CreditMappingRule: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: double */
+            credits: number;
+            /** Format: uuid */
+            curriculumComponentId?: string | null;
+            /** Format: uuid */
+            curriculumVersionId?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /** @description `component_equivalent` | `elective_credit` | `additional_credit`. */
+            equivalency: string;
+            history?: components["schemas"]["FlexibleHistoryEntry"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            opportunityId: string;
+            processInstanceId?: string | null;
+            status: components["schemas"]["PolicyVersionStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        CreditMappingRuleList: {
+            items: components["schemas"]["CreditMappingRule"][];
+        };
+        CreditRecognition: {
+            /** Format: uuid */
+            academicTermId?: string | null;
+            /** Format: uuid */
+            certificateVerificationId: string;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: double
+             * @description Approved credits (≤ requested; partial approval).
+             */
+            credits: number;
+            /** Format: uuid */
+            curriculumComponentId?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: uuid */
+            flexibleEnrolmentId: string;
+            history?: components["schemas"]["FlexibleHistoryEntry"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /**
+             * Format: uuid
+             * @description `student.credit_ledger_entry` id returned by `CreditPostingPort` once posted.
+             */
+            ledgerEntryId?: string | null;
+            /** Format: uuid */
+            mappingRuleId: string;
+            /** Format: uuid */
+            opportunityId: string;
+            /** Format: date-time */
+            postedAt?: string | null;
+            postings?: components["schemas"]["CreditRecognitionPosting"][];
+            processInstanceId?: string | null;
+            /** Format: double */
+            requestedCredits: number;
+            status: components["schemas"]["CreditRecognitionStatus"];
+            /** Format: uuid */
+            studentId: string;
+            studentSubjectRef?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        CreditRecognitionDecision: {
+            /**
+             * Format: double
+             * @description Partial approval: approved credits (≤ requested). Defaults to the requested credits.
+             */
+            credits?: number | null;
+            /** @description `approve` | `reject`. */
+            decision: components["schemas"]["FlexibleDecisionValue"];
+            reason?: string | null;
+        };
+        CreditRecognitionList: {
+            items: components["schemas"]["CreditRecognition"][];
+        };
+        CreditRecognitionPosting: {
+            alreadyPosted: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: double */
+            credits: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            ledgerEntryId: string;
+            postedBy?: string | null;
+            /** Format: uuid */
+            recognitionId: string;
+        };
+        /**
+         * @description Credit recognition and posting request (L3-D-039).
+         * @enum {string}
+         */
+        CreditRecognitionStatus: "requested" | "under_review" | "approved" | "posted" | "rejected";
         CreditTransfer: {
             /** Format: date-time */
             createdAt: string;
@@ -8375,6 +13212,20 @@ export interface components {
             deficiencies?: string[];
             note?: string | null;
         };
+        /** @description Body of an approval decision endpoint. */
+        DeliveryDecision: {
+            decision: components["schemas"]["DeliveryDecisionValue"];
+            reason?: string | null;
+        };
+        /**
+         * @description Decision of an approval step (`AwaitDecision` mode).
+         * @enum {string}
+         */
+        DeliveryDecisionValue: "approve" | "reject";
+        /** @description Generic body of a state command. */
+        DeliveryReason: {
+            reason?: string | null;
+        };
         DetentionCase: {
             /** Format: date-time */
             createdAt: string;
@@ -8586,6 +13437,38 @@ export interface components {
             /** Format: int32 */
             priority?: number | null;
         };
+        EnrolmentRestriction: {
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: date */
+            effectiveTo?: string | null;
+            homeApprovalRef?: string | null;
+            hostApprovalRef?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `programme` | `min_term` | `cross_campus` | `cross_institution`. */
+            kind: string;
+            /** Format: int32 */
+            minTermNo?: number | null;
+            /** Format: uuid */
+            offeringId: string;
+            reason: string;
+            refIds: string[];
+            /** Format: int32 */
+            seatLimit?: number | null;
+            /** @description `effective` | `retired`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        EnrolmentRestrictionList: {
+            items: components["schemas"]["EnrolmentRestriction"][];
+        };
+        /**
+         * @description Offering enrolment window (L2-D01 enrollment states).
+         * @enum {string}
+         */
+        EnrolmentWindowStatus: "scheduled" | "open" | "suspended" | "closed" | "closed_permanently";
         /** @description `POST …/institutions/{id}/positions` (created in `draft`, revision 1). */
         EstablishPosition: {
             /** @example HOD-CSE */
@@ -8622,11 +13505,24 @@ export interface components {
         EvaluationOutcome: "eligible" | "not_eligible" | "conditionally_eligible";
         /** @enum {string} */
         EvidenceStatus: "satisfied" | "waived" | "missing" | "failed" | "not_available";
+        ExceptionHold: {
+            onHold: boolean;
+            reason?: string | null;
+        };
         /**
          * @description Kind of a temporary calendar deviation.
          * @enum {string}
          */
         ExceptionKind: "closure" | "rescheduled_working_day" | "extended_term" | "additional_holiday" | "other";
+        ExceptionPlan: {
+            correctivePlan: string;
+            overrideJustification?: string | null;
+            overrideRequired?: boolean;
+        };
+        ExceptionResolution: {
+            correctiveAction: string;
+            resolutionEvidence: string;
+        };
         /**
          * @description The validated scope a protected operation executes in. Must be carried across every
          *     synchronous, asynchronous, workflow and persistence hand-off.
@@ -8680,11 +13576,156 @@ export interface components {
          * @enum {string}
          */
         ExitClearanceStatus: "pending" | "cleared" | "waived" | "blocked";
+        ExtendWindow: {
+            /** Format: date-time */
+            dueAt: string;
+            reason: string;
+        };
+        ExternalRegistration: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            enrolmentId: string;
+            evidenceKey?: string | null;
+            /** Format: uuid */
+            id: string;
+            outcomeReason?: string | null;
+            /** Format: uuid */
+            providerId: string;
+            providerReference?: string | null;
+            requestedBy?: string | null;
+            /** @description `requested` | `accepted` | `rejected` | `recovery_required`. */
+            status: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * @description Who manages the account's second factors.
          * @enum {string}
          */
         FactorAuthority: "sutra" | "keycloak";
+        FacultyAssignment: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: date */
+            effectiveTo?: string | null;
+            facultyName?: string | null;
+            facultySubjectRef: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offeringId: string;
+            processInstanceId?: string | null;
+            role: components["schemas"]["FacultyRole"];
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: uuid */
+            staffId?: string | null;
+            status: components["schemas"]["FacultyAssignmentStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: double */
+            weeklyHours?: number | null;
+        };
+        FacultyAssignmentChange: {
+            /** Format: date-time */
+            appliedAt?: string | null;
+            /** Format: uuid */
+            assignmentId: string;
+            baseline: Record<string, never>;
+            /** @description `role` | `hours` | `period` | `reassignment`. */
+            changeKind: string;
+            /** Format: date-time */
+            createdAt: string;
+            decisionReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            processInstanceId?: string | null;
+            proposed: Record<string, never>;
+            reason: string;
+            /** Format: uuid */
+            replacementAssignmentId?: string | null;
+            status: components["schemas"]["ChangeRequestStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        FacultyAssignmentChangeList: {
+            items: components["schemas"]["FacultyAssignmentChange"][];
+        };
+        FacultyAssignmentList: {
+            items: components["schemas"]["FacultyAssignment"][];
+        };
+        FacultyAssignmentPolicy: {
+            allowedRoles: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            effectiveAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: double */
+            maxWeeklyHours?: number | null;
+            name: string;
+            processInstanceId?: string | null;
+            rationale: string;
+            requirePrimaryInstructor: boolean;
+            reviewNotes?: string | null;
+            /** @description `compatible` | `incompatible` once reviewed. */
+            reviewOutcome?: string | null;
+            status: components["schemas"]["PolicyVersionStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersededBy?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        FacultyAssignmentPolicyList: {
+            items: components["schemas"]["FacultyAssignmentPolicy"][];
+        };
+        /**
+         * @description Faculty academic assignment lifecycle (L2-D02 §6.2; `rejected` / `withdrawn` / `revoked` close the governed paths).
+         * @enum {string}
+         */
+        FacultyAssignmentStatus: "draft" | "submitted" | "under_review" | "approved" | "active" | "completed" | "archived" | "rejected" | "withdrawn" | "revoked";
+        FacultyAttendance: {
+            items: components["schemas"]["TaughtSectionSessions"][];
+        };
+        /** @description Faculty member on a section (§5.3). */
+        FacultyBrief: {
+            /** Format: uuid */
+            assignmentId: string;
+            facultyName?: string | null;
+            facultySubjectRef: string;
+            role: components["schemas"]["FacultyRole"];
+            status: components["schemas"]["FacultyAssignmentStatus"];
+        };
+        FacultyPolicyDraft: {
+            allowedRoles?: components["schemas"]["FacultyRole"][] | null;
+            /** Format: double */
+            maxWeeklyHours?: number | null;
+            name?: string | null;
+            rationale?: string | null;
+            requirePrimaryInstructor?: boolean | null;
+        };
+        FacultyPolicyReview: {
+            notes?: string | null;
+            /** @description `compatible` | `incompatible` (impact + architecture review outcome). */
+            outcome: string;
+        };
+        /**
+         * @description Teaching role of a faculty assignment.
+         * @enum {string}
+         */
+        FacultyRole: "primary_instructor" | "co_instructor" | "tutor" | "lab_instructor" | "teaching_assistant" | "course_coordinator";
         /** @description A single field-level validation failure (`validationErrors[]` in problem+json). */
         FieldViolation: {
             /** @description Stable machine-readable reason code. */
@@ -8734,6 +13775,188 @@ export interface components {
         FinancialResponsibilityList: {
             items: components["schemas"]["FinancialResponsibility"][];
         };
+        /** @description Body of an approval decision endpoint. */
+        FlexibleDecision: {
+            decision: components["schemas"]["FlexibleDecisionValue"];
+            reason?: string | null;
+        };
+        /**
+         * @description Decision of an approval step (`AwaitDecision` mode).
+         * @enum {string}
+         */
+        FlexibleDecisionValue: "approve" | "reject";
+        FlexibleEnrolment: {
+            /** Format: date-time */
+            allocatedAt?: string | null;
+            allocations?: components["schemas"]["SeatAllocation"][];
+            completion?: null | components["schemas"]["LearningCompletion"];
+            /** Format: date-time */
+            createdAt: string;
+            displayName: string;
+            eligibility: Record<string, never>;
+            history?: components["schemas"]["FlexibleHistoryEntry"][];
+            /** Format: double */
+            hoursCompleted?: number | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            opportunityCode?: string | null;
+            /** Format: uuid */
+            opportunityId: string;
+            opportunityTitle?: string | null;
+            /** Format: uuid */
+            policyId?: string | null;
+            /** Format: int32 */
+            priority: number;
+            processInstanceId?: string | null;
+            registrations?: components["schemas"]["ExternalRegistration"][];
+            sourceKey?: string | null;
+            status: components["schemas"]["FlexibleEnrolmentStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentContextId: string;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            subjectRef?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: date */
+            waitlistExpiresOn?: string | null;
+            /**
+             * Format: int64
+             * @description Queue position among waitlisted demand (1 = next), when waitlisted.
+             */
+            waitlistPosition?: number | null;
+            /** Format: date-time */
+            waitlistedAt?: string | null;
+        };
+        FlexibleEnrolmentList: {
+            items: components["schemas"]["FlexibleEnrolment"][];
+        };
+        /**
+         * @description Flexible-learning enrolment (L3-D-034…038, 048).
+         * @enum {string}
+         */
+        FlexibleEnrolmentStatus: "requested" | "eligible" | "allocated" | "waitlisted" | "registered" | "in_progress" | "completed" | "withdrawn" | "rejected";
+        FlexibleExceptionCase: {
+            category: string;
+            /** Format: date-time */
+            closedAt?: string | null;
+            correctiveAction?: string | null;
+            correctivePlan?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            description?: string | null;
+            /** Format: uuid */
+            enrolmentId?: string | null;
+            history?: components["schemas"]["FlexibleHistoryEntry"][];
+            holdReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            onHold: boolean;
+            /** Format: uuid */
+            opportunityId?: string | null;
+            overrideJustification?: string | null;
+            overrideRequired: boolean;
+            ownerSubject: string;
+            processInstanceId?: string | null;
+            resolutionEvidence?: string | null;
+            rootCause?: string | null;
+            sourceKey?: string | null;
+            /** @description `open` | `plan_pending` | `plan_approved` | `resolved` | `closed`. */
+            status: string;
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        FlexibleExceptionCaseList: {
+            items: components["schemas"]["FlexibleExceptionCase"][];
+        };
+        /** @description One row of the 4C status history. */
+        FlexibleHistoryEntry: {
+            actor?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            fromStatus?: string | null;
+            reason?: string | null;
+            toStatus: string;
+        };
+        FlexibleLearningPolicy: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            history?: components["schemas"]["FlexibleHistoryEntry"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            processInstanceId?: string | null;
+            rules: components["schemas"]["FlexiblePolicyRules"];
+            status: components["schemas"]["PolicyVersionStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        FlexibleLearningPolicyList: {
+            items: components["schemas"]["FlexibleLearningPolicy"][];
+        };
+        /** @description Flexible-learning policy rules (stored as JSON on the policy version). */
+        FlexiblePolicyRules: {
+            /**
+             * Format: int32
+             * @description Live flexible enrolments a student may hold at once (≥ 1).
+             */
+            maxConcurrentEnrolments: number;
+            /**
+             * Format: double
+             * @description Flexible credits a student may hold per academic term (> 0).
+             */
+            maxCreditsPerTerm: number;
+            /**
+             * @description Every request needs a human academic decision (else validated requests are approved by
+             *     the policy path without a human decision, L4-D-034-BH-004).
+             */
+            requireHumanApproval?: boolean;
+            /**
+             * Format: int32
+             * @description Days a waitlist entry stays valid (≥ 1).
+             */
+            waitlistValidityDays: number;
+            /**
+             * @description Withdrawal allowed up to and including this status (`allocated` | `registered` |
+             *     `in_progress`).
+             */
+            withdrawalAllowedUntil: string;
+        };
+        /** @description Generic body of a state command. */
+        FlexibleReason: {
+            reason?: string | null;
+        };
         /** @description Geographic reference of the campus. */
         GeoPoint: {
             /** Format: double */
@@ -8778,6 +14001,15 @@ export interface components {
         /** @description Governance revisions of a unit. */
         GovernanceConfigList: {
             items: components["schemas"]["GovernanceConfig"][];
+        };
+        GovernanceReview: {
+            /** Format: date */
+            dueOn?: string | null;
+            interventionPlan?: string | null;
+            interventionTitle?: string | null;
+            rationale?: string | null;
+            requiresIntervention?: boolean;
+            reviewerSubject?: string | null;
         };
         /** @description Governance settings of an organisation unit. */
         GovernanceSettings: {
@@ -9082,6 +14314,69 @@ export interface components {
          * @enum {string}
          */
         InstitutionType: "school" | "college" | "university" | "autonomous" | "affiliated" | "other";
+        /** @description The institutional facts compared (snapshot at run time). */
+        InstitutionalRecord: {
+            completed: boolean;
+            displayName: string;
+            /** Format: uuid */
+            enrolmentId: string;
+            /** Format: double */
+            hoursCompleted?: number | null;
+            providerReference?: string | null;
+            status: string;
+            studentNumber: string;
+        };
+        InternalAssessmentResult: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: uuid */
+            blueprintId: string;
+            componentMarks: components["schemas"]["ComponentMark"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            curriculumComponentId: string;
+            displayName: string;
+            /** Format: date-time */
+            finalizedAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: double */
+            marksObtained: number;
+            /** Format: double */
+            maxMarks: number;
+            /** Format: uuid */
+            offeringId: string;
+            processInstanceId?: string | null;
+            /** Format: int32 */
+            resultVersion: number;
+            /** Format: uuid */
+            sectionId: string;
+            status: components["schemas"]["InternalAssessmentStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        InternalAssessmentResultList: {
+            items: components["schemas"]["InternalAssessmentResult"][];
+        };
+        /**
+         * @description Section-level internal assessment (L2-D07 §5: … → moderated → finalized → archived).
+         * @enum {string}
+         */
+        InternalAssessmentStatus: "in_progress" | "moderated" | "finalized" | "corrected" | "archived";
+        /**
+         * @description Monitoring intervention (L3-D-030).
+         * @enum {string}
+         */
+        InterventionStatus: "planned" | "triggered" | "in_progress" | "completed" | "cancelled";
         KeyDate: {
             /** Format: date */
             endsOn: string;
@@ -9101,6 +14396,164 @@ export interface components {
          * @enum {string}
          */
         KeyDateKind: "holiday" | "instruction_start" | "instruction_end" | "exam_window" | "registration_window" | "break" | "event";
+        LearningCompletion: {
+            /** @description `passed` | `failed` | `not_applicable`. */
+            assessmentStatus: string;
+            /** Format: date */
+            completedOn: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            enrolmentId: string;
+            grade?: string | null;
+            /** Format: double */
+            hoursCompleted: number;
+            /** Format: uuid */
+            id: string;
+            providerEvidenceRef?: string | null;
+            recordedBy?: string | null;
+            sourceKey?: string | null;
+        };
+        /**
+         * @description Mode of a learning opportunity (L2-D06).
+         * @enum {string}
+         */
+        LearningMode: "open_elective" | "mooc" | "swayam" | "nptel" | "internship" | "external_course";
+        LearningOpportunity: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: date-time */
+            archivedAt?: string | null;
+            audience?: string | null;
+            /** Format: int32 */
+            capacity: number;
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: double */
+            credits: number;
+            /** Format: date */
+            enrolmentClosesOn?: string | null;
+            /** Format: date */
+            enrolmentOpensOn?: string | null;
+            history?: components["schemas"]["FlexibleHistoryEntry"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: double */
+            minHours?: number | null;
+            mode: components["schemas"]["LearningMode"];
+            offeringCode?: string | null;
+            /** Format: uuid */
+            offeringId?: string | null;
+            /** @description Confirmed allocations exceed governed capacity (resolve through `resolve-conflicts`). */
+            overAllocated?: boolean;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            providerId?: string | null;
+            /** @description Provider name / offering code for display. */
+            providerName?: string | null;
+            requiresApproval: boolean;
+            /** Format: int32 */
+            reservedSeats: number;
+            /**
+             * Format: int64
+             * @description Confirmed seat allocations.
+             */
+            seatsAllocated?: number;
+            /** Format: date-time */
+            sessionArchivedAt?: string | null;
+            status: components["schemas"]["LearningOpportunityStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** Format: date-time */
+            suspendedAt?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+            /**
+             * Format: int64
+             * @description Queued (waitlisted) demand.
+             */
+            waitlistCount?: number;
+            waitlistEnabled: boolean;
+        };
+        LearningOpportunityList: {
+            items: components["schemas"]["LearningOpportunity"][];
+        };
+        /**
+         * @description Flexible learning opportunity (L3-D-040…042).
+         * @enum {string}
+         */
+        LearningOpportunityStatus: "draft" | "pending_approval" | "active" | "suspended" | "archived";
+        LearningProgress: {
+            /** Format: double */
+            hoursCompleted: number;
+        };
+        LearningProvider: {
+            accreditationRef?: string | null;
+            /** Format: date */
+            accreditationValidUntil?: string | null;
+            code: string;
+            contactEmail?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            history?: components["schemas"]["FlexibleHistoryEntry"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description Approved institutional scope. */
+            modes: components["schemas"]["LearningMode"][];
+            name: string;
+            processInstanceId?: string | null;
+            /** @description `mooc_platform` | `government_platform` | `university` | `industry` | `other`. */
+            providerKind: string;
+            scopeNote?: string | null;
+            status: components["schemas"]["LearningProviderStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+            website?: string | null;
+        };
+        LearningProviderList: {
+            items: components["schemas"]["LearningProvider"][];
+        };
+        /**
+         * @description External learning provider (L3-D-044).
+         * @enum {string}
+         */
+        LearningProviderStatus: "proposed" | "under_review" | "active" | "suspended" | "offboarded";
+        /** @description One entry of the student Library. */
+        LibraryItem: {
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["CourseResourceKind"];
+            offeringCode: string;
+            /** Format: uuid */
+            offeringId?: string | null;
+            offeringTitle: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            sectionCode?: string | null;
+            /** Format: uuid */
+            sectionId?: string | null;
+            status: components["schemas"]["CourseResourceStatus"];
+            title: string;
+            url: string;
+        };
+        LibraryList: {
+            items: components["schemas"]["LibraryItem"][];
+        };
         /** @description Body of an approval decision endpoint. */
         LifecycleDecision: {
             decision: components["schemas"]["LifecycleDecisionValue"];
@@ -9158,6 +14611,19 @@ export interface components {
         LogoutResponse: {
             /** @description Keycloak RP-initiated logout URL; navigate the browser there to end the SSO session. */
             endSessionUrl: string;
+        };
+        MarkInput: {
+            mark: components["schemas"]["AttendanceMark"];
+            remarks?: string | null;
+            /** Format: uuid */
+            studentId: string;
+        };
+        MarkSubmission: {
+            feedback?: string | null;
+            /** Format: double */
+            marks: number;
+            /** @description Required when changing marks already recorded (kept in the mark history). */
+            reason?: string | null;
         };
         MarkedCount: {
             /** Format: int64 */
@@ -9255,6 +14721,267 @@ export interface components {
         };
         /** @enum {string} */
         ModuleStatus: "scaffolded" | "active";
+        MonitoringCase: {
+            /** Format: date-time */
+            certifiedAt?: string | null;
+            /** Format: date-time */
+            closedAt?: string | null;
+            closureSnapshot?: Record<string, never> | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            cycleNo: number;
+            decisions?: components["schemas"]["MonitoringDecision"][];
+            exceptions?: components["schemas"]["MonitoringException"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            interventions?: components["schemas"]["MonitoringIntervention"][];
+            /** Format: uuid */
+            offeringId?: string | null;
+            /** Format: date-time */
+            outcomePublishedAt?: string | null;
+            outcomeSnapshot?: Record<string, never> | null;
+            outcomeSummary?: string | null;
+            ownerSubject: string;
+            pendingDecision?: string | null;
+            plan: Record<string, never>;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            reopenedAsId?: string | null;
+            /** Format: uuid */
+            reopenedFromId?: string | null;
+            reviewerSubject?: string | null;
+            riskAssessments?: components["schemas"]["RiskAssessment"][];
+            /** @description `section` | `offering` | `student`. */
+            scopeKind: string;
+            /** Format: uuid */
+            sectionId?: string | null;
+            sourceKey?: string | null;
+            status: components["schemas"]["MonitoringCaseStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        MonitoringCaseList: {
+            items: components["schemas"]["MonitoringCase"][];
+        };
+        /**
+         * @description Academic monitoring case (L2-D05, L3-D-027…033).
+         * @enum {string}
+         */
+        MonitoringCaseStatus: "open" | "under_assessment" | "intervention" | "under_review" | "certified" | "closed" | "reopened";
+        MonitoringDecision: {
+            /** Format: uuid */
+            caseId: string;
+            /** Format: date-time */
+            createdAt: string;
+            decidedBy?: string | null;
+            /** @description `approve` | `reject`. */
+            decision: string;
+            /** Format: uuid */
+            id: string;
+            /** @description `governance` | `closure` | `reopening`. */
+            kind: string;
+            processInstanceId?: string | null;
+            reason?: string | null;
+            requiresIntervention: boolean;
+        };
+        MonitoringException: {
+            /** Format: uuid */
+            caseId: string;
+            category: string;
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            evidence?: string | null;
+            /** Format: uuid */
+            id: string;
+            ownerSubject: string;
+            resolutionNotes?: string | null;
+            resolutionPlan?: string | null;
+            reviewerSubject: string;
+            severity: components["schemas"]["RiskLevel"];
+            /** @description `raised` | `planned` | `resolved` | `closed` | `escalated` | `withdrawn`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            validatedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        MonitoringIntervention: {
+            /** Format: uuid */
+            caseId: string;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            decisionId: string;
+            /** Format: date */
+            dueOn?: string | null;
+            /** Format: uuid */
+            id: string;
+            outcome?: string | null;
+            ownerSubject?: string | null;
+            plan?: string | null;
+            /** Format: date-time */
+            startedAt?: string | null;
+            status: components["schemas"]["InterventionStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Body of exception / intervention commands (fields used by the command that needs them). */
+        MonitoringStep: {
+            /** Format: date */
+            dueOn?: string | null;
+            outcome?: string | null;
+            ownerSubject?: string | null;
+            reason?: string | null;
+            resolutionNotes?: string | null;
+            resolutionPlan?: string | null;
+        };
+        /** @description One coursework item as the student sees it (contract §5.3). */
+        MyAssignment: {
+            courseTitle: string;
+            /** Format: date-time */
+            dueAt: string;
+            /** Format: date-time */
+            extendedDueAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            instructions?: string | null;
+            kind: components["schemas"]["AssessmentKind"];
+            /** Format: double */
+            maxMarks: number;
+            offeringCode: string;
+            /** Format: date-time */
+            opensAt: string;
+            /** Format: uuid */
+            sectionId: string;
+            status: components["schemas"]["AssessmentWindowStatus"];
+            submission?: null | components["schemas"]["MySubmission"];
+            title: string;
+        };
+        MyAssignments: {
+            items: components["schemas"]["MyAssignment"][];
+        };
+        MyAttendance: {
+            items: components["schemas"]["MyAttendanceLine"][];
+        };
+        /** @description The student's own attendance per seated section. */
+        MyAttendanceLine: {
+            /** Format: int32 */
+            attended: number;
+            belowThreshold: boolean;
+            offeringCode: string;
+            /** Format: double */
+            percent: number;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: double */
+            thresholdPercent: number;
+            title: string;
+            /** Format: int32 */
+            total: number;
+        };
+        /** @description A section the faculty member teaches. */
+        MyClass: {
+            /** Format: uuid */
+            academicTermId: string;
+            offeringCode: string;
+            /** Format: uuid */
+            offeringId: string;
+            offeringStatus: components["schemas"]["CourseOfferingStatus"];
+            role: components["schemas"]["FacultyRole"];
+            /** Format: int64 */
+            seatedCount: number;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            title: string;
+        };
+        MyClassList: {
+            items: components["schemas"]["MyClass"][];
+        };
+        /** @description A course the student is seated in (§5.3). */
+        MyCourse: {
+            /** Format: uuid */
+            academicTermId: string;
+            courseCode?: string | null;
+            /** Format: double */
+            credits: number;
+            /** Format: uuid */
+            enrolmentId: string;
+            /** Format: int64 */
+            enrolmentVersion: number;
+            faculty: components["schemas"]["FacultyBrief"][];
+            offeringCode: string;
+            /** Format: uuid */
+            offeringId: string;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            /** @description Offering status. */
+            status: components["schemas"]["CourseOfferingStatus"];
+            title: string;
+        };
+        MyCourseList: {
+            items: components["schemas"]["MyCourse"][];
+        };
+        MyEnrolments: {
+            items: components["schemas"]["SectionEnrolment"][];
+            waitlist: components["schemas"]["OfferingWaitlistEntry"][];
+        };
+        /** @description The caller's flexible-learning view: open opportunities of their institutions and their own enrolments. */
+        MyFlexibleLearning: {
+            enrolments: components["schemas"]["FlexibleEnrolment"][];
+            opportunities: components["schemas"]["LearningOpportunity"][];
+        };
+        MyResources: {
+            items: components["schemas"]["CourseResource"][];
+            sections: components["schemas"]["ResourceSection"][];
+        };
+        /** @description A student seated in one of the faculty member's sections. */
+        MyStudent: {
+            displayName: string;
+            offeringCode: string;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+        };
+        MyStudentList: {
+            items: components["schemas"]["MyStudent"][];
+        };
+        MySubmission: {
+            feedback?: string | null;
+            /**
+             * Format: double
+             * @description Moderated marks when moderated, else the recorded marks.
+             */
+            marks?: number | null;
+            status: components["schemas"]["AssessmentSubmissionStatus"];
+            /** Format: date-time */
+            submittedAt?: string | null;
+        };
         /**
          * @description NEP 2020 school stage (5+3+3+4).
          * @enum {string}
@@ -9278,6 +15005,33 @@ export interface components {
         NewAlumniTransition: {
             studentContextId?: null | components["schemas"]["StudentContextId"];
         };
+        NewAssessmentBlueprint: {
+            components: components["schemas"]["BlueprintComponent"][];
+            policy?: null | components["schemas"]["BlueprintPolicy"];
+            title: string;
+            /** Format: double */
+            totalMarks: number;
+        };
+        NewAssessmentCorrection: {
+            evidence?: string | null;
+            /** Format: double */
+            marksObtained: number;
+            reason: string;
+        };
+        NewAssessmentWindow: {
+            /** Format: uuid */
+            blueprintId: string;
+            componentKey: string;
+            /** Format: date-time */
+            dueAt: string;
+            instructions?: string | null;
+            kind?: null | components["schemas"]["AssessmentKind"];
+            /** Format: double */
+            maxMarks: number;
+            /** Format: date-time */
+            opensAt: string;
+            title: string;
+        };
         NewAssignment: {
             calendarVersionId: components["schemas"]["CalendarVersionId"];
             /** Format: date */
@@ -9290,6 +15044,24 @@ export interface components {
              */
             scopeId?: string | null;
             scopeKind: components["schemas"]["ScopeKind"];
+        };
+        NewAttendanceCorrection: {
+            evidence?: string | null;
+            reason: string;
+            /** Format: uuid */
+            recordId: string;
+            toMark: components["schemas"]["AttendanceMark"];
+        };
+        NewAttendancePolicy: {
+            /** Format: date */
+            effectiveFrom?: string | null;
+            excludeExcused?: boolean | null;
+            lateCountsAsPresent?: boolean | null;
+            /** Format: int32 */
+            minSessions?: number | null;
+            name: string;
+            /** Format: double */
+            thresholdPercent: number;
         };
         NewCalendar: {
             /**
@@ -9311,6 +15083,43 @@ export interface components {
              * @description Defaults to the academic year's dates.
              */
             startsOn?: string | null;
+        };
+        NewCertificate: {
+            certificateNumber: string;
+            certificateUrl?: string | null;
+            /** Format: date */
+            issuedOn?: string | null;
+            learnerName?: string | null;
+        };
+        NewCourseResource: {
+            description?: string | null;
+            kind: components["schemas"]["CourseResourceKind"];
+            /** @description Publish at once (default false = draft). */
+            publish?: boolean;
+            title: string;
+            url: string;
+        };
+        NewCreditMappingRule: {
+            /** Format: double */
+            credits: number;
+            /** Format: uuid */
+            curriculumComponentId?: string | null;
+            /** Format: uuid */
+            curriculumVersionId?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            equivalency: string;
+            /** Format: uuid */
+            opportunityId: string;
+        };
+        NewCreditRecognition: {
+            /**
+             * Format: uuid
+             * @description Defaults to the enrolment's latest accepted certificate.
+             */
+            certificateVerificationId?: string | null;
         };
         /** @description Body of a new request. */
         NewDocumentRequest: {
@@ -9345,6 +15154,24 @@ export interface components {
             priority: number;
             relation?: string | null;
         };
+        NewEnrolmentRestriction: {
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /** @description Cross-institution: the home institution's authorisation reference. */
+            homeApprovalRef?: string | null;
+            /** @description Cross-institution: the offering institution's authorisation reference. */
+            hostApprovalRef?: string | null;
+            kind: string;
+            /** Format: int32 */
+            minTermNo?: number | null;
+            reason: string;
+            /** @description Programme ids (`programme`), campus ids (`cross_campus`) or home institution ids (`cross_institution`). */
+            refIds?: string[];
+            /** Format: int32 */
+            seatLimit?: number | null;
+        };
         NewException: {
             calendarVersionId: components["schemas"]["CalendarVersionId"];
             /** Format: date */
@@ -9363,6 +15190,33 @@ export interface components {
             item: components["schemas"]["ClearanceItem"];
             note?: string | null;
         };
+        NewFacultyAssignment: {
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /** @description Display name typed by the administrator until People (Batch 7) provides it. */
+            facultyName?: string | null;
+            /** @description Login subject of the faculty member (e.g. `dev|meera.shah@sutra.dev`). */
+            facultySubjectRef: string;
+            role?: null | components["schemas"]["FacultyRole"];
+            /** Format: double */
+            weeklyHours?: number | null;
+        };
+        NewFacultyAssignmentChange: {
+            changeKind: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: date */
+            effectiveTo?: string | null;
+            facultyName?: string | null;
+            /** @description `reassignment`: the new faculty member's login subject and name. */
+            facultySubjectRef?: string | null;
+            reason: string;
+            role?: null | components["schemas"]["FacultyRole"];
+            /** Format: double */
+            weeklyHours?: number | null;
+        };
         NewFinancialResponsibility: {
             /** Format: date */
             effectiveFrom?: string | null;
@@ -9372,6 +15226,38 @@ export interface components {
             responsibilityType: components["schemas"]["ResponsibilityType"];
             /** Format: double */
             sharePercent: number;
+        };
+        NewFlexibleEnrolment: {
+            /**
+             * Format: int32
+             * @description Lower = higher priority (default 100).
+             */
+            priority?: number | null;
+            /** @description Authoritative fact behind the request; a repeat returns the existing enrolment. */
+            sourceKey?: string | null;
+            /** Format: uuid */
+            studentId: string;
+        };
+        NewFlexibleExceptionCase: {
+            category: string;
+            description?: string | null;
+            /** Format: uuid */
+            enrolmentId?: string | null;
+            /** Format: uuid */
+            opportunityId?: string | null;
+            /** @description Defaults to the caller. */
+            ownerSubject?: string | null;
+            rootCause?: string | null;
+            sourceKey?: string | null;
+            title: string;
+        };
+        NewFlexibleLearningPolicy: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            name: string;
+            rules: components["schemas"]["FlexiblePolicyRules"];
         };
         NewGuardian: {
             address?: string | null;
@@ -9417,6 +15303,98 @@ export interface components {
             /** Format: date */
             startsOn: string;
         };
+        NewLearningCompletion: {
+            /** @description `passed` | `failed` | `not_applicable`. */
+            assessmentStatus: string;
+            /** Format: date */
+            completedOn?: string | null;
+            grade?: string | null;
+            /** Format: double */
+            hoursCompleted: number;
+            /** @description Provider completion evidence (required for external opportunities). */
+            providerEvidenceRef?: string | null;
+            sourceKey?: string | null;
+        };
+        NewLearningOpportunity: {
+            /** Format: uuid */
+            academicTermId: string;
+            audience?: string | null;
+            /** Format: int32 */
+            capacity: number;
+            code: string;
+            /**
+             * Format: double
+             * @description Defaults to the offering's credits for open electives; required otherwise.
+             */
+            credits?: number | null;
+            /** Format: date */
+            enrolmentClosesOn?: string | null;
+            /** Format: date */
+            enrolmentOpensOn?: string | null;
+            /** Format: double */
+            minHours?: number | null;
+            mode: components["schemas"]["LearningMode"];
+            /**
+             * Format: uuid
+             * @description Required for `open_elective` (a 4A offering of the same institution and term).
+             */
+            offeringId?: string | null;
+            /**
+             * Format: uuid
+             * @description Required for every mode except `open_elective`.
+             */
+            providerId?: string | null;
+            requiresApproval?: boolean;
+            /** Format: int32 */
+            reservedSeats?: number;
+            title: string;
+            waitlistEnabled?: boolean | null;
+        };
+        NewLearningProvider: {
+            accreditationRef?: string | null;
+            /** Format: date */
+            accreditationValidUntil?: string | null;
+            code: string;
+            contactEmail?: string | null;
+            modes?: components["schemas"]["LearningMode"][];
+            name: string;
+            providerKind: string;
+            scopeNote?: string | null;
+            website?: string | null;
+        };
+        NewModeration: {
+            evidence?: string | null;
+            /** Format: double */
+            proposedMarks: number;
+            reason: string;
+            /** Format: uuid */
+            submissionId: string;
+        };
+        NewMonitoringCase: {
+            /** Format: uuid */
+            offeringId?: string | null;
+            /** @description Defaults to the caller. */
+            ownerSubject?: string | null;
+            plan?: Record<string, never> | null;
+            reviewerSubject?: string | null;
+            /** @description `section` | `offering` | `student`. */
+            scopeKind: string;
+            /** Format: uuid */
+            sectionId?: string | null;
+            /** @description Authoritative fact that triggered the case; a repeat returns the existing case. */
+            sourceKey?: string | null;
+            /** Format: uuid */
+            studentId?: string | null;
+            title: string;
+        };
+        NewMonitoringException: {
+            category: string;
+            description: string;
+            evidence?: string | null;
+            ownerSubject: string;
+            reviewerSubject: string;
+            severity: components["schemas"]["RiskLevel"];
+        };
         NewNotice: {
             /** @description Roles that see the notice (at least one). */
             audienceRoles: components["schemas"]["Role"][];
@@ -9431,6 +15409,71 @@ export interface components {
             publishAt?: string | null;
             /** @example Innovation Week begins 23 September */
             title: string;
+        };
+        NewOfferingQuota: {
+            /** @description Lower-case category key (`general`, `sc`, `st`, `obc`, `ews`, `pwd`, `management`, …). */
+            category: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: date */
+            effectiveTo?: string | null;
+            rationale: string;
+            /** Format: int32 */
+            seats: number;
+        };
+        NewOfferingRevision: {
+            /** @description `revision` | `replacement` | `rollback`. */
+            kind: string;
+            proposed?: components["schemas"]["OfferingRevisionProposal"];
+            reason: string;
+            /**
+             * Format: uuid
+             * @description `rollback`: an applied revision of this offering to restore; omitted = lifecycle rollback
+             *     of an active offering without seats to `approved`.
+             */
+            targetRevisionId?: string | null;
+        };
+        NewOfferingSection: {
+            /**
+             * Format: uuid
+             * @description Campus where the section is taught (cross-campus delivery); defaults to the offering's.
+             */
+            campusId?: string | null;
+            /** Format: int32 */
+            capacity?: number | null;
+            /** @description `A`, `B`, `LAB-1` … (unique per offering among live sections). */
+            sectionCode: string;
+        };
+        NewOfferingSimulation: {
+            /** @description `capacity` | `cancellation` | `suspension` | `section_cancellation` | `merge` | `faculty_change`. */
+            changeKind: string;
+            /** @description Decision criteria the governance body applies (free text). */
+            criteria?: string | null;
+            /** Format: int32 */
+            proposedCapacity?: number | null;
+            /** Format: uuid */
+            sectionId?: string | null;
+        };
+        NewOfferingTemplate: {
+            /** Format: uuid */
+            campusId?: string | null;
+            /** Format: int32 */
+            capacity?: number | null;
+            /** @description Offering codes are `{course or slot code}-{suffix}` (suffix defaults to the term code). */
+            codeSuffix?: string | null;
+            deliveryMode?: string | null;
+            name: string;
+            /** Format: int32 */
+            sectionCapacity?: number | null;
+            /** @description Defaults to `["A"]`. */
+            sectionCodes?: string[];
+        };
+        NewOfferingWindow: {
+            /** Format: date */
+            closesOn: string;
+            kind?: string | null;
+            /** Format: date */
+            opensOn: string;
         };
         /** @description Grant pickup: an active guardian relationship or a named person with an identity document. */
         NewPickupAuthorisation: {
@@ -9456,6 +15499,34 @@ export interface components {
             evidenceRef?: string | null;
             proposed: components["schemas"]["ProposedQualification"];
             reason: string;
+        };
+        NewReconciliationRun: {
+            /** Format: uuid */
+            opportunityId: string;
+            providerRecords: components["schemas"]["ProviderRecord"][];
+        };
+        NewRevision: {
+            affectedSectionIds?: string[];
+            reason: string;
+        };
+        NewRiskAssessment: {
+            category: string;
+            level?: null | components["schemas"]["RiskLevel"];
+            rationale?: string | null;
+            sourceKey?: string | null;
+        };
+        NewSchedulingRequirement: {
+            notes?: string | null;
+            preferredDays?: number[];
+            roomLabel?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: int32 */
+            sessionMinutes: number;
+            /** Format: int32 */
+            sessionsPerWeek: number;
+            /** Format: uuid */
+            teachingSpaceId?: string | null;
         };
         NewScholarship: {
             benefitType: components["schemas"]["BenefitType"];
@@ -9491,6 +15562,19 @@ export interface components {
         NewSimulation: {
             baselineVersionId: components["schemas"]["CalendarVersionId"];
             proposal: components["schemas"]["SimulationProposal"];
+        };
+        NewSlot: {
+            /** Format: int32 */
+            dayOfWeek: number;
+            /** @description `HH:MM`. */
+            endsAt: string;
+            roomLabel?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            /** @description `HH:MM`. */
+            startsAt: string;
+            /** Format: uuid */
+            teachingSpaceId?: string | null;
         };
         /**
          * @description Initiate an exit (withdrawal, transfer-out, discontinuation, termination, administrative
@@ -9535,6 +15619,28 @@ export interface components {
             toProgrammeId?: string | null;
             toSectionCode?: string | null;
         };
+        NewSubmission: {
+            attachmentUrl?: string | null;
+            content?: string | null;
+        };
+        NewSyllabusCoverage: {
+            summary?: string | null;
+            /** @description Omitted: copies the topics of the latest published record (a correction is new history). */
+            topics?: components["schemas"]["TopicInput"][] | null;
+        };
+        NewTeachingSession: {
+            endsAt?: string | null;
+            /** Format: date */
+            sessionDate: string;
+            /** @description `HH:MM` (required without a slot). */
+            startsAt?: string | null;
+            /**
+             * Format: uuid
+             * @description From an operational timetable slot of the section (times are taken from the slot).
+             */
+            timetableSlotId?: string | null;
+            topic?: string | null;
+        };
         NewTerm: {
             /** @example T1 */
             code: string;
@@ -9546,6 +15652,13 @@ export interface components {
             sequence: number;
             /** Format: date */
             startsOn: string;
+        };
+        NewTimetable: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            name: string;
         };
         NewTodo: {
             /** @description Assign to this person (login id of someone who has signed in before); omitted = me. */
@@ -9620,6 +15733,451 @@ export interface components {
             nextCursor?: string | null;
             /** Format: int64 */
             unreadCount: number;
+        };
+        /** @description Course offering with its sections (§5.3). */
+        Offering: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: uuid */
+            academicYearId?: string | null;
+            /** Format: uuid */
+            campusId?: string | null;
+            /** Format: int32 */
+            capacity?: number | null;
+            category?: string | null;
+            courseCode?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: double */
+            credits: number;
+            /** Format: uuid */
+            curriculumComponentId: string;
+            /** Format: uuid */
+            curriculumVersionId: string;
+            deliveryMode: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            mergedIntoId?: string | null;
+            offeringCode: string;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            processInstanceId?: string | null;
+            /** Format: int64 */
+            seatsTaken: number;
+            sections: components["schemas"]["OfferingSection"][];
+            /** Format: uuid */
+            splitFromId?: string | null;
+            status: components["schemas"]["CourseOfferingStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+            /**
+             * Format: int64
+             * @description Waitlist entries still waiting or holding an offer.
+             */
+            waitlisted: number;
+        };
+        /** @description Capacity change of the offering (no `sectionId`) or one section (L3-D-005). */
+        OfferingCapacityChange: {
+            /**
+             * Format: int32
+             * @description New seat cap; `null` = unlimited.
+             */
+            capacity?: number | null;
+            reason?: string | null;
+            /** Format: uuid */
+            sectionId?: string | null;
+        };
+        OfferingCapacityHistory: {
+            items: components["schemas"]["OfferingCapacityHistoryEntry"][];
+        };
+        /** @description One entry of the capacity history. */
+        OfferingCapacityHistoryEntry: {
+            actor?: string | null;
+            /** Format: date */
+            effectiveOn: string;
+            /** Format: int32 */
+            fromCapacity?: number | null;
+            /** Format: uuid */
+            id: string;
+            reason: string;
+            /** Format: date-time */
+            recordedAt: string;
+            /** Format: int32 */
+            seatedAtChange: number;
+            /** Format: uuid */
+            sectionId?: string | null;
+            /** Format: int32 */
+            toCapacity?: number | null;
+        };
+        /** @description A governed change request on an offering. */
+        OfferingChangeRequest: {
+            /** Format: date-time */
+            appliedAt?: string | null;
+            baseline?: Record<string, never> | null;
+            /** Format: date-time */
+            createdAt: string;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `revision` | `replacement` | `rollback` | `cancellation` | `unfreeze`. */
+            kind: string;
+            /** Format: uuid */
+            offeringId: string;
+            processInstanceId?: string | null;
+            proposed: Record<string, never>;
+            reason: string;
+            requestedBy?: string | null;
+            restoreStatus?: string | null;
+            snapshotAfter?: Record<string, never> | null;
+            status: components["schemas"]["ChangeRequestStatus"];
+            /** Format: uuid */
+            targetRevisionId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        OfferingChangeRequestList: {
+            items: components["schemas"]["OfferingChangeRequest"][];
+        };
+        OfferingEnrolmentWindow: {
+            /** Format: date */
+            closesOn: string;
+            /** Format: uuid */
+            id: string;
+            /** @description `regular` | `add_drop` | `late`. */
+            kind: string;
+            /** Format: uuid */
+            offeringId: string;
+            /** Format: date */
+            opensOn: string;
+            status: components["schemas"]["EnrolmentWindowStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        OfferingGenerateRequest: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** @description All-or-nothing: any failure generates nothing (409). */
+            atomic?: boolean;
+            /** @description Components to generate offerings for; omitted = every component of `termNo`. */
+            componentIds?: string[];
+            /** Format: uuid */
+            curriculumVersionId: string;
+            /** Format: int32 */
+            termNo?: number | null;
+        };
+        OfferingGenerationItem: {
+            /** Format: uuid */
+            curriculumComponentId: string;
+            detail?: string | null;
+            offeringCode?: string | null;
+            /** Format: uuid */
+            offeringId?: string | null;
+            /** @description `generated` | `failed`. */
+            outcome: string;
+        };
+        OfferingGenerationResult: {
+            items: components["schemas"]["OfferingGenerationItem"][];
+            /** Format: uuid */
+            runId: string;
+            /** Format: uuid */
+            templateId: string;
+        };
+        /** @description Result of a cancellation / unfreeze command: the offering and the governed request. */
+        OfferingGovernedOutcome: {
+            offering: components["schemas"]["Offering"];
+            request: components["schemas"]["OfferingChangeRequest"];
+        };
+        /** @description Read-only impact report (L4-D-016-BH-003). */
+        OfferingImpactReport: {
+            /** Format: int64 */
+            activeFaculty: number;
+            /** Format: int64 */
+            activeSections: number;
+            /** Format: int32 */
+            currentCapacity?: number | null;
+            /** Format: int64 */
+            effectiveQuotaSeats: number;
+            /** Format: date-time */
+            factsReadAt: string;
+            /** Format: int64 */
+            facultyAffected: number;
+            /** @description The change is possible without breaking a rule (it may still need a decision). */
+            feasible: boolean;
+            notes: string[];
+            offeringStatus: components["schemas"]["CourseOfferingStatus"];
+            /** Format: int64 */
+            seated: number;
+            /**
+             * Format: int64
+             * @description Students who would lose (or be unable to keep) their seat.
+             */
+            studentsAffected: number;
+            /** Format: int64 */
+            waitlisted: number;
+        };
+        OfferingList: {
+            items: components["schemas"]["Offering"][];
+        };
+        OfferingMergeRequest: {
+            reason: string;
+            /** @description Active offerings of the same term and course component absorbed into this one. */
+            sourceOfferingIds: string[];
+        };
+        OfferingQuota: {
+            category: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offeringId: string;
+            rationale: string;
+            /** Format: int32 */
+            seats: number;
+            /** @description `effective` | `superseded` | `retired`. */
+            status: string;
+            /** Format: uuid */
+            supersededBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        OfferingQuotaList: {
+            items: components["schemas"]["OfferingQuota"][];
+        };
+        /** @description Activation readiness (L4-D-001-BH-012…014). */
+        OfferingReadiness: {
+            problems: string[];
+            ready: boolean;
+        };
+        OfferingReorganisation: {
+            /** Format: date-time */
+            appliedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            decisionReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `merge` | `split`. */
+            kind: string;
+            /** Format: uuid */
+            offeringId: string;
+            plan: Record<string, never>;
+            processInstanceId?: string | null;
+            reason: string;
+            resultOfferingIds: string[];
+            sourceOfferingIds: string[];
+            status: components["schemas"]["ChangeRequestStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        OfferingReorganisationList: {
+            items: components["schemas"]["OfferingReorganisation"][];
+        };
+        /** @description Attribute changes of a revision (all optional). */
+        OfferingRevisionProposal: {
+            /** Format: uuid */
+            campusId?: string | null;
+            /** Format: int32 */
+            capacity?: number | null;
+            /**
+             * Format: uuid
+             * @description `replacement`: the curriculum component (same curriculum version) that replaces the current one.
+             */
+            curriculumComponentId?: string | null;
+            deliveryMode?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            title?: string | null;
+        };
+        /** @description Teaching section of an offering. */
+        OfferingSection: {
+            /** Format: uuid */
+            campusId?: string | null;
+            /** Format: int32 */
+            capacity?: number | null;
+            faculty: components["schemas"]["FacultyBrief"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            mergedIntoId?: string | null;
+            /** Format: uuid */
+            offeringId: string;
+            /** Format: int64 */
+            seatsTaken: number;
+            sectionCode: string;
+            status: components["schemas"]["SectionStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        OfferingSectionList: {
+            items: components["schemas"]["OfferingSection"][];
+        };
+        OfferingSimulation: {
+            changeKind: string;
+            /** Format: date-time */
+            createdAt: string;
+            criteria?: string | null;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            /** @description `proceed` | `revise` | `reject` once decided. */
+            decision?: string | null;
+            decisionReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offeringId: string;
+            processInstanceId?: string | null;
+            proposal: Record<string, never>;
+            report: components["schemas"]["OfferingImpactReport"];
+            status: components["schemas"]["ChangeRequestStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        OfferingSimulationDecision: {
+            /** @description `proceed` | `revise` | `reject`. */
+            decision: string;
+            reason?: string | null;
+        };
+        OfferingSimulationList: {
+            items: components["schemas"]["OfferingSimulation"][];
+        };
+        OfferingSplitPart: {
+            offeringCode: string;
+            sectionIds: string[];
+            title?: string | null;
+        };
+        OfferingSplitRequest: {
+            /** @description Two or more successor offerings; every live section goes to exactly one. */
+            parts: components["schemas"]["OfferingSplitPart"][];
+            reason: string;
+        };
+        /**
+         * @description Approve / reject decision of a pending approval step.
+         * @enum {string}
+         */
+        OfferingStepDecision: "approve" | "reject";
+        /** @description Body of the explicit decision endpoints (`AwaitDecision`). */
+        OfferingStepDecisionBody: {
+            decision: components["schemas"]["OfferingStepDecision"];
+            reason?: string | null;
+        };
+        /** @description `{ "reason": "…" }` of state commands. */
+        OfferingStepReason: {
+            reason?: string | null;
+        };
+        OfferingTemplate: {
+            /** Format: uuid */
+            campusId?: string | null;
+            /** Format: int32 */
+            capacity?: number | null;
+            codeSuffix?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            deliveryMode: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            /** Format: int32 */
+            sectionCapacity?: number | null;
+            sectionCodes: string[];
+            /** @description `draft` | `active` | `retired`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        OfferingTemplateList: {
+            items: components["schemas"]["OfferingTemplate"][];
+        };
+        OfferingWaitlist: {
+            items: components["schemas"]["OfferingWaitlistEntry"][];
+        };
+        /** @description Waitlist entry (L3-D-007). */
+        OfferingWaitlistEntry: {
+            /** Format: date-time */
+            createdAt: string;
+            displayName: string;
+            /** Format: uuid */
+            enrolmentId?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            offerExpiresOn?: string | null;
+            /** Format: date-time */
+            offeredAt?: string | null;
+            /** Format: uuid */
+            offeredSectionId?: string | null;
+            /** Format: uuid */
+            offeringId: string;
+            /** Format: int32 */
+            position: number;
+            /** Format: uuid */
+            sectionId?: string | null;
+            status: components["schemas"]["WaitlistStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: int64 */
+            version: number;
+        };
+        OfferingWaitlistJoin: {
+            /** Format: uuid */
+            sectionId?: string | null;
+            /** Format: uuid */
+            studentId: string;
+        };
+        OfferingWaitlistPromote: {
+            /**
+             * Format: uuid
+             * @description Manual promotion: must be the entry the FIFO policy selects (409 otherwise).
+             */
+            entryId?: string | null;
+            /**
+             * Format: int32
+             * @description Days the seat offer stays open (1..=14, default 2).
+             */
+            offerDays?: number | null;
+        };
+        OfferingWindowCommand: {
+            /**
+             * Format: date
+             * @description New deadline (`extend` only).
+             */
+            closesOn?: string | null;
+            reason?: string | null;
+        };
+        OfferingWindowList: {
+            items: components["schemas"]["OfferingEnrolmentWindow"][];
+        };
+        OpportunityCapacity: {
+            /** Format: int32 */
+            capacity: number;
+            /** Format: date */
+            enrolmentClosesOn?: string | null;
+            /** Format: date */
+            enrolmentOpensOn?: string | null;
+            /** Format: int32 */
+            reservedSeats?: number | null;
+            waitlistEnabled?: boolean | null;
         };
         /** @description Structure transformation request. */
         OrgRestructure: {
@@ -10330,12 +16888,24 @@ export interface components {
             outcome?: null | components["schemas"]["QualificationOutcome"];
             title?: string | null;
         };
+        /** @description One learner record as reported by the provider. */
+        ProviderRecord: {
+            completed?: boolean;
+            /** Format: double */
+            hoursCompleted?: number | null;
+            learnerName?: string | null;
+            providerReference?: string | null;
+            studentNumber: string;
+        };
         /**
          * @description Governed publication lifecycle of versioned definitions. A Published version is
          *     **immutable**: a change creates a successor Draft that supersedes it on publication.
          * @enum {string}
          */
         PublicationStatus: "draft" | "in_review" | "published" | "superseded" | "retired";
+        PublishOutcome: {
+            summary: string;
+        };
         /** @description Qualification Completion aggregate (§5.3 minimum: id, studentId, outcome, status, conferredOn, version). */
         QualificationCompletion: {
             auditResult?: null | components["schemas"]["AuditResult"];
@@ -10509,6 +17079,62 @@ export interface components {
         RecognitionDecisionBody: {
             decision: components["schemas"]["RecognitionDecision"];
             reason?: string | null;
+        };
+        ReconciliationDiscrepancy: {
+            institutional?: string | null;
+            /**
+             * @description `unknown_learner` | `missing_at_provider` | `registration_reference_mismatch` |
+             *     `completion_unrecorded` | `completion_unconfirmed` | `hours_mismatch` | `identity_mismatch`.
+             */
+            kind: string;
+            provider?: string | null;
+            studentNumber: string;
+        };
+        ReconciliationResolution: {
+            notes?: string | null;
+            /** @description `institutional_record_upheld` | `escalated`. */
+            resolution: string;
+        };
+        ReconciliationRun: {
+            /** Format: date-time */
+            createdAt: string;
+            discrepancies: components["schemas"]["ReconciliationDiscrepancy"][];
+            /** Format: uuid */
+            exceptionCaseId?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            institutionalRecords: components["schemas"]["InstitutionalRecord"][];
+            /** Format: uuid */
+            opportunityId: string;
+            /** Format: uuid */
+            providerId?: string | null;
+            providerRecords: components["schemas"]["ProviderRecord"][];
+            resolution?: string | null;
+            resolutionNotes?: string | null;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            resolvedBy?: string | null;
+            runBy?: string | null;
+            /** @description `open` | `discrepancies` | `reconciled` | `escalated`. */
+            status: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ReconciliationRunList: {
+            items: components["schemas"]["ReconciliationRun"][];
+        };
+        /** @description Faculty record for a student without a submission (offline test, absence). */
+        RecordOutcome: {
+            absent?: boolean;
+            feedback?: string | null;
+            /** Format: double */
+            marks?: number | null;
+            /** Format: uuid */
+            studentId: string;
         };
         /** @description Reassessment (L3-C-066) / renewal (L3-C-067) evidence. */
         Reevaluation: {
@@ -10739,6 +17365,14 @@ export interface components {
             /** @description Open/scheduled windows of the institution. */
             windows: components["schemas"]["RegistrationWindow"][];
         };
+        RegistrationOutcome: {
+            /** @description Provider acknowledgement id (a repeat is the same fact). */
+            evidenceKey?: string | null;
+            /** @description `accepted` | `rejected` | `recovery_required`. */
+            outcome: string;
+            providerReference?: string | null;
+            reason?: string | null;
+        };
         /**
          * @description Academic Registration aggregate (L2-C03 §6.9; Frozen + Published = `finalised`).
          * @enum {string}
@@ -10810,6 +17444,14 @@ export interface components {
         RenameInstitution: {
             name: string;
         };
+        ReopenCase: {
+            evidence?: string | null;
+            reason: string;
+        };
+        ReplaceTopics: {
+            summary?: string | null;
+            topics: components["schemas"]["TopicInput"][];
+        };
         /** @description `POST …/institutions/{id}/org-restructures`. */
         RequestRestructure: {
             /**
@@ -10839,6 +17481,16 @@ export interface components {
             facts?: null | components["schemas"]["EligibilityFacts"];
             note?: string | null;
             outcome: components["schemas"]["ConditionOutcome"];
+        };
+        /** @description A section the caller teaches (faculty Resources picker). */
+        ResourceSection: {
+            offeringCode: string;
+            /** Format: uuid */
+            offeringId: string;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            title: string;
         };
         /**
          * @description What a financial responsibility covers (L3-C-057; invoices/payments stay with Finance).
@@ -10938,12 +17590,68 @@ export interface components {
             /** Format: int64 */
             revoked: number;
         };
+        RiskAssessment: {
+            assessedBy?: string | null;
+            /** @description `attendance_rule` (derived from finalised attendance) | `reviewer`. */
+            basis: string;
+            /** Format: uuid */
+            caseId: string;
+            category: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            indicators: Record<string, never>;
+            level: components["schemas"]["RiskLevel"];
+            /** Format: int32 */
+            priority: number;
+            rationale?: string | null;
+            sourceKey?: string | null;
+        };
+        /**
+         * @description Academic risk level (L3-D-028).
+         * @enum {string}
+         */
+        RiskLevel: "low" | "moderate" | "high" | "critical";
         /**
          * @description Application role as presented by the web client. Authorization decisions use the
          *     [`Permission`] map below, never the role name directly.
          * @enum {string}
          */
         Role: "administrator" | "faculty" | "student";
+        /** @description Scheduling requirement of one section (input to generation). */
+        SchedulingRequirement: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            notes?: string | null;
+            /** Format: uuid */
+            offeringId: string;
+            preferredDays: number[];
+            roomLabel?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: int32 */
+            sessionMinutes: number;
+            /** Format: int32 */
+            sessionsPerWeek: number;
+            /** @description `active` | `withdrawn`. */
+            status: string;
+            /** Format: uuid */
+            teachingSpaceId?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        SchedulingRequirementList: {
+            items: components["schemas"]["SchedulingRequirement"][];
+        };
         /** @description Scholarship definition (L3-C-062). */
         Scholarship: {
             benefitType: components["schemas"]["BenefitType"];
@@ -11177,6 +17885,115 @@ export interface components {
          * @enum {string}
          */
         ScopeKind: "institution" | "campus" | "org_unit" | "programme";
+        SeatAllocation: {
+            allocatedBy?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            enrolmentId: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            opportunityId: string;
+            releaseReason?: string | null;
+            /** Format: date-time */
+            releasedAt?: string | null;
+            /** @description `allocation` | `waitlist_promotion` | `conflict_resolution`. */
+            source: string;
+            /** @description `confirmed` | `released`. */
+            status: string;
+        };
+        SeatTransferRequest: {
+            reason?: string | null;
+            /** Format: uuid */
+            toSectionId: string;
+        };
+        /** @description A seat in a section. */
+        SectionEnrolment: {
+            displayName: string;
+            /** Format: date-time */
+            endedAt?: string | null;
+            /** Format: date-time */
+            enrolledAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offeringId: string;
+            /** @description `registration` | `override` | `waitlist` | `transfer`. */
+            origin: string;
+            /** Format: uuid */
+            registrationId?: string | null;
+            /** Format: uuid */
+            registrationLineId?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            status: components["schemas"]["SectionEnrolmentStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentContextId: string;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: uuid */
+            transferredFromId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        SectionEnrolmentList: {
+            items: components["schemas"]["SectionEnrolment"][];
+            nextCursor?: string | null;
+        };
+        /**
+         * @description A student's seat in a section.
+         * @enum {string}
+         */
+        SectionEnrolmentStatus: "enrolled" | "dropped" | "withdrawn" | "transferred" | "completed";
+        /** @description Seat a student (administrator). */
+        SectionSeatRequest: {
+            /**
+             * Format: uuid
+             * @description Cross-institution enrolment: the student's home institution (needs a permit, L3-D-008).
+             */
+            homeInstitutionId?: string | null;
+            /** @description Seat without a covering registration / past a restriction or closed window (reason required). */
+            overrideEligibility?: boolean;
+            reason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+        };
+        /**
+         * @description Section of an offering.
+         * @enum {string}
+         */
+        SectionStatus: "planned" | "active" | "completed" | "cancelled" | "merged";
+        SelfEnrol: {
+            /** Format: uuid */
+            sectionId: string;
+        };
+        SelfFlexibleRequest: {
+            /** Format: uuid */
+            opportunityId: string;
+        };
+        SelfWaitlist: {
+            /** Format: uuid */
+            offeringId: string;
+            /** Format: uuid */
+            sectionId?: string | null;
+        };
+        SessionArchival: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** @description Reference to the authoritative session-closure decision when the term has not ended yet. */
+            closureEvidence?: string | null;
+            reason?: string | null;
+        };
+        SessionArchivalResult: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: int64 */
+            alreadyArchived: number;
+            archived: string[];
+        };
         SessionInfo: {
             /** @description Authentication methods references (`pwd`, `otp`, …). */
             amr: string[];
@@ -11200,6 +18017,12 @@ export interface components {
         };
         SessionList: {
             items: components["schemas"]["SessionView"][];
+        };
+        /** @description Body of `complete` (instructional progress of the session). */
+        SessionProgress: {
+            notes?: string | null;
+            reason?: string | null;
+            topic?: string | null;
         };
         SessionView: {
             amr: string[];
@@ -11704,6 +18527,135 @@ export interface components {
             /** Format: date */
             startsOn?: string | null;
         };
+        SyllabusCoverage: {
+            /**
+             * Format: double
+             * @description Share of topics `completed` (0–100).
+             */
+            completedPercent?: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            offeringId: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            publishedBy?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            status: components["schemas"]["SyllabusCoverageStatus"];
+            submittedBy?: string | null;
+            summary?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            topics?: components["schemas"]["SyllabusTopic"][];
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        SyllabusCoverageList: {
+            items: components["schemas"]["SyllabusCoverage"][];
+        };
+        /**
+         * @description Syllabus coverage record (L3-D-026).
+         * @enum {string}
+         */
+        SyllabusCoverageStatus: "draft" | "submitted" | "published";
+        SyllabusTopic: {
+            /** Format: uuid */
+            id: string;
+            /** @description Curriculum learning-outcome reference (Domain B, plain text until outcomes are modelled). */
+            learningOutcomeRef?: string | null;
+            notes?: string | null;
+            /** Format: int32 */
+            position: number;
+            /** Format: uuid */
+            sessionId?: string | null;
+            status: components["schemas"]["TopicCoverageStatus"];
+            title: string;
+        };
+        /** @description A taught section with its recent sessions (faculty Attendance). */
+        TaughtSectionSessions: {
+            offeringCode: string;
+            /** Format: uuid */
+            offeringId: string;
+            seatedCount: number;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            sessions: components["schemas"]["TeachingSession"][];
+            title: string;
+        };
+        /** @description A teachable section of a term (offering read port), for schedulers and delivery screens. */
+        TeachingSection: {
+            /** Format: uuid */
+            academicTermId: string;
+            offeringCode: string;
+            /** Format: uuid */
+            offeringId: string;
+            offeringStatus: components["schemas"]["CourseOfferingStatus"];
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            status: components["schemas"]["SectionStatus"];
+            title: string;
+        };
+        TeachingSectionList: {
+            items: components["schemas"]["TeachingSection"][];
+        };
+        /** @description A teaching session with its attendance (contract §5.3). */
+        TeachingSession: {
+            /** Format: date-time */
+            attendanceFinalisedAt?: string | null;
+            attendanceStatus: components["schemas"]["AttendanceCaptureStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            endedAt?: string | null;
+            /** @description `HH:MM`. */
+            endsAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: int32 */
+            interruptionCount: number;
+            notes?: string | null;
+            /** Format: uuid */
+            offeringId: string;
+            records?: components["schemas"]["AttendanceRecord"][];
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: date */
+            sessionDate: string;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** @description `HH:MM`. */
+            startsAt: string;
+            status: components["schemas"]["TeachingSessionStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            timetableSlotId?: string | null;
+            topic?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        TeachingSessionList: {
+            items: components["schemas"]["TeachingSession"][];
+        };
+        /**
+         * @description Teaching session lifecycle (L2-D04 §21.1).
+         * @enum {string}
+         */
+        TeachingSessionStatus: "scheduled" | "started" | "in_progress" | "paused" | "completed" | "cancelled" | "abandoned" | "locked" | "archived";
         /**
          * Format: uuid
          * @description Root protected technical scope.
@@ -11722,6 +18674,77 @@ export interface components {
         };
         /** @enum {string} */
         TermStructure: "semester" | "trimester" | "annual";
+        /** @description A timetable version with its slots. */
+        Timetable: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: date-time */
+            activatedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            pendingDecision: boolean;
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            retiredAt?: string | null;
+            /** Format: uuid */
+            revisionOfId?: string | null;
+            slots?: components["schemas"]["TimetableSlot"][];
+            status: components["schemas"]["TimetableStatus"];
+            /** Format: date-time */
+            statusChangedAt: string;
+            statusReason?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            validationReport?: null | components["schemas"]["ValidationReport"];
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        TimetableList: {
+            items: components["schemas"]["Timetable"][];
+        };
+        /** @description One weekly slot (contract §5.3). */
+        TimetableSlot: {
+            /**
+             * Format: int32
+             * @description 1 = Monday … 7 = Sunday.
+             */
+            dayOfWeek: number;
+            /** @description `HH:MM`. */
+            endsAt: string;
+            facultyNames?: string[];
+            /** Format: uuid */
+            id: string;
+            offeringCode?: string;
+            /** Format: uuid */
+            offeringId: string;
+            roomLabel?: string | null;
+            sectionCode?: string;
+            /** Format: uuid */
+            sectionId: string;
+            /** @description `HH:MM`. */
+            startsAt: string;
+            /** Format: uuid */
+            teachingSpaceId?: string | null;
+            /** Format: uuid */
+            timetableId: string;
+            title?: string;
+        };
+        /**
+         * @description Timetable version lifecycle (L2-D03 §12.4).
+         * @enum {string}
+         */
+        TimetableStatus: "planning" | "draft" | "validated" | "approved" | "published" | "active" | "frozen" | "revised" | "retired" | "archived";
         Todo: {
             /** @description Subject that assigned it (`null` = created by the system or by the assignee). */
             assignedBy?: string | null;
@@ -11761,6 +18784,19 @@ export interface components {
         TodoSource: "manual" | "event";
         /** @enum {string} */
         TodoStatus: "open" | "completed" | "dismissed";
+        /**
+         * @description Topic coverage state (L2-D04 syllabus progress).
+         * @enum {string}
+         */
+        TopicCoverageStatus: "planned" | "started" | "completed" | "deferred" | "cancelled";
+        TopicInput: {
+            learningOutcomeRef?: string | null;
+            notes?: string | null;
+            /** Format: uuid */
+            sessionId?: string | null;
+            status: components["schemas"]["TopicCoverageStatus"];
+            title: string;
+        };
         TotpCodeRequest: {
             /**
              * @description Six-digit TOTP code from the authenticator app.
@@ -11814,6 +18850,13 @@ export interface components {
             programmeId?: string | null;
             subjectRef?: string | null;
         };
+        UpdateAssessmentBlueprint: {
+            components?: components["schemas"]["BlueprintComponent"][] | null;
+            policy?: null | components["schemas"]["BlueprintPolicy"];
+            title?: string | null;
+            /** Format: double */
+            totalMarks?: number | null;
+        };
         /** @description Draft-only changes (a published version is immutable — revise it instead). */
         UpdateCalendarVersion: {
             /** Format: date */
@@ -11839,6 +18882,16 @@ export interface components {
             orgUnitId?: null | components["schemas"]["OrgUnitId"];
             title?: string | null;
         };
+        UpdateFacultyAssignment: {
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: date */
+            effectiveTo?: string | null;
+            facultyName?: string | null;
+            role?: null | components["schemas"]["FacultyRole"];
+            /** Format: double */
+            weeklyHours?: number | null;
+        };
         /** @description Partial update; omitted members are unchanged. `clearExpiry: true` removes the expiry. */
         UpdateNotice: {
             audienceRoles?: components["schemas"]["Role"][] | null;
@@ -11850,6 +18903,22 @@ export interface components {
             /** Format: date-time */
             publishAt?: string | null;
             title?: string | null;
+        };
+        UpdateOffering: {
+            /** Format: uuid */
+            campusId?: string | null;
+            /** Format: int32 */
+            capacity?: number | null;
+            deliveryMode?: string | null;
+            offeringCode?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            title?: string | null;
+        };
+        UpdateOfferingSection: {
+            /** Format: uuid */
+            campusId?: string | null;
+            sectionCode?: string | null;
         };
         /**
          * @description Partial update; omitted members are unchanged. An empty `contactEmail` / `contactPhone`
@@ -11898,11 +18967,25 @@ export interface components {
             /** Format: int32 */
             graduationYear: number;
         };
+        /** @description Outcome of the last validation. */
+        ValidationReport: {
+            conflicts: components["schemas"]["Conflict"][];
+            valid: boolean;
+            /** Format: date-time */
+            validatedAt: string;
+        };
         /** @description Body of `…/documents/{documentId}/verify`. */
         VerifyAdmissionDocument: {
             /** @description Required for `rejected` and `waived`. */
             note?: string | null;
             outcome: components["schemas"]["AdmissionVerificationOutcome"];
+        };
+        VerifyCertificate: {
+            authenticityConfirmed?: boolean | null;
+            fraudIndicators?: string[];
+            identityMatched?: boolean | null;
+            providerAccredited?: boolean | null;
+            reason?: string | null;
         };
         /** @description Body of `…/documents/{documentId}/verify`. */
         VerifyStudentDocument: {
@@ -11912,6 +18995,11 @@ export interface components {
         };
         /** Format: int64 */
         Version: number;
+        /**
+         * @description Offering waitlist entry (L3-D-007).
+         * @enum {string}
+         */
+        WaitlistStatus: "waiting" | "offered" | "accepted" | "expired" | "removed";
         WebauthnAssertionRequest: {
             ceremonyId: string;
             credential: Record<string, never>;
@@ -11950,6 +19038,15 @@ export interface components {
             /** @description `PublicKeyCredential` from `navigator.credentials.get` (binary members base64url). */
             credential: Record<string, never>;
         };
+        /** @description Student / faculty weekly view (contract §5.3). */
+        WeeklyTimetable: {
+            items: components["schemas"]["TimetableSlot"][];
+            /**
+             * Format: date
+             * @description Monday of the current business week.
+             */
+            weekOf: string;
+        };
         /** @description Result of finalising every registered registration of a closed window (L3-C-025). */
         WindowFinalisation: {
             finalisedRegistrationIds: string[];
@@ -11984,6 +19081,11914 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    assessment_blueprint_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentBlueprint"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_blueprint_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the blueprint */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAssessmentBlueprint"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentBlueprint"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_blueprint_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the blueprint */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentBlueprint"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_window_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentWindow"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_window_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the window */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentWindow"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_window_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the window */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentWindow"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_window_extend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the window */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtendWindow"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentWindow"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_moderation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentModerationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_moderation_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewModeration"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentModeration"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_moderation_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the moderation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                moderationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentModeration"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_window_open: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the window */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentWindow"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_submission_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentSubmissionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_submission_record: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordOutcome"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentSubmission"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_submission_mark: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the submission */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                submissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkSubmission"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentSubmission"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_correction_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrection"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_correction_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the correction */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrection"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_correction_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the correction */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrection"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendancePolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_policy_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendancePolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_policy_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendancePolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_policy_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendancePolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    certificate_verification_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateVerification"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    certificate_verification_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the verification */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CertificateDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateVerification"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    certificate_verification_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the verification */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyCertificate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateVerification"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_mapping_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditMappingRule"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_mapping_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the rule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlexibleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditMappingRule"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_mapping_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the rule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditMappingRule"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_mapping_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the rule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditMappingRule"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_recognition_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditRecognition"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_recognition_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the recognition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditRecognitionDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditRecognition"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_recognition_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the recognition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditRecognition"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_drop: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_transfer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeatTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description The new seat */
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentPolicy"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_policy_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacultyPolicyDraft"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentPolicy"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_policy_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentPolicy"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_policy_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentPolicy"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_policy_review: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacultyPolicyReview"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentPolicy"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_policy_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentPolicy"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFacultyAssignment"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_change_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentChangeList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_change_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFacultyAssignmentChange"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentChange"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_change_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the change */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                changeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentChange"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_revoke: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    certificate_verification_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateVerificationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    certificate_verification_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewCertificate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateVerification"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewLearningCompletion"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_recognition_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["NewCreditRecognition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditRecognition"];
+                };
+            };
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditRecognition"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlexibleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_progress: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearningProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_register: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_registration_outcome: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistrationOutcome"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlexibleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_hold: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExceptionHold"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_plan: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExceptionPlan"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_reopen_correction: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExceptionResolution"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleLearningPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_policy_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlexibleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleLearningPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_policy_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleLearningPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_policy_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleLearningPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_policy_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PolicyVersionStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendancePolicyList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_policy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAttendancePolicy"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendancePolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    certificate_verification_queue: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateVerificationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_mapping_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PolicyVersionStatus"];
+                opportunityId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditMappingRuleList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_mapping_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewCreditMappingRule"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditMappingRule"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    credit_recognition_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditRecognitionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_policy_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentPolicyList"];
+                };
+            };
+        };
+    };
+    faculty_policy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacultyPolicyDraft"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentPolicy"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCaseList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_exception_raise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFlexibleExceptionCase"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleExceptionCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_policy_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleLearningPolicyList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_policy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFlexibleLearningPolicy"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleLearningPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["LearningOpportunityStatus"];
+                academicTermId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunityList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewLearningOpportunity"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunity"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_session_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionArchival"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionArchivalResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_provider_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningProviderList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_provider_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewLearningProvider"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningProvider"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_case_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["MonitoringCaseStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCaseList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_case_open: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewMonitoringCase"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_template_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingTemplateList"];
+                };
+            };
+        };
+    };
+    offering_template_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewOfferingTemplate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingTemplate"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_list: {
+        parameters: {
+            query?: {
+                status?: "draft" | "pending_approval" | "approved" | "published" | "enrollment_open" | "enrollment_closed" | "active" | "suspended" | "frozen" | "completed" | "archived" | "cancelled" | "merged" | "split";
+                academicTermId?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingList"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Institution id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOffering"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate code, closed term or read-only institution */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reconciliation_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reconciliation_run: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewReconciliationRun"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRun"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    scheduling_requirement_list: {
+        parameters: {
+            query?: {
+                academicTermId?: string;
+                /** @description `active` | `withdrawn`. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulingRequirementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    scheduling_requirement_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSchedulingRequirement"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulingRequirement"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_section_list: {
+        parameters: {
+            query: {
+                academicTermId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSectionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_list: {
+        parameters: {
+            query?: {
+                academicTermId?: string;
+                status?: components["schemas"]["TimetableStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimetableList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTimetable"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    internal_assessment_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the result */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalAssessmentResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    internal_assessment_correction_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentCorrectionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    internal_assessment_correction_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAssessmentCorrection"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentCorrection"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    internal_assessment_correction_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the correction */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                correctionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentCorrection"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunity"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_allocate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationRun"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunity"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_capacity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpportunityCapacity"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunity"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlexibleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunity"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["FlexibleEnrolmentStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_enrolment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFlexibleEnrolment"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_waitlist_promote: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationRun"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_reactivate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunity"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_conflict_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationRun"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunity"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_opportunity_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the opportunity */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningOpportunity"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_provider_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningProvider"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_provider_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the provider */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlexibleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningProvider"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_provider_offboard: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the provider */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningProvider"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_provider_reactivate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the provider */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningProvider"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_provider_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the provider */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningProvider"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    learning_provider_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the provider */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningProvider"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyAssignments"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_self_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSubmission"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyAssignment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_self_student: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyAttendance"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_self_courses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyCourseList"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No student is linked to this login */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_self_available: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailableCourseList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_self_enrolment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyEnrolments"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_self_enrol: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelfEnrol"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_self_drop: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_self_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyFlexibleLearning"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_self_recognitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditRecognitionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_self_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelfFlexibleRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_self_certificate_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewCertificate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateVerification"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    flexible_self_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the enrolment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlexibleEnrolment"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resource_self_library: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_self_student: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyTimetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_self_waitlist_join: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelfWaitlist"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingWaitlistEntry"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_self_waitlist_accept: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Waitlist entry id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new seat */
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_case_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_case_certify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_case_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_case_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_exception_raise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewMonitoringException"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_exception_escalate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_exception_plan: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_exception_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_exception_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_exception_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                exceptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_intervention_assign: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                interventionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_intervention_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                interventionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_intervention_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                interventionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_intervention_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                interventionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_intervention_trigger: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception / intervention */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                interventionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["MonitoringStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_outcome_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishOutcome"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_case_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenCase"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_risk_assess: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewRiskAssessment"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    monitoring_review_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceReview"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCase"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_self_faculty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAttendance"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_self_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyClassList"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_my: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyResources"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_self_students: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyStudentList"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_self_faculty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyTimetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_template_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingTemplate"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_template_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the template */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingTemplate"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_template_generate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingGenerateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingGenerationResult"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Template not active, or an atomic run had a failure */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_template_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the template */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingTemplate"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOffering"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            /** @description Offering after the request (unchanged while the decision is pending) and the request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingGovernedOutcome"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_capacity_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingCapacityHistory"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_capacity_change: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingCapacityChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Lifecycle forbids it, or the reduction would unseat students / break quotas */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_close_enrolment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_freeze: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_merge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Target offering */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingMergeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingReorganisation"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_open_enrolment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_quota_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingQuotaList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_quota_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewOfferingQuota"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingQuota"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Lifecycle forbids it, or quotas would exceed the capacity */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_quota_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the quota */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                quotaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingQuota"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_reactivate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_readiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingReadiness"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_reorganisation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingReorganisationList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_reorganisation_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the reorganisation */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                reorganisationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingReorganisation"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_list_offering: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseResourceList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_create_offering: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewCourseResource"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseResource"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_restriction_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentRestrictionList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_restriction_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewEnrolmentRestriction"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentRestriction"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A reference is not authoritative or an approval is missing */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_restriction_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the restriction */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                restrictionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentRestriction"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_revision_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingChangeRequestList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_revision_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewOfferingRevision"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingChangeRequest"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_revision_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the request */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingChangeRequest"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_revision_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the request */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingChangeRequest"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_section_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Offering id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSectionList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_section_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Offering id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewOfferingSection"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSection"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_simulation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSimulationList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_simulation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewOfferingSimulation"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSimulation"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_simulation_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the simulation */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                simulationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingSimulationDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSimulation"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_split: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingSplitRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingReorganisation"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal transition or prerequisites not met */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_unfreeze: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offering */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            /** @description Offering after the request (unchanged while the decision is pending) and the request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingGovernedOutcome"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_waitlist_list: {
+        parameters: {
+            query?: {
+                status?: "waiting" | "offered" | "accepted" | "expired" | "removed";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingWaitlist"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_waitlist_join: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingWaitlistJoin"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingWaitlistEntry"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_waitlist_promote: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingWaitlistPromote"];
+            };
+        };
+        responses: {
+            /** @description The entry offered a seat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingWaitlistEntry"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No seat, nobody eligible waiting, or the manual pick breaks the FIFO policy */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_waitlist_accept: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the entry */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                entryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new seat */
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_waitlist_remove: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the entry */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                entryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingWaitlistEntry"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_window_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingWindowList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_window_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewOfferingWindow"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingEnrolmentWindow"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Lifecycle forbids it or it overlaps a live window of the same kind */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_window_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the window */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                windowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingWindowCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingEnrolmentWindow"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_window_close_permanently: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the window */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                windowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingWindowCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingEnrolmentWindow"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_window_extend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the window */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                windowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingWindowCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingEnrolmentWindow"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_window_open: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the window */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                windowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingWindowCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingEnrolmentWindow"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_window_resume: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the window */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                windowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingWindowCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingEnrolmentWindow"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_window_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the window */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                windowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingWindowCommand"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingEnrolmentWindow"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reconciliation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRun"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reconciliation_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconciliationResolution"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRun"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseResource"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the resource */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseResourcePatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseResource"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the resource */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseResource"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the resource */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["FlexibleReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseResource"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    scheduling_requirement_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requirement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulingRequirement"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_section_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSection"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_section_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the section */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOfferingSection"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSection"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_section_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the section */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSection"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_blueprint_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentBlueprintList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_blueprint_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAssessmentBlueprint"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentBlueprint"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_window_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["AssessmentWindowStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentWindowList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assessment_window_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAssessmentWindow"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentWindow"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_evaluate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    offering_section_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the section */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["OfferingStepReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingSection"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_list: {
+        parameters: {
+            query?: {
+                status?: "enrolled" | "dropped" | "withdrawn" | "transferred" | "completed";
+                /** @description ≤ 200, default 50. */
+                limit?: number;
+                /** @description Opaque cursor from `nextCursor`. */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Section id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolmentList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Section id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SectionSeatRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionEnrolment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not accepting enrolment, not registered, restricted, full or already seated */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_list: {
+        parameters: {
+            query?: {
+                status?: "draft" | "submitted" | "under_review" | "approved" | "active" | "completed" | "archived" | "rejected" | "withdrawn" | "revoked";
+            };
+            header?: never;
+            path: {
+                /** @description Section id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignmentList"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    faculty_assignment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Section id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFacultyAssignment"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyAssignment"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Offering closed, duplicate live assignment or policy breach */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    internal_assessment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalAssessmentResultList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    internal_assessment_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalAssessmentResultList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    internal_assessment_finalize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalAssessmentResultList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_list_section: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseResourceList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    course_resource_create_section: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewCourseResource"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseResource"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["TeachingSessionStatus"];
+                /** @description At most 200 (default 50). */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSessionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTeachingSession"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    syllabus_coverage_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyllabusCoverageList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    syllabus_coverage_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["NewSyllabusCoverage"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyllabusCoverage"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_abandon: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["SessionProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_capture: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaptureAttendance"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_correction_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrectionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_correction_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAttendanceCorrection"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrection"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["SessionProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["SessionProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_finalise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_lock: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["SessionProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_pause: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["SessionProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_resume: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["SessionProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    teaching_session_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["SessionProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeachingSession"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    syllabus_coverage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyllabusCoverage"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    syllabus_coverage_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyllabusCoverage"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    syllabus_coverage_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyllabusCoverage"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    syllabus_coverage_topics: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceTopics"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyllabusCoverage"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_freeze: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_generate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_revision_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewRevision"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_slot_add: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSlot"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_slot_remove: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                slotId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    timetable_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the timetable */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["DeliveryReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     csrf: {
         parameters: {
             query?: never;

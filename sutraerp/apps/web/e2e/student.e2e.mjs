@@ -522,7 +522,7 @@ try {
   browser = await chromium.launch({
     headless: !process.env.E2E_HEADED,
     executablePath: process.env.CHROMIUM_PATH || undefined,
-    args: ["--no-sandbox"],
+    args: ["--no-sandbox", ...(process.env.E2E_CHROMIUM_ARGS ?? "").split(" ").filter(Boolean)],
   });
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
   const page = await context.newPage();

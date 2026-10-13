@@ -165,3 +165,96 @@ fn every_module_is_composed() {
     domains.dedup();
     assert_eq!(domains, ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]);
 }
+
+/// Batch 4 (Domain D): every `/api/v1/academic` operation carries an explicit `operationId` with
+/// its slice's prefix and the matching tag (`docs/batch4-contracts.md` §5.2), so the three
+/// slices never collide in the generated TS client.
+#[tokio::test]
+async fn academic_operations_follow_the_slice_prefix_and_tag_rules() {
+    const RULES: &[(&str, &[&str])] = &[
+        // 4A
+        (
+            "offerings",
+            &[
+                "offering_",
+                "offering_section_",
+                "section_enrolment_",
+                "offering_waitlist_",
+                "offering_window_",
+                "offering_quota_",
+                "offering_template_",
+                "offering_simulation_",
+                "offering_self_",
+            ],
+        ),
+        (
+            "faculty-assignments",
+            &["faculty_assignment_", "faculty_policy_", "faculty_self_"],
+        ),
+        // 4B
+        (
+            "timetable",
+            &["timetable_", "scheduling_requirement_", "timetable_self_"],
+        ),
+        (
+            "attendance",
+            &["teaching_session_", "attendance_", "syllabus_coverage_"],
+        ),
+        ("monitoring", &["monitoring_"]),
+        (
+            "assessment",
+            &["assessment_", "internal_assessment_", "assessment_self_"],
+        ),
+        // 4C
+        (
+            "flexible-learning",
+            &[
+                "learning_provider_",
+                "learning_opportunity_",
+                "flexible_enrolment_",
+                "flexible_policy_",
+                "flexible_exception_",
+                "flexible_self_",
+            ],
+        ),
+        (
+            "credit-recognition",
+            &[
+                "certificate_verification_",
+                "credit_mapping_",
+                "credit_recognition_",
+                "reconciliation_",
+            ],
+        ),
+        ("resources", &["course_resource_", "resource_self_"]),
+    ];
+    let spec: serde_json::Value =
+        serde_json::from_str(&sutra_api::openapi::spec_json().unwrap()).unwrap();
+    for (path, item) in spec["paths"].as_object().unwrap() {
+        let academic = path.starts_with("/api/v1/academic/");
+        for (method, op) in item.as_object().unwrap() {
+            let tags: Vec<&str> = op["tags"]
+                .as_array()
+                .map(|t| t.iter().filter_map(|x| x.as_str()).collect())
+                .unwrap_or_default();
+            let academic_tag = tags.iter().any(|t| RULES.iter().any(|(tag, _)| tag == t));
+            assert_eq!(
+                academic, academic_tag,
+                "{method} {path}: Domain D tags are used exactly for /api/v1/academic paths"
+            );
+            if !academic {
+                continue;
+            }
+            let id = op["operationId"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{method} {path} has no operationId"));
+            let ok = RULES.iter().any(|(tag, prefixes)| {
+                tags.contains(tag) && prefixes.iter().any(|p| id.starts_with(p))
+            });
+            assert!(
+                ok,
+                "{method} {path}: operationId `{id}` does not match the prefixes of its tag {tags:?}"
+            );
+        }
+    }
+}

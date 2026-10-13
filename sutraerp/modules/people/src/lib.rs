@@ -8,6 +8,10 @@
 //! `sutra-contracts`, `sutra-web` and `sutra-persistence`; it publishes its ports in
 //! `sutra_contracts::people` and never reads another module's schema (ADR-L5-0036 §3.2).
 
+pub mod staff;
+
+pub use staff::SubjectOnlyStaff;
+
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 

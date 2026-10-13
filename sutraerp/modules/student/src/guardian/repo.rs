@@ -1120,16 +1120,19 @@ pub async fn authorise_communication(
     let RelCmd { r, student, scope } = load_rel(state, ctx, id).await?;
     require_active(&r)?;
     let tenant = ctx.scope.tenant_id;
+    // Consent validity is a business-local date (ADR-L5-0036 §3.4), not the database's UTC date.
+    let today = business_today(state, &scope, InstitutionId(r.institution_id)).await?;
     let mut tx = tx!(state);
     let locked = lock_rel(&mut tx, tenant, id, None).await?;
     require_active(&locked)?;
     if communication_needs_consent(&cmd.topics) {
         let consent: i64 = sqlx::query_scalar(
             "SELECT count(*) FROM student.guardian_consent WHERE tenant_id = $1 AND relationship_id = $2 \
-             AND consent_type = 'data_sharing' AND status = 'granted' AND (valid_until IS NULL OR valid_until >= current_date)",
+             AND consent_type = 'data_sharing' AND status = 'granted' AND (valid_until IS NULL OR valid_until >= $3)",
         )
         .bind(tenant.as_uuid())
         .bind(id.as_uuid())
+        .bind(today)
         .fetch_one(&mut *tx)
         .await
         .map_err(map_db_error)?;
@@ -1398,6 +1401,7 @@ struct Assigned<T> {
     row: T,
     student: StudentRow,
     scope: ExecutionScope,
+    institution_id: InstitutionId,
 }
 
 async fn load_assigned<T: serde::de::DeserializeOwned + Clone>(
@@ -1424,6 +1428,7 @@ async fn load_assigned<T: serde::de::DeserializeOwned + Clone>(
         row,
         student,
         scope,
+        institution_id: InstitutionId(inst),
     })
 }
 
@@ -1518,12 +1523,23 @@ async fn end_assignment<T: serde::de::DeserializeOwned + Clone>(
     status_of: fn(&T) -> AssignmentStatus,
     version_of: fn(&T) -> i64,
     event: (&'static str, &'static str),
-    extra: serde_json::Value,
+    ends_effective: bool,
     actor: &Actor,
 ) -> Result<T, KernelError> {
-    let Assigned { student, scope, .. } =
-        load_assigned::<T>(state, ctx, table, entity, id, student_of).await?;
+    let Assigned {
+        student,
+        scope,
+        institution_id,
+        ..
+    } = load_assigned::<T>(state, ctx, table, entity, id, student_of).await?;
     let tenant = ctx.scope.tenant_id;
+    // The end date is a business-local date (ADR-L5-0036 §3.4), never the UTC date: between
+    // midnight IST and 05:30 IST the UTC date is still "yesterday", before `effective_from`.
+    let effective_to = if ends_effective {
+        Some(business_today(state, &scope, institution_id).await?)
+    } else {
+        None
+    };
     let mut tx = tx!(state);
     let locked: T = kit::lock(&mut tx, table, entity, tenant, id).await?;
     kit::check_version(version_of(&locked), expected)?;
@@ -1531,7 +1547,10 @@ async fn end_assignment<T: serde::de::DeserializeOwned + Clone>(
     if !assignment_can_transition(from, AssignmentStatus::Revoked) {
         return Err(kit::illegal(entity, from, AssignmentStatus::Revoked));
     }
-    let mut changes = if extra.is_object() { extra } else { json!({}) };
+    let mut changes = json!({});
+    if let Some(to) = effective_to {
+        changes["effective_to"] = json!(to);
+    }
     changes["status"] = json!(AssignmentStatus::Revoked.as_str());
     changes["status_reason"] = json!(reason);
     let updated: T = kit::patch(&mut tx, table, tenant, id, changes).await?;
@@ -1582,7 +1601,7 @@ pub async fn remove_emergency_contact(
         |c| c.status,
         |c| c.version,
         (EMERGENCY_CONTACT_REMOVED, EMERGENCY_CONTACT_REMOVED_SCHEMA),
-        json!({}),
+        false,
         actor,
     )
     .await
@@ -1699,7 +1718,7 @@ pub async fn end_financial_responsibility(
             FINANCIAL_RESPONSIBILITY_ENDED,
             FINANCIAL_RESPONSIBILITY_ENDED_SCHEMA,
         ),
-        json!({"effective_to": chrono::Utc::now().date_naive()}),
+        true,
         actor,
     )
     .await
@@ -1817,7 +1836,7 @@ pub async fn revoke_pickup(
             PICKUP_AUTHORISATION_REVOKED,
             PICKUP_AUTHORISATION_REVOKED_SCHEMA,
         ),
-        json!({}),
+        false,
         actor,
     )
     .await

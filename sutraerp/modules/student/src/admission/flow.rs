@@ -1460,6 +1460,8 @@ pub async fn revoke(
     .await?;
     let pid = outcome.process_instance_id().to_owned();
     let a = actor(ctx);
+    // A terminated context closes on the business-local date (ADR-L5-0036 §3.4), not UTC.
+    let today = business_today(&st, &scope, cur.institution_id).await?;
     let (mut tx, cur) = begin_locked(&st, &scope, id, expected).await?;
     sqlx::query("UPDATE student.admission SET revocation_evidence = $2 WHERE id = $1")
         .bind(cur.id.as_uuid())
@@ -1490,7 +1492,7 @@ pub async fn revoke(
                     cause_event_type: ADMISSION_REVOKED,
                     reason: Some(cmd.reason.trim()),
                     process_instance_id: Some(&pid),
-                    closed_on: None,
+                    closed_on: Some(today),
                 },
                 &a,
             )

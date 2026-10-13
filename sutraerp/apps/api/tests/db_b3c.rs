@@ -2878,3 +2878,53 @@ async fn completion_reads_progression_qualification_eligibility() {
     assert_eq!(c["eligibilityResult"]["source"], "progression");
     assert_eq!(c["eligibilityResult"]["creditsEarned"], 96.0);
 }
+
+/// Regression (Batch 4 foundation fix, ADR-L5-0036 §3.4): ending a financial responsibility stamps
+/// the institution's business-local date, never the UTC date. Between 00:00 and 05:30 IST the UTC
+/// date is still "yesterday", so the old `Utc::now().date_naive()` end date preceded a same-day
+/// `effective_from`. Asia/Kolkata covers the reported case whenever the run lands in that window;
+/// Pacific/Kiritimati (UTC+14) is a day ahead of UTC from 10:00 UTC on, so the same ordering bug
+/// is exercised deterministically for most of the day.
+#[tokio::test]
+async fn guardian_end_date_is_business_local_and_never_precedes_effective_from() {
+    let t = env("Business Date School").await;
+    for (n, tz) in ["Asia/Kolkata", "Pacific/Kiritimati"]
+        .into_iter()
+        .enumerate()
+    {
+        sqlx::query("UPDATE institution.institution SET timezone = $1 WHERE id = $2")
+            .bind(tz)
+            .bind(t.setup.institution_id)
+            .execute(&t.pool)
+            .await
+            .unwrap();
+        let s = t.student(&format!("Tara{n}")).await;
+        let (rid, _) = active_relationship(&t, &s, &format!("Usha{n}")).await;
+        let fbase = format!("{S}/students/{}/financial-responsibilities", s.student_id);
+        let f = t.ok("POST", &fbase, json!({"guardianRelationshipId": rid, "responsibilityType": "tuition", "sharePercent": 100}), None).await;
+        let local_today: chrono::NaiveDate =
+            sqlx::query_scalar("SELECT (now() AT TIME ZONE $1)::date")
+                .bind(tz)
+                .fetch_one(&t.pool)
+                .await
+                .unwrap();
+        assert_eq!(f["effectiveFrom"], json!(local_today), "{tz}: {f}");
+        let ended = t
+            .ok(
+                "POST",
+                &format!("{S}/financial-responsibilities/{}/end", id(&f)),
+                json!({"reason": "sponsor took over"}),
+                Some(v(&f)),
+            )
+            .await;
+        assert_eq!(ended["status"], "revoked");
+        assert_eq!(ended["effectiveTo"], json!(local_today), "{tz}: {ended}");
+        let from: chrono::NaiveDate =
+            serde_json::from_value(ended["effectiveFrom"].clone()).unwrap();
+        let to: chrono::NaiveDate = serde_json::from_value(ended["effectiveTo"].clone()).unwrap();
+        assert!(
+            to >= from,
+            "{tz}: end date {to} precedes effective_from {from}"
+        );
+    }
+}
