@@ -537,7 +537,7 @@ Dev sign-in (default compose, http://localhost:3000, password `sutra` is built i
 
 ### Click-through checklist (Batch 2)
 
-<!-- batch2:2c-docker:begin (slice 2C writes the Docker click-through for Admin → Academics / Campus setup here) -->
+<!-- batch2:2c-docker:begin -->
 #### Batch 2 Docker click-through (Windows / PowerShell)
 
 Covers 2A + 2B + 2C end to end. From `sutraerp\` in PowerShell (Docker Desktop running). The
@@ -621,3 +621,144 @@ Open **http://localhost:3000** and sign in as **Administrator** (Dhruv Naik). Th
 
 Mock mode (`VITE_AUTH_MODE` unset, `pnpm dev`) runs the same screens against an in-memory store.
 <!-- batch2:2c-docker:end -->
+
+### Batch 3 + 4 Docker click-through (Windows / PowerShell)
+
+Student lifecycle (Batch 3) and academic delivery (Batch 4) need an **active** institution with
+students, and Batch 4 also needs a course offering with a section, a teacher and seated students.
+The demo seed makes all of that in a **new** institution, `DEMO` "Sutra Demo College". It does not
+change any institution you already have (for example a half-set-up `SIT` from the Batch 2 walk).
+It runs in a small container (Node + psql), so you don't need Rust, Node or psql on Windows. From
+`sutraerp\` in PowerShell, with Docker Desktop running:
+
+```powershell
+# 1. Pull, rebuild and start (migrate embeds migrations/ at build time, so --build matters).
+git pull
+docker compose --profile app up --build -d
+docker compose ps -a migrate                 # STATUS: Exited (0)
+
+# 2. Migrations check: 9 Batch 3 rows (20261020000000 … 000023) + 10 Batch 4 rows (20261025000000 … 000032).
+docker compose exec postgres psql -U sutra -d sutra -c "SELECT version, description FROM _sqlx_migrations WHERE version >= 20261020000000 ORDER BY version;"
+#   Batch 3: 20261020000000 foundation, 000001 admissions, 000002 record, 000010 registration, 000011 progression,
+#            000020 completion/exit, 000021 guardian, 000022 scholarship, 000023 alumni
+#   Batch 4: 20261025000000 foundation, 000001 offering governance, 000010 timetable, 000011 sessions/attendance,
+#            000012 syllabus, 000013 monitoring, 000014 assessment, 000030 flexible learning,
+#            000031 credit recognition, 000032 course resources
+curl.exe -s http://localhost:8080/health/ready  # HTTP 200, "status":"ok"
+
+# 3. Seed the demo data (ONE command; safe to re-run: a second run only adds what is missing).
+docker compose --profile demo run --rm --build demo-seed
+#   → "Demo data ready — institution DEMO “Sutra Demo College” …"
+```
+
+What the seed creates:
+
+| | |
+|---|---|
+| Institution | `DEMO` **Sutra Demo College**, **Active**. It is taken through the same Batch 2 API calls as the e2e harness: profile, organisation, main campus, structure, programme `BTECH-CSE`, curriculum `CSE-2026` (CS/MD/EL slots, terms 1–4) and calendar `2026-27` (T1 15 Jun–30 Nov, T2 1 Dec–30 Apr). |
+| Students | `DEMO-0001` **Aarav Desai** (term 1, linked to the **Student** sign-in), `DEMO-0002` **Isha Kulkarni** (term 1), `DEMO-0003` **Kiran Joshi** (term 4, for completion/alumni), `DEMO-0004` **Rohan Patil** (term 4, for an exit) |
+| Delivery | Offering **CS101-T1** (Programming 1, 12 cr, *Active*), section **A** taught by **Dr. Meera Shah** (`dev|meera.shah@sutra.dev`, primary instructor), with Aarav and Isha seated |
+
+If it stops with "institution DEMO already exists with status …", an earlier run stopped half-way
+and nothing was changed. Use another code:
+`$env:DEMO_CODE = "DEMO2"; docker compose --profile demo run --rm demo-seed` (students are then `DEMO2-0001` …).
+
+Open **http://localhost:3000** and use the development role cards on the sign-in page (password `sutra`
+is built in): **Administrator** (`admin@sutra.dev`), **Student** (`aarav.desai@sutra.dev` = Aarav
+Desai) and **Faculty** (`meera.shah@sutra.dev` = Dr. Meera Shah). To switch role, go to account menu →
+*Security* → **Sign out of this device**, then pick another card. On every admin screen, choose
+**Sutra Demo College (DEMO)** in the **Institution** picker in the header once. The browser remembers
+the choice.
+
+**Batch 3: student lifecycle** (Administrator unless noted)
+
+1. **Admissions** — *Students* → *Admissions* → **New application**: `Kabir Mehta`, date of birth
+   `2007-03-14`, e-mail `kabir@example.in`. Leave the login field empty, because the Student login
+   already belongs to Aarav. On the row, **Submit** → **Start review** → **Offer admission** (offer
+   expires `2026-12-31`, required documents `identity_proof, qualifying_marksheet`). A second
+   application (`Kavya Joshi`) → **Submit** → **Reject** with a reason shows the rejection path.
+2. **Acceptance and documents** — in *Admission records*: **Record acceptance** → **Documents** →
+   **Add document** twice (`identity_proof` "Aadhaar card", `qualifying_marksheet` "HSC marksheet
+   2025", any file ref such as `dms://admissions/id.pdf`) → close → **Documents submitted** →
+   **Documents** → **Verify** on each. The record reads *Verification completed*.
+3. **Approval to student** — **Send for approval** (auto-approved: *Approved*) → **Financial clearance** →
+   **Confirm** (*Confirmed*) → **Create student**. The name becomes a link to Student 360.
+4. **Student 360** — open **Kabir Mehta** → *Enrolment* → **Complete enrolment** (roll `CSE-26-001`, batch
+   `2026`, section `A`). *Overview* → **Edit profile** (preferred name). *Documents* → **Raise request** (bonafide
+   certificate, purpose `Bank account opening`) → **Start** → **Issue** (reference `BON/2026/0001`). *Students* lists Kabir next to
+   the four seeded students.
+5. **Registration window and progression policy** — *Students* → *Registration* → **Schedule window**
+   (term **T1**, name `Term 1 registration`, closes `2026-11-15`, credits `16`–`28`) → **Open**.
+   *Progression* → **Define policy** (`UG`, `UG progression rules`) → **Make effective**.
+6. **Student self-registration, add and drop** — sign in as **Student** (Aarav) → *Registration*
+   (`/registration`): tick **CS101** and **MD101** → **Start registration** → **Add component** `EL101`
+   → **Drop** on EL101 → **Submit** (*Registered*, 20 cr). *Documents* (`/documents`): **Request a
+   document** (transcript copy), then **Cancel** it.
+7. **Finalise and progress** — as Administrator: *Students* → *Registration* → **Close** → **Finalise
+   registrations**. Aarav's Student 360 → *Registration* shows *Finalised*. *Progression & credits* →
+   **Record decision** (term T1, credits `20`/`20`) → **Make effective** → **Evaluate** (qualification
+   eligibility).
+8. **Guardians and scholarships** — *Students* → *Guardians* → **Register guardian** (`Sunita Desai`,
+   `+91 98220 44556`). Aarav → *Guardians* → **Link guardian** (Sunita Desai, mother, primary) →
+   **Submit verification** (document, `Birth certificate BC-2007-1123`) → **Approve verification** (if
+   shown) → **Activate**. Under emergency contacts and pickups, **Add** one of each. *Students* →
+   *Scholarships* → **New scholarship** (`MERIT-2026`, fee percentage `50`, valid from `2026-06-01`) →
+   **New policy** (min score `75`, max income `800000`) → **Publish** → **Activate**. Aarav →
+   *Scholarships* → **Determine** (Merit scholarship 2026, score `88`, income `600000`) → **Recommend**
+   → **Hand off** (*Active*).
+9. **Completion and alumni (Kiran Joshi)** — Kiran's Student 360 → *Completion & exit* → **Start completion**
+   → **Eligibility evaluation** (credits `96`) → **Degree audit** → resolve each clearance item → **Decision**
+   (if shown) → **Award** → **Finalise** → **Complete exit**. Under alumni, **Initiate** and step through
+   (**Validate policy** with graduation year `2026`).
+10. **Exit (Rohan Patil)** — Rohan → *Completion & exit* → **Initiate exit** (Withdrawal, reason `Relocating`).
+    *Students* → *Completion & exits*: resolve the clearances (*Cleared*) → **Approve** (if shown) →
+    **Complete**. Rohan's status changes. Signed in as **Faculty**, a Student 360 is read-only.
+
+**Batch 4: academic delivery** (Administrator → *Delivery*, `/academic-delivery`)
+
+11. **Offerings and allocation** — *Offerings*: **CS101-T1** is *Active*. **Sections** → **Roster** on section A
+    lists Aarav and Isha. **New offering** (term T1, component `MD101`, code `MD101-T1`, section `A`, `40`) →
+    **Submit for approval** → **Publish**. *Faculty assignment* → **Assign faculty** on `MD101-T1 · A`
+    (`dev|meera.shah@sutra.dev`, Dr. Meera Shah, primary instructor, `3` h) → **Submit** → **Activate**. Back in
+    *Offerings*, **Open enrolment** on MD101-T1.
+12. **Timetable** — *Timetable*: **Set requirement** on CS101-T1 (`3` sessions × `60` min, room `R101`) →
+    **New timetable** (`Term 1 timetable`) → **Generate** → **Validate** → **Submit for approval** →
+    **Publish** → **Activate**.
+13. **Attendance policy, monitoring, assessments** — *Attendance* → **New policy** (`75` %, min `1` session) →
+    **Submit for approval** (*Effective*). *Monitoring* → **Open case** (section CS101-T1/A, `CS101 attendance
+    watch`) → **Assess risk** → **Publish outcome** → **Governance review** → **Certify** → **Close**.
+    *Internal assessment* → **New blueprint** (`CS101 internal`, `50` marks, assignments `40` %) → **Publish** →
+    **New window** (`a1`, `Essay on recursion`, `10` marks) → **Open**.
+14. **Flexible learning and credit recognition** — *Flexible learning*: **New version** (policy) → **Publish** →
+    **Onboard provider** (`NPTEL`, government platform, mode nptel, accreditation `MoE/2026/17`) → **Submit for
+    onboarding** → **New opportunity** (`NPTEL-ML`, Machine Learning (NPTEL), mode nptel, `4` cr, `20` h,
+    capacity `2`, enrolment opens today) → **Activate**. Sign in as **Student** → *Library* → **Request** on
+    Machine Learning (NPTEL) (*Eligible*). Back as Administrator: **Allocate seats** → **Demand** → on Aarav's
+    row **Register** / **Provider reply** (accepted, `NPTEL-0001`) → **Record completion** (`25` h, passed) →
+    **Add certificate** (`NPTEL/CERT/0001`). *Credit recognition* → **Verify** the certificate → **New mapping**
+    (NPTEL-ML, `4` cr) → **Publish**. *Flexible learning* → **Demand** → **Request credit**; *Credit
+    recognition* → **Post to credit record** (*Posted*) → **Reconcile**.
+15. **Faculty (Dr. Meera Shah)** — sign in as **Faculty**: *My classes* (`/classes`) shows CS101-T1/A (and
+    MD101-T1/A), *My students* lists Aarav and Isha, *Timetable* shows the 3 weekly slots. *Attendance* →
+    **New session** (topic `Recursion`) → open it → **Start session** → mark *present* / *absent* →
+    **Save marks** → **Complete session** → **Finalise attendance**. *Resources* → **Add resource** →
+    **Publish**.
+16. **Student (Aarav)** — *Courses* (`/courses`) shows CS101-T1 with Dr. Meera Shah, and MD101-T1 as "Not on
+    your registration" unless it was registered in step 6. *Timetable* shows the weekly classes and the
+    finalised attendance. *Assignments* → **Submit** on "Essay on recursion". *Library* lists the published
+    resources.
+17. **Evidence in the database**:
+    ```powershell
+    docker compose exec postgres psql -U sutra -d sutra -c "SELECT event_type, count(*) FROM platform.outbox WHERE event_type LIKE 'sutraerp.student.%' OR event_type LIKE 'sutraerp.academic.%' GROUP BY 1 ORDER BY 1;"
+    docker compose exec postgres psql -U sutra -d sutra -c "SELECT action, count(*) FROM platform.audit_log WHERE action LIKE 'student.%' OR action LIKE 'academic.%' GROUP BY 1 ORDER BY 1;"
+    docker compose exec postgres psql -U sutra -d sutra -c "SELECT code, name, status FROM institution.institution ORDER BY code;"
+    #   → DEMO active; your other institutions are unchanged
+    ```
+    You should see student events (`sutraerp.student.admission…`, `…registration.submitted`,
+    `…registration_window.opened` and so on) and academic events (`sutraerp.academic.course_offering…`,
+    timetable, attendance and so on), with matching audit actions (`student.registration.create`,
+    `student.registration.add_line`, `…drop_line`, `academic.course_offering.create` and so on).
+
+The seed's own rows (students, CS101-T1, its section, teacher and seats) are written directly into the
+foundation tables, like the e2e suites do, so they create no outbox or audit rows. Only the
+institution set-up goes through the API.

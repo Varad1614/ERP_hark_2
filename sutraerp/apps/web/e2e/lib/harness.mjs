@@ -22,7 +22,8 @@ export const WEB_MODE = process.env.E2E_WEB === "preview" ? "preview" : "dev";
 export const WEB_PORT = WEB_MODE === "preview" ? 3000 : 5173;
 export const API_PORT = Number(process.env.E2E_API_PORT ?? 8080);
 export const BASE = `http://localhost:${WEB_PORT}`;
-export const API = `http://127.0.0.1:${API_PORT}`;
+// E2E_API_URL points the API seeding at an already running API (the Docker demo seed uses http://api:8080).
+export const API = process.env.E2E_API_URL ?? `http://127.0.0.1:${API_PORT}`;
 export const SHOTS = process.env.E2E_SHOTS ?? (existsSync("/workspace/work") ? `/workspace/work/out/${process.env.E2E_SUITE_SHOTS ?? "b4-shots"}` : path.join(webDir, "e2e-shots"));
 export const TENANT = process.env.SUTRA_DEV_TENANT_ID ?? "0192f5a0-7c3e-7000-8000-000000000001";
 export const STUDENT_SUBJECT = "dev|aarav.desai@sutra.dev";
@@ -162,25 +163,30 @@ export async function apiLogin(loginId) {
 
 export const I = "/api/v1/institution";
 
-/** Institution taken to `active` through the Batch 2 endpoints. Returns ids the walk needs. */
-export async function seedInstitution(admin) {
+/**
+ * Institution taken to `active` through the Batch 2 endpoints. Returns ids the walk needs.
+ * `opts` (all optional; defaults = the e2e suites' SIT institution): `code`, `name`, `shortName`,
+ * `domain` (e-mail domain), `city` — used by the Docker demo seed (`e2e/demo-seed.mjs`).
+ */
+export async function seedInstitution(admin, opts = {}) {
   const suffix = Date.now().toString(36).toUpperCase().slice(-5);
-  let inst = await admin.call("POST", `${I}/institutions`, { code: `SIT-${suffix}`, name: "Sahyadri Institute of Technology" });
+  const o = { code: `SIT-${suffix}`, name: "Sahyadri Institute of Technology", shortName: "SIT", domain: "sit.edu.in", city: "Pune", ...opts };
+  let inst = await admin.call("POST", `${I}/institutions`, { code: o.code, name: o.name });
   const id = inst.id;
   inst = await admin.call(
     "PUT",
     `${I}/institutions/${id}/profile`,
     {
-      shortName: "SIT",
+      shortName: o.shortName,
       institutionType: "university",
-      registrationNumber: "REG-SIT-2026",
-      address: "1 Campus Road, Pune",
+      registrationNumber: `REG-${o.shortName}-2026`,
+      address: `1 Campus Road, ${o.city}`,
       contactPhone: "+91 20 1234 5678",
-      officialEmail: "office@sit.edu.in",
+      officialEmail: `office@${o.domain}`,
       academicPattern: "semester",
       workingDays: ["mon", "tue", "wed", "thu", "fri"],
       defaultLanguage: "en-IN",
-      administratorEmail: "admin@sit.edu.in",
+      administratorEmail: `admin@${o.domain}`,
     },
     inst.version,
   );
@@ -195,7 +201,7 @@ export async function seedInstitution(admin) {
     ],
   });
   await admin.call("POST", `${I}/org-type-blueprints/${bp.id}/publish`, {}, bp.version);
-  const rootUnit = await admin.call("POST", `${I}/institutions/${id}/org-units`, { unitType: "university", code: "ROOT", name: "Sahyadri Institute of Technology" });
+  const rootUnit = await admin.call("POST", `${I}/institutions/${id}/org-units`, { unitType: "university", code: "ROOT", name: o.name });
   await admin.call("POST", `${I}/org-units/${rootUnit.id}/activate`, {}, rootUnit.version);
   // 2B: campus, structure, programme, curriculum.
   const campus = await admin.call("POST", `${I}/institutions/${id}/campuses`, {
@@ -206,8 +212,8 @@ export async function seedInstitution(admin) {
     timezone: "Asia/Kolkata",
     establishedOn: "1999-06-01",
     declaredCapacity: 2000,
-    contactEmail: "campus@sit.edu.in",
-    address: { line1: "1 Campus Road", city: "Pune", state: "Maharashtra", postalCode: "411007", country: "IN" },
+    contactEmail: `campus@${o.domain}`,
+    address: { line1: "1 Campus Road", city: o.city, state: "Maharashtra", postalCode: "411007", country: "IN" },
   });
   const activeCampus = await admin.call("POST", `${I}/campuses/${campus.id}/activate`, {}, campus.version);
   check(activeCampus.status === "active", "main campus active");

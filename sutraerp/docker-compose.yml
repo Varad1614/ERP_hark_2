@@ -1,6 +1,7 @@
 # Local development dependencies for SutraERP.
 #   docker compose up -d                    # infra only (postgres, keycloak, valkey, nats, mailpit)
 #   docker compose --profile app up --build # + migrate (owner) → api (runtime role) and web
+#   docker compose --profile demo run --rm --build demo-seed   # Batch 3 + 4 demo data (README)
 # See README "Local Docker verification".
 # Long-running services use `restart: unless-stopped`, so the stack comes back after a Docker
 # Desktop / host restart (until you `docker compose stop|down` it). `migrate` is a one-shot job
@@ -166,6 +167,20 @@ services:
       args: { VITE_AUTH_MODE: "${SUTRA_COMPOSE_WEB_AUTH_MODE:-api}" }
     ports: ["3000:8080"]
     depends_on: [api]
+
+  # Demo data for the Batch 3 + 4 click-through (README): a new institution DEMO taken to active
+  # through the Batch 2 API, students, a course offering with faculty and seats. One-shot, never
+  # started by `up`:  docker compose --profile demo run --rm --build demo-seed
+  # Needs the app profile running. Idempotent; leaves every other institution alone.
+  demo-seed:
+    profiles: ["demo"]
+    build: { context: ., dockerfile: deploy/docker/demo-seed.Dockerfile }
+    environment:
+      E2E_API_URL: http://api:8080
+      # Schema owner, like the e2e suites (student/academic foundation rows are inserted directly).
+      DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
+      DEMO_CODE: ${DEMO_CODE:-DEMO}
+      DEMO_NAME: ${DEMO_NAME:-Sutra Demo College}
 
 volumes:
   pgdata:
