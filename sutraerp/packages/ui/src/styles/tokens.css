@@ -12,6 +12,7 @@
   --sb-body: #4a4855;
   --sb-bg: #faf8f4;
   --sb-surface: #ffffff;
+  --sb-pop: #ffffff;
   --sb-line: #efedf3;
   --sb-line-strong: #d9d6e0;
 
@@ -58,6 +59,7 @@
 
   /* type */
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-easy: "Atkinson Hyperlegible", "Lexend", Verdana, sans-serif;
   --gap: 16px;
   --touch: 44px;
 }

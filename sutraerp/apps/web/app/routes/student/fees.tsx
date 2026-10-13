@@ -12,7 +12,7 @@ export function meta() {
  */
 export default function Fees() {
   return (
-    <RoleScreen screen="fees" roles={["student"]} title="Fees" note="is the students’ view; staff use Finance.">
+    <RoleScreen screen="fees" roles={["student"]} title="Fees" heading={() => "Your charges, payments, receipts and financial aid."} note="is the students’ view; staff use Finance.">
       {() => (
         <>
           <StudentChargesPanel />

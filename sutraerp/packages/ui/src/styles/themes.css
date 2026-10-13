@@ -1,0 +1,146 @@
+/*
+ * Display modes + prototype components added with the UI re-skin (SutraERP-Prototype-Lite).
+ * Modes are classes on <html> set by `applyDisplayPrefs` (DisplayPrefs.tsx):
+ *   .dk   dark      (prototype `html.dk`)
+ *   .hc   high contrast (prototype `html.hc`, also combined `.hc.dk`)
+ *   .easy easy-read font (Atkinson Hyperlegible, wider spacing)
+ */
+
+/* ---------- KPI sparkline (prototype .dspw/.dspk) ---------- */
+.sb-spark-wrap { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.sb-spark-wrap em { font-style: normal; font-size: 11px; color: var(--sb-mute-2); white-space: nowrap; }
+.sb-spark { width: 100%; max-width: 150px; height: 30px; overflow: visible; }
+.sb-spark polyline { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.sb-spark polygon { fill: color-mix(in srgb, var(--c) 14%, transparent); stroke: none; }
+.sb-spark circle { fill: var(--c); }
+.sb-stat.is-pending > b { color: var(--sb-mute-2); }
+.sb-stat .sb-pending-tag { font-style: normal; margin-top: 10px; align-self: flex-start; font-size: 11.5px; font-weight: 600; color: var(--sb-mute); background: var(--sb-bg); border-radius: 20px; padding: 4px 10px; }
+
+/* ---------- workspace directory status ---------- */
+.sb-ws-card .sb-ws-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.sb-ws-card .sb-ws-top .sb-icon-chip { margin-bottom: 14px; }
+.sb-ws-card.is-coming h3 { color: var(--sb-ink); }
+.sb-ws-card.is-coming .sb-icon-chip { opacity: 0.7; }
+
+/* ---------- page header (prototype .ph) ---------- */
+.sb-page-head-tile { padding: 28px 32px; display: flex; flex-direction: column; gap: 18px; }
+.sb-page-head-tile .sb-page-head { padding: 0; }
+.sb-page-head-tile .sb-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.sb-page-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--sb-mute); margin-bottom: 8px; }
+.sb-page-eyebrow svg { width: 15px; height: 15px; }
+
+/* ---------- bare form controls inside tiles (prototype .x-in) ---------- */
+.sb-tile select:not([class]),
+.sb-tile textarea:not([class]),
+.sb-tile input:not([class]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]) {
+  min-height: var(--touch); border: 1px solid var(--sb-line); border-radius: 16px; padding: 10px 14px; font-size: 14px; background: var(--sb-bg); color: var(--sb-ink); font-weight: 500;
+}
+.sb-tile textarea:not([class]) { min-height: 90px; resize: vertical; }
+
+/* ---------- display settings (avatar menu) ---------- */
+.sb-seg { display: inline-flex; background: var(--sb-bg); border-radius: 30px; padding: 3px; gap: 2px; flex: none; }
+.sb-seg button { min-height: 36px; padding: 0 12px; border-radius: 30px; font-size: 12.5px; font-weight: 600; color: var(--sb-mute); }
+.sb-seg button:hover { color: var(--sb-ink); }
+.sb-seg button.on { background: var(--sb-surface); color: var(--sb-ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+.sb-pop-setting { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; font-size: 13px; font-weight: 600; }
+
+/* ---------- coming soon (prototype .soon) ---------- */
+.sb-soon .sb-soon-batch { display: inline-flex; align-self: flex-start; position: relative; z-index: 1; margin-top: 4px; }
+
+/* ================================================================ easy-read font */
+html.easy body { font-family: var(--font-easy); letter-spacing: 0.01em; line-height: 1.55; }
+html.easy .sb-kbd { font-family: inherit; }
+
+/* ================================================================ dark mode */
+html.dk {
+  --sb-bg: #111015; --sb-surface: #1b1a21; --sb-pop: #25242c; --sb-line: #2b2a33; --sb-line-strong: #4a4855;
+  --sb-ink: #eceaf2; --sb-ink-2: #2a2933; --sb-mute: #a6a3b3; --sb-mute-2: #8e8b9b; --sb-body: #a6a3b3;
+  --sb-attention-bg: #ff6e5a24; --sb-attention-fg: #ff9c8a;
+  --sb-review-bg: #f0be4624; --sb-review-fg: #f2c766;
+  --sb-neutral-bg: #ffffff12; --sb-neutral-fg: #b5b2c0;
+  --sb-done-bg: #46c88224; --sb-done-fg: #6fd49c;
+  --sb-info-bg: #5a96ff26; --sb-info-fg: #8db8ff;
+  --tint-orange-bg: #e8743b29; --tint-orange-fg: #f4a67c;
+  --tint-green-bg: #46c88224;  --tint-green-fg: #6fd49c;
+  --tint-violet-bg: #9678ff29; --tint-violet-fg: #b4a2ff;
+  --tint-blue-bg: #5a96ff26;   --tint-blue-fg: #8db8ff;
+  --tint-rose-bg: #ff6e5a24;   --tint-rose-fg: #ff9c8a;
+  --tint-amber-bg: #f0be4624;  --tint-amber-fg: #f2c766;
+  --tint-grey-bg: #ffffff12;   --tint-grey-fg: #b5b2c0;
+  --tint-teal-bg: #3cbebe24;   --tint-teal-fg: #6cd3d3;
+  color-scheme: dark;
+}
+html.dk[data-role="administrator"] { --acs: color-mix(in srgb, #e8743b 26%, #1e1d24); --act: color-mix(in srgb, #e8743b 65%, #fff); }
+html.dk[data-role="faculty"]       { --acs: color-mix(in srgb, #3b7be8 26%, #1e1d24); --act: color-mix(in srgb, #3b7be8 65%, #fff); }
+html.dk[data-role="student"]       { --acs: color-mix(in srgb, #7254e6 26%, #1e1d24); --act: color-mix(in srgb, #7254e6 65%, #fff); }
+html.dk:not([data-role]) { --ac: #edebf3; --acs: #2a2933; --act: #edebf3; }
+html.dk body { background: var(--sb-bg); }
+html.dk .sb-tile { box-shadow: inset 0 1px #ffffff0b, 0 1px 2px #00000073, 0 10px 28px -14px #000000b3; }
+html.dk .sb-tile--interactive:hover, html.dk .sb-shortcut:hover {
+  box-shadow: inset 0 1px #ffffff0f, 0 0 0 1px color-mix(in srgb, var(--ac) 45%, transparent), 0 12px 34px -10px color-mix(in srgb, var(--ac) 40%, transparent);
+}
+html.dk :focus-visible { outline-color: var(--ac); box-shadow: 0 0 0 5px color-mix(in srgb, var(--ac) 22%, transparent); }
+html.dk .sb-pills, html.dk .sb-icon-btn, html.dk .sb-filter { background: var(--sb-surface); box-shadow: inset 0 1px #ffffff0d, 0 1px 2px #0006; }
+html.dk .sb-pills .on, html.dk .sb-pills [aria-current="page"], html.dk .sb-filter.on { background: var(--sb-ink); color: #141318; }
+html.dk .sb-avatar { background: color-mix(in srgb, var(--ac) 22%, var(--sb-surface)); color: var(--act); }
+html.dk .sb-tile--accent { background: radial-gradient(90% 130% at 100% 0%, color-mix(in srgb, var(--ac) 40%, transparent) 0%, transparent 60%), linear-gradient(140deg, color-mix(in srgb, var(--ac) 14%, var(--sb-surface)) 0%, var(--sb-surface) 70%); }
+html.dk .sb-hero::after { opacity: 0.28; filter: blur(40px); }
+html.dk .sb-hero::before { background: var(--ac); opacity: 0.07; }
+html.dk .sb-chip { background: #ffffff14; color: var(--sb-ink); }
+html.dk .sb-tile--dark { background: linear-gradient(160deg, #0b0a0f, #131219); color: #fff; box-shadow: inset 0 0 0 1px #ffffff0f; }
+html.dk .sb-agenda-item { background: #ffffff0d; }
+html.dk .sb-agenda-item time { color: var(--act); }
+html.dk .sb-btn { background: var(--sb-ink); color: #141318; }
+html.dk .sb-btn--ghost { background: var(--sb-surface); color: var(--sb-ink); }
+html.dk .sb-btn--accent { background: var(--ac); color: #fff; }
+html.dk .sb-shortcut { background: #ffffff0a; }
+html.dk .sb-shortcut .sb-shortcut-icon { background: color-mix(in srgb, var(--ac) 18%, transparent); color: var(--act); }
+html.dk .sb-row:hover { background: #ffffff0a; }
+html.dk .sb-check { border-color: #4a4855; }
+html.dk .sb-drawer, html.dk .sb-modal, html.dk .sb-popover { background: var(--sb-pop); color: var(--sb-ink); box-shadow: inset 0 1px #ffffff0f, 0 30px 80px #0009; }
+html.dk .sb-overlay { background: #0000008c; backdrop-filter: blur(4px); }
+html.dk .sb-toast { background: #eceaf2; color: #141318; }
+html.dk .sb-toast svg { color: #2e8b57; }
+html.dk .sb-seg button.on { background: #34333d; color: #fff; }
+html.dk .sb-input[aria-invalid="true"] { background: #ff6e5a1a; }
+html.dk ::selection { background: color-mix(in srgb, var(--ac) 40%, transparent); }
+html.dk input, html.dk select, html.dk textarea { color: var(--sb-ink); }
+html.dk .sb-spark { filter: brightness(1.35); }
+html.dk .sb-qr { background: #fff; color: #1c1b22; }
+
+/* ================================================================ high contrast */
+html.hc { --sb-mute: #2f2d38; --sb-mute-2: #46434f; --sb-body: #2f2d38; --sb-line: #77737f; }
+html.hc .sb-tile, html.hc .sb-filter, html.hc .sb-icon-btn, html.hc .sb-btn--ghost, html.hc .sb-pills { border: 1.5px solid #1c1b22 !important; }
+html.hc .sb-tile a, html.hc .sb-page-head a { text-decoration: underline; text-underline-offset: 3px; }
+html.hc :focus-visible { outline: 3px solid #000 !important; outline-offset: 3px !important; box-shadow: 0 0 0 6px #ffd43b !important; }
+html.hc .sb-badge { border: 1.5px solid currentColor; }
+html.hc.dk { --sb-mute: #e4e2ec; --sb-mute-2: #c9c6d3; --sb-body: #e4e2ec; --sb-line: #9a97a6; }
+html.hc.dk .sb-tile, html.hc.dk .sb-filter, html.hc.dk .sb-icon-btn, html.hc.dk .sb-btn--ghost, html.hc.dk .sb-pills { border-color: #f4f3f8 !important; }
+html.hc.dk :focus-visible { outline-color: #fff !important; }
+.sb-popover--menu { width: 300px; }
+
+/* Feature page headers written as a span-12 accent tile with h1 + p render as the prototype `.ph`
+   (white header tile); the pastel accent stays for the home hero and "coming soon" tiles. */
+.sb-tile--accent.sb-span-12:not(.sb-soon):not(.sb-hero) { background: var(--sb-surface); padding: 28px 32px; }
+.sb-tile--accent.sb-span-12:not(.sb-soon):not(.sb-hero)::after, .sb-tile--accent.sb-span-12:not(.sb-soon):not(.sb-hero)::before { display: none; }
+.sb-tile--accent.sb-span-12:not(.sb-soon):not(.sb-hero) > h1, .sb-page-head-tile h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.sb-tile--accent.sb-span-12:not(.sb-soon):not(.sb-hero) > p { color: var(--sb-mute); font-size: 14.5px; margin-top: 6px; max-width: 760px; }
+html.dk .sb-tile--accent.sb-span-12:not(.sb-soon):not(.sb-hero) { background: var(--sb-surface); }
+.sb-soon h1, .sb-tile--accent .sb-soon h1 { color: var(--sb-ink); }
+.sb-btn.sb-mt { margin-top: 16px; }
+a.sb-btn { text-decoration: none; }
+.sb-page-head .sb-tabs + .sb-search, .sb-tabs + .sb-search { margin-left: 0; }
+.sb-soon > .sb-chip { align-self: flex-start; }
+.sb-agenda-item time { width: auto; min-width: 44px; white-space: nowrap; }
+
+/* Buttons placed as tile actions keep their own colours (the h4 action-link colour is for links). */
+.sb-tile h4 .sb-btn { color: #fff; font-size: 13px; }
+.sb-tile h4 .sb-btn--ghost { color: var(--sb-ink); }
+.sb-tile h4 .sb-btn--accent { color: #fff; }
+html.dk .sb-tile h4 .sb-btn:not(.sb-btn--ghost):not(.sb-btn--accent) { color: #141318; }
+/* Section headings and inline links inside feature tiles (prototype .t h4 rhythm). */
+.sb-tile:not(.sb-agenda):not(.sb-ws-card):not(.sb-role-card) > h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; margin: 18px 0 8px; }
+.sb-tile > h3:first-child { margin-top: 0; }
+.sb-link { font-weight: 600; color: var(--sb-ink); text-align: left; }
+.sb-link:hover { color: var(--act); text-decoration: underline; text-underline-offset: 3px; }
+.sb-modal-body ul { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }

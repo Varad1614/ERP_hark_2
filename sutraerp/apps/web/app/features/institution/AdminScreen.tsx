@@ -1,5 +1,4 @@
-import { Building2 } from "lucide-react";
-import { BentoGrid, BentoTile, Select } from "@sutra/ui";
+import { BentoGrid, BentoTile, PageHeader, Select } from "@sutra/ui";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import { useSession } from "../../lib/auth";
@@ -16,12 +15,15 @@ export function AdminScreen({
   base,
   tabs,
   tab,
+  actions,
   children,
 }: {
   title: string;
   base: string;
   tabs: readonly TabDef[];
   tab: string | undefined;
+  /** Extra header actions (e.g. the Academics → Academic delivery link). */
+  actions?: ReactNode;
   children: (institution: Institution | null, tab: TabDef) => ReactNode;
 }) {
   const { role } = useSession();
@@ -39,33 +41,38 @@ export function AdminScreen({
   }
   return (
     <BentoGrid data-screen={base.slice(1)} data-tab={current.key}>
-      <BentoTile span={12} variant="accent">
-        <div className="sb-page-head">
-          <div>
-            <span className="sb-chip">
-              <Building2 strokeWidth={1.75} /> {title}
+      <PageHeader
+        title={title}
+        subtitle={
+          institution ? (
+            <span data-current-institution={institution.id}>
+              {current.label} · {institution.name} · {institution.code} · {institution.timezone} <StatusBadge status={institution.status} />
             </span>
-            <h1>{current.label}</h1>
-            {institution ? (
-              <p data-current-institution={institution.id}>
-                {institution.name} · {institution.code} · {institution.timezone} <StatusBadge status={institution.status} />
-              </p>
-            ) : (
-              <p>{query.isLoading ? "Loading institutions…" : "No institution registered yet."}</p>
-            )}
-          </div>
-          {list.length > 1 && institution && (
-            <div style={{ minWidth: 240 }}>
-              <Select
-                label="Institution"
-                name="institution"
-                value={institution.id}
-                options={list.map((i) => ({ value: i.id, label: `${i.name} (${i.code})` }))}
-                onChange={(e) => selectInstitution(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
+          ) : query.isLoading ? (
+            "Loading institutions…"
+          ) : (
+            "No institution registered yet."
+          )
+        }
+        actions={
+          list.length > 1 && institution ? (
+            <>
+              {actions}
+              <div style={{ minWidth: 240 }}>
+                <Select
+                  label="Institution"
+                  name="institution"
+                  value={institution.id}
+                  options={list.map((i) => ({ value: i.id, label: `${i.name} (${i.code})` }))}
+                  onChange={(e) => selectInstitution(e.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            actions
+          )
+        }
+      >
         <nav className="sb-tabs" aria-label={`${title} sections`}>
           {tabs.map((t) => (
             <NavLink key={t.key} to={`${base}/${t.key}`} className={t.key === current.key ? "on" : ""} aria-current={t.key === current.key ? "page" : undefined} data-tab-link={t.key}>
@@ -73,7 +80,7 @@ export function AdminScreen({
             </NavLink>
           ))}
         </nav>
-      </BentoTile>
+      </PageHeader>
       {children(institution, current)}
     </BentoGrid>
   );

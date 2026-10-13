@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BentoGrid, BentoTile } from "@sutra/ui";
+import { BentoGrid, BentoTile, PageHeader } from "@sutra/ui";
 import { useSession } from "../../lib/auth";
 import type { Role } from "../../lib/roles";
 
@@ -7,7 +7,7 @@ import type { Role } from "../../lib/roles";
  * Frame of a role-facing Batch 4 screen (foundation-owned): renders `children` for the allowed
  * roles and a polite "not available" tile for the others. The API enforces the same rule.
  */
-export function RoleScreen({ screen, roles, title, note, children }: { screen: string; roles: readonly Role[]; title: string; note: string; children: (role: Role) => ReactNode }) {
+export function RoleScreen({ screen, roles, title, note, heading, children }: { screen: string; roles: readonly Role[]; title: string; note: string; heading?: (role: Role) => string; children: (role: Role) => ReactNode }) {
   const { role } = useSession();
   if (!roles.includes(role))
     return (
@@ -20,5 +20,10 @@ export function RoleScreen({ screen, roles, title, note, children }: { screen: s
         </BentoTile>
       </BentoGrid>
     );
-  return <BentoGrid data-screen={screen}>{children(role)}</BentoGrid>;
+  return (
+    <BentoGrid data-screen={screen}>
+      {heading && <PageHeader title={title} subtitle={heading(role)} data-page-head={screen} />}
+      {children(role)}
+    </BentoGrid>
+  );
 }

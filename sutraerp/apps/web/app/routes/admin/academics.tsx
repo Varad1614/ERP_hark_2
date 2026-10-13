@@ -1,5 +1,6 @@
 import { useParams } from "react-router";
 import { ACADEMICS_TABS } from "../../features/institution";
+import { AcademicsSwitch } from "../../features/institution/AcademicsSwitch";
 import { AdminScreen } from "../../features/institution/AdminScreen";
 import { CalendarTab } from "../../features/institution/CalendarTab";
 import { CurriculumTab, ProgrammesTab, SchoolModelTab, StructureTab } from "../../features/institution/CurriculumTabs";
@@ -12,7 +13,7 @@ export function meta() {
 export default function Academics() {
   const { tab } = useParams();
   return (
-    <AdminScreen title="Academics" base="/academics" tabs={ACADEMICS_TABS} tab={tab}>
+    <AdminScreen title="Academics" base="/academics" tabs={ACADEMICS_TABS} tab={tab} actions={<AcademicsSwitch current="setup" />}>
       {(institution, current) => {
         switch (current.key) {
           case "programmes":

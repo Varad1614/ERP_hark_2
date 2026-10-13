@@ -22,14 +22,14 @@ export default function Screen() {
 
   return (
     <BentoGrid data-screen={screen}>
-      <BentoTile variant="accent" className="sb-soon">
+      <BentoTile variant="accent" className="sb-soon" data-coming={plan ? String(plan.batch) : undefined}>
         <span className="sb-chip">
-          <Icon strokeWidth={1.75} /> {label ?? "Not found"}
+          <Icon strokeWidth={1.75} /> {label && plan ? `Coming in Batch ${plan.batch}` : label ?? "Not found"}
         </span>
-        <h1>{label ? "Coming in the next build" : "This screen isn’t available"}</h1>
+        <h1>{label ?? "This screen isn’t available"}</h1>
         <p>
           {label && plan
-            ? `${label} is delivered in Batch ${plan.batch} with ${plan.area}. Its workflows already live in Workspaces.`
+            ? `${label} arrives in Batch ${plan.batch} with ${plan.area}. Until then, its workflows are listed in Workspaces.`
             : `There is no “${screen}” screen for your role.`}
         </p>
         <div className="sb-actions-row">

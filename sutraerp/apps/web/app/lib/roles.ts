@@ -17,6 +17,8 @@ export interface NavEntry {
   id: string;
   label: string;
   icon: LucideIcon;
+  /** Other screens that light up this pill (e.g. Academics for /academic-delivery). */
+  match?: string[];
 }
 export interface Kpi {
   icon: LucideIcon;
@@ -59,7 +61,7 @@ export interface RoleConfig {
   notifications: Notification[];
 }
 
-const nav = (id: string, label: string, icon: LucideIcon): NavEntry => ({ id, label, icon });
+const nav = (id: string, label: string, icon: LucideIcon, match?: string[]): NavEntry => (match ? { id, label, icon, match } : { id, label, icon });
 
 export const ROLE_CONFIG: Record<Role, RoleConfig> = {
   administrator: {
@@ -70,8 +72,7 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     loginId: "admin@sutra.dev",
     blurb: "Institution overview, approvals, finance and people.",
     nav: [
-      nav("home", "Home", I.House), nav("students", "Students", I.GraduationCap), nav("academics", "Academics", I.BookOpen),
-      nav("academic-delivery", "Delivery", I.Presentation),
+      nav("home", "Home", I.House), nav("students", "Students", I.GraduationCap), nav("academics", "Academics", I.BookOpen, ["/academic-delivery"]),
       nav("examinations", "Examinations", I.ClipboardCheck), nav("finance", "Finance", I.Wallet), nav("people", "People", I.Users),
       nav("campus", "Campus", I.Building2), nav("reports", "Reports", I.ChartBar), nav("workspaces", "Workspaces", I.LayoutGrid),
     ],
@@ -90,7 +91,7 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
       { title: "Staff leave requests", meta: "People · HR operations · 19 Sep", status: "neutral" },
     ],
     shortcuts: [
-      { icon: I.UserPlus, label: "New admission", to: "students" },
+      { icon: I.UserPlus, label: "New admission", to: "students/admissions" },
       { icon: I.Wallet, label: "Fee overview", to: "finance" },
       { icon: I.CalendarCheck, label: "Exam calendar", to: "examinations" },
       { icon: I.Contact, label: "Staff directory", to: "people" },
@@ -111,7 +112,7 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     blurb: "Classes, attendance, assessments and mentoring.",
     nav: [
       nav("home", "Home", I.House), nav("classes", "My classes", I.Presentation), nav("attendance", "Attendance", I.UserCheck),
-      nav("assessments", "Assessments", I.PencilLine), nav("my-students", "My students", I.GraduationCap), nav("timetable", "Timetable", I.CalendarDays),
+      nav("assessments", "Assessments", I.PencilLine), nav("my-students", "Students", I.GraduationCap), nav("timetable", "Timetable", I.CalendarDays),
       nav("leave", "Leave", I.Plane), nav("resources", "Resources", I.Library), nav("workspaces", "Workspaces", I.LayoutGrid),
     ],
     hero: { sub: "Your teaching day, with the details that matter.", cta: "Open next class", to: "classes" },
@@ -149,8 +150,7 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     loginId: "aarav.desai@sutra.dev",
     blurb: "Timetable, coursework, results and fees.",
     nav: [
-      nav("home", "Home", I.House), nav("timetable", "Timetable", I.CalendarDays), nav("courses", "Courses", I.BookOpen),
-      nav("registration", "Registration", I.ClipboardCheck),
+      nav("home", "Home", I.House), nav("timetable", "Timetable", I.CalendarDays), nav("courses", "Courses", I.BookOpen, ["/registration"]),
       nav("assignments", "Assignments", I.PencilLine), nav("results", "Results", I.Award), nav("fees", "Fees", I.Wallet),
       nav("documents", "Documents", I.FileText), nav("library", "Library", I.Library), nav("workspaces", "Workspaces", I.LayoutGrid),
     ],
@@ -213,6 +213,12 @@ export const SCREEN_BATCH: Record<string, { batch: number; area: string }> = {
   profile: { batch: 1, area: "Platform (A)" },
   notices: { batch: 1, area: "Platform (A)" },
   todos: { batch: 1, area: "Platform (A)" },
+};
+
+/** Screens reachable from a pill's page instead of their own pill (prototype navigation). */
+export const SECONDARY_SCREENS: Record<string, { label: string; icon: LucideIcon }> = {
+  "academic-delivery": { label: "Academic delivery", icon: I.Presentation },
+  registration: { label: "Registration", icon: I.ClipboardCheck },
 };
 
 export function routeFor(id: string): string {

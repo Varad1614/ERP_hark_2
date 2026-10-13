@@ -1,13 +1,14 @@
-import { ArrowUpRight, BadgeCheck, Check, ChevronRight, CircleCheck, ListTodo, Megaphone, Sun } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Check, CircleCheck, ListTodo, Sun } from "lucide-react";
+import { AdminKpis, FacultyKpis, StudentKpis, RightNowTile, AnnouncementTile } from "../features/home/live";
 import type { Todo as LiveTodo } from "@sutra/api-client";
-import { Badge, BentoGrid, BentoTile, Button, Drawer, EmptyState, IconChip, StatTile, useToast } from "@sutra/ui";
+import { Badge, BentoGrid, BentoTile, Button, Drawer, EmptyState, IconChip, useToast } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { USES_API } from "../lib/api";
 import { useSession } from "../lib/auth";
 import { inboxKeys, useInbox, useInboxRefresh } from "../lib/inbox";
-import { ANNOUNCEMENT, BADGE_LABEL, ROLE_CONFIG, routeFor, type Todo } from "../lib/roles";
+import { BADGE_LABEL, ROLE_CONFIG, routeFor, type Todo } from "../lib/roles";
 
 export function meta() {
   return [{ title: "Home · SutraERP" }];
@@ -169,27 +170,9 @@ export default function Home() {
         </Button>
       </BentoTile>
 
-      <BentoTile span={5} variant="dark" className="sb-agenda">
-        <div className="sb-agenda-label">
-          <span>Right now</span>
-          <span>{cfg.now.time}</span>
-        </div>
-        <h3>{cfg.now.title}</h3>
-        <small>{cfg.now.sub}</small>
-        <div className="sb-agenda-next">
-          {cfg.now.next.map(([time, title, where]) => (
-            <div key={time} className="sb-agenda-item">
-              <time>{time}</time>
-              {title}
-              <span>{where}</span>
-            </div>
-          ))}
-        </div>
-      </BentoTile>
+      <RightNowTile role={role} />
 
-      {cfg.kpis.map((k) => (
-        <StatTile key={k.label} icon={k.icon} tone={k.tone} label={k.label} value={k.value} hint={k.hint} onClick={() => go(k.to)} />
-      ))}
+      {role === "administrator" ? <AdminKpis go={go} /> : role === "faculty" ? <FacultyKpis go={go} /> : <StudentKpis go={go} />}
 
       {USES_API ? (
         <LiveTodosTile />
@@ -229,16 +212,7 @@ export default function Home() {
             ))}
           </div>
         </BentoTile>
-        <BentoTile className="sb-notice">
-          <IconChip icon={Megaphone} tone="green" size="md" />
-          <div>
-            <b>{ANNOUNCEMENT.title}</b>
-            <small>{ANNOUNCEMENT.meta}</small>
-          </div>
-          <button type="button" className="sb-icon-btn" aria-label="All notices" onClick={() => navigate("/notices")}>
-            <ChevronRight strokeWidth={1.75} />
-          </button>
-        </BentoTile>
+        <AnnouncementTile />
       </div>
 
       <Drawer

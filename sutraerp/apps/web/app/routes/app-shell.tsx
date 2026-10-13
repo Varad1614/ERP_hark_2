@@ -1,4 +1,4 @@
-import { Bell, BellOff, Check, KeyRound, ListTodo, LogOut, Megaphone, Search, ShieldCheck, User } from "lucide-react";
+import { Bell, BellOff, Check, Contrast, KeyRound, ListTodo, LogOut, Megaphone, Moon, Search, ShieldCheck, Sun, Type, User } from "lucide-react";
 import type { Notification } from "@sutra/api-client";
 import {
   Avatar,
@@ -7,14 +7,16 @@ import {
   Popover,
   ROLE_ACCENTS,
   RoleTheme,
+  Segmented,
   Shell,
+  useDisplayPrefs,
   useToast,
   type NavLinkLikeProps,
   type PaletteItem,
 } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Navigate, NavLink, Outlet, useNavigate } from "react-router";
+import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { AUTH_MODE, useWorkspaces } from "../lib/api";
 import { useAuth, type SignInResult } from "../lib/auth";
 import { NotificationRow } from "../components/NotificationRow";
@@ -22,9 +24,12 @@ import { groupMeta } from "../lib/icons";
 import { inboxKeys, useInbox, useInboxRefresh, useUnreadCount } from "../lib/inbox";
 import { ROLE_CONFIG, ROLES, routeFor, type Role } from "../lib/roles";
 
-function RouterLink({ to, className, end, children }: NavLinkLikeProps) {
+function RouterLink({ to, className, end, match, children }: NavLinkLikeProps) {
+  const { pathname } = useLocation();
+  const alias = (match ?? []).some((m) => pathname === m || pathname.startsWith(`${m}/`));
+  const cls = typeof className === "function" ? ({ isActive }: { isActive: boolean }) => className({ isActive: isActive || alias }) : className;
   return (
-    <NavLink to={to} end={end} className={className}>
+    <NavLink to={to} end={end} className={cls} aria-current={alias ? "page" : undefined}>
       {children}
     </NavLink>
   );
@@ -62,6 +67,7 @@ function AuthenticatedShell({
     staleTime: 60_000,
   });
   const workspaces = useWorkspaces(role);
+  const [display, setDisplay] = useDisplayPrefs();
 
   useEffect(() => setPop(null), [role]);
   useEffect(() => {
@@ -91,7 +97,7 @@ function AuthenticatedShell({
     await inbox.markAllRead().catch(() => 0);
     await refreshInbox();
   };
-  const nav = cfg.nav.map((n) => ({ id: n.id, label: n.label, to: routeFor(n.id) }));
+  const nav = cfg.nav.map((n) => ({ id: n.id, label: n.label, to: routeFor(n.id), match: n.match }));
 
   const paletteItems = useMemo<PaletteItem[]>(
     () => [
@@ -100,16 +106,27 @@ function AuthenticatedShell({
         const g = groupMeta(w.group);
         return { id: `ws:${w.key}`, title: w.name, subtitle: `${w.key} · Workspace`, group: "Workspaces", icon: g.icon, tone: g.tone };
       }),
+      { id: "cmd:light", title: "Light mode", subtitle: "Theme", group: "Display", icon: Sun, tone: "grey" as const },
+      { id: "cmd:dark", title: "Dark mode", subtitle: "Theme", group: "Display", icon: Moon, tone: "grey" as const },
+      { id: "cmd:contrast", title: display.contrast === "high" ? "Standard contrast" : "High contrast", subtitle: "Accessibility", group: "Display", icon: Contrast, tone: "grey" as const },
+      { id: "cmd:font", title: display.font === "easy" ? "Standard font" : "Easy-read font", subtitle: "Accessibility · Atkinson Hyperlegible", group: "Display", icon: Type, tone: "grey" as const },
     ],
-    [cfg.nav, workspaces.data],
+    [cfg.nav, workspaces.data, display.contrast, display.font],
   );
 
   const onPick = useCallback(
     (item: PaletteItem) => {
       const [kind, id] = item.id.split(":");
+      if (kind === "cmd") {
+        if (id === "light" || id === "dark") setDisplay({ mode: id });
+        else if (id === "contrast") setDisplay({ contrast: display.contrast === "high" ? "standard" : "high" });
+        else if (id === "font") setDisplay({ font: display.font === "easy" ? "sutra" : "easy" });
+        toast(`Display: ${item.title}`);
+        return;
+      }
       navigate(kind === "ws" ? `/workspaces/${id}` : routeFor(id ?? "home"));
     },
-    [navigate],
+    [navigate, setDisplay, display.contrast, display.font, toast],
   );
 
   const switchRole = async (next: Role) => {
@@ -198,6 +215,11 @@ function AuthenticatedShell({
           <ShieldCheck strokeWidth={1.75} />
           <div><b>Two-step verification</b></div>
         </button>
+        <div className="sb-pop-sep" />
+        <p className="sb-pop-label">Display</p>
+        <Segmented label="Theme" value={display.mode} options={[["light", "Light"], ["dark", "Dark"], ["auto", "Auto"]] as const} onChange={(mode) => setDisplay({ mode })} />
+        <Segmented label="Contrast" value={display.contrast} options={[["standard", "Standard"], ["high", "High"]] as const} onChange={(contrast) => setDisplay({ contrast })} />
+        <Segmented label="Font" value={display.font} options={[["sutra", "Sutra"], ["easy", "Easy read"]] as const} onChange={(font) => setDisplay({ font })} />
         <div className="sb-pop-sep" />
         <p className="sb-pop-label">Switch role</p>
         {ROLES.map((r) => {

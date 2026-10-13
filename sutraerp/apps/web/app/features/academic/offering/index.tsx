@@ -582,6 +582,9 @@ export function StudentCoursesScreen() {
       <BentoTile span={12} variant="accent" data-slice="4A">
         <h1>My courses</h1>
         <p>The course sections you hold a seat in. Seats follow your registration: a course your registration covers can be joined below while its enrolment is open.</p>
+        <Link to="/registration" className="sb-btn sb-btn--ghost sb-btn--sm sb-mt" data-registration-link>
+          Registration &amp; add/drop
+        </Link>
       </BentoTile>
       <StatTile span={4} icon={BookOpen} tone="violet" label="Courses" value={String(courses.length)} />
       <StatTile span={4} icon={GraduationCap} tone="green" label="Credits" value={`${credits} cr`} />

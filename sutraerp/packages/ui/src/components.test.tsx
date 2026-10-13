@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { Inbox, LayoutGrid } from "lucide-react";
+import { Inbox, LayoutGrid, Users } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
-import { Badge, CommandPalette, DataTable, EmptyState, StatTile, Steps, ToastProvider, useToast } from "./index";
+import { applyDisplayPrefs, Badge, CommandPalette, DataTable, EmptyState, StatTile, Steps, ToastProvider, useToast } from "./index";
 
 describe("@sutra/ui", () => {
   it("renders a badge with its kind class", () => {
@@ -61,5 +61,24 @@ describe("@sutra/ui", () => {
     );
     fireEvent.click(screen.getByText("go"));
     expect(screen.getByRole("status").textContent).toContain("Saved");
+  });
+});
+
+describe("re-skin additions", () => {
+  it("draws a sparkline only for a real series and marks pending KPI tiles", () => {
+    const a = render(<StatTile icon={Users} tone="blue" label="Avg" value="88%" trend={[80, 90, 88]} trendLabel="Last 3 sessions" />);
+    expect(a.container.querySelector("svg.sb-spark polyline")).toBeTruthy();
+    const b = render(<StatTile icon={Users} tone="green" label="Faculty" value="—" pending="Arrives in Batch 7" />);
+    expect(b.container.querySelector(".sb-stat.is-pending")).toBeTruthy();
+    expect(b.container.querySelector("svg.sb-spark")).toBeNull();
+    expect(b.getByText("Arrives in Batch 7")).toBeTruthy();
+  });
+
+  it("applies display prefs as classes on <html>", () => {
+    const el = document.createElement("html");
+    applyDisplayPrefs({ mode: "dark", contrast: "high", font: "easy" }, el);
+    expect([...el.classList].sort()).toEqual(["dk", "easy", "hc"]);
+    applyDisplayPrefs({ mode: "light", contrast: "standard", font: "sutra" }, el);
+    expect(el.classList.length).toBe(0);
   });
 });

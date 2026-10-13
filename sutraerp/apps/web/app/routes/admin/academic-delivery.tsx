@@ -1,4 +1,5 @@
 import { useParams } from "react-router";
+import { AcademicsSwitch } from "../../features/institution/AcademicsSwitch";
 import { AdminScreen } from "../../features/institution/AdminScreen";
 import { ACADEMIC_TABS } from "../../features/academic";
 import { AssessmentAdminTab, AttendanceAdminTab, MonitoringAdminTab, TimetableAdminTab } from "../../features/academic/delivery";
@@ -16,7 +17,7 @@ export function meta() {
 export default function AcademicDelivery() {
   const { tab } = useParams();
   return (
-    <AdminScreen title="Academic delivery" base="/academic-delivery" tabs={ACADEMIC_TABS} tab={tab}>
+    <AdminScreen title="Academic delivery" base="/academic-delivery" tabs={ACADEMIC_TABS} tab={tab} actions={<AcademicsSwitch current="delivery" />}>
       {(institution, current) => {
         switch (current.key) {
           case "faculty":

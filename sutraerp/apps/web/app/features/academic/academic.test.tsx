@@ -32,7 +32,8 @@ describe("Batch 4 tabs and screens", () => {
     expect(faculty.nav.map((n) => n.id)).not.toContain("students");
     expect(faculty.nav.map((n) => n.id)).toContain("my-students");
     expect(faculty.kpis.every((k) => k.to !== "students")).toBe(true);
-    expect(ROLE_CONFIG.administrator.nav.map((n) => n.id)).toContain("academic-delivery");
+    // Prototype navigation: Academic delivery sits under the Academics pill.
+    expect(ROLE_CONFIG.administrator.nav.find((n) => n.id === "academics")?.match).toContain("/academic-delivery");
   });
 });
 

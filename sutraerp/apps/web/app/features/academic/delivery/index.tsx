@@ -887,7 +887,8 @@ export function FacultyAttendanceScreen() {
   const sections = q.data ?? [];
   return (
     <>
-      <BentoTile span={12} title="Attendance" data-slice="4B" data-faculty-attendance>
+      <BentoTile span={12} variant="accent" data-slice="4B" data-faculty-attendance>
+        <h1>Attendance</h1>
         {sections.length === 0 ? (
           <EmptyState icon={ClipboardCheck} title="No sections to teach">
             Sections appear here once you hold an active teaching assignment.
