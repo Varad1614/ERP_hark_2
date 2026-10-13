@@ -4661,6 +4661,2588 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/adjustments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One adjustment (`finance.read`). */
+        get: operations["finance_adjustment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/adjustments/{id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Correct an erroneous adjustment: the original is superseded (reversed in the ledger when it was posted) and a corrected successor draft is returned (`adjustment.manage`; `finance.approve` when the original was posted). */
+        post: operations["finance_adjustment_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/adjustments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve (post) or reject a pending adjustment (`finance.approve`, step-up). */
+        post: operations["finance_adjustment_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/adjustments/{id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reverse a posted adjustment: mirror journal entry and the opposite charge effect (`finance.approve`, step-up; reason required). */
+        post: operations["finance_adjustment_reverse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/adjustments/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft for approval (WorkflowPort `finance.adjustment_approval`); auto-approval posts it at once (`adjustment.manage`). */
+        post: operations["finance_adjustment_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/aid-allocations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One aid allocation with its disbursements (`finance.read`). */
+        get: operations["finance_aid_allocation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/aid-allocations/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve (allocate) or reject a proposed allocation (`finance.approve`, step-up). */
+        post: operations["finance_aid_allocation_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/aid-allocations/{id}/disburse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disburse aid: apply it to one of the student's charges (Dr aid expense / Cr receivables) or pay it in cash (Dr aid expense / Cr refunds payable; `aid.manage`). */
+        post: operations["finance_aid_allocation_disburse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/aid-allocations/{id}/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recover the utilised aid of a revoked allocation (published `aid_recovery` charge; `aid.manage`). */
+        post: operations["finance_aid_allocation_recover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/aid-allocations/{id}/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renew an allocation from a renewed Domain C decision (`aid.manage`). */
+        post: operations["finance_aid_allocation_renew"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/aid-allocations/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an allocation, optionally recovering the utilised aid through a published recovery charge (`finance.approve`, step-up). */
+        post: operations["finance_aid_allocation_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One bank account with its ledger balance (`finance.read`). */
+        get: operations["finance_bank_account_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Closes a bank account with a zero ledger balance (`treasury.manage`, `If-Match`). */
+        post: operations["finance_bank_account_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a requested bank account (`finance.approve` + step-up, `If-Match`): approve →
+         *     `active`, reject (reason required) → `closed`.
+         */
+        post: operations["finance_bank_account_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resumes a suspended bank account (`treasury.manage`, `If-Match`). */
+        post: operations["finance_bank_account_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Records a gateway settlement to the bank (`treasury.manage`, `Idempotency-Key`; contract §3.3
+         *     "Gateway settlement to bank", L3-F-057): per payment `payment` / `settle` — Dr bank (net) +
+         *     Dr bank charges (fee) · Cr gateway clearing (gross). A payment is settled at most once.
+         */
+        post: operations["finance_bank_settlement_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Statements of a bank account, newest first (`finance.read`). */
+        get: operations["finance_statement_list"];
+        put?: never;
+        /**
+         * Imports a bank statement from JSON lines (`treasury.manage`, `Idempotency-Key`; L3-F-058).
+         *     The same content or statement reference is never imported twice; when both balances are
+         *     given they must agree with the lines.
+         */
+        post: operations["finance_statement_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspends an active bank account (`treasury.manage`, `If-Match`, reason required). */
+        post: operations["finance_bank_account_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-statements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One statement with its lines and reconciliation runs (`finance.read`). */
+        get: operations["finance_statement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-statements/{id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconciles a statement with the bank ledger (`treasury.manage`, `If-Match`; L3-F-058):
+         *     manual matches / ignores first, then auto-matching by direction + amount, preferring a
+         *     reference match and the closest date (±5 days). All lines explained → `reconciled`
+         *     (`bank_statement.reconciled`), otherwise `reconciling` with the exceptions left `unmatched`.
+         */
+        post: operations["finance_statement_reconcile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-transactions/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Marks an executed settlement returned / failed by the bank (`treasury.manage`, `If-Match`,
+         *     `Idempotency-Key`; L3-F-061): every settle entry is reversed (`shared::posting::reverse`) so
+         *     the amounts are back on gateway clearing, the payments can be settled again, and
+         *     `bank_transaction.failed` raises a to-do for the finance office.
+         */
+        post: operations["finance_bank_transaction_return"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One charge with lines, due schedule and publication entry (`finance.read`, or the student's own visible charge). */
+        get: operations["finance_charge_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Adjustments of a charge, oldest first (`finance.read`). */
+        get: operations["finance_adjustment_list_of_charge"];
+        put?: never;
+        /** Draft a credit note, debit note, write-off, waiver or concession on a charge (`adjustment.manage`). */
+        post: operations["finance_adjustment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a closed / cancelled / waived / written-off charge (immutable afterwards; `charge.manage`). */
+        post: operations["finance_charge_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a charge; a published one must have nothing settled and its receivable is cleared in the ledger (reason required; `charge.manage`). */
+        post: operations["finance_charge_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Financially close a fully settled charge (`charge.manage`). */
+        post: operations["finance_charge_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/disputes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disputes of a charge (`finance.read`, or the student's own charge). */
+        get: operations["finance_dispute_list"];
+        put?: never;
+        /** Raise a dispute on a published / active charge (`charge.manage`, or the student on their own charge with `finance.self`). */
+        post: operations["finance_dispute_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/instalments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Due schedule of a charge (`finance.read`, or the student's own visible charge). */
+        get: operations["finance_instalment_list"];
+        put?: never;
+        /** Set or replace the due schedule of a charge (instalments sum to the net amount; `charge.manage`). */
+        post: operations["finance_instalment_plan_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/instalments/{instalmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Move the due date of one unpaid instalment (`charge.manage`). */
+        patch: operations["finance_instalment_update"];
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a charge to the student and recognise it in the ledger (Dr receivables / Cr income; `charge.manage`; a pending publication authority decision is completed by `finance.approve`). */
+        post: operations["finance_charge_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a suspended charge (`charge.manage`). */
+        post: operations["finance_charge_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Governed revision: description / due date, or a new net amount realised as a posted credit / debit note (`charge.manage`). */
+        post: operations["finance_charge_revise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Append-only revision history of a charge (`finance.read`). */
+        get: operations["finance_charge_revision_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend a published / active charge (not demanded while suspended; reason required; `charge.manage`). */
+        post: operations["finance_charge_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/charges/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a draft charge (`charge.manage`). */
+        post: operations["finance_charge_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/collections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One bulk collection with its items (`finance.read`). */
+        get: operations["finance_collection_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/collections/{id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Executes a validated collection: each valid item completes as its own payment (own
+         *     transaction); the batch ends completed / partially_completed / failed (`payment.manage`,
+         *     `If-Match`, `Idempotency-Key`).
+         */
+        post: operations["finance_collection_execute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/collections/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validates every item (party exists in the institution and is not closed): `validated` when
+         *     at least one item is valid, `failed` otherwise (`payment.manage`, `If-Match`).
+         */
+        post: operations["finance_collection_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/disputes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One dispute (`finance.read`). */
+        get: operations["finance_dispute_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/disputes/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Uphold (optionally crediting or waiving) or reject a dispute (`finance.approve`, step-up). */
+        post: operations["finance_dispute_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/disputes/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw an open dispute (`charge.manage`, or the student who owns the charge). */
+        post: operations["finance_dispute_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/dunning-cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One dunning case with its notices (`finance.read`). */
+        get: operations["finance_dunning_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/dunning-cases/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancels a dunning case (raised in error; `receivable.manage`, `If-Match`). */
+        post: operations["finance_dunning_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/dunning-cases/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolves a dunning case (e.g. payment plan agreed; `receivable.manage`, `If-Match`). */
+        post: operations["finance_dunning_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/fee-heads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One fee head (`finance.read`). */
+        get: operations["finance_fee_head_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename, retire or reactivate a fee head (`charge.manage`). */
+        patch: operations["finance_fee_head_update"];
+        trace?: never;
+    };
+    "/api/v1/finance/fee-structures/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One fee structure version (`finance.read`). */
+        get: operations["finance_fee_structure_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/fee-structures/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or return a version in review (`finance.approve`, step-up). */
+        post: operations["finance_fee_structure_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/fee-structures/{id}/generate-charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate (and by default publish) one charge per student from a published structure; idempotent per student (`charge.manage`). */
+        post: operations["finance_fee_structure_generate_charges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/fee-structures/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish an approved version (supersedes the previous published version of the code; `charge.manage`). */
+        post: operations["finance_fee_structure_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/fee-structures/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft version for approval (WorkflowPort `finance.fee_structure_approval`; `charge.manage`). */
+        post: operations["finance_fee_structure_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/fee-structures/{id}/supersede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a version: a published one becomes superseded, an unpublished one retired (`charge.manage`). */
+        post: operations["finance_fee_structure_supersede"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-config/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One governed version (`finance.read`). */
+        get: operations["finance_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-config/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate an approved version (the previous effective version is superseded / rolled back; `finance.config.manage`). */
+        post: operations["finance_config_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-config/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or return a version in review (`finance.approve`, step-up). */
+        post: operations["finance_config_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-config/{id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authorise a rollback to this prior version: creates a new draft based on it (`finance.approve`, step-up; reason required). */
+        post: operations["finance_config_rollback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-config/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft version for approval through the WorkflowPort (`finance.config.manage`). */
+        post: operations["finance_config_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One governed version (`finance.read`). */
+        get: operations["finance_rule_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-rules/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate an approved version (the previous effective version is superseded / rolled back; `finance.config.manage`). */
+        post: operations["finance_rule_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-rules/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or return a version in review (`finance.approve`, step-up). */
+        post: operations["finance_rule_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-rules/{id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authorise a rollback to this prior version: creates a new draft based on it (`finance.approve`, step-up; reason required). */
+        post: operations["finance_rule_rollback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/finance-rules/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft version for approval through the WorkflowPort (`finance.config.manage`). */
+        post: operations["finance_rule_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-periods/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One financial period with its history (`finance.read`). */
+        get: operations["finance_period_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-periods/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archives a closed period (`period.close` + step-up, `If-Match`; L3-F-055). */
+        post: operations["finance_period_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-periods/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Controlled accounting close (`period.close` + step-up, `If-Match`; L3-F-031/052): refused
+         *     while manual journals of the period await a decision; snapshots the trial balance.
+         */
+        post: operations["finance_period_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-periods/{id}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Locks a period: no new postings, close pending (`period.manage`, `If-Match`; L3-F-052). */
+        post: operations["finance_period_lock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-periods/{id}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Opens a planned (or unlocks a locked) period (`period.manage`, `If-Match`; L3-F-051). */
+        post: operations["finance_period_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-periods/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopens a closed period for corrections (`period.close` + step-up, `If-Match`, reason
+         *     required; L3-F-054). The year must still be open.
+         */
+        post: operations["finance_period_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-years/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One financial year with its periods (`finance.read`). */
+        get: operations["finance_year_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-years/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archives a closed year and its periods (`period.close` + step-up, `If-Match`; L3-F-055). */
+        post: operations["finance_year_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-years/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Closes a year whose periods are all closed (`period.close` + step-up, `If-Match`; L3-F-053). */
+        post: operations["finance_year_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-years/{id}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Opens a draft year (`period.manage`, `If-Match`). Its periods are opened one by one. */
+        post: operations["finance_year_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/financial-years/{id}/periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Periods of one financial year (`finance.read`). */
+        get: operations["finance_period_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/gateway/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gateway webhook (Razorpay-shaped): **unauthenticated**, verified with the HMAC-SHA256
+         *     `X-Razorpay-Signature` over the raw body (401 otherwise), idempotent on the gateway event id.
+         */
+        post: operations["finance_gateway_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Adjustments of an institution, newest first (`finance.read`). */
+        get: operations["finance_adjustment_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/aid-allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aid allocations of an institution (`finance.read`). */
+        get: operations["finance_aid_allocation_list"];
+        put?: never;
+        /** Allocate aid from a handed-off decision (idempotent per decision; approval through `finance.aid_allocation`; `aid.manage`). */
+        post: operations["finance_aid_allocation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/aid-decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scholarship decisions handed off to Financial Aid by Student Records (`finance.read`). */
+        get: operations["finance_aid_decision_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/aid-reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Programme reconciliation runs of an institution, newest first (`finance.read`). */
+        get: operations["finance_aid_reconciliation_list"];
+        put?: never;
+        /** Reconcile aid funding, utilisation and the ledger for a programme (new run each time; `aid.manage`). */
+        post: operations["finance_aid_reconciliation_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/bank-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bank accounts of an institution (`finance.read`). */
+        get: operations["finance_bank_account_list"];
+        put?: never;
+        /**
+         * Requests a bank account (`treasury.manage`, `Idempotency-Key`; L3-F-056); goes through
+         *     `BANK_ACCOUNT_APPROVAL` (auto-approved in Batch 5 → `active`).
+         */
+        post: operations["finance_bank_account_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/bank-transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bank transactions of an institution, newest first (`finance.read`). */
+        get: operations["finance_bank_transaction_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/cash-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cash position from the ledger: every bank account, cash on hand and gateway clearing in
+         *     transit (`finance.read`).
+         */
+        get: operations["finance_cash_position"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Charges of an institution, newest first (`finance.read`; keyset-paged with `cursor`). */
+        get: operations["finance_charge_list"];
+        put?: never;
+        /** Raise a manual charge for a student (draft, or published at once with `publish`; `charge.manage`). */
+        post: operations["finance_charge_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bulk collections of an institution (`finance.read`). */
+        get: operations["finance_collection_list"];
+        put?: never;
+        /** Drafts a bulk collection (`payment.manage`, `Idempotency-Key`). */
+        post: operations["finance_collection_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/dunning-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluates the institution's receivables, then sends the next notice to every overdue one
+         *     not noticed today (`receivable.manage`).
+         */
+        post: operations["finance_dunning_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/fee-heads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fee heads of an institution (`finance.read`). */
+        get: operations["finance_fee_head_list"];
+        put?: never;
+        /** Create a fee head (`charge.manage`). */
+        post: operations["finance_fee_head_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/fee-structures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fee structure versions of an institution (`finance.read`). */
+        get: operations["finance_fee_structure_list"];
+        put?: never;
+        /** Create a draft fee structure version (`charge.manage`). */
+        post: operations["finance_fee_structure_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/finance-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Configuration versions of an institution, newest first (`finance.read`). */
+        get: operations["finance_config_list"];
+        put?: never;
+        /** Draft a new configuration version (`finance.config.manage`). */
+        post: operations["finance_config_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/finance-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Financial rule versions of an institution (`finance.read`). */
+        get: operations["finance_rule_list"];
+        put?: never;
+        /** Draft a new financial rule version (`finance.config.manage`). */
+        post: operations["finance_rule_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/financial-years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Financial years of an institution (`finance.read`). */
+        get: operations["finance_year_list"];
+        put?: never;
+        /**
+         * Establishes a financial year and its monthly periods (`period.manage`, `Idempotency-Key`;
+         *     L3-F-051). Years of an institution never overlap.
+         */
+        post: operations["finance_year_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/journal-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Journal entries of an institution, newest first (`finance.read`). */
+        get: operations["finance_journal_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/ledger-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chart of accounts of an institution (`finance.read`; the default chart is seeded on first
+         *     read).
+         */
+        get: operations["finance_ledger_account_list"];
+        put?: never;
+        /** Adds a user account to the chart (`ledger.manage`, `Idempotency-Key`). */
+        post: operations["finance_ledger_account_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/manual-journals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Manual journals of an institution (`finance.read`). */
+        get: operations["finance_journal_manual_list"];
+        put?: never;
+        /** Drafts a manual journal (`ledger.manage`, `Idempotency-Key`). Lines must balance. */
+        post: operations["finance_journal_manual_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payments of an institution, newest first (`finance.read`). */
+        get: operations["finance_payment_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/receivables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Receivables of an institution with ageing (`finance.read`). */
+        get: operations["finance_receivable_list"];
+        put?: never;
+        /**
+         * Recognises receivables for published charges and re-evaluates every receivable (overdue,
+         *     settled, reopened) as of the institution's business date (`receivable.manage`).
+         */
+        post: operations["finance_receivable_evaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reconciliation runs of an institution, newest first (`finance.read`). */
+        get: operations["finance_reconciliation_list"];
+        put?: never;
+        /**
+         * Runs the receivables reconciliation (`ledger.manage`, `Idempotency-Key`): every charge's
+         *     outstanding amount against its sub-ledger balance on the receivable control account, and the
+         *     totals. `matched` when nothing differs, otherwise `exceptions` with one row per charge.
+         */
+        post: operations["finance_reconciliation_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refunds of an institution (`finance.read`). */
+        get: operations["finance_refund_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/student-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Party accounts of an institution with their balances (`finance.read`). */
+        get: operations["finance_account_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/trial-balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Trial balance as of a date (`finance.read`; L3-F-030). */
+        get: operations["finance_trial_balance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/unidentified-receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unidentified receipts of an institution (`finance.read`). */
+        get: operations["finance_unidentified_list"];
+        put?: never;
+        /**
+         * Records money received without a known payer: Dr bank / cash · Cr unapplied receipts
+         *     (`payment.manage`, `Idempotency-Key`).
+         */
+        post: operations["finance_unidentified_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/journal-entries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One journal entry with its lines (`finance.read`). */
+        get: operations["finance_journal_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/journal-entries/{id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reverses a posted **manual journal** entry with its mirror entry through
+         *     `shared::posting::reverse` (`finance.approve` + step-up, `Idempotency-Key`; L3-F-028). Entries
+         *     of business sources (charges, payments, refunds, …) are reversed by their owning command.
+         */
+        post: operations["finance_journal_reverse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/ledger-accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One ledger account with its balance (`finance.read`). */
+        get: operations["finance_ledger_account_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Updates an account (`ledger.manage`, `If-Match`). A system account with postings keeps its
+         *     name and stays active; an account with a non-zero balance cannot be deactivated.
+         */
+        patch: operations["finance_ledger_account_update"];
+        trace?: never;
+    };
+    "/api/v1/finance/manual-journals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One manual journal with lines and history (`finance.read`). */
+        get: operations["finance_journal_manual_get"];
+        /** Replaces a draft (or rejected → draft again) journal (`ledger.manage`, `If-Match`). */
+        put: operations["finance_journal_manual_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/manual-journals/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a pending manual journal (`finance.approve` + step-up, `If-Match`,
+         *     `Idempotency-Key`). Maker-checker: the requester cannot decide their own journal. Approval
+         *     posts it (the posting date's period must be open); rejection needs a reason and posts nothing.
+         */
+        post: operations["finance_journal_manual_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/manual-journals/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submits a draft for approval (`ledger.manage`, `If-Match`, `Idempotency-Key`) through the
+         *     WorkflowPort (`MANUAL_JOURNAL_APPROVAL`); auto-approval posts it in the same transaction.
+         */
+        post: operations["finance_journal_manual_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's own fee accounts with balances and visible charges (`finance.self`; empty when
+         *     no charge was ever raised).
+         */
+        get: operations["finance_account_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/aid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own aid allocations (`finance.self`). */
+        get: operations["finance_aid_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own visible charges with lines and due schedules (`finance.self`). */
+        get: operations["finance_charge_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own payments, newest first (`finance.self`). */
+        get: operations["finance_payment_self_list"];
+        put?: never;
+        /**
+         * Starts an online payment with the (mock) gateway: creates the gateway order and a pending
+         *     payment (`finance.self`, `Idempotency-Key` — a retry returns the same payment / order).
+         */
+        post: operations["finance_payment_self_initiate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/payments/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abandons the caller's own open online payment (L3-F-012; `finance.self`, `If-Match`). */
+        post: operations["finance_payment_self_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/payments/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return from the (mock) checkout: asks the gateway for the outcome and completes / fails the
+         *     caller's own payment (`finance.self`, `If-Match`). Still pending → unchanged.
+         */
+        post: operations["finance_payment_self_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own receipts (`finance.self`). */
+        get: operations["finance_receipt_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own refunds (`finance.self`). */
+        get: operations["finance_refund_self_list"];
+        put?: never;
+        /** The caller requests a refund of their own unapplied credit (`finance.self`, `Idempotency-Key`). */
+        post: operations["finance_refund_self_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One payment with allocations and receipt (`finance.read`). */
+        get: operations["finance_payment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/{id}/allocate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Allocates the unapplied part of a completed payment (`payment.manage`, `If-Match`,
+         *     `Idempotency-Key`).
+         */
+        post: operations["finance_payment_allocate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancels a payment that has not completed (L3-F-012; `payment.manage`, `If-Match`). */
+        post: operations["finance_payment_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/{id}/chargeback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Records a gateway chargeback of a completed payment (L3-F-011; `finance.approve`, `If-Match`). */
+        post: operations["finance_payment_chargeback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/{id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Receipt of a payment (`finance.read`). */
+        get: operations["finance_receipt_of_payment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/{id}/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Safe recovery of a pending / timed-out payment (L3-F-010): asks the gateway for the outcome
+         *     and completes, fails or (with `expire`) expires it (`payment.manage`, `If-Match`).
+         */
+        post: operations["finance_payment_recover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/{id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reverses a completed payment (L3-F-011; `finance.approve` + step-up, `If-Match`). */
+        post: operations["finance_payment_reverse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One receipt (`finance.read`; students read their own through `/me/receipts`). */
+        get: operations["finance_receipt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receivables/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One receivable with its dunning case and write-off decisions (`finance.read`). */
+        get: operations["finance_receivable_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receivables/{id}/dunning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sends the next dunning notice of an overdue receivable (L3-F-040; `receivable.manage`, `If-Match`). */
+        post: operations["finance_receivable_dunning"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receivables/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopens a written-off (write-off reversed) or settled receivable on new evidence
+         *     (L3-F-043; `receivable.manage`, `If-Match`). The decision is recorded through the
+         *     WorkflowPort (`RECEIVABLE_REOPEN`).
+         */
+        post: operations["finance_receivable_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receivables/{id}/write-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Requests the write-off of an uncollectible receivable (L3-F-042; `receivable.manage`,
+         *     `If-Match`, `Idempotency-Key`): approval through the WorkflowPort, auto-approved in Batch 5.
+         */
+        post: operations["finance_receivable_write_off"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receivables/{id}/write-off/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides the pending write-off of a receivable (`finance.approve` + step-up, `If-Match` of the
+         *     receivable, `Idempotency-Key`).
+         */
+        post: operations["finance_receivable_write_off_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/reconciliations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One reconciliation run (`finance.read`). */
+        get: operations["finance_reconciliation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/refunds/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One refund with its full history (`finance.read`; L3-F-019 reconstruction). */
+        get: operations["finance_refund_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/refunds/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancels / withdraws a refund before payout (L3-F-016/017): an approved one gives its credit
+         *     back (approval entry reversed) (`refund.manage`, `If-Match`).
+         */
+        post: operations["finance_refund_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/refunds/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Closes a finished refund (L3-F-019; history stays reconstructable) (`refund.manage`, `If-Match`). */
+        post: operations["finance_refund_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/refunds/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirms the payout of a processing refund, or resolves a failed one manually (paid by other
+         *     means) (`refund.manage`, `If-Match`, `Idempotency-Key`).
+         */
+        post: operations["finance_refund_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/refunds/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decides a refund under review (`finance.approve` + step-up, `If-Match`, `Idempotency-Key`). */
+        post: operations["finance_refund_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/refunds/{id}/process": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pays out an approved refund (L3-F-015). */
+        post: operations["finance_refund_process"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/refunds/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retries a failed refund (L3-F-017). */
+        post: operations["finance_refund_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/refunds/{id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reverses a completed refund (money recovered / returned; L3-F-018): payout and approval
+         *     entries reversed, the credit goes back to the party (`finance.approve` + step-up, `If-Match`).
+         */
+        post: operations["finance_refund_reverse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/student-accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One party account with its balance and charges (`finance.read`). */
+        get: operations["finance_account_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/student-accounts/{id}/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Charges of one party account (`finance.read`). */
+        get: operations["finance_charge_list_of_account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/student-accounts/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payments of one party account (`finance.read`). */
+        get: operations["finance_payment_account_list"];
+        put?: never;
+        /**
+         * Records a counter / bank / sponsor payment: allocation, receipt and posting in one step
+         *     (`payment.manage`, `Idempotency-Key`).
+         */
+        post: operations["finance_payment_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/student-accounts/{id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refunds of one party account (`finance.read`). */
+        get: operations["finance_refund_account_list"];
+        put?: never;
+        /**
+         * Requests a refund on behalf of a party (`refund.manage`, `Idempotency-Key`); goes through
+         *     the refund approval (auto-approved in Batch 5).
+         */
+        post: operations["finance_refund_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/unidentified-receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One unidentified receipt (`finance.read`). */
+        get: operations["finance_unidentified_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/unidentified-receipts/{id}/allocate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Allocates an identified receipt to the party's open charges (Dr unapplied · Cr receivables;
+         *     `payment.manage`, `If-Match`, `Idempotency-Key`). Fully allocated → `allocated`.
+         */
+        post: operations["finance_unidentified_allocate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/unidentified-receipts/{id}/identify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Identifies the payer: the receipt becomes a completed payment of that party with the whole
+         *     amount unapplied, and a receipt is issued (`payment.manage`, `If-Match`).
+         */
+        post: operations["finance_unidentified_identify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/unidentified-receipts/{id}/investigate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marks an unidentified receipt as under investigation (`payment.manage`, `If-Match`). */
+        post: operations["finance_unidentified_investigate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/unidentified-receipts/{id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Returns an unidentified receipt to the remitter: Dr unapplied receipts · Cr bank / cash
+         *     (`finance.approve` — money leaves; `If-Match`, `Idempotency-Key`).
+         */
+        post: operations["finance_unidentified_refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/institution/academic-structures/{structureId}": {
         parameters: {
             query?: never;
@@ -11239,6 +13821,78 @@ export interface components {
             note?: string | null;
             title: string;
         };
+        /** @description Corrected successor of an erroneous adjustment. */
+        AdjustmentCorrect: {
+            /** @example 4500.00 */
+            amount: string;
+            kind?: null | components["schemas"]["AdjustmentKind"];
+            reason: string;
+        };
+        /** @description New adjustment draft of a charge. */
+        AdjustmentCreate: {
+            /** @example 5000.00 */
+            amount: string;
+            kind: components["schemas"]["AdjustmentKind"];
+            reason: string;
+        };
+        /**
+         * @description Kind of financial adjustment (L2-F04).
+         * @enum {string}
+         */
+        AdjustmentKind: "credit_note" | "debit_note" | "write_off" | "waiver" | "concession";
+        AdjustmentList: {
+            items: components["schemas"]["AdjustmentView"][];
+        };
+        /**
+         * @description Adjustment lifecycle (L3-F-020…024).
+         * @enum {string}
+         */
+        AdjustmentStatus: "draft" | "pending_approval" | "approved" | "posted" | "rejected" | "reversed" | "superseded";
+        /**
+         * @description A financial adjustment (amounts are decimal strings, INR; `amount` is always positive and
+         *     its direction follows `kind`).
+         */
+        AdjustmentView: {
+            adjustmentNumber: string;
+            /** @example 5000.00 */
+            amount: string;
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            /** @description Signed effect on the charge (`-5000.00` for a credit). */
+            effect: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            kind: components["schemas"]["AdjustmentKind"];
+            /** @description `manual | charge_revision | dispute | correction`. */
+            origin: string;
+            /** Format: date-time */
+            postedAt?: string | null;
+            /** Format: date */
+            postingDate?: string | null;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            reversalEntryId?: string | null;
+            status: components["schemas"]["AdjustmentStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentAccountId: string;
+            /** Format: uuid */
+            supersededById?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description Admission Record (wire form; contract §5.3 minimum fields included). */
         Admission: {
             /** Format: uuid */
@@ -11461,6 +14115,194 @@ export interface components {
          * @enum {string}
          */
         AdmissionVerificationOutcome: "verified" | "rejected" | "waived";
+        AidAllocationCreate: {
+            /**
+             * Format: uuid
+             * @description The handed-off scholarship eligibility (idempotency key of the allocation).
+             */
+            eligibilityId: string;
+        };
+        AidAllocationList: {
+            items: components["schemas"]["AidAllocationView"][];
+        };
+        /**
+         * @description Financial aid allocation (L3-F-062…066).
+         * @enum {string}
+         */
+        AidAllocationStatus: "proposed" | "approved" | "allocated" | "disbursed" | "suspended" | "revoked" | "recovered" | "closed";
+        /** @description An aid allocation (amounts are decimal strings, INR). */
+        AidAllocationView: {
+            /** Format: uuid */
+            academicYearId?: string | null;
+            /** @description Ceiling (fixed / stipend); `null` = bounded by the charges. */
+            allocatedAmount?: string | null;
+            allocationNumber: string;
+            appliedAmount: string;
+            /** @description `fixed_amount | fee_percentage | fee_waiver | stipend`. */
+            benefitType: string;
+            benefitValue?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            decisionStatus: string;
+            disbursedAmount: string;
+            disbursements: components["schemas"]["AidDisbursementView"][];
+            displayName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            processInstanceId?: string | null;
+            recoveredAmount: string;
+            /** Format: uuid */
+            recoveryChargeId?: string | null;
+            /** @description What is left of the ceiling (`null` when unbounded). */
+            remainingAmount?: string | null;
+            /** Format: int32 */
+            renewalCount: number;
+            scholarshipCode: string;
+            /** Format: uuid */
+            scholarshipEligibilityId: string;
+            /** Format: uuid */
+            scholarshipId: string;
+            scholarshipName: string;
+            sponsorType: string;
+            status: components["schemas"]["AidAllocationStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentAccountId: string;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: date */
+            validFrom?: string | null;
+            /** Format: date */
+            validUntil?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        AidDecisionList: {
+            items: components["schemas"]["AidDecisionView"][];
+        };
+        /** @description A scholarship decision Domain C handed off to Financial Aid, with its allocation (if any). */
+        AidDecisionView: {
+            /** Format: uuid */
+            academicYearId?: string | null;
+            /** Format: uuid */
+            allocationId?: string | null;
+            allocationStatus?: null | components["schemas"]["AidAllocationStatus"];
+            benefitType: string;
+            benefitValue?: string | null;
+            currency: string;
+            /** Format: uuid */
+            eligibilityId: string;
+            /** Format: date-time */
+            handedOffAt: string;
+            live: boolean;
+            /** Format: int32 */
+            renewalCount: number;
+            scholarshipCode: string;
+            /** Format: uuid */
+            scholarshipId: string;
+            scholarshipName: string;
+            sponsorType: string;
+            /** @description Eligibility status in Domain C (`active | renewal` are live). */
+            status: string;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: date */
+            validFrom?: string | null;
+            /** Format: date */
+            validUntil?: string | null;
+        };
+        /** @description Disbursement: `charge_adjustment` (apply to `chargeId`) or `cash` (stipend). */
+        AidDisburse: {
+            /**
+             * @description Defaults to the computed benefit (charge) or what remains (cash).
+             * @example 30000.00
+             */
+            amount?: string | null;
+            /** Format: uuid */
+            chargeId?: string | null;
+            mode: string;
+        };
+        /** @description One utilisation of an allocation. */
+        AidDisbursementView: {
+            amount: string;
+            /** Format: uuid */
+            chargeId?: string | null;
+            chargeNumber?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            journalEntryId: string;
+            /** @description `charge_adjustment | cash`. */
+            mode: string;
+            /** Format: date */
+            postingDate: string;
+        };
+        AidReconcile: {
+            /** Format: uuid */
+            academicYearId?: string | null;
+            /** Format: uuid */
+            scholarshipId?: string | null;
+        };
+        AidReconciliationList: {
+            items: components["schemas"]["AidReconciliationView"][];
+        };
+        /** @description A programme-level reconciliation run (new fact each time). */
+        AidReconciliationView: {
+            /** Format: uuid */
+            academicYearId?: string | null;
+            allocatedTotal: string;
+            /** Format: int32 */
+            allocationCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            exceptions: unknown;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description Aid expense posted in the ledger for these allocations. */
+            ledgerTotal: string;
+            recoveredTotal: string;
+            /** Format: uuid */
+            scholarshipId?: string | null;
+            /** @description `matched | exceptions`. */
+            status: string;
+            utilisedTotal: string;
+            /** @description `ledgerTotal − utilisedTotal`. */
+            variance: string;
+        };
+        AidRecover: {
+            amount?: string | null;
+            /** Format: uuid */
+            feeHeadId?: string | null;
+            reason: string;
+        };
+        AidRevoke: {
+            /**
+             * Format: uuid
+             * @description Fee head of the recovery charge (defaults to the first aided charge's fee head).
+             */
+            feeHeadId?: string | null;
+            reason: string;
+            /** @description Raise the recovery charge for the utilised aid at once. */
+            recover?: boolean;
+        };
+        /** @description Allocation of a payment's unapplied amount (omit `allocations` for oldest-due-first). */
+        AllocateRequest: {
+            allocations?: components["schemas"]["AllocationInput"][] | null;
+        };
+        /** @description One requested allocation line (`chargeId` + decimal string amount). */
+        AllocationInput: {
+            /** @example 1000.00 */
+            amount: string;
+            /** Format: uuid */
+            chargeId: string;
+        };
         AllocationRun: {
             allocated: string[];
             /** @description Waitlist entries whose validity ended (no allocation). */
@@ -11472,6 +14314,26 @@ export interface components {
             released: string[];
             unallocated: string[];
             waitlisted: string[];
+        };
+        /**
+         * @description Payment allocation to a charge.
+         * @enum {string}
+         */
+        AllocationStatus: "allocated" | "reversed";
+        /** @description One allocation of a payment to a charge. */
+        AllocationView: {
+            /** @example 1250.00 */
+            amount: string;
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            /** @description `capture` (with the receipt) or `unapplied` (allocated later). */
+            source: string;
+            status: components["schemas"]["AllocationStatus"];
         };
         /** @enum {string} */
         AlumniBasis: "qualification" | "eligible_exit";
@@ -11917,6 +14779,157 @@ export interface components {
             /** @description Default: the programme name + outcome. */
             title?: string | null;
         };
+        /** @description Balance of a party account (amounts are decimal strings, INR). */
+        BalanceView: {
+            /** Format: int64 */
+            chargesRaised: number;
+            currency: string;
+            /** @description Under dispute (not demanded until resolved). */
+            disputedOutstanding: string;
+            /** Format: int64 */
+            openCharges: number;
+            /** @description Owed now (`published | active` charges). */
+            outstanding: string;
+            /** @description Part of `outstanding` past its due date (institution business date). */
+            overdue: string;
+            totalAdjusted: string;
+            /** @example 125000.00 */
+            totalCharged: string;
+            totalSettled: string;
+        };
+        /** @description A bank account request. */
+        BankAccountCreate: {
+            /** @description Last four characters of the account number. */
+            accountNumberLast4: string;
+            bankName: string;
+            ifsc: string;
+            /**
+             * Format: uuid
+             * @description An existing postable asset account; by default the seeded main bank account (first bank
+             *     account) or a new `12xx` account.
+             */
+            ledgerAccountId?: string | null;
+            name: string;
+            /** @description `collection` (default), `operating`, `payout`, `deposit`. */
+            purpose?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description Treasury bank account (L3-F-056).
+         */
+        BankAccountId: string;
+        BankAccountList: {
+            items: components["schemas"]["BankAccountView"][];
+        };
+        /**
+         * @description Treasury bank account (L3-F-056).
+         * @enum {string}
+         */
+        BankAccountStatus: "requested" | "approved" | "active" | "suspended" | "closed";
+        /** @description A treasury bank account. */
+        BankAccountView: {
+            accountNumberLast4: string;
+            bankName: string;
+            currency: string;
+            history: components["schemas"]["HistoryView"][];
+            id: components["schemas"]["BankAccountId"];
+            ifsc: string;
+            /** Format: uuid */
+            institutionId: string;
+            ledgerAccountCode: string;
+            ledgerAccountId: components["schemas"]["LedgerAccountId"];
+            /**
+             * @description Ledger balance of the mapped account (debit normal).
+             * @example 100000.00
+             */
+            ledgerBalance: string;
+            name: string;
+            processInstanceId?: string | null;
+            /** @description `collection`, `operating`, `payout` or `deposit`. */
+            purpose: string;
+            status: components["schemas"]["BankAccountStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            unreconciledLines: number;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * Format: uuid
+         * @description Bank reconciliation of a statement (L3-F-058).
+         */
+        BankReconciliationId: string;
+        /** @description One reconciliation run of a statement. */
+        BankReconciliationView: {
+            /** Format: date-time */
+            createdAt: string;
+            id: components["schemas"]["BankReconciliationId"];
+            /** Format: int32 */
+            ignoredLines: number;
+            ledgerBalance: string;
+            /** Format: int32 */
+            matchedLines: number;
+            performedBy?: string | null;
+            statementClosing?: string | null;
+            status: components["schemas"]["ReconciliationStatus"];
+            /** Format: int32 */
+            unmatchedLines: number;
+        };
+        /**
+         * Format: uuid
+         * @description Imported bank statement (L3-F-058).
+         */
+        BankStatementId: string;
+        /**
+         * Format: uuid
+         * @description One line of a bank statement.
+         */
+        BankStatementLineId: string;
+        /**
+         * @description Imported bank statement (L3-F-058).
+         * @enum {string}
+         */
+        BankStatementStatus: "imported" | "reconciling" | "reconciled" | "failed";
+        /**
+         * Format: uuid
+         * @description Failed / returned / uncertain bank transaction case (L3-F-061).
+         */
+        BankTransactionId: string;
+        BankTransactionList: {
+            items: components["schemas"]["BankTransactionView"][];
+        };
+        /**
+         * @description Bank transaction / execution outcome (L3-F-057, F-061).
+         * @enum {string}
+         */
+        BankTransactionStatus: "pending" | "executed" | "failed" | "returned" | "uncertain" | "resolved";
+        /** @description A bank transaction (gateway settlement credited to the bank). */
+        BankTransactionView: {
+            /**
+             * @description Net amount credited to the bank.
+             * @example 99000.00
+             */
+            amount: string;
+            bankAccountId: components["schemas"]["BankAccountId"];
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            direction: string;
+            /** @example 1000.00 */
+            feeAmount: string;
+            id: components["schemas"]["BankTransactionId"];
+            /** Format: uuid */
+            institutionId: string;
+            items: components["schemas"]["SettlementItemView"][];
+            kind: string;
+            reference: string;
+            status: components["schemas"]["BankTransactionStatus"];
+            statusReason?: string | null;
+            /** Format: date */
+            valueDate: string;
+            /** Format: int64 */
+            version: number;
+        };
         BaselineAssignment: {
             /** Format: date */
             effectiveFrom: string;
@@ -12258,11 +15271,41 @@ export interface components {
         CaptureAttendance: {
             records: components["schemas"]["MarkInput"][];
         };
+        /** @description Reason of a dunning case outcome. */
+        CaseReason: {
+            reason?: string | null;
+        };
         /**
          * @description Lifecycle of a governed request/decision case (identity correction, duplicate case, transfer, credit transfer, programme migration, progression revision, completion deferral, qualification correction, …).
          * @enum {string}
          */
         CaseStatus: "requested" | "under_review" | "approved" | "rejected" | "completed" | "withdrawn";
+        /** @description One row of the cash position. */
+        CashPositionRow: {
+            /** @example 99000.00 */
+            balance: string;
+            bankAccountId?: null | components["schemas"]["BankAccountId"];
+            /** @description `bank`, `cash` or `in_transit` (gateway clearing). */
+            kind: string;
+            ledgerAccountCode: string;
+            name: string;
+            status?: null | components["schemas"]["BankAccountStatus"];
+            /** Format: int64 */
+            unreconciledLines: number;
+        };
+        /** @description Cash and liquidity position (L3-F-059). */
+        CashPositionView: {
+            /** Format: date */
+            asOf: string;
+            /** @example 99000.00 */
+            available: string;
+            currency: string;
+            /** @example 0.00 */
+            inTransit: string;
+            rows: components["schemas"]["CashPositionRow"][];
+            /** @example 99000.00 */
+            total: string;
+        };
         /** @description Per-category notification preference. */
         CategoryPreference: {
             category: components["schemas"]["NotificationCategory"];
@@ -12355,6 +15398,168 @@ export interface components {
              */
             timezone: string;
         };
+        /** @description A manual charge (business obligation outside a fee structure). */
+        ChargeCreate: {
+            /** Format: uuid */
+            academicTermId?: string | null;
+            /** Format: uuid */
+            academicYearId?: string | null;
+            description: string;
+            /** Format: date */
+            dueDate?: string | null;
+            lines: components["schemas"]["LineInput"][];
+            /** @description Validate and publish at once (default `false`: the charge stays a draft). */
+            publish?: boolean;
+            sourceType?: null | components["schemas"]["ChargeSourceType"];
+            /** Format: uuid */
+            studentId: string;
+        };
+        /** @description A student charge with its lines and due schedule (contract §5.3). */
+        ChargeDetail: {
+            /** Format: uuid */
+            academicTermId?: string | null;
+            /** Format: uuid */
+            academicYearId?: string | null;
+            adjustmentAmount: string;
+            /** Format: uuid */
+            admissionId?: string | null;
+            chargeNumber: string;
+            currency: string;
+            description: string;
+            displayName: string;
+            /** Format: date */
+            dueDate?: string | null;
+            /** Format: uuid */
+            id: string;
+            instalments: components["schemas"]["InstalmentView"][];
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            lines: components["schemas"]["ChargeLineView"][];
+            outstandingAmount: string;
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            settledAmount: string;
+            /** Format: uuid */
+            sourceId?: string | null;
+            sourceType: components["schemas"]["ChargeSourceType"];
+            status: components["schemas"]["ChargeStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentAccountId: string;
+            /** Format: uuid */
+            studentId?: string | null;
+            studentNumber?: string | null;
+            /** @example 125000.00 */
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ChargeDetailList: {
+            items: components["schemas"]["ChargeDetail"][];
+        };
+        /**
+         * @description Charge dispute (L3-F-004).
+         * @enum {string}
+         */
+        ChargeDisputeStatus: "raised" | "under_review" | "upheld" | "rejected" | "withdrawn";
+        /** @description One fee-head line of a charge. */
+        ChargeLineView: {
+            /** @example 125000.00 */
+            amount: string;
+            description: string;
+            feeHeadCode: string;
+            /** Format: uuid */
+            feeHeadId: string;
+            /** Format: int32 */
+            lineNo: number;
+        };
+        ChargeList: {
+            items: components["schemas"]["ChargeListItem"][];
+            nextCursor?: string | null;
+        };
+        /** @description A charge in a list. */
+        ChargeListItem: {
+            adjustmentAmount: string;
+            chargeNumber: string;
+            currency: string;
+            description: string;
+            displayName: string;
+            /** Format: date */
+            dueDate?: string | null;
+            /** Format: uuid */
+            id: string;
+            outstandingAmount: string;
+            settledAmount: string;
+            sourceType: components["schemas"]["ChargeSourceType"];
+            status: components["schemas"]["ChargeStatus"];
+            /** Format: uuid */
+            studentAccountId: string;
+            studentNumber?: string | null;
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A governed revision. */
+        ChargeRevise: {
+            description?: string | null;
+            /** Format: date */
+            dueDate?: string | null;
+            /**
+             * @description New net amount; becomes a posted credit / debit note.
+             * @example 120000.00
+             */
+            newAmount?: string | null;
+            reason: string;
+        };
+        ChargeRevisionList: {
+            items: components["schemas"]["ChargeRevisionView"][];
+        };
+        /** @description One revision record of a charge. */
+        ChargeRevisionView: {
+            actor?: string | null;
+            /** Format: uuid */
+            adjustmentId?: string | null;
+            afterState: unknown;
+            beforeState: unknown;
+            changedFields: string[];
+            /** Format: date-time */
+            createdAt: string;
+            reason: string;
+            /** Format: int32 */
+            revisionNo: number;
+        };
+        /**
+         * @description Where a charge came from.
+         * @enum {string}
+         */
+        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine";
+        /**
+         * @description Student charge lifecycle (L2-F01 §18–19 canonical states and transitions).
+         * @enum {string}
+         */
+        ChargeStatus: "draft" | "pending_validation" | "validated" | "published" | "active" | "suspended" | "disputed" | "cancelled" | "waived" | "written_off" | "closed" | "archived";
+        /** @description One charge as account views show it. */
+        ChargeView: {
+            /** Format: uuid */
+            academicTermId?: string | null;
+            adjustmentAmount: string;
+            chargeNumber: string;
+            currency: string;
+            description: string;
+            /** Format: date */
+            dueDate?: string | null;
+            /** Format: uuid */
+            id: string;
+            outstandingAmount: string;
+            settledAmount: string;
+            status: components["schemas"]["ChargeStatus"];
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
+        };
         CheckResult: {
             /**
              * @description A failing critical check makes the instance unready (503); a failing non-critical check
@@ -12390,6 +15595,51 @@ export interface components {
             /** @description Owning domain of the evidence (Academic Calendar evaluates, never modifies it). */
             owner: string;
             status: components["schemas"]["EvidenceStatus"];
+        };
+        CollectionItemInput: {
+            /** @example 5000.00 */
+            amount: string;
+            externalRef?: string | null;
+            /** Format: uuid */
+            studentAccountId: string;
+        };
+        /** @description One item of a bulk collection. */
+        CollectionItemView: {
+            /** @example 5000.00 */
+            amount: string;
+            error?: string | null;
+            externalRef?: string | null;
+            /** Format: int32 */
+            lineNo: number;
+            /** Format: uuid */
+            paymentId?: string | null;
+            /** @description `pending | valid | invalid | completed | failed`. */
+            status: string;
+            /** Format: uuid */
+            studentAccountId: string;
+        };
+        CollectionList: {
+            items: components["schemas"]["CollectionView"][];
+        };
+        /** @description A bulk collection batch. */
+        CollectionView: {
+            channel: components["schemas"]["PaymentChannel"];
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            id: components["schemas"]["PaymentBatchId"];
+            /** Format: uuid */
+            institutionId: string;
+            items: components["schemas"]["CollectionItemView"][];
+            name: string;
+            processInstanceId?: string | null;
+            /** Format: date */
+            receivedOn: string;
+            status: components["schemas"]["PaymentBatchStatus"];
+            /** @example 10000.00 */
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description Optional body of a state command (`{ "reason": "…" }`). */
         CommandBody: {
@@ -12532,6 +15782,14 @@ export interface components {
          * @enum {string}
          */
         ConferredQualificationStatus: "conferred" | "corrected" | "revoked";
+        /**
+         * @description A new configuration version (`values` = settings: `defaultDueDays`, `maxInstalments`,
+         *     `lateFeeGraceDays`, `allowPartialPayments`, `studentDisputesEnabled`, `receiptFooter`).
+         */
+        ConfigCreate: {
+            changeNote?: string | null;
+            values: unknown;
+        };
         /** @description One validation finding. */
         Conflict: {
             /**
@@ -12650,6 +15908,15 @@ export interface components {
             reason: string;
             /** Format: date */
             startsOn: string;
+        };
+        /** @description A new bulk collection (draft). */
+        CreateCollectionRequest: {
+            /** @description `cash | cheque | bank_transfer | demand_draft | sponsor`. */
+            channel: components["schemas"]["PaymentChannel"];
+            items: components["schemas"]["CollectionItemInput"][];
+            name: string;
+            /** Format: date */
+            receivedOn?: string | null;
         };
         CreateCreditTransfer: {
             evidenceNote?: string | null;
@@ -13189,6 +16456,12 @@ export interface components {
          * @enum {string}
          */
         DecisionKind: "approve" | "reject";
+        /** @description `approve | reject` decision of a refund under review. */
+        DecisionRequest: {
+            /** @description `approve` or `reject`. */
+            decision: string;
+            reason?: string | null;
+        };
         /** @description `POST /campuses/{id}/decommission` (L3-B-021): explicit effective context + reason. */
         DecommissionCampus: {
             /**
@@ -13250,6 +16523,51 @@ export interface components {
         DetermineRepeat: {
             /** @description `term` or `year`. */
             repeatUnit: string;
+        };
+        DisputeCreate: {
+            /** @description Part of the outstanding amount in dispute (default: all of it). */
+            amount?: string | null;
+            reason: string;
+        };
+        /** @description Decision on a dispute: `approve` upholds it, `reject` rejects it. */
+        DisputeDecision: {
+            /** @example 5000.00 */
+            creditAmount?: string | null;
+            decision: components["schemas"]["DecisionKind"];
+            reason?: string | null;
+            /** @description For an upheld dispute: `none` (default), `credit` (post `creditAmount` as a credit note) or `waive` (waive the outstanding amount). */
+            resolution?: string | null;
+        };
+        DisputeList: {
+            items: components["schemas"]["DisputeView"][];
+        };
+        /** @description A charge dispute. */
+        DisputeView: {
+            /** Format: uuid */
+            adjustmentId?: string | null;
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            disputedAmount?: string | null;
+            /** Format: uuid */
+            id: string;
+            priorChargeStatus: components["schemas"]["ChargeStatus"];
+            processInstanceId?: string | null;
+            raisedByStudent: boolean;
+            reason: string;
+            /** @description `none | credit | waive` once upheld. */
+            resolution?: string | null;
+            resolutionNote?: string | null;
+            status: components["schemas"]["ChargeDisputeStatus"];
+            /** Format: uuid */
+            studentAccountId: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description A document / certificate request. */
         DocumentRequest: {
@@ -13319,6 +16637,50 @@ export interface components {
             effectiveFrom: string;
             title: string;
         };
+        /**
+         * Format: uuid
+         * @description Dunning case of an overdue receivable (L3-F-040).
+         */
+        DunningCaseId: string;
+        /** @description The live (or last) dunning case of a receivable. */
+        DunningCaseView: {
+            id: components["schemas"]["DunningCaseId"];
+            /** Format: int32 */
+            level: number;
+            notices: components["schemas"]["DunningNoticeView"][];
+            /** Format: uuid */
+            receivableId: string;
+            status: components["schemas"]["DunningStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        DunningNoticeView: {
+            /** @example 25000.00 */
+            amountDue: string;
+            /** Format: int32 */
+            level: number;
+            message: string;
+            /** Format: date */
+            noticeDate: string;
+        };
+        /** @description Optional notice text. */
+        DunningRequest: {
+            message?: string | null;
+        };
+        /** @description Result of a dunning run. */
+        DunningRunResult: {
+            /** Format: int64 */
+            escalated: number;
+            evaluation: components["schemas"]["EvaluationResult"];
+            /** Format: int64 */
+            noticesSent: number;
+        };
+        /**
+         * @description Dunning case (L3-F-040).
+         * @enum {string}
+         */
+        DunningStatus: "open" | "notice_sent" | "escalated" | "resolved" | "cancelled";
         /** @description A duplicate case: `duplicateStudentId` is merged into `survivorStudentId`. */
         DuplicateCase: {
             /** Format: date-time */
@@ -13503,6 +16865,21 @@ export interface components {
         };
         /** @enum {string} */
         EvaluationOutcome: "eligible" | "not_eligible" | "conditionally_eligible";
+        /** @description Result of a recognition / evaluation run. */
+        EvaluationResult: {
+            /** Format: date */
+            asOf: string;
+            /** Format: int64 */
+            evaluated: number;
+            /** Format: int64 */
+            overdue: number;
+            /** Format: int64 */
+            recognised: number;
+            /** Format: int64 */
+            reopened: number;
+            /** Format: int64 */
+            settled: number;
+        };
         /** @enum {string} */
         EvidenceStatus: "satisfied" | "waived" | "missing" | "failed" | "not_available";
         ExceptionHold: {
@@ -13726,6 +17103,124 @@ export interface components {
          * @enum {string}
          */
         FacultyRole: "primary_instructor" | "co_instructor" | "tutor" | "lab_instructor" | "teaching_assistant" | "course_coordinator";
+        /**
+         * @description Fee head category.
+         * @enum {string}
+         */
+        FeeCategory: "tuition" | "admission" | "examination" | "hostel" | "transport" | "library" | "laboratory" | "fine" | "deposit" | "miscellaneous";
+        FeeHeadCreate: {
+            category: components["schemas"]["FeeCategory"];
+            /** @example HOSTEL */
+            code: string;
+            /**
+             * Format: uuid
+             * @description Defaults to the category's income account of the default chart.
+             */
+            incomeAccountId?: string | null;
+            name: string;
+            refundable?: boolean;
+        };
+        FeeHeadList: {
+            items: components["schemas"]["FeeHeadView"][];
+        };
+        /**
+         * @description Fee head status.
+         * @enum {string}
+         */
+        FeeHeadStatus: "draft" | "active" | "retired";
+        FeeHeadUpdate: {
+            name?: string | null;
+            refundable?: boolean | null;
+            status?: null | components["schemas"]["FeeHeadStatus"];
+        };
+        /** @description A fee head (what a charge line is for, and which income account it credits). */
+        FeeHeadView: {
+            category: components["schemas"]["FeeCategory"];
+            code: string;
+            /** Format: uuid */
+            id: string;
+            incomeAccountCode: string;
+            /** Format: uuid */
+            incomeAccountId: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            refundable: boolean;
+            status: components["schemas"]["FeeHeadStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        FeeStructureCreate: {
+            /** Format: uuid */
+            academicTermId?: string | null;
+            /** Format: uuid */
+            academicYearId?: string | null;
+            /** @example BTECH-Y1 */
+            code: string;
+            /** Format: date */
+            dueDate?: string | null;
+            lines: components["schemas"]["LineInput"][];
+            name: string;
+            /** Format: uuid */
+            programmeId?: string | null;
+        };
+        /** @description One line of a fee structure. */
+        FeeStructureLineView: {
+            /** @example 60000.00 */
+            amount: string;
+            description: string;
+            feeHeadCode: string;
+            /** Format: uuid */
+            feeHeadId: string;
+            /** Format: int32 */
+            lineNo: number;
+        };
+        FeeStructureList: {
+            items: components["schemas"]["FeeStructureView"][];
+        };
+        /**
+         * @description Fee structure version (L3-F-001, F-084 governance).
+         * @enum {string}
+         */
+        FeeStructureStatus: "draft" | "in_review" | "approved" | "published" | "superseded" | "retired";
+        /** @description A fee structure version. */
+        FeeStructureView: {
+            /** Format: uuid */
+            academicTermId?: string | null;
+            /** Format: uuid */
+            academicYearId?: string | null;
+            approvedBy?: string | null;
+            /**
+             * Format: int64
+             * @description Charges generated from this version (any status).
+             */
+            chargesGenerated: number;
+            code: string;
+            currency: string;
+            /** Format: date */
+            dueDate?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            lines: components["schemas"]["FeeStructureLineView"][];
+            name: string;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            programmeId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            status: components["schemas"]["FeeStructureStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersededById?: string | null;
+            /** @example 125000.00 */
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
         /** @description A single field-level validation failure (`validationErrors[]` in problem+json). */
         FieldViolation: {
             /** @description Stable machine-readable reason code. */
@@ -13753,6 +17248,21 @@ export interface components {
             /** @enum {string} */
             kind: "notApplicable";
         };
+        /**
+         * @description Governed configuration / rule version (L3-F-084/085 + rollback amendment 2026-09-01).
+         * @enum {string}
+         */
+        FinancePolicyStatus: "draft" | "in_review" | "effective" | "superseded" | "rolled_back" | "retired";
+        /**
+         * Format: uuid
+         * @description Financial (accounting) period of a year (L3-F-051…055).
+         */
+        FinancialPeriodId: string;
+        /**
+         * @description Financial period (L3-F-051…055). Postings are accepted only while `open | reopened`.
+         * @enum {string}
+         */
+        FinancialPeriodStatus: "planned" | "open" | "locked" | "closed" | "reopened" | "archived";
         FinancialResponsibility: {
             /** Format: date-time */
             createdAt: string;
@@ -13775,6 +17285,16 @@ export interface components {
         FinancialResponsibilityList: {
             items: components["schemas"]["FinancialResponsibility"][];
         };
+        /**
+         * Format: uuid
+         * @description Financial year (L3-F-051).
+         */
+        FinancialYearId: string;
+        /**
+         * @description Financial year (L3-F-051/053).
+         * @enum {string}
+         */
+        FinancialYearStatus: "draft" | "open" | "closing" | "closed" | "archived";
         /** @description Body of an approval decision endpoint. */
         FlexibleDecision: {
             decision: components["schemas"]["FlexibleDecisionValue"];
@@ -13956,6 +17476,28 @@ export interface components {
         /** @description Generic body of a state command. */
         FlexibleReason: {
             reason?: string | null;
+        };
+        GenerateCharges: {
+            /** @description Publish each generated charge (default `true`); otherwise they stay `validated`. */
+            publish?: boolean | null;
+            studentIds: string[];
+        };
+        GeneratedCharge: {
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            status: components["schemas"]["ChargeStatus"];
+            /** Format: uuid */
+            studentId: string;
+        };
+        /** @description Outcome of a charge generation run. */
+        GenerationResult: {
+            /** @description Charges created by this run. */
+            created: components["schemas"]["GeneratedCharge"][];
+            /** Format: uuid */
+            feeStructureId: string;
+            /** @description Students that already had a live charge from this structure (idempotent re-run). */
+            skipped: string[];
         };
         /** @description Geographic reference of the campus. */
         GeoPoint: {
@@ -14174,6 +17716,16 @@ export interface components {
             /** @description `ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`. */
             status: string;
         };
+        /** @description One status history entry (historical reconstruction, L3-F-019). */
+        HistoryView: {
+            actor?: string | null;
+            /** Format: date-time */
+            at: string;
+            fromStatus?: string | null;
+            processInstanceId?: string | null;
+            reason?: string | null;
+            toStatus: string;
+        };
         /** @description Holds of a student plus the live Finance evidence (`student_dues`). */
         HoldList: {
             financeEvidence: components["schemas"]["FinanceEvidence"];
@@ -14184,6 +17736,11 @@ export interface components {
          * @enum {string}
          */
         HoldSource: "academic" | "administrative" | "discipline" | "documents" | "finance";
+        /** @description The party the money belongs to. */
+        IdentifyRequest: {
+            /** Format: uuid */
+            studentAccountId: string;
+        };
         /** @description Identity attributes a correction may set (student number and ids are immutable). */
         IdentityChanges: {
             /** Format: date */
@@ -14221,6 +17778,12 @@ export interface components {
         IdentityCorrectionList: {
             items: components["schemas"]["IdentityCorrection"][];
         };
+        /** @description A statement line explained outside the ledger (e.g. a bank-side reversal pair). */
+        IgnoreLine: {
+            /** Format: uuid */
+            lineId: string;
+            note: string;
+        };
         ImpactItem: {
             /** @description Ids of affected records (assignments, exceptions) where applicable. */
             affected: string[];
@@ -14243,6 +17806,64 @@ export interface components {
         };
         /** @enum {string} */
         ImpactSeverity: "info" | "warning" | "uncertain" | "blocking";
+        /** @description A student starts an online payment with the (mock) gateway. */
+        InitiatePaymentRequest: {
+            /** @example 25000.00 */
+            amount: string;
+            /** @description Charges to pay (defaults to every open charge, oldest due first). */
+            chargeIds?: string[] | null;
+            /**
+             * Format: uuid
+             * @description Which of the caller's accounts (defaults to the only / first one).
+             */
+            studentAccountId?: string | null;
+        };
+        InstalmentInput: {
+            /** @example 62500.00 */
+            amount: string;
+            /** Format: date */
+            dueDate: string;
+        };
+        /**
+         * @description A due schedule: explicit instalments, or `count` equal monthly instalments from
+         *     `firstDueDate` (remainder in the last one).
+         */
+        InstalmentPlanCreate: {
+            /** Format: int32 */
+            count?: number | null;
+            /** Format: date */
+            firstDueDate?: string | null;
+            instalments?: components["schemas"]["InstalmentInput"][] | null;
+            /**
+             * Format: int32
+             * @description Months between instalments (default 1).
+             */
+            intervalMonths?: number | null;
+            reason?: string | null;
+        };
+        /**
+         * @description Instalment of a due schedule (L3-F-005).
+         * @enum {string}
+         */
+        InstalmentStatus: "scheduled" | "due" | "overdue" | "paid" | "waived" | "cancelled";
+        InstalmentUpdate: {
+            /** Format: date */
+            dueDate: string;
+        };
+        /** @description One instalment of a charge's due schedule (status derived from the settled amount). */
+        InstalmentView: {
+            /** @example 62500.00 */
+            amount: string;
+            /** Format: date */
+            dueDate: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            sequence: number;
+            status: components["schemas"]["InstalmentStatus"];
+            /** Format: int64 */
+            version: number;
+        };
         Institution: {
             code: string;
             /** Format: date-time */
@@ -14377,6 +17998,76 @@ export interface components {
          * @enum {string}
          */
         InterventionStatus: "planned" | "triggered" | "in_progress" | "completed" | "cancelled";
+        /**
+         * Format: uuid
+         * @description Posted, balanced, append-only journal entry of the general ledger (L2-F05).
+         */
+        JournalEntryId: string;
+        /**
+         * @description Kind of journal entry.
+         * @enum {string}
+         */
+        JournalEntryKind: "standard" | "reversal" | "manual" | "adjusting" | "opening" | "closing";
+        JournalEntryList: {
+            items: components["schemas"]["JournalEntryView"][];
+            /**
+             * Format: uuid
+             * @description Pass as `cursor` for the next (older) page.
+             */
+            nextCursor?: string | null;
+        };
+        /** @description A journal entry (contract §5.3). */
+        JournalEntryView: {
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            description: string;
+            entryNumber: string;
+            /** Format: uuid */
+            financialPeriodId?: string | null;
+            id: components["schemas"]["JournalEntryId"];
+            /** Format: uuid */
+            institutionId: string;
+            kind: components["schemas"]["JournalEntryKind"];
+            lines: components["schemas"]["JournalLineView"][];
+            postedBy?: string | null;
+            /** Format: date */
+            postingDate: string;
+            postingKey: string;
+            /**
+             * Format: uuid
+             * @description The entry that reverses this one, if any.
+             */
+            reversedByEntryId?: string | null;
+            /** Format: uuid */
+            reversesEntryId?: string | null;
+            /** Format: uuid */
+            sourceId: string;
+            sourceType: string;
+            /** @example 1250.00 */
+            totalCredit: string;
+            /** @example 1250.00 */
+            totalDebit: string;
+        };
+        /** @description One line of a journal entry. */
+        JournalLineView: {
+            accountCode: string;
+            accountName: string;
+            /** Format: uuid */
+            chargeId?: string | null;
+            /** @example 0.00 */
+            credit: string;
+            /** @example 1250.00 */
+            debit: string;
+            /** Format: uuid */
+            id: string;
+            ledgerAccountId: components["schemas"]["LedgerAccountId"];
+            /** Format: int32 */
+            lineNo: number;
+            memo?: string | null;
+            /** Format: uuid */
+            studentAccountId?: string | null;
+        };
         KeyDate: {
             /** Format: date */
             endsOn: string;
@@ -14532,6 +18223,73 @@ export interface components {
          * @enum {string}
          */
         LearningProviderStatus: "proposed" | "under_review" | "active" | "suspended" | "offboarded";
+        /** @description A new user ledger account. */
+        LedgerAccountCreate: {
+            accountType: components["schemas"]["LedgerAccountType"];
+            /** @description `^[0-9A-Z][0-9A-Z._-]{0,31}$`, unique per institution. */
+            code: string;
+            /** @description Defaults to `true` (a header / grouping account is not postable). */
+            isPostable?: boolean | null;
+            name: string;
+            /** Format: uuid */
+            parentId?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description Ledger (GL) account of an institution's chart of accounts (L2-F05).
+         */
+        LedgerAccountId: string;
+        LedgerAccountList: {
+            items: components["schemas"]["LedgerAccountView"][];
+        };
+        /**
+         * @description GL account status (5C deactivates; inactive accounts refuse postings).
+         * @enum {string}
+         */
+        LedgerAccountStatus: "active" | "inactive";
+        /**
+         * @description GL account classification.
+         * @enum {string}
+         */
+        LedgerAccountType: "asset" | "liability" | "equity" | "income" | "expense";
+        /** @description Rename / (de)activate / change postability of an account. */
+        LedgerAccountUpdate: {
+            isPostable?: boolean | null;
+            name?: string | null;
+            status?: null | components["schemas"]["LedgerAccountStatus"];
+        };
+        /** @description A ledger account with its current balance (normal side). */
+        LedgerAccountView: {
+            accountType: components["schemas"]["LedgerAccountType"];
+            /** @example 25000.00 */
+            balance: string;
+            code: string;
+            /** @example 100000.00 */
+            creditTotal: string;
+            currency: string;
+            /** @example 125000.00 */
+            debitTotal: string;
+            id: components["schemas"]["LedgerAccountId"];
+            /** Format: uuid */
+            institutionId: string;
+            isPostable: boolean;
+            name: string;
+            normalBalance: components["schemas"]["NormalBalance"];
+            /** Format: uuid */
+            parentId?: string | null;
+            /** Format: int64 */
+            postingCount: number;
+            status: components["schemas"]["LedgerAccountStatus"];
+            /** @description Seeded role (`student_receivables`, `bank_main`, …); `null` for user accounts. */
+            systemKey?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * Format: uuid
+         * @description Source-to-ledger reconciliation run (L3-F-029).
+         */
+        LedgerReconciliationId: string;
         /** @description One entry of the student Library. */
         LibraryItem: {
             description?: string | null;
@@ -14611,6 +18369,107 @@ export interface components {
         LogoutResponse: {
             /** @description Keycloak RP-initiated logout URL; navigate the browser there to end the SSO session. */
             endSessionUrl: string;
+        };
+        /**
+         * Format: uuid
+         * @description Manual journal request (L3-F-026).
+         */
+        ManualJournalId: string;
+        /** @description A manual journal draft (create / replace). */
+        ManualJournalInput: {
+            description: string;
+            entryKind?: null | components["schemas"]["JournalEntryKind"];
+            lines: components["schemas"]["ManualJournalLineInput"][];
+            /** Format: date */
+            postingDate: string;
+        };
+        /** @description One requested line. */
+        ManualJournalLineInput: {
+            /** @example 0.00 */
+            credit?: string | null;
+            /** @example 500.00 */
+            debit?: string | null;
+            /** Format: uuid */
+            ledgerAccountId: string;
+            memo?: string | null;
+            /**
+             * Format: uuid
+             * @description Receivable sub-ledger dimension (party account of the institution).
+             */
+            studentAccountId?: string | null;
+        };
+        /** @description One line of a manual journal. */
+        ManualJournalLineView: {
+            accountCode: string;
+            accountName: string;
+            /** @example 0.00 */
+            credit: string;
+            /** @example 500.00 */
+            debit: string;
+            ledgerAccountId: components["schemas"]["LedgerAccountId"];
+            /** Format: int32 */
+            lineNo: number;
+            memo?: string | null;
+            /** Format: uuid */
+            studentAccountId?: string | null;
+        };
+        ManualJournalList: {
+            items: components["schemas"]["ManualJournalView"][];
+        };
+        /**
+         * @description Manual journal request (L3-F-026/028).
+         * @enum {string}
+         */
+        ManualJournalStatus: "draft" | "pending_approval" | "approved" | "posted" | "rejected" | "reversed";
+        /** @description A manual journal request. */
+        ManualJournalView: {
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            description: string;
+            /** @description `manual`, `adjusting` or `opening`. */
+            entryKind: components["schemas"]["JournalEntryKind"];
+            history: components["schemas"]["HistoryView"][];
+            id: components["schemas"]["ManualJournalId"];
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            journalNumber: string;
+            lines: components["schemas"]["ManualJournalLineView"][];
+            /** Format: date */
+            postingDate: string;
+            processInstanceId?: string | null;
+            requestedBy?: string | null;
+            /** Format: uuid */
+            reversalEntryId?: string | null;
+            status: components["schemas"]["ManualJournalStatus"];
+            statusReason?: string | null;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            /** @example 500.00 */
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A manual match of one statement line. */
+        ManualMatch: {
+            /**
+             * Format: uuid
+             * @description … or an executed bank transaction of the account.
+             */
+            bankTransactionId?: string | null;
+            /**
+             * Format: uuid
+             * @description A journal line on the bank account's ledger account …
+             */
+            journalLineId?: string | null;
+            /** Format: uuid */
+            lineId: string;
         };
         MarkInput: {
             mark: components["schemas"]["AttendanceMark"];
@@ -15675,6 +19534,11 @@ export interface components {
          * @enum {string}
          */
         NodeKind: "level" | "degree_type" | "stream" | "discipline";
+        /**
+         * @description Debit or credit side.
+         * @enum {string}
+         */
+        NormalBalance: "debit" | "credit";
         Notice: {
             audienceRoles: components["schemas"]["Role"][];
             authorName: string;
@@ -16309,6 +20173,11 @@ export interface components {
          * @enum {string}
          */
         OrgUnitStatus: "draft" | "active" | "suspended" | "decommissioned" | "archived";
+        /**
+         * @description Kind of finance party.
+         * @enum {string}
+         */
+        PartyKind: "student" | "applicant";
         /** @description A registered passkey / security key (public data only). */
         PasskeyInfo: {
             /** Format: date-time */
@@ -16318,6 +20187,116 @@ export interface components {
             label: string;
             /** Format: date-time */
             lastUsedAt?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description Bulk collection population (L3-F-013).
+         */
+        PaymentBatchId: string;
+        /**
+         * @description Bulk collection population (L3-F-013).
+         * @enum {string}
+         */
+        PaymentBatchStatus: "draft" | "validated" | "executing" | "completed" | "partially_completed" | "failed";
+        /**
+         * @description How money arrived.
+         * @enum {string}
+         */
+        PaymentChannel: "gateway" | "cash" | "cheque" | "bank_transfer" | "demand_draft" | "sponsor";
+        /**
+         * Format: uuid
+         * @description A payment attempt / received payment (L3-F-007…013).
+         */
+        PaymentId: string;
+        /** @description A page of payments. */
+        PaymentList: {
+            items: components["schemas"]["PaymentView"][];
+            /**
+             * Format: uuid
+             * @description Pass as `cursor` to get the next page; absent on the last page.
+             */
+            nextCursor?: string | null;
+        };
+        /**
+         * @description Payment lifecycle (L2-F02, L3-F-007…013).
+         * @enum {string}
+         */
+        PaymentStatus: "initiated" | "pending" | "completed" | "failed" | "expired" | "cancelled" | "reversed" | "charged_back";
+        /** @description A payment (contract §5.3). */
+        PaymentView: {
+            accountName?: string | null;
+            allocations: components["schemas"]["AllocationView"][];
+            /** @example 1250.00 */
+            amount: string;
+            /** Format: uuid */
+            batchId?: string | null;
+            channel: components["schemas"]["PaymentChannel"];
+            /** @description Mock checkout page of a gateway payment (open it, then confirm). */
+            checkoutUrl?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            externalRef?: string | null;
+            failureCode?: string | null;
+            gateway?: string | null;
+            gatewayOrderRef?: string | null;
+            gatewayPaymentRef?: string | null;
+            id: components["schemas"]["PaymentId"];
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            payerKind: string;
+            payerName?: string | null;
+            paymentNumber: string;
+            processInstanceId?: string | null;
+            receipt?: null | components["schemas"]["ReceiptRef"];
+            /** Format: date */
+            receivedOn: string;
+            /** Format: uuid */
+            reversalEntryId?: string | null;
+            status: components["schemas"]["PaymentStatus"];
+            statusReason?: string | null;
+            studentAccountId: components["schemas"]["StudentAccountId"];
+            /** @example 0.00 */
+            unappliedAmount: string;
+            /** Format: uuid */
+            unidentifiedReceiptId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        PeriodList: {
+            items: components["schemas"]["PeriodView"][];
+        };
+        /** @description A financial period. */
+        PeriodView: {
+            /** @description `true` while `open | reopened` (the period guard). */
+            acceptsPostings: boolean;
+            /** Format: date-time */
+            closedAt?: string | null;
+            closedBy?: string | null;
+            /** Format: date */
+            endDate: string;
+            /** Format: int64 */
+            entryCount: number;
+            financialYearId: components["schemas"]["FinancialYearId"];
+            history: components["schemas"]["HistoryView"][];
+            id: components["schemas"]["FinancialPeriodId"];
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            /** Format: int32 */
+            periodNo: number;
+            /** Format: int32 */
+            reopenCount: number;
+            /** Format: date */
+            startDate: string;
+            status: components["schemas"]["FinancialPeriodStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         PickupAuthorisation: {
             /** Format: date-time */
@@ -16471,11 +20450,45 @@ export interface components {
          * @enum {string}
          */
         PolicyStatus: "draft" | "effective" | "superseded";
+        PolicyVersionList: {
+            items: components["schemas"]["PolicyVersionView"][];
+        };
         /**
          * @description Versioned policy lifecycle (progression policy L3-C-075, scholarship eligibility policy L3-C-063). Effective versions are immutable; a change is a successor draft.
          * @enum {string}
          */
         PolicyVersionStatus: "draft" | "in_review" | "effective" | "superseded" | "retired";
+        /** @description A governed configuration / rule version. */
+        PolicyVersionView: {
+            /** Format: date-time */
+            approvedAt?: string | null;
+            approvedBy?: string | null;
+            /** Format: uuid */
+            basedOnId?: string | null;
+            changeNote?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            effectiveFrom?: string | null;
+            /** Format: date-time */
+            effectiveUntil?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            processInstanceId?: string | null;
+            rollbackReason?: string | null;
+            /** @description Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`). */
+            ruleKey?: string | null;
+            status: components["schemas"]["FinancePolicyStatus"];
+            statusReason?: string | null;
+            /** @description Settings (configuration) or parameters (rule), camelCase JSON. */
+            values: unknown;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
         /** @description A position definition as of a business-local date. Never an occupant or an appointment. */
         Position: {
             /**
@@ -16605,6 +20618,12 @@ export interface components {
             type: string;
             /** @description SutraERP extension: structured field violations. */
             validationErrors?: components["schemas"]["FieldViolation"][];
+        };
+        /** @description Optional processing note. */
+        ProcessRequest: {
+            reason?: string | null;
+            /** @description Bank / gateway reference recorded with a manual completion. */
+            reference?: string | null;
         };
         Profile: {
             contactEmail?: string | null;
@@ -17065,11 +21084,113 @@ export interface components {
             /** @description Business reason / decision note (max 2000 characters). */
             reason?: string | null;
         };
+        /** @description `{ "reason": "…" }` of a state command. */
+        ReasonRequest: {
+            reason?: string | null;
+        };
         RecalculationChange: {
             eligibilityId: components["schemas"]["ScholarshipEligibilityId"];
             fromStatus: components["schemas"]["ScholarshipEligibilityStatus"];
             studentId: components["schemas"]["StudentId"];
             toStatus: components["schemas"]["ScholarshipEligibilityStatus"];
+        };
+        /**
+         * Format: uuid
+         * @description Receipt issued for a completed payment.
+         */
+        ReceiptId: string;
+        ReceiptList: {
+            items: components["schemas"]["ReceiptView"][];
+        };
+        /** @description Receipt reference on a payment. */
+        ReceiptRef: {
+            id: components["schemas"]["ReceiptId"];
+            /** Format: date-time */
+            issuedAt: string;
+            receiptNumber: string;
+            status: components["schemas"]["ReceiptStatus"];
+        };
+        /**
+         * @description Receipt.
+         * @enum {string}
+         */
+        ReceiptStatus: "issued" | "cancelled";
+        /** @description One receipt with its allocations (printable). */
+        ReceiptView: {
+            accountName?: string | null;
+            allocations: components["schemas"]["AllocationView"][];
+            /** @example 1250.00 */
+            amount: string;
+            /** @description "₹1,25,000.00" — amount in Indian grouping for printing. */
+            amountDisplay: string;
+            cancelReason?: string | null;
+            /** Format: date-time */
+            cancelledAt?: string | null;
+            channel: components["schemas"]["PaymentChannel"];
+            currency: string;
+            id: components["schemas"]["ReceiptId"];
+            /** Format: date-time */
+            issuedAt: string;
+            paymentId: components["schemas"]["PaymentId"];
+            paymentNumber: string;
+            receiptNumber: string;
+            status: components["schemas"]["ReceiptStatus"];
+            studentAccountId: components["schemas"]["StudentAccountId"];
+            studentNumber?: string | null;
+            /** @example 0.00 */
+            unappliedAmount: string;
+        };
+        /**
+         * Format: uuid
+         * @description Accounts receivable recognised from a published charge (L3-F-039).
+         */
+        ReceivableId: string;
+        ReceivableList: {
+            items: components["schemas"]["ReceivableView"][];
+            /** @example 25000.00 */
+            totalOutstanding: string;
+            /** @example 25000.00 */
+            totalOverdue: string;
+        };
+        /**
+         * @description Accounts receivable (L2-F07, L3-F-039…043).
+         * @enum {string}
+         */
+        ReceivableStatus: "open" | "partially_settled" | "overdue" | "settled" | "written_off" | "reopened";
+        /** @description A receivable. */
+        ReceivableView: {
+            accountName: string;
+            /** @description `current | 1-30 | 31-60 | 61-90 | 90+`. */
+            ageingBucket: string;
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            currency: string;
+            /** Format: int64 */
+            daysOverdue: number;
+            description: string;
+            /** Format: date */
+            dueDate?: string | null;
+            dunning?: null | components["schemas"]["DunningCaseView"];
+            id: components["schemas"]["ReceivableId"];
+            /** Format: uuid */
+            institutionId: string;
+            /** @example 25000.00 */
+            outstandingAmount: string;
+            processInstanceId?: string | null;
+            /** @example 125000.00 */
+            recognisedAmount: string;
+            /** Format: date-time */
+            recognisedAt: string;
+            status: components["schemas"]["ReceivableStatus"];
+            statusReason?: string | null;
+            studentAccountId: components["schemas"]["StudentAccountId"];
+            studentNumber?: string | null;
+            /** Format: int64 */
+            version: number;
+            writeOffs: components["schemas"]["WriteOffView"][];
+            /** @example 0.00 */
+            writtenOffAmount: string;
         };
         /**
          * @description Academic recognition decision (L4-C-032-BH-003).
@@ -17080,6 +21201,13 @@ export interface components {
             decision: components["schemas"]["RecognitionDecision"];
             reason?: string | null;
         };
+        /** @description A reconciliation run. */
+        ReconcileInput: {
+            /** @description Auto-match the remaining lines (default `true`). */
+            autoMatch?: boolean | null;
+            ignore?: components["schemas"]["IgnoreLine"][];
+            matches?: components["schemas"]["ManualMatch"][];
+        };
         ReconciliationDiscrepancy: {
             institutional?: string | null;
             /**
@@ -17089,6 +21217,19 @@ export interface components {
             kind: string;
             provider?: string | null;
             studentNumber: string;
+        };
+        /** @description One exception of a reconciliation run. */
+        ReconciliationException: {
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            chargeStatus: string;
+            difference: string;
+            ledgerAmount: string;
+            sourceAmount: string;
+        };
+        ReconciliationList: {
+            items: components["schemas"]["ReconciliationView"][];
         };
         ReconciliationResolution: {
             notes?: string | null;
@@ -17127,6 +21268,33 @@ export interface components {
         ReconciliationRunList: {
             items: components["schemas"]["ReconciliationRun"][];
         };
+        /**
+         * @description Reconciliation run (ledger L3-F-029, bank L3-F-058).
+         * @enum {string}
+         */
+        ReconciliationStatus: "open" | "matched" | "exceptions" | "resolved" | "closed";
+        /** @description A source ↔ ledger reconciliation run (L3-F-029). */
+        ReconciliationView: {
+            /** Format: date */
+            asOf: string;
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            /** @example 0.00 */
+            difference: string;
+            exceptions: components["schemas"]["ReconciliationException"][];
+            id: components["schemas"]["LedgerReconciliationId"];
+            /** Format: uuid */
+            institutionId: string;
+            /** @example 25000.00 */
+            ledgerTotal: string;
+            performedBy?: string | null;
+            /** @description `receivables`: Σ charge outstanding ↔ the receivable control account. */
+            scope: string;
+            /** @example 25000.00 */
+            sourceTotal: string;
+            status: components["schemas"]["ReconciliationStatus"];
+        };
         /** @description Faculty record for a student without a submission (offline test, absence). */
         RecordOutcome: {
             absent?: boolean;
@@ -17135,6 +21303,44 @@ export interface components {
             marks?: number | null;
             /** Format: uuid */
             studentId: string;
+        };
+        /** @description Counter / bank / sponsor payment recorded by the finance office (L3-F-007/008). */
+        RecordPaymentRequest: {
+            /** @description Explicit allocation; omitted → open charges oldest due first, surplus kept unapplied. */
+            allocations?: components["schemas"]["AllocationInput"][] | null;
+            /** @example 50000.00 */
+            amount: string;
+            /** @description `cash | cheque | bank_transfer | demand_draft | sponsor` (gateway payments start at `/me/payments`). */
+            channel: components["schemas"]["PaymentChannel"];
+            /** @description Defaults to INR (the only supported currency). */
+            currency?: string | null;
+            /** @description Cheque / UTR / DD number. */
+            externalRef?: string | null;
+            /** @description Sponsor or payer name (sponsor payments). */
+            payerName?: string | null;
+            /**
+             * Format: date
+             * @description Value date (institution business date; defaults to today, never in the future).
+             */
+            receivedOn?: string | null;
+        };
+        /** @description Money received without a known payer. */
+        RecordUnidentifiedRequest: {
+            /** @example 15000.00 */
+            amount: string;
+            /** @description `cash | cheque | bank_transfer | demand_draft | sponsor`. */
+            channel: components["schemas"]["PaymentChannel"];
+            externalRef?: string | null;
+            notes?: string | null;
+            payerName?: string | null;
+            /** Format: date */
+            receivedOn?: string | null;
+        };
+        /** @description Recovery of a pending / timed-out payment (L3-F-010). */
+        RecoverRequest: {
+            /** @description When the gateway still reports no outcome, expire the payment instead of leaving it pending. */
+            expire?: boolean | null;
+            reason?: string | null;
         };
         /** @description Reassessment (L3-C-066) / renewal (L3-C-067) evidence. */
         Reevaluation: {
@@ -17145,6 +21351,84 @@ export interface components {
             academicYearId?: string | null;
             facts?: null | components["schemas"]["EligibilityFacts"];
             reason?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description Refund request through completion (L3-F-014…019).
+         */
+        RefundId: string;
+        RefundList: {
+            items: components["schemas"]["RefundView"][];
+        };
+        /** @description A refund request. */
+        RefundRequestBody: {
+            /** @example 5000.00 */
+            amount: string;
+            /**
+             * Format: uuid
+             * @description Refund the unapplied credit of this payment (gateway payments refund to the original instrument).
+             */
+            paymentId?: string | null;
+            reason: string;
+            /**
+             * Format: uuid
+             * @description Which of the caller's accounts (self-service; defaults to the first).
+             */
+            studentAccountId?: string | null;
+        };
+        /**
+         * @description Refund lifecycle (L2-F03, L3-F-014…019).
+         * @enum {string}
+         */
+        RefundStatus: "requested" | "under_review" | "approved" | "rejected" | "processing" | "completed" | "failed" | "cancelled" | "reversed" | "closed";
+        /** @description A refund (contract §5.3). */
+        RefundView: {
+            accountName?: string | null;
+            /** @example 5000.00 */
+            amount: string;
+            /** Format: int32 */
+            attempts: number;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            failureReason?: string | null;
+            gatewayRefundRef?: string | null;
+            history: components["schemas"]["HistoryView"][];
+            id: components["schemas"]["RefundId"];
+            /** Format: uuid */
+            institutionId: string;
+            /**
+             * Format: uuid
+             * @description Approval entry (Dr unapplied receipts · Cr refunds payable).
+             */
+            journalEntryId?: string | null;
+            /** @description `original` (back to the gateway instrument) or `bank_transfer`. */
+            method: string;
+            /**
+             * Format: uuid
+             * @description Payout entry (Dr refunds payable · Cr bank / gateway clearing).
+             */
+            payEntryId?: string | null;
+            /** Format: uuid */
+            paymentId?: string | null;
+            processInstanceId?: string | null;
+            reason: string;
+            refundNumber: string;
+            /** @description `self` (student) or `staff`. */
+            requestedVia: string;
+            status: components["schemas"]["RefundStatus"];
+            statusReason?: string | null;
+            studentAccountId: components["schemas"]["StudentAccountId"];
+            /** Format: int64 */
+            version: number;
         };
         /** @description `POST /institutions/{id}/campuses`. */
         RegisterCampus: {
@@ -17528,6 +21812,25 @@ export interface components {
             effectiveTo?: string | null;
             reason?: string | null;
         };
+        /** @description A returned / failed bank transaction. */
+        ReturnInput: {
+            outcome?: null | components["schemas"]["BankTransactionStatus"];
+            /**
+             * Format: date
+             * @description Defaults to today (business date).
+             */
+            postingDate?: string | null;
+            reason: string;
+        };
+        /** @description Journal reversal request. */
+        ReverseRequest: {
+            /**
+             * Format: date
+             * @description Defaults to today (business date); must fall into an open period.
+             */
+            postingDate?: string | null;
+            reason: string;
+        };
         /** @description `POST …/revise`: successor draft of a published structure (content copied, then edited). */
         ReviseBody: {
             /** Format: date */
@@ -17619,6 +21922,16 @@ export interface components {
          * @enum {string}
          */
         Role: "administrator" | "faculty" | "student";
+        /**
+         * @description A new rule version (`late_fee` {percent, graceDays, cap}, `rounding` {mode},
+         *     `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
+         *     `write_off_threshold` {amount}; decimals as strings).
+         */
+        RuleCreate: {
+            changeNote?: string | null;
+            ruleKey: string;
+            values: unknown;
+        };
         /** @description Scheduling requirement of one section (input to generation). */
         SchedulingRequirement: {
             /** Format: uuid */
@@ -18042,6 +22355,39 @@ export interface components {
             lastSeenAt: string;
             mfaLevel: components["schemas"]["MfaLevel"];
         };
+        /** @description A gateway settlement credited to the bank account. */
+        SettlementInput: {
+            items: components["schemas"]["SettlementItemInput"][];
+            /** @description Gateway settlement / UTR reference (unique per bank account). */
+            reference: string;
+            /** Format: date */
+            valueDate: string;
+        };
+        /** @description One payment of a gateway settlement. */
+        SettlementItemInput: {
+            /**
+             * @description Gateway fee deducted from this payment (default `0.00`).
+             * @example 20.00
+             */
+            fee?: string | null;
+            /**
+             * Format: uuid
+             * @description A completed gateway payment (5B) whose capture sits on gateway clearing.
+             */
+            paymentId: string;
+        };
+        /** @description One settled gateway payment. */
+        SettlementItemView: {
+            fee: string;
+            gross: string;
+            /** Format: uuid */
+            journalEntryId: string;
+            net: string;
+            /** Format: uuid */
+            paymentId: string;
+            /** Format: uuid */
+            reversalEntryId?: string | null;
+        };
         /** @enum {string} */
         Severity: "info" | "success" | "warning" | "critical";
         /** @description Immutable point-in-time baseline a simulation is bound to (L4-B-032-BH-001). */
@@ -18098,6 +22444,73 @@ export interface components {
         /** @description Optional reason carried by a state command. */
         StateCommand: {
             reason?: string | null;
+        };
+        /** @description A statement to import. */
+        StatementImport: {
+            /** @example 99000.00 */
+            closingBalance?: string | null;
+            /**
+             * @description JSON lines, one object per statement line:
+             *     `{"valueDate":"2026-07-03","direction":"credit","amount":"99000.00","reference":"UTR123","description":"…"}`.
+             */
+            content: string;
+            /** @example 0.00 */
+            openingBalance?: string | null;
+            /** Format: date */
+            periodFrom: string;
+            /** Format: date */
+            periodTo: string;
+            statementRef: string;
+        };
+        /** @description One imported statement line. */
+        StatementLineView: {
+            /** @example 99000.00 */
+            amount: string;
+            description?: string | null;
+            /** @description `credit` (into the account) or `debit` (out of it). */
+            direction: string;
+            id: components["schemas"]["BankStatementLineId"];
+            /** Format: int32 */
+            lineNo: number;
+            /** @description `unmatched`, `matched` or `ignored`. */
+            matchStatus: string;
+            matchedEntryNumber?: string | null;
+            /** Format: uuid */
+            matchedJournalLineId?: string | null;
+            /** Format: uuid */
+            matchedTransactionId?: string | null;
+            note?: string | null;
+            reference?: string | null;
+            /** Format: date */
+            valueDate: string;
+        };
+        StatementList: {
+            items: components["schemas"]["StatementView"][];
+        };
+        /** @description An imported bank statement. */
+        StatementView: {
+            bankAccountId: components["schemas"]["BankAccountId"];
+            closingBalance?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            id: components["schemas"]["BankStatementId"];
+            /** Format: int32 */
+            lineCount: number;
+            lines: components["schemas"]["StatementLineView"][];
+            openingBalance?: string | null;
+            /** Format: date */
+            periodFrom: string;
+            /** Format: date */
+            periodTo: string;
+            /** Format: date-time */
+            reconciledAt?: string | null;
+            reconciliations: components["schemas"]["BankReconciliationView"][];
+            statementRef: string;
+            status: components["schemas"]["BankStatementStatus"];
+            totalCredits: string;
+            totalDebits: string;
+            /** Format: int64 */
+            version: number;
         };
         /**
          * @description Approve / reject decision of a pending approval step.
@@ -18173,6 +22586,43 @@ export interface components {
             subjectLinked: boolean;
             /** Format: int64 */
             version: number;
+        };
+        /** @description An account with its charges. */
+        StudentAccountDetail: {
+            account: components["schemas"]["StudentAccountView"];
+            charges: components["schemas"]["ChargeView"][];
+        };
+        StudentAccountDetailList: {
+            items: components["schemas"]["StudentAccountDetail"][];
+        };
+        /**
+         * Format: uuid
+         * @description Finance party account of a student or pre-student applicant (receivable sub-ledger).
+         */
+        StudentAccountId: string;
+        StudentAccountList: {
+            items: components["schemas"]["StudentAccountView"][];
+        };
+        /**
+         * @description Student finance account status.
+         * @enum {string}
+         */
+        StudentAccountStatus: "active" | "on_hold" | "closed";
+        /** @description A finance party account with its balance. */
+        StudentAccountView: {
+            /** Format: uuid */
+            admissionId?: string | null;
+            balance: components["schemas"]["BalanceView"];
+            currency: string;
+            displayName: string;
+            id: components["schemas"]["StudentAccountId"];
+            /** Format: uuid */
+            institutionId: string;
+            partyKind: components["schemas"]["PartyKind"];
+            status: components["schemas"]["StudentAccountStatus"];
+            /** Format: uuid */
+            studentId?: string | null;
+            studentNumber?: string | null;
         };
         /** @description Body of `PATCH /students/{id}/assignment` (present = replace; empty string clears a code). */
         StudentAssignmentUpdate: {
@@ -18814,6 +23264,86 @@ export interface components {
             /** @description Base32 shared secret for manual entry. */
             secret: string;
         };
+        /** @description One account row of the trial balance. */
+        TrialBalanceRow: {
+            accountType: components["schemas"]["LedgerAccountType"];
+            /**
+             * @description Net balance on the account's normal side (negative = contra balance).
+             * @example 25000.00
+             */
+            balance: string;
+            code: string;
+            /**
+             * @description Σ credits up to `asOf`.
+             * @example 100000.00
+             */
+            credit: string;
+            /**
+             * @description Σ debits up to `asOf`.
+             * @example 125000.00
+             */
+            debit: string;
+            ledgerAccountId: components["schemas"]["LedgerAccountId"];
+            name: string;
+        };
+        /** @description The trial balance (contract §5.3). */
+        TrialBalanceView: {
+            /** Format: date */
+            asOf: string;
+            balanced: boolean;
+            currency: string;
+            /** Format: uuid */
+            periodId?: string | null;
+            rows: components["schemas"]["TrialBalanceRow"][];
+            /** @example 225000.00 */
+            totalCredit: string;
+            /** @example 225000.00 */
+            totalDebit: string;
+        };
+        /**
+         * Format: uuid
+         * @description Money received without an identified payer or obligation (L3-F-009).
+         */
+        UnidentifiedReceiptId: string;
+        UnidentifiedReceiptList: {
+            items: components["schemas"]["UnidentifiedReceiptView"][];
+        };
+        /**
+         * @description Unidentified / unallocated receipt (L3-F-009).
+         * @enum {string}
+         */
+        UnidentifiedReceiptStatus: "unidentified" | "under_investigation" | "identified" | "allocated" | "refunded";
+        /** @description An unidentified receipt. */
+        UnidentifiedReceiptView: {
+            /** @example 15000.00 */
+            amount: string;
+            channel: components["schemas"]["PaymentChannel"];
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            externalRef?: string | null;
+            id: components["schemas"]["UnidentifiedReceiptId"];
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            notes?: string | null;
+            payerName?: string | null;
+            /**
+             * Format: uuid
+             * @description The payment created when it was identified.
+             */
+            paymentId?: string | null;
+            /** Format: date */
+            receivedOn: string;
+            /** Format: uuid */
+            resolutionEntryId?: string | null;
+            status: components["schemas"]["UnidentifiedReceiptStatus"];
+            /** Format: uuid */
+            studentAccountId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description One unit type of a blueprint version. */
         UnitType: {
             /** @description May be the root unit (no parent). */
@@ -19038,6 +23568,15 @@ export interface components {
             /** @description `PublicKeyCredential` from `navigator.credentials.get` (binary members base64url). */
             credential: Record<string, never>;
         };
+        /** @description Acknowledgement of a gateway webhook. */
+        WebhookAck: {
+            eventId: string;
+            /** Format: uuid */
+            paymentId?: string | null;
+            paymentStatus?: null | components["schemas"]["PaymentStatus"];
+            /** @description `processed | duplicate | ignored`. */
+            status: string;
+        };
         /** @description Student / faculty weekly view (contract §5.3). */
         WeeklyTimetable: {
             items: components["schemas"]["TimetableSlot"][];
@@ -19071,6 +23610,69 @@ export interface components {
             items: components["schemas"]["Workspace"][];
             total: number;
             workflowTotal: number;
+        };
+        /** @description Decision on a pending write-off. */
+        WriteOffDecision: {
+            /** @description `approve` or `reject`. */
+            decision: string;
+            reason?: string | null;
+        };
+        /** @description A write-off request (amount defaults to the whole outstanding). */
+        WriteOffRequest: {
+            /** @example 25000.00 */
+            amount?: string | null;
+            reason: string;
+        };
+        WriteOffView: {
+            /** @example 25000.00 */
+            amount: string;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            reversalEntryId?: string | null;
+            /** @description `pending_approval | posted | rejected | reversed`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A new financial year (monthly periods are generated, all `planned`). */
+        YearCreate: {
+            /** @description e.g. `FY2026-27`. */
+            code: string;
+            /** Format: date */
+            endDate: string;
+            name: string;
+            /** Format: date */
+            startDate: string;
+        };
+        YearList: {
+            items: components["schemas"]["YearView"][];
+        };
+        /** @description A financial year with its periods. */
+        YearView: {
+            /** Format: date-time */
+            closedAt?: string | null;
+            code: string;
+            /** Format: date */
+            endDate: string;
+            history: components["schemas"]["HistoryView"][];
+            id: components["schemas"]["FinancialYearId"];
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            periods: components["schemas"]["PeriodView"][];
+            /** Format: date */
+            startDate: string;
+            status: components["schemas"]["FinancialYearStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
         };
     };
     responses: never;
@@ -31920,6 +36522,5743 @@ export interface operations {
             };
             /** @description That is the current session (use logout) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_adjustment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_adjustment_correct: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the original adjustment */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdjustmentCorrect"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_adjustment_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the adjustment */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_adjustment_reverse: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the adjustment */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_adjustment_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the adjustment */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_allocation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_allocation_approve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the allocation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_allocation_disburse: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the allocation */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AidDisburse"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_allocation_recover: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the allocation */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AidRecover"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_allocation_renew: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the allocation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_allocation_revoke: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the allocation */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AidRevoke"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_account_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_account_close: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_account_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_account_resume: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_settlement_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettlementInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankTransactionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_statement_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_statement_import: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatementImport"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_account_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_statement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_statement_reconcile: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconcileInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_transaction_return: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReturnInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankTransactionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_adjustment_list_of_charge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_adjustment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdjustmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the charge */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the charge */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the charge */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dispute_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisputeList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dispute_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisputeCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisputeView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_instalment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_instalment_plan_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstalmentPlanCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_instalment_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the instalment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                instalmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstalmentUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the charge */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_resume: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the charge */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_revise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the charge */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChargeRevise"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_revision_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeRevisionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the charge */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the charge */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_collection_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_collection_execute: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_collection_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dispute_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisputeView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dispute_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the dispute */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisputeDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisputeView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dispute_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the dispute */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisputeView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dunning_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DunningCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dunning_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DunningCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dunning_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DunningCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_head_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeHeadView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_head_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the fee head */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeeHeadUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeHeadView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_structure_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_structure_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the fee structure */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_structure_generate_charges: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateCharges"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_structure_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the fee structure */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_structure_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the fee structure */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_structure_supersede: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the fee structure */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_config_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_config_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_config_rollback: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_config_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_rule_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_rule_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_rule_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_rule_rollback: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_rule_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_period_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_period_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_period_close: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_period_lock: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_period_open: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_period_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_year_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YearView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_year_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YearView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_year_close: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YearView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_year_open: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YearView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_period_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gateway_webhook: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Razorpay-Signature": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookAck"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_adjustment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["AdjustmentStatus"];
+                kind: null | components["schemas"]["AdjustmentKind"];
+                /** @description ≤ 200 (default 50). */
+                limit: number | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_allocation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["AidAllocationStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_allocation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AidAllocationCreate"];
+            };
+        };
+        responses: {
+            /** @description Already allocated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationView"];
+                };
+            };
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_decision_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidDecisionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_reconciliation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidReconciliationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_reconciliation_run: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["AidReconcile"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidReconciliationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_account_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_account_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankAccountCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_transaction_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankTransactionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_cash_position: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashPositionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["ChargeStatus"];
+                /** @description Charge number, student name / number or description. */
+                q: string | null;
+                /** @description `nextCursor` of the previous page. */
+                cursor: string | null;
+                /** @description ≤ 200 (default 50). */
+                limit: number | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChargeCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_collection_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_collection_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCollectionRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_dunning_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DunningRunResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_head_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeHeadList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_head_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeeHeadCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeHeadView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_structure_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["FeeStructureStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_fee_structure_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeeStructureCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_config_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_config_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_rule_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                ruleKey: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_rule_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_year_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YearList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_year_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YearCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YearView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description `charge`, `payment`, `manual_journal`, … */
+                sourceType: string | null;
+                sourceId: string | null;
+                /** @description Only entries with a line on this account. */
+                ledgerAccountId: string | null;
+                from: string | null;
+                to: string | null;
+                financialPeriodId: string | null;
+                /** @description ≤ 200, default 50. */
+                limit: number | null;
+                cursor: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalEntryList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_ledger_account_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerAccountList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_ledger_account_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LedgerAccountCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_manual_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["ManualJournalStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualJournalList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_manual_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualJournalInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualJournalView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["PaymentStatus"];
+                /** @description ≤ 200 (default 50). */
+                limit: number | null;
+                /** @description `nextCursor` of the previous page. */
+                cursor: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["ReceivableStatus"];
+                studentAccountId: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivableList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_evaluate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_reconciliation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_reconciliation_run: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["RefundStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_account_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description Case-insensitive match on name or student number. */
+                q: string | null;
+                /** @description Only accounts with an outstanding amount. */
+                withDues: boolean | null;
+                /** @description ≤ 200 (default 50). */
+                limit: number | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentAccountList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_trial_balance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description Defaults to today (business date), or the period's end date with `periodId`. */
+                asOf: string | null;
+                periodId: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrialBalanceView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_unidentified_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["UnidentifiedReceiptStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnidentifiedReceiptList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_unidentified_record: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordUnidentifiedRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnidentifiedReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalEntryView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_reverse: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReverseRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalEntryView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_ledger_account_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_ledger_account_update: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LedgerAccountUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_manual_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualJournalView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_manual_update: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualJournalInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualJournalView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_manual_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualJournalView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_journal_manual_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualJournalView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_account_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentAccountDetailList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_aid_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AidAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeDetailList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_self_initiate: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InitiatePaymentRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_self_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_self_confirm: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receipt_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_self_request: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_allocate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_chargeback: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receipt_of_payment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_recover: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoverRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_reverse: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receipt_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivableView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_dunning: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DunningRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivableView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseReason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivableView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_write_off: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WriteOffRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivableView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_write_off_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WriteOffDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivableView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_reconciliation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_close: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_process: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_retry: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_reverse: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_account_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentAccountDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_list_of_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["ChargeStatus"];
+                /** @description Charge number, student name / number or description. */
+                q: string | null;
+                /** @description `nextCursor` of the previous page. */
+                cursor: string | null;
+                /** @description ≤ 200 (default 50). */
+                limit: number | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_account_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["PaymentStatus"];
+                /** @description ≤ 200 (default 50). */
+                limit: number | null;
+                /** @description `nextCursor` of the previous page. */
+                cursor: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_payment_record: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordPaymentRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_account_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["RefundStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_refund_request: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_unidentified_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnidentifiedReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_unidentified_allocate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnidentifiedReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_unidentified_identify: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdentifyRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnidentifiedReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_unidentified_investigate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnidentifiedReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_unidentified_refund: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnidentifiedReceiptView"];
+                };
+            };
+            "4XX": {
                 headers: {
                     [name: string]: unknown;
                 };

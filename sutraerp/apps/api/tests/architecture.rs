@@ -258,3 +258,110 @@ async fn academic_operations_follow_the_slice_prefix_and_tag_rules() {
         }
     }
 }
+
+/// Batch 5 (Domain F): every `/api/v1/finance` operation carries an explicit `operationId` with
+/// its slice's prefix and the matching tag (`docs/batch5-contracts.md` §5.2); finance tags are
+/// used exactly for finance paths, and no other domain uses a `finance_` operation id.
+#[tokio::test]
+async fn finance_operations_follow_the_slice_prefix_and_tag_rules() {
+    const RULES: &[(&str, &[&str])] = &[
+        // foundation
+        ("finance-accounts", &["finance_account_"]),
+        // 5A
+        (
+            "finance-charges",
+            &[
+                "finance_fee_head_",
+                "finance_fee_structure_",
+                "finance_charge_",
+                "finance_instalment_",
+                "finance_dispute_",
+            ],
+        ),
+        ("finance-adjustments", &["finance_adjustment_"]),
+        ("financial-aid", &["finance_aid_"]),
+        ("finance-config", &["finance_config_", "finance_rule_"]),
+        // 5B
+        (
+            "finance-payments",
+            &[
+                "finance_payment_",
+                "finance_receipt_",
+                "finance_unidentified_",
+                "finance_collection_",
+                "finance_gateway_",
+            ],
+        ),
+        ("finance-refunds", &["finance_refund_"]),
+        (
+            "finance-receivables",
+            &["finance_receivable_", "finance_dunning_"],
+        ),
+        // 5C
+        (
+            "finance-ledger",
+            &[
+                "finance_ledger_",
+                "finance_journal_",
+                "finance_batch_",
+                "finance_reconciliation_",
+                "finance_trial_balance_",
+            ],
+        ),
+        ("finance-periods", &["finance_year_", "finance_period_"]),
+        (
+            "finance-treasury",
+            &[
+                "finance_bank_",
+                "finance_statement_",
+                "finance_transfer_",
+                "finance_cash_",
+            ],
+        ),
+    ];
+    let spec: serde_json::Value =
+        serde_json::from_str(&sutra_api::openapi::spec_json().unwrap()).unwrap();
+    let mut finance_ops = 0;
+    for (path, item) in spec["paths"].as_object().unwrap() {
+        let finance = path.starts_with("/api/v1/finance/");
+        for (method, op) in item.as_object().unwrap() {
+            let tags: Vec<&str> = op["tags"]
+                .as_array()
+                .map(|t| t.iter().filter_map(|x| x.as_str()).collect())
+                .unwrap_or_default();
+            let finance_tag = tags.iter().any(|t| RULES.iter().any(|(tag, _)| tag == t));
+            assert_eq!(
+                finance, finance_tag,
+                "{method} {path}: Domain F tags are used exactly for /api/v1/finance paths"
+            );
+            let id = op["operationId"].as_str().unwrap_or_default();
+            if !finance {
+                assert!(
+                    !id.starts_with("finance_"),
+                    "{method} {path}: `finance_` operation ids are reserved for Domain F"
+                );
+                continue;
+            }
+            finance_ops += 1;
+            assert!(!id.is_empty(), "{method} {path} has no operationId");
+            let ok = RULES.iter().any(|(tag, prefixes)| {
+                tags.contains(tag) && prefixes.iter().any(|p| id.starts_with(p))
+            });
+            assert!(
+                ok,
+                "{method} {path}: operationId `{id}` does not match the prefixes of its tag {tags:?}"
+            );
+            // Path parameter rule (§5.2): the first parameter after a collection is `{id}`.
+            if let Some(first) = path.split('/').find(|seg| seg.starts_with('{')) {
+                assert_eq!(
+                    first, "{id}",
+                    "{method} {path}: first path parameter must be {{id}}"
+                );
+            }
+        }
+    }
+    assert!(
+        finance_ops >= 3,
+        "the foundation account endpoints are mounted"
+    );
+}

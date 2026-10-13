@@ -2,8 +2,9 @@ name: SutraERP CI
 
 on:
   push:
-    branches: [main, erp_merge, "dev/**"]
+    branches: [main, erp_merge, "dev/**", "batch5/**"]
     paths: ["sutraerp/**", ".github/workflows/sutraerp-ci.yml"]
+  workflow_dispatch:
   pull_request:
     paths: ["sutraerp/**", ".github/workflows/sutraerp-ci.yml"]
 
@@ -73,7 +74,9 @@ jobs:
       # Service containers cannot pass server flags, so JetStream runs as a plain container.
       - name: Start NATS (JetStream)
         run: docker run -d --name nats -p 4222:4222 nats:2.11 -js
-      - run: cargo test -p sutra-persistence -p sutra-platform -p sutra-api --features db-tests --locked
+      - run: cargo test -p sutra-persistence -p sutra-platform --features db-tests --locked --no-fail-fast
+      # Full api DB suite: every tests/db*.rs file (incl. db_b5_foundation, db_b5a, db_b5b) + api + architecture.
+      - run: cargo test -p sutra-api --features db-tests --locked --no-fail-fast -- --test-threads 2
       - name: Live NATS / Valkey adapter tests
         run: |
           cargo test -p sutra-infra --features nats-tests,valkey-tests --locked
@@ -97,14 +100,22 @@ jobs:
           cache: pnpm
           cache-dependency-path: sutraerp/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      - name: Spec generated from code matches committed openapi/openapi.json
+      - name: Regenerate spec + TS client from code
         run: |
           cargo run -q -p sutra-api -- openapi > /tmp/openapi.json
-          diff -u openapi/openapi.json /tmp/openapi.json
-      - name: TS client matches the spec
-        run: |
+          cp /tmp/openapi.json openapi/openapi.json
           pnpm gen:api
-          git diff --exit-code packages/api-client/src/schema.d.ts
+      - name: Upload regenerated spec + TS client
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-regenerated
+          path: |
+            sutraerp/openapi/openapi.json
+            sutraerp/packages/api-client/src/schema.d.ts
+          retention-days: 7
+      - name: Committed openapi/openapi.json + TS client match the code
+        run: git diff --exit-code -- openapi/openapi.json packages/api-client/src/schema.d.ts
 
   web:
     name: Web (typecheck · lint · test · build)
@@ -128,6 +139,70 @@ jobs:
         with:
           name: web-dist
           path: sutraerp/apps/web/build/client
+          retention-days: 7
+
+  # Batch 5 integration: aarch64 API binary for the sandbox e2e run (the sandbox cannot link sutra-api).
+  api-bin-arm:
+    name: API binary (aarch64, for sandbox e2e)
+    if: startsWith(github.ref, 'refs/heads/batch5/')
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+      - run: cargo build -p sutra-api --locked
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sutra-api-aarch64
+          path: sutraerp/target/debug/sutra-api
+          retention-days: 3
+
+  # Batch 5 integration: finance e2e (5A/5B/5C regions) in preview mode; screenshots uploaded as an artifact
+  # (the sandbox OOMs running chromium + API + preview together).
+  e2e-finance:
+    name: E2E finance (preview)
+    if: startsWith(github.ref, 'refs/heads/batch5/')
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: sutra
+          POSTGRES_PASSWORD: sutra
+          POSTGRES_DB: sutra_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sutra" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: sutraerp/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: sutraerp/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: cargo build -p sutra-api --locked
+      - run: SUTRA_ENV=development target/debug/sutra-api migrate
+      - run: pnpm --filter @sutra/web exec playwright install --with-deps chromium
+      - run: VITE_AUTH_MODE=api pnpm --filter @sutra/web build
+      - name: finance e2e
+        run: E2E_WEB=preview VITE_AUTH_MODE=api E2E_SHOTS=$RUNNER_TEMP/b5-shots CARGO_TARGET_DIR=$GITHUB_WORKSPACE/sutraerp/target timeout 900 pnpm e2e:finance
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: b5-e2e-shots
+          path: ${{ runner.temp }}/b5-shots
           retention-days: 7
 
   # ADR-L5-0030: image build/push to GHCR + Cosign signing is wired in Batch 9 (production

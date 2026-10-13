@@ -234,10 +234,39 @@ pub enum Permission {
     CreditRecognitionDecide,
     /// 4C: course resources and library links on any offering / section.
     CourseResourceManage,
+    // ---- Batch 5 (Domain F). Staff reads use `FinanceRead`; students use `FinanceSelfService`. ----
+    /// Read fee heads, fee structures, charges, party accounts and balances, payments, receipts, refunds, receivables, aid, the ledger, periods and treasury records of the tenant (staff).
+    FinanceRead,
+    /// Self-service on one's **own** fees (resolved from the session subject): charges, instalments, concessions/aid, payments, receipts, refund requests.
+    FinanceSelfService,
+    /// 5A: fee heads, fee structures, charge generation / validation / publication, revision, suspension / resumption, disputes, instalment schedules, settlement closure.
+    ChargeManage,
+    /// 5A: credit notes, debit notes, write-off / waiver adjustments (draft + submit), reversal requests, corrected successors.
+    AdjustmentManage,
+    /// 5A: financial aid allocation from handed-off scholarship decisions, disbursement / charge adjustment, renewal, revocation and recovery, programme reconciliation.
+    AidManage,
+    /// 5A: governed finance configuration and financial rule versions (draft, review, activation, rollback).
+    FinanceConfigManage,
+    /// 5B: counter / bank payments, allocation, receipts, unidentified receipts, failure recovery, cancellation, bulk collection.
+    PaymentManage,
+    /// 5B: refund requests on behalf of students, processing, retry, closure.
+    RefundManage,
+    /// 5B: receivable recognition, dunning, settlement review, write-off requests, reopening.
+    ReceivableManage,
+    /// 5C: chart of accounts, manual journal drafts, accounting batches, reconciliation, trial balance.
+    LedgerManage,
+    /// 5C: financial years and periods (establish, open, lock), close preparation.
+    PeriodManage,
+    /// 5C: bank accounts, bank execution, statement import and reconciliation, cash position, fund transfer requests, failed bank transactions.
+    TreasuryManage,
+    /// Batch 5: decide governed finance approvals — refunds, adjustments / write-offs, manual journals, payment reversals, aid revocation, fund transfers (step-up).
+    FinanceApprove,
+    /// 5C: close, reopen and archive financial periods / years; accounting close (step-up).
+    PeriodClose,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 63] = [
+    pub const ALL: [Permission; 77] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -301,6 +330,20 @@ impl Permission {
         Permission::FlexibleLearningManage,
         Permission::CreditRecognitionDecide,
         Permission::CourseResourceManage,
+        Permission::FinanceRead,
+        Permission::FinanceSelfService,
+        Permission::ChargeManage,
+        Permission::AdjustmentManage,
+        Permission::AidManage,
+        Permission::FinanceConfigManage,
+        Permission::PaymentManage,
+        Permission::RefundManage,
+        Permission::ReceivableManage,
+        Permission::LedgerManage,
+        Permission::PeriodManage,
+        Permission::TreasuryManage,
+        Permission::FinanceApprove,
+        Permission::PeriodClose,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -368,6 +411,20 @@ impl Permission {
             Permission::FlexibleLearningManage => "flexible_learning.manage",
             Permission::CreditRecognitionDecide => "credit_recognition.decide",
             Permission::CourseResourceManage => "course_resource.manage",
+            Permission::FinanceRead => "finance.read",
+            Permission::FinanceSelfService => "finance.self",
+            Permission::ChargeManage => "charge.manage",
+            Permission::AdjustmentManage => "adjustment.manage",
+            Permission::AidManage => "aid.manage",
+            Permission::FinanceConfigManage => "finance.config.manage",
+            Permission::PaymentManage => "payment.manage",
+            Permission::RefundManage => "refund.manage",
+            Permission::ReceivableManage => "receivable.manage",
+            Permission::LedgerManage => "ledger.manage",
+            Permission::PeriodManage => "period.manage",
+            Permission::TreasuryManage => "treasury.manage",
+            Permission::FinanceApprove => "finance.approve",
+            Permission::PeriodClose => "period.close",
         }
     }
 
@@ -391,6 +448,8 @@ impl Permission {
                 | Permission::AttendanceCorrect
                 | Permission::AssessmentFinalize
                 | Permission::CreditRecognitionDecide
+                | Permission::FinanceApprove
+                | Permission::PeriodClose
         )
     }
 }
@@ -464,6 +523,20 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             FlexibleLearningManage,
             CreditRecognitionDecide,
             CourseResourceManage,
+            // Batch 5 (Domain F): staff reads + every write and decision (finance office = administrators).
+            FinanceRead,
+            ChargeManage,
+            AdjustmentManage,
+            AidManage,
+            FinanceConfigManage,
+            PaymentManage,
+            RefundManage,
+            ReceivableManage,
+            LedgerManage,
+            PeriodManage,
+            TreasuryManage,
+            FinanceApprove,
+            PeriodClose,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -489,6 +562,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             RegistrationSelf,
             // Batch 4: own timetable, courses, attendance, assignments, resources.
             AcademicSelfService,
+            // Batch 5: own fees, payments, receipts, refund requests.
+            FinanceSelfService,
         ],
     }
 }
@@ -638,6 +713,7 @@ mod tests {
                     | Permission::RegistrationSelf
                     | Permission::AcademicSelfService
                     | Permission::AcademicTeach
+                    | Permission::FinanceSelfService
             )
         }) {
             assert!(a.require(p).is_ok(), "{p:?}");
@@ -798,6 +874,39 @@ mod tests {
         }
         assert!(!Permission::OfferingManage.requires_step_up());
         assert!(!Permission::AcademicTeach.requires_step_up());
+    }
+
+    #[test]
+    fn batch5_domain_f_grants() {
+        let admin_only = [
+            Permission::FinanceRead,
+            Permission::ChargeManage,
+            Permission::AdjustmentManage,
+            Permission::AidManage,
+            Permission::FinanceConfigManage,
+            Permission::PaymentManage,
+            Permission::RefundManage,
+            Permission::ReceivableManage,
+            Permission::LedgerManage,
+            Permission::PeriodManage,
+            Permission::TreasuryManage,
+            Permission::FinanceApprove,
+            Permission::PeriodClose,
+        ];
+        for p in admin_only {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
+        }
+        assert!(is_granted(&[Role::Student], Permission::FinanceSelfService));
+        assert!(!is_granted(
+            &[Role::Administrator, Role::Faculty],
+            Permission::FinanceSelfService
+        ));
+        for p in [Permission::FinanceApprove, Permission::PeriodClose] {
+            assert!(p.requires_step_up(), "{p:?}");
+        }
+        assert!(!Permission::ChargeManage.requires_step_up());
+        assert!(!Permission::FinanceRead.requires_step_up());
     }
 
     #[test]

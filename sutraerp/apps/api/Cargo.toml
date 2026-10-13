@@ -57,6 +57,7 @@ http-body-util.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
 async-nats.workspace = true
+rust_decimal.workspace = true
 
 [features]
 # End-to-end tests against a live PostgreSQL 18 (set DATABASE_URL). Off by default.

@@ -521,7 +521,8 @@ fn build_scheduler(cfg: &Config, pool: &PgPool) -> Scheduler {
         }))
 }
 
-/// Domain C (Batch 3) adapters: Domain B reference reads, Finance/Exams stubs until Batches 5/6,
+/// Domain C (Batch 3) adapters: Domain B reference reads, the real Finance clearance reader
+/// (Batch 5 foundation), the Exams stub until Batch 6,
 /// no-op ABC and external-scholarship adapters. Tests reuse it to build a `StudentState` with
 /// `ApprovalMode::AwaitDecision` (`sutra_student::router_with_state`).
 pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_student::StudentDeps {
@@ -529,7 +530,7 @@ pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_stud
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
             pool.clone(),
         )),
-        finance: Arc::new(sutra_finance::StubFinanceClearance),
+        finance: Arc::new(sutra_finance::PgFinanceClearance::new(pool.clone())),
         results: Arc::new(sutra_exams::NoPublishedResults),
         abc: Arc::new(sutra_student::adapters::NoopAbcRegistry),
         external_scholarships: Arc::new(sutra_student::adapters::NoopExternalScholarships),
@@ -555,6 +556,23 @@ pub fn academic_deps(
         credits: Arc::new(sutra_student::PgCreditPosting::new(pool.clone())),
         spaces: Arc::new(sutra_campus::NoTeachingSpaces),
         staff: Arc::new(sutra_people::SubjectOnlyStaff),
+        workflow,
+        pool,
+    }
+}
+
+/// Domain F (Batch 5) adapters: Domain B reference reads, the Domain C student directory and
+/// scholarship decisions handed off to Financial Aid, and the deterministic mock payment
+/// gateway. Tests reuse it to build a `FinanceState` with `ApprovalMode::AwaitDecision`
+/// (`sutra_finance::router_with_state`).
+pub fn finance_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_finance::FinanceDeps {
+    sutra_finance::FinanceDeps {
+        references: Arc::new(sutra_institution::PgInstitutionReferences::new(
+            pool.clone(),
+        )),
+        students: Arc::new(sutra_student::PgStudentDirectory::new(pool.clone())),
+        aid: Arc::new(sutra_student::PgAidDecisionSource::new(pool.clone())),
+        gateway: Arc::new(sutra_finance::MockPaymentGateway::default()),
         workflow,
         pool,
     }
@@ -586,7 +604,10 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.workflow.clone(),
         )))
         .merge(sutra_people::router())
-        .merge(sutra_finance::router())
+        .merge(sutra_finance::router(finance_deps(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+        )))
         .merge(sutra_campus::router())
         .merge(sutra_services::router())
         .merge(sutra_exams::router())

@@ -1,14 +1,13 @@
-//! Domain F — Finance contracts.
+//! Finance clearance facts read by Domain C (Batch 3 port, real since Batch 5).
 //!
-//! Finance lands in Batch 5. Batch 3 (Domain C) needs Finance-owned *facts* (admission financial
-//! clearance evidence — L2-C01 amendment 2026-10-05 —, outstanding dues for registration holds
-//! and exit clearance). They are read through [`FinanceClearancePort`]; until Batch 5 the
-//! composition root wires `sutra_finance::StubFinanceClearance`, which reports
-//! [`FinanceEvidence::NotApplicable`] ("no Finance obligation is configured"). Domain C never
-//! imports the finance crate and never calculates money (BR-C01-025).
-//!
-//! Scholarship hand-off to Financial Aid (L3-C-071) is **event only**:
-//! `sutraerp.student.scholarship_eligibility.handed_off`; Finance subscribes in Batch 5.
+//! Batch 3 (Domain C) needs Finance-owned *facts* (admission financial clearance evidence —
+//! L2-C01 amendment 2026-10-05 —, outstanding dues for registration holds and exit clearance).
+//! They are read through [`FinanceClearancePort`]. Since the Batch 5 foundation the composition
+//! root wires `sutra_finance::PgFinanceClearance`, which reads the outstanding amounts of the
+//! foundation `finance.charge` table: no live charge → [`FinanceEvidence::NotApplicable`];
+//! an unpaid published/active charge → [`FinanceEvidence::Outstanding`]; only disputed dues →
+//! [`FinanceEvidence::Pending`]; every live charge settled → [`FinanceEvidence::Cleared`].
+//! Domain C never imports the finance crate and never calculates money (BR-C01-025).
 
 use sutra_kernel::error::KernelError;
 use sutra_kernel::scope::{ExecutionScope, InstitutionId};

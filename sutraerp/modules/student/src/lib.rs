@@ -20,6 +20,7 @@
 pub mod academic_ports; // Batch 4 foundation: ports Domain D calls
 pub mod adapters;
 pub mod directory;
+pub mod finance_ports; // Batch 5 foundation: ports Domain F calls
 pub mod shared;
 
 // ---- slice areas (router mount points are pre-registered in `router`) ----
@@ -44,6 +45,7 @@ use utoipa_axum::router::OpenApiRouter;
 
 pub use academic_ports::{PgCreditPosting, PgRegistrationReader};
 pub use directory::PgStudentDirectory;
+pub use finance_ports::PgAidDecisionSource;
 pub use shared::StudentState;
 
 pub const MODULE: ModuleDescriptor = ModuleDescriptor {
@@ -63,7 +65,7 @@ pub struct StudentDeps {
     pub workflow: Arc<dyn WorkflowPort>,
     /// Domain B reference data (`sutra_institution::PgInstitutionReferences`).
     pub references: Arc<dyn InstitutionReferencePort>,
-    /// Finance facts (`sutra_finance::StubFinanceClearance` until Batch 5).
+    /// Finance facts (`sutra_finance::PgFinanceClearance` since the Batch 5 foundation).
     pub finance: Arc<dyn FinanceClearancePort>,
     /// Exams results (`sutra_exams::NoPublishedResults` until Batch 6).
     pub results: Arc<dyn ResultsPort>,

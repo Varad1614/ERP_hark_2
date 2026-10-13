@@ -1,0 +1,29 @@
+//! **5C** — Bank accounts, bank execution of payment populations, statement import → reconciliation, cash position, fund transfers, failed bank transactions (L3-F-056…061).
+//!
+//! Owned by slice 5C (`docs/batch5-contracts.md` §1/§2). Tag `finance-treasury`; every operation id
+//! starts with the prefixes of §5.2 (enforced by `apps/api/tests/architecture.rs`).
+
+pub mod domain;
+pub mod http;
+
+use crate::shared::FinanceState;
+use utoipa_axum::{router::OpenApiRouter, routes};
+
+/// Routes of this area.
+pub fn router(state: FinanceState) -> OpenApiRouter {
+    OpenApiRouter::new()
+        .routes(routes!(http::bank_account_list, http::bank_account_create))
+        .routes(routes!(http::bank_account_get))
+        .routes(routes!(http::bank_account_decide))
+        .routes(routes!(http::bank_account_suspend))
+        .routes(routes!(http::bank_account_resume))
+        .routes(routes!(http::bank_account_close))
+        .routes(routes!(http::bank_settlement_create))
+        .routes(routes!(http::bank_transaction_list))
+        .routes(routes!(http::bank_transaction_return))
+        .routes(routes!(http::statement_list, http::statement_import))
+        .routes(routes!(http::statement_get))
+        .routes(routes!(http::statement_reconcile))
+        .routes(routes!(http::cash_position))
+        .with_state(state)
+}

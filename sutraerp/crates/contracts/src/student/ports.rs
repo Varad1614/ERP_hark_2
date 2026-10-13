@@ -224,3 +224,63 @@ pub trait CreditPostingPort: Send + Sync + 'static {
         request: CreditPostingRequest,
     ) -> Result<CreditPostingReceipt, KernelError>;
 }
+
+// ---- Batch 5 (Domain F) block: scholarship decisions handed off to Financial Aid ----
+
+/// An approved Domain C scholarship decision handed off to Finance (L3-C-071 → L3-F-062).
+/// Finance decides allocation, disbursement and charge adjustment; Domain C never computes money.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AidDecision {
+    /// The scholarship eligibility id: Finance's idempotency key for the allocation.
+    pub eligibility_id: Uuid,
+    pub scholarship_id: Uuid,
+    pub scholarship_code: String,
+    pub scholarship_name: String,
+    /// `institutional | government | private | external`.
+    pub sponsor_type: String,
+    /// `fixed_amount | fee_percentage | fee_waiver | stipend`.
+    pub benefit_type: String,
+    /// Amount (fixed / stipend) or percentage (fee_percentage); `None` for a full waiver.
+    pub benefit_value: Option<rust_decimal::Decimal>,
+    pub currency: String,
+    pub institution_id: InstitutionId,
+    pub student_id: StudentId,
+    pub student_context_id: Uuid,
+    pub academic_year_id: Option<Uuid>,
+    /// Eligibility status (`active`, `renewal`, `reassessment`, `expired`, …): Finance treats
+    /// only `active | renewal` as a live decision; `expired | archived` means revoke (L3-F-065).
+    pub status: String,
+    pub valid_from: Option<chrono::NaiveDate>,
+    pub valid_until: Option<chrono::NaiveDate>,
+    pub renewal_count: i32,
+    pub handed_off_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl AidDecision {
+    /// `true` while the decision supports an allocation (`active | renewal`).
+    pub fn is_live(&self) -> bool {
+        matches!(self.status.as_str(), "active" | "renewal")
+    }
+}
+
+/// Read port over scholarship decisions Domain C handed off to Financial Aid (3C's
+/// `scholarship_eligibility` with `handed_off_at` set). Implemented by
+/// `sutra_student::PgAidDecisionSource` (**real**); consumed by Finance 5A (aid allocation,
+/// renewal, revocation). Tenant from `scope`; foreign/missing → `None` / empty.
+#[async_trait::async_trait]
+pub trait AidDecisionSource: Send + Sync + 'static {
+    /// Every handed-off decision of an institution (optionally one student), newest first.
+    async fn handed_off_decisions(
+        &self,
+        scope: &ExecutionScope,
+        institution_id: InstitutionId,
+        student_id: Option<StudentId>,
+    ) -> Result<Vec<AidDecision>, KernelError>;
+
+    /// One handed-off decision by eligibility id (current status, so revocations are visible).
+    async fn decision(
+        &self,
+        scope: &ExecutionScope,
+        eligibility_id: Uuid,
+    ) -> Result<Option<AidDecision>, KernelError>;
+}

@@ -23,11 +23,14 @@
 //! Build notifications with [`notify`] and to-dos with [`super::todos::SystemTodo`].
 
 pub mod calendar_2c;
+pub mod charges_5a;
 pub mod completion_3c;
 pub mod delivery_4b;
 pub mod flexible_4c;
 pub mod institution_2a;
+pub mod ledger_5c;
 pub mod offering_4a;
+pub mod payments_5b;
 pub mod registration_3b;
 pub mod structure_2b;
 pub mod student_3a;
@@ -49,6 +52,9 @@ pub fn event_types() -> Vec<&'static str> {
     v.extend_from_slice(offering_4a::EVENT_TYPES);
     v.extend_from_slice(delivery_4b::EVENT_TYPES);
     v.extend_from_slice(flexible_4c::EVENT_TYPES);
+    v.extend_from_slice(charges_5a::EVENT_TYPES);
+    v.extend_from_slice(payments_5b::EVENT_TYPES);
+    v.extend_from_slice(ledger_5c::EVENT_TYPES);
     v
 }
 
@@ -73,6 +79,12 @@ pub fn plan(env: &EventEnvelope) -> Option<Result<Vec<InboxAction>, String>> {
         Some(delivery_4b::plan(env))
     } else if flexible_4c::EVENT_TYPES.contains(&t) {
         Some(flexible_4c::plan(env))
+    } else if charges_5a::EVENT_TYPES.contains(&t) {
+        Some(charges_5a::plan(env))
+    } else if payments_5b::EVENT_TYPES.contains(&t) {
+        Some(payments_5b::plan(env))
+    } else if ledger_5c::EVENT_TYPES.contains(&t) {
+        Some(ledger_5c::plan(env))
     } else {
         None
     }
@@ -130,11 +142,12 @@ mod tests {
             .into_iter()
             .chain(sutra_contracts::student::events::all_event_types())
             .chain(sutra_contracts::academic::events::all_event_types())
+            .chain(sutra_contracts::finance::events::all_event_types())
             .collect();
         for t in &all {
             assert!(
                 released.contains(t),
-                "{t} is not a released Domain B/C/D event type"
+                "{t} is not a released Domain B/C/D/F event type"
             );
         }
         // 3A/3B/3C claim only their own files' types.
@@ -164,5 +177,17 @@ mod tests {
         assert!(own(offering_4a::EVENT_TYPES, &[ae::offering::EVENT_TYPES]));
         assert!(own(delivery_4b::EVENT_TYPES, &[ae::delivery::EVENT_TYPES]));
         assert!(own(flexible_4c::EVENT_TYPES, &[ae::flexible::EVENT_TYPES]));
+        // Batch 5: each finance slice claims only its own file's types; 5A may additionally claim
+        // the Domain C hand-off `scholarship_eligibility.handed_off` (aid intake to-do).
+        use sutra_contracts::finance::events as fe;
+        assert!(own(
+            charges_5a::EVENT_TYPES,
+            &[
+                fe::charges::EVENT_TYPES,
+                &[se::scholarship::SCHOLARSHIP_ELIGIBILITY_HANDED_OFF]
+            ]
+        ));
+        assert!(own(payments_5b::EVENT_TYPES, &[fe::payments::EVENT_TYPES]));
+        assert!(own(ledger_5c::EVENT_TYPES, &[fe::ledger::EVENT_TYPES]));
     }
 }
