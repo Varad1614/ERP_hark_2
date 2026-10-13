@@ -13,6 +13,7 @@ import type { TimetableSlot } from "../academic/delivery/types";
 import { formatInr } from "../finance";
 import { pkeys, usePaymentsApi } from "../finance/payments/hooks";
 import { useInstitutions } from "../institution/hooks";
+import { useWorkforceApi, wkeys } from "../people/workforce/hooks";
 import { rkeys, useRecordApi } from "../student/record/hooks";
 import { mkeys, useMarksApi } from "../exams/marks/hooks";
 import { toReviewCount } from "../exams/marks";
@@ -143,6 +144,10 @@ export function AdminKpis({ go }: { go: Go }) {
   const payments = usePaymentsApi();
   const students = useQuery({ queryKey: rkeys.scoped(inst, "directory", ""), queryFn: () => record.directory(institution!.id), enabled: !!institution });
   const recv = useQuery({ queryKey: pkeys.scoped(inst, "receivables"), queryFn: () => payments.receivables(institution!.id), enabled: !!institution });
+  const workforce = useWorkforceApi();
+  const staff = useQuery({ queryKey: wkeys.scoped(inst, "staff:"), queryFn: () => workforce.staff(institution!.id), enabled: !!institution });
+  const faculty = (staff.data ?? []).filter((s) => s.staffCategory === "teaching" && s.engagement?.status === "active");
+  const pendingStaff = (staff.data ?? []).filter((s) => s.engagement?.status === "pending").length;
   const noInst = !instQ.isLoading && !institution;
   return (
     <>
@@ -155,7 +160,15 @@ export function AdminKpis({ go }: { go: Go }) {
         onClick={() => go("students")}
         data-kpi="students"
       />
-      <StatTile icon={Users} tone="green" label="Faculty on roll" value="—" hint="Staff records" pending="Arrives in Batch 7" onClick={() => go("people")} data-kpi="faculty" />
+      <StatTile
+        icon={Users}
+        tone="green"
+        label="Faculty on roll"
+        value={staff.data ? faculty.length.toLocaleString("en-IN") : noInst ? "—" : "…"}
+        hint={noInst ? "No institution yet" : staff.isError ? "Staff records unavailable" : pendingStaff ? `${pendingStaff} joining (engagement pending)` : "Teaching staff, engagement active"}
+        onClick={() => go("people")}
+        data-kpi="faculty"
+      />
       <StatTile
         icon={Wallet}
         tone="violet"

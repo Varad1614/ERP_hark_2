@@ -12806,6 +12806,3171 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/attendance-days/{id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Correct a recorded day (`people.leave.manage`; If-Match; remark required): any status, history
+         *     kept (`attendance_day.corrected`).
+         */
+        post: operations["people_attendance_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One candidate (`people.read`). */
+        get: operations["people_recruitment_candidate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The candidate accepted the offer (`people.staff.manage`); 409 when the requisition's openings are taken. */
+        post: operations["people_recruitment_candidate_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The candidate declined the offer (`people.staff.manage`; reason required). */
+        post: operations["people_recruitment_candidate_decline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/interview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the interview (`people.staff.manage`; optional notes). */
+        post: operations["people_recruitment_candidate_interview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make an offer (`people.staff.manage`; If-Match): designation / grade default to the
+         *     requisition's.
+         */
+        post: operations["people_recruitment_candidate_offer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open the onboarding case of a candidate who accepted the offer (`people.staff.manage`;
+         *     Idempotency-Key). One live case per candidate (409).
+         */
+        post: operations["people_onboarding_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a candidate (`people.staff.manage`; reason required). */
+        post: operations["people_recruitment_candidate_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/shortlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Shortlist an applicant (`people.staff.manage`). */
+        post: operations["people_recruitment_candidate_shortlist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/certificate-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One certificate request (`people.read`). */
+        get: operations["people_certificate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/certificate-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending certificate request (`people.approve`, step-up; If-Match). */
+        post: operations["people_certificate_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/certificate-requests/{id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue an approved certificate (`people.staff.manage`; If-Match): `CERT-` number + content
+         *     snapshot (name, designation, service period); `certificate_request.issued`.
+         */
+        post: operations["people_certificate_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One engagement (`people.read`). */
+        get: operations["people_engagement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate an approved engagement whose start date has come (`people.staff.manage`; If-Match). */
+        post: operations["people_engagement_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an engagement that never started (`people.staff.manage`; reason required). */
+        post: operations["people_engagement_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a live engagement — institutional exit with the last working date
+         *     (`people.staff.manage`; If-Match; L3-E-007). 409 while a separation case is open (it closes the
+         *     engagement itself).
+         */
+        post: operations["people_engagement_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide the open governed change of an engagement (`people.approve`, step-up; If-Match). */
+        post: operations["people_engagement_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/final-settlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The final settlement of an engagement (`people.read`; 404 before initiation). */
+        get: operations["people_settlement_of_engagement"];
+        put?: never;
+        /** Initiate the final settlement of a closed engagement (`people.payroll.manage`; L3-E-056). */
+        post: operations["people_settlement_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/long-leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Long leaves of an engagement with its current availability (`people.read`). */
+        get: operations["people_leave_long_list"];
+        put?: never;
+        /** Plan a long leave of a live engagement (`people.leave.manage`; one open per engagement). */
+        post: operations["people_leave_long_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/modify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a modification of a live engagement (`people.staff.manage`; If-Match;
+         *     `ENGAGEMENT_CHANGE`; L3-E-002). Applied (and synchronised into the profile) on approval.
+         */
+        post: operations["people_engagement_modify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/probation-reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Probation reviews of an engagement (`people.read`). */
+        get: operations["people_probation_list"];
+        put?: never;
+        /**
+         * Review the probation of an active engagement (`people.staff.manage`; Idempotency-Key;
+         *     `PROBATION_DECISION`). 409 unless the engagement is on probation; one open review at a time.
+         */
+        post: operations["people_probation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/reporting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set or remove the reporting manager (`people.staff.manage`; If-Match; L3-E-018). The manager
+         *     needs a live engagement in the same institution; cycles are refused (409).
+         */
+        put: operations["people_reporting_set"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a suspended engagement to operational use (`people.staff.manage`; L3-E-004). */
+        post: operations["people_engagement_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/salary-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Salary assignments of an engagement (`people.read`). */
+        get: operations["people_salary_assignment_list"];
+        put?: never;
+        /**
+         * Assign a salary structure to a live engagement from a date (`people.payroll.manage`;
+         *     overlapping assignments → 409).
+         */
+        post: operations["people_salary_assignment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/separation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest separation case of an engagement (`people.read`; 404 when none). */
+        get: operations["people_separation_of_engagement"];
+        put?: never;
+        /**
+         * Open a separation case for a live engagement (`people.staff.manage`; Idempotency-Key;
+         *     `SEPARATION_APPROVAL`). One open case per engagement (409).
+         */
+        post: operations["people_separation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a pending engagement for activation (`people.staff.manage`; If-Match;
+         *     `ENGAGEMENT_ACTIVATION`). The staff record must be active (verified). Auto-approval activates it
+         *     at once when the start date has come; otherwise it waits for `/activate`.
+         */
+        post: operations["people_engagement_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend an active engagement (`people.staff.manage`; reason required; L3-E-004). Domain D
+         *     then sees the staff member as inactive.
+         */
+        post: operations["people_engagement_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/engagements/{id}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a transfer to another org unit / campus (`people.staff.manage`; If-Match;
+         *     `ENGAGEMENT_CHANGE`; L3-E-003). Both are validated through Domain B (422 on the field).
+         */
+        post: operations["people_engagement_transfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/faculty-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One faculty profile (`people.read`). */
+        get: operations["people_faculty_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/faculty-profiles/{id}/eligibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move the teaching eligibility (`people.staff.manage`; approve / reject need `people.approve`;
+         *     If-Match; L3-E-029). Illegal moves are 409.
+         */
+        post: operations["people_faculty_eligibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/faculty-profiles/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reactivate a suspended faculty member (`people.staff.manage`; If-Match; L3-E-031): the
+         *     engagement is restored and suspended eligibility returns (or expires when its validity passed).
+         */
+        post: operations["people_faculty_reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/faculty-profiles/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a faculty member (`people.staff.manage`; If-Match; reason required; L3-E-031): the
+         *     engagement is suspended and approved eligibility is suspended with it.
+         */
+        post: operations["people_faculty_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/final-settlements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One final settlement (`people.read`). */
+        get: operations["people_settlement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/final-settlements/{id}/calculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calculate a settlement and submit it for approval (`people.payroll.manage`;
+         *     `FINAL_SETTLEMENT_APPROVAL`).
+         */
+        post: operations["people_settlement_calculate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/final-settlements/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete an approved settlement (`people.payroll.manage`): finalise, post, `FNF-` number. */
+        post: operations["people_settlement_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/final-settlements/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending settlement (`people.payroll.approve`, step-up). */
+        post: operations["people_settlement_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The daily attendance grid (`people.read`): every staff member whose engagement covers the
+         *     date, with the recorded day when there is one.
+         */
+        get: operations["people_attendance_grid"];
+        put?: never;
+        /** Record one attendance day (`people.leave.manage`). */
+        post: operations["people_attendance_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/attendance/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk capture of one date (`people.leave.manage`; Idempotency-Key): `{processed, skipped,
+         *     failed[]}` — unchanged days are skipped, refused rows are listed with their reason.
+         */
+        post: operations["people_attendance_bulk"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/directory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The basic staff directory of an institution: staff with a working (`active`) engagement,
+         *     name, designation, department and work e-mail only (`people.self`).
+         */
+        get: operations["people_directory_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/final-settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Final settlements of an institution (`people.read`). */
+        get: operations["people_settlement_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/leave-accruals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Accrual runs of an institution (`people.read`). */
+        get: operations["people_leave_accrual_list"];
+        put?: never;
+        /**
+         * Run the periodic accrual (`people.leave.manage`; Idempotency-Key): monthly types accrue
+         *     `annual / 12` for `YYYY-MM`, yearly types get their opening entitlement for `YYYY`. Re-running
+         *     a period posts only what is missing (`accrual:<staff>:<period>:<code>` keys).
+         */
+        post: operations["people_leave_accrual_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/leave-consumption": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Idempotent consumption sweep (`people.leave.manage`): every reserved request of the
+         *     institution whose leave has started is consumed; not yet started ones are skipped.
+         */
+        post: operations["people_leave_consumption_sweep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/leave-exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leave exceptions of an institution (`people.read`). */
+        get: operations["people_leave_exception_list"];
+        put?: never;
+        /** Raise a leave exception for review (`people.leave.manage`). */
+        post: operations["people_leave_exception_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/leave-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leave policy versions of an institution (`people.read`). */
+        get: operations["people_leave_policy_list"];
+        put?: never;
+        /** Create a draft leave policy version (`people.leave.manage`). */
+        post: operations["people_leave_policy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/leave-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leave requests of an institution (`people.read`), newest number first. */
+        get: operations["people_leave_request_list"];
+        put?: never;
+        /** Request leave on behalf of a staff member (`people.leave.manage`; `staffId` required). */
+        post: operations["people_leave_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/leave-year-end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Year-end runs of an institution (`people.read`). */
+        get: operations["people_leave_year_end_list"];
+        put?: never;
+        /**
+         * Year-end carry forward (`people.leave.manage`; Idempotency-Key): for every staff member and
+         *     leave type with an unused balance in `leaveYear`, carry forward up to the active policy's cap
+         *     into the next year (`carry_forward`), move the carried days out of the closed year
+         *     (`adjustment`, `carry_out`) and expire the rest (`expiry`). Re-running posts only what is
+         *     missing.
+         */
+        post: operations["people_leave_year_end_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/onboarding-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Onboarding cases of an institution (`people.read`). */
+        get: operations["people_onboarding_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/payroll-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payroll configuration versions of an institution (`people.read`). */
+        get: operations["people_payroll_config_list"];
+        put?: never;
+        /** Create a configuration version in `draft` (`people.payroll.manage`; L3-E-074). */
+        post: operations["people_payroll_config_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/payroll-periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payroll periods of an institution (`people.read`). */
+        get: operations["people_payroll_period_list"];
+        put?: never;
+        /** Open the payroll period of a month (`people.payroll.manage`; duplicate → 409). */
+        post: operations["people_payroll_period_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Positions of an institution (`people.read`). */
+        get: operations["people_position_list"];
+        put?: never;
+        /** Create a position (`people.staff.manage`; Idempotency-Key). 409 for a duplicate code. */
+        post: operations["people_position_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/requisitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Requisitions of an institution (`people.read`). */
+        get: operations["people_recruitment_requisition_list"];
+        put?: never;
+        /** Create a requisition (`people.staff.manage`; Idempotency-Key). */
+        post: operations["people_recruitment_requisition_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/salary-structures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Salary structures of an institution (`people.read`). */
+        get: operations["people_salary_structure_list"];
+        put?: never;
+        /** Create a salary structure for a grade (`people.payroll.manage`). */
+        post: operations["people_salary_structure_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/separation-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Separation cases of an institution (`people.read`). */
+        get: operations["people_separation_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staff records of an institution with their current engagement (`people.read`). */
+        get: operations["people_directory_staff_list"];
+        put?: never;
+        /**
+         * Create a staff record (`people.staff.manage`; Idempotency-Key). Starts `draft`,
+         *     `pending_verification`, or `active` for HR-verified creation; 409 for a login or work e-mail
+         *     already used by a live record.
+         */
+        post: operations["people_staff_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-adjustments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending adjustment (`people.approve`, step-up): approve applies it. */
+        post: operations["people_leave_adjustment_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-cases/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete a processing case with Leave Management's authoritative decision
+         *     (`people.leave.manage`; 409 while the linked request is still undecided — the case never
+         *     infers approval, L4-E-034-BH-007/008). Records the outcome reference (`leave_case.decided`).
+         */
+        post: operations["people_leave_case_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-cases/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending leave case (`people.approve`, step-up): approve → processing (handed to
+         *     Leave Management), reject → rejected (`leave_case.decided`).
+         */
+        post: operations["people_leave_case_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-encashments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide an eligible encashment (`people.approve`, step-up). */
+        post: operations["people_leave_encashment_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-exceptions/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve an exception under review with a recorded resolution (`people.leave.manage`). */
+        post: operations["people_leave_exception_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-exceptions/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a raised exception under review (`people.leave.manage`). */
+        post: operations["people_leave_exception_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One leave policy version with its leave types (`people.read`). */
+        get: operations["people_leave_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-policies/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an approved policy (`people.approve`, step-up): it becomes the institution's active
+         *     version and the previous active one is superseded (`leave_policy.activated`). A policy is
+         *     activated only once its `effectiveFrom` date has come (409 before).
+         */
+        post: operations["people_leave_policy_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-policies/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a policy under review (`people.approve`, step-up): approve → approved, reject → back to
+         *     draft with the reason.
+         */
+        post: operations["people_leave_policy_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-policies/{id}/leave-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leave types of a policy version (`people.read`). */
+        get: operations["people_leave_type_list"];
+        put?: never;
+        /** Add a leave type to a draft policy (`people.leave.manage`; 409 once submitted). */
+        post: operations["people_leave_type_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-policies/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft for review (`people.leave.manage`): rule validation (conflicts → 422 and the
+         *     policy stays a draft with its findings), then `LEAVE_POLICY_APPROVAL` → under_review
+         *     (auto-approval: approved).
+         */
+        post: operations["people_leave_policy_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-policies/{id}/supersede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire the active policy without a successor (`people.leave.manage`; active → superseded). */
+        post: operations["people_leave_policy_supersede"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One leave request with its month segments (`people.read`). */
+        get: operations["people_leave_request_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-requests/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a request (`people.leave.manage`): pending → cancelled, reserved → released,
+         *     consumed → consumption reversed.
+         */
+        post: operations["people_leave_request_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-requests/{id}/consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consume a reserved request whose leave has started (`people.leave.manage`). */
+        post: operations["people_leave_request_consume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/leave-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending request on behalf of any manager (`people.leave.decide`; nobody decides
+         *     their own request).
+         */
+        post: operations["people_leave_request_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/long-leaves/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a running long leave (`people.leave.manage`): engagement `long_leave → active`
+         *     (`long_leave.ended`); available again.
+         */
+        post: operations["people_leave_long_end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/long-leaves/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a planned long leave (`people.leave.manage`): engagement `active → long_leave`
+         *     (`long_leave.started`); the staff member is unavailable until it ends.
+         */
+        post: operations["people_leave_long_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My attendance days (`people.self`). */
+        get: operations["people_attendance_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/certificate-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My certificate requests (`people.self`). */
+        get: operations["people_certificate_self_list"];
+        put?: never;
+        /** Request one of my own certificates (`people.self`; Idempotency-Key). */
+        post: operations["people_certificate_self_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/leave-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pending requests of the staff who report to me (`people.self`, reporting manager). */
+        get: operations["people_leave_self_approval_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/leave-approvals/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending request of someone who reports to me (`people.self`; 404 unless the
+         *     applicant's current engagement names me as reporting manager).
+         */
+        post: operations["people_leave_self_approval_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/leave-balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My leave balances (`people.self`). */
+        get: operations["people_leave_self_balances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/leave-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My leave requests (`people.self`). */
+        get: operations["people_leave_self_request_list"];
+        put?: never;
+        /** Request leave for myself (`people.self`; my own live engagement, never a client staff id). */
+        post: operations["people_leave_self_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/leave-requests/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel my own request before it is consumed (`people.self`; consumed leave is cancelled by HR). */
+        post: operations["people_leave_self_request_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/leave-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leave types of my institution's active policy that apply to me (`people.self`). */
+        get: operations["people_leave_self_types"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/payslips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own payslips (`people.self`; 404 when the login has no staff record). */
+        get: operations["people_payslip_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/payslips/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of the caller's own payslips (`people.self`; anyone else's → 404). */
+        get: operations["people_payslip_self_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My own profile: record, engagement, faculty profile, qualifications, documents and
+         *     certificate requests (`people.self`). A login without a staff record gets `staff: null` and
+         *     empty lists (200, so My HR renders without an error).
+         */
+        get: operations["people_profile_self_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's own staff record with its current engagement (`people.self`; 404 when the login
+         *     has no staff record).
+         */
+        get: operations["people_directory_self_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/workload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My capacity position (`people.self`). */
+        get: operations["people_workload_self_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One onboarding case (`people.read`). */
+        get: operations["people_onboarding_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-cases/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an onboarding case before joining (`people.staff.manage`; If-Match; reason required). */
+        post: operations["people_onboarding_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-cases/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a joining awaiting acceptance (`people.approve`, step-up; If-Match). Rejection keeps
+         *     the case ready for a new attempt.
+         */
+        post: operations["people_onboarding_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-cases/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record onboarding documents (`people.staff.manage`; If-Match); optionally hand them to
+         *     verification (422 without documents).
+         */
+        post: operations["people_onboarding_documents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-cases/{id}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join: request the acceptance (`people.staff.manage`; If-Match; `ONBOARDING_ACCEPTANCE`). On
+         *     approval the staff record and a pending engagement are created and the engagement is
+         *     submitted for activation.
+         */
+        post: operations["people_onboarding_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-cases/{id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark the case ready for joining (`people.staff.manage`; If-Match): documents must be verified. */
+        post: operations["people_onboarding_ready"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-cases/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify the submitted documents (`people.staff.manage`; If-Match): approved marks them
+         *     verified, otherwise the case returns to documentation (reason required).
+         */
+        post: operations["people_onboarding_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-adjustments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One adjustment (`people.read`). */
+        get: operations["people_payroll_adjustment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-adjustments/{id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply an approved adjustment (`people.payroll.manage`): corrective revision + Finance delta. */
+        post: operations["people_payroll_adjustment_apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-adjustments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending adjustment (`people.payroll.approve`, step-up). */
+        post: operations["people_payroll_adjustment_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-adjustments/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate and submit an adjustment (`people.payroll.manage`; `PAYROLL_ADJUSTMENT_APPROVAL`). */
+        post: operations["people_payroll_adjustment_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One configuration version with its components and statutory rules (`people.read`). */
+        get: operations["people_payroll_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-configs/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an approved configuration (`people.approve`, step-up); the active one is
+         *     superseded.
+         */
+        post: operations["people_payroll_config_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-configs/{id}/components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Components of a configuration version (the configuration detail; `people.read`). */
+        get: operations["people_pay_component_list"];
+        put?: never;
+        /** Add or replace (by code) a pay component on a draft (`people.payroll.manage`). */
+        post: operations["people_pay_component_put"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-configs/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a configuration under review (`people.approve`, step-up). */
+        post: operations["people_payroll_config_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-configs/{id}/statutory-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Statutory rules of a configuration version (the configuration detail; `people.read`). */
+        get: operations["people_payroll_statutory_rule_list"];
+        put?: never;
+        /**
+         * Add or replace (by kind) a statutory rule on a draft (`people.payroll.manage`): PF / ESI /
+         *     professional tax / TDS.
+         */
+        post: operations["people_payroll_statutory_rule_put"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-configs/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft for review (`people.payroll.manage`; validation 422,
+         *     `PAYROLL_CONFIG_APPROVAL`).
+         */
+        post: operations["people_payroll_config_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-configs/{id}/supersede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Supersede an active / approved configuration (`people.payroll.manage`; reason required). */
+        post: operations["people_payroll_config_supersede"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-periods/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Runs of a period (`people.read`). */
+        get: operations["people_payroll_run_list"];
+        put?: never;
+        /**
+         * Create a run of a period (`people.payroll.manage`): `regular` (one per period), `retro`
+         *     (after a finalised regular run) or `off_cycle` (items).
+         */
+        post: operations["people_payroll_run_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-results/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One result with its lines and calculation snapshot (`people.read`). */
+        get: operations["people_payroll_result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-results/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Adjustments raised on a result's chain (`people.read`). */
+        get: operations["people_payroll_adjustment_list"];
+        put?: never;
+        /** Raise an adjustment on a finalised result (`people.payroll.manage`; L3-E-054). */
+        post: operations["people_payroll_adjustment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One run with totals (`people.read`). */
+        get: operations["people_payroll_run_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/calculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Calculate a run (`people.payroll.manage`; bulk: `If-Match` + `Idempotency-Key`). */
+        post: operations["people_payroll_run_calculate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a posted run (`people.payroll.manage`). */
+        post: operations["people_payroll_run_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending run (`people.payroll.approve`, step-up). */
+        post: operations["people_payroll_run_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/finalise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalise an approved run (`people.payroll.approve`, step-up): results immutable. */
+        post: operations["people_payroll_run_finalise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/payslips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payslips of a run (`people.read`). */
+        get: operations["people_payslip_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/payslips/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue payslips for every finalised result of a run without one (`people.payroll.approve`;
+         *     bulk, `Idempotency-Key`; `{processed, skipped, failed[]}`).
+         */
+        post: operations["people_payslip_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post a finalised run's liability to Finance (`people.payroll.approve`, step-up). */
+        post: operations["people_payroll_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen a failed run for recalculation (`people.payroll.manage`). */
+        post: operations["people_payroll_run_reprocess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Results of a run (`people.read`; `?limit=`, `?cursor=`, `?includeSuperseded=`). */
+        get: operations["people_payroll_result_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a validated run for approval (`people.payroll.manage`; `PAYROLL_APPROVAL` /
+         *     `OFF_CYCLE_APPROVAL`).
+         */
+        post: operations["people_payroll_run_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a calculated run (`people.payroll.manage`): exceptions → `failed`. */
+        post: operations["people_payroll_run_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payslips/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One payslip (`people.read`). */
+        get: operations["people_payslip_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payslips/{id}/reissue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reissue a payslip on the current result revision (`people.payroll.approve`). */
+        post: operations["people_payslip_reissue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payslips/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a payslip (`people.payroll.approve`; reason required). */
+        post: operations["people_payslip_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/position-assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One assignment (`people.read`). */
+        get: operations["people_position_assignment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/position-assignments/{id}/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change / reassign an active assignment to another position (`people.staff.manage`; If-Match;
+         *     `POSITION_ASSIGNMENT`; L3-E-012). The old assignment is superseded (history kept) when the new
+         *     one becomes active.
+         */
+        post: operations["people_position_assignment_change"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/position-assignments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending assignment (`people.approve`, step-up; If-Match). Rejection archives it. */
+        post: operations["people_position_assignment_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/position-assignments/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete or terminate an active assignment (`people.staff.manage`; If-Match; L3-E-013). */
+        post: operations["people_position_assignment_end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/positions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One position (`people.read`). */
+        get: operations["people_position_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/positions/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a draft or frozen position (`people.staff.manage`). */
+        post: operations["people_position_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/positions/{id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assignments of a position (`people.read`). */
+        get: operations["people_position_assignment_list"];
+        put?: never;
+        /**
+         * Assign an active engagement to an active position (`people.staff.manage`; Idempotency-Key;
+         *     `POSITION_ASSIGNMENT`; L3-E-011). 409 when the position is frozen / occupied.
+         */
+        post: operations["people_position_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/positions/{id}/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Freeze an active position: no new occupants (`people.staff.manage`; reason required). */
+        post: operations["people_position_freeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/positions/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a position without occupants (`people.staff.manage`; reason required). */
+        post: operations["people_position_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/probation-reviews/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One probation review (`people.read`). */
+        get: operations["people_probation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/probation-reviews/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending probation review (`people.approve`, step-up; If-Match). */
+        post: operations["people_probation_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/requisitions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One requisition (`people.read`). */
+        get: operations["people_recruitment_requisition_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/requisitions/{id}/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Candidates of a requisition (`people.read`). */
+        get: operations["people_recruitment_candidate_list"];
+        put?: never;
+        /**
+         * Add a candidate to an open requisition (`people.staff.manage`; Idempotency-Key). 409 for a
+         *     duplicate e-mail on the same requisition.
+         */
+        post: operations["people_recruitment_candidate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/requisitions/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a requisition (`people.staff.manage`; If-Match; reason required): an open requisition
+         *     with joined hires becomes `filled`, anything else `cancelled`.
+         */
+        post: operations["people_recruitment_requisition_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/requisitions/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending requisition (`people.approve`, step-up; If-Match). Rejection returns it to draft. */
+        post: operations["people_recruitment_requisition_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/requisitions/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft requisition (`people.staff.manage`; If-Match; `REQUISITION_APPROVAL`). Approval
+         *     opens it for candidates.
+         */
+        post: operations["people_recruitment_requisition_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/salary-assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One salary assignment (`people.read`). */
+        get: operations["people_salary_assignment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/salary-assignments/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a salary assignment on a date (`people.payroll.manage`; may lie in a finalised period —
+         *     a retro run pays the difference).
+         */
+        post: operations["people_salary_assignment_end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/salary-structures/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One salary structure (`people.read`). */
+        get: operations["people_salary_structure_get"];
+        /** Replace a structure's name, grade and lines (`people.payroll.manage`; `If-Match`). */
+        put: operations["people_salary_structure_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/separation-cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One separation case (`people.read`). */
+        get: operations["people_separation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/separation-cases/{id}/clearance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record clearance (`people.staff.manage`; If-Match): approved → processing; lines merge by
+         *     department; the clearance is complete when every line is cleared.
+         */
+        post: operations["people_separation_clearance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/separation-cases/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete the separation (`people.staff.manage`; If-Match; clearance complete): closes the
+         *     engagement with the last working date, ends its positions, archives the profile (L3-E-068).
+         */
+        post: operations["people_separation_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/separation-cases/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending separation (`people.approve`, step-up; If-Match). */
+        post: operations["people_separation_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff-documents/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify or reject a pending document (`people.staff.manage`; If-Match; L3-E-064). A document
+         *     past its validity is marked `expired` instead (409).
+         */
+        post: operations["people_profile_document_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff-qualifications/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify or reject a pending qualification (`people.staff.manage`; If-Match; L3-E-060). */
+        post: operations["people_profile_qualification_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One staff record with its current engagement (`people.read`). */
+        get: operations["people_directory_staff_get"];
+        /**
+         * Maintain the core profile (`people.staff.manage`; If-Match; L3-E-059). Merged / archived
+         *     records are read-only (409).
+         */
+        put: operations["people_staff_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a verified profile (`people.staff.manage`; L3-E-058). */
+        post: operations["people_staff_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive the profile after separation (`people.staff.manage`; L3-E-068). 409 while an engagement is live. */
+        post: operations["people_staff_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attendance days of a staff member (`people.read`). */
+        get: operations["people_attendance_staff_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/certificate-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Certificate requests of a staff member (`people.read`). */
+        get: operations["people_certificate_list"];
+        put?: never;
+        /**
+         * Request a certificate on behalf of a staff member (`people.staff.manage`; Idempotency-Key;
+         *     `CERTIFICATE_APPROVAL`).
+         */
+        post: operations["people_certificate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Correction history of a staff record (`people.read`), newest first. */
+        get: operations["people_staff_correction_list"];
+        put?: never;
+        /**
+         * Apply a governed correction with before / after history (`people.staff.manage`; If-Match;
+         *     reason required; L3-E-065). Allowed on any record that is not merged (archived history can be
+         *     corrected); 422 when nothing changes.
+         */
+        post: operations["people_staff_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Profile documents of a staff member (`people.read`). */
+        get: operations["people_profile_document_list"];
+        put?: never;
+        /** Register a profile document (`people.staff.manage`; Idempotency-Key; starts `pending`). */
+        post: operations["people_profile_document_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/engagements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Engagements of a staff record, newest first (`people.read`). */
+        get: operations["people_engagement_list"];
+        put?: never;
+        /**
+         * Create an engagement (`people.staff.manage`; Idempotency-Key). Starts `pending`; one live
+         *     engagement per staff record (409). Rejoining names the closed engagement it follows and
+         *     restores an archived profile.
+         */
+        post: operations["people_engagement_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/faculty-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The faculty profile of a staff record (`people.read`; 404 when none). */
+        get: operations["people_faculty_get_by_staff"];
+        put?: never;
+        /**
+         * Establish a teaching staff member with an active engagement as active faculty
+         *     (`people.staff.manage`; Idempotency-Key; L3-E-026). 409 for non-teaching staff, a
+         *     non-active engagement, or an existing profile.
+         */
+        post: operations["people_faculty_establish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/leave-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Adjustments of a staff member (`people.read`). */
+        get: operations["people_leave_adjustment_list"];
+        put?: never;
+        /**
+         * Request a governed balance adjustment (`people.leave.manage`; `LEAVE_ADJUSTMENT_APPROVAL`,
+         *     auto-approval applies it at once).
+         */
+        post: operations["people_leave_adjustment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/leave-balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leave balances of a staff member (`people.read`). */
+        get: operations["people_leave_balance_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/leave-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leave cases of a staff member (`people.read`). */
+        get: operations["people_leave_case_list"];
+        put?: never;
+        /**
+         * Open a leave case for a staff member (`people.leave.manage`; `LEAVE_CASE_DECISION` →
+         *     pending_approval, auto-approval: processing — handed to Leave Management).
+         */
+        post: operations["people_leave_case_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/leave-encashments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Encashment decisions of a staff member (`people.read`). */
+        get: operations["people_leave_encashment_list"];
+        put?: never;
+        /**
+         * Request encashment (`people.leave.manage`): eligibility is evaluated at once (paid type with an
+         *     encashment cap, days ≤ cap and ≤ balance) → `not_eligible` (decided) or `eligible` →
+         *     `ENCASHMENT_DECISION` (auto-approval: approved with its `encashment` entry).
+         */
+        post: operations["people_leave_encashment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/leave-ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ledger entries of a staff member in a leave year (`people.read`). */
+        get: operations["people_leave_ledger_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge a duplicate onto its canonical record (`people.staff.manage`; If-Match of the duplicate;
+         *     L3-E-009). The duplicate's engagements must be closed / cancelled first; its qualifications,
+         *     documents and login link move to the canonical record.
+         */
+        post: operations["people_staff_merge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/profile-syncs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workforce → profile synchronisation records of a staff member (`people.read`; L3-E-066). */
+        get: operations["people_profile_sync_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/qualifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Qualifications of a staff member (`people.read`). */
+        get: operations["people_profile_qualification_list"];
+        put?: never;
+        /** Register a qualification (`people.staff.manage`; Idempotency-Key; starts `pending`). */
+        post: operations["people_profile_qualification_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a suspended profile (`people.staff.manage`). */
+        post: operations["people_staff_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/submit-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft profile for identity verification (`people.staff.manage`; L3-E-058). */
+        post: operations["people_staff_submit_verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an active profile (`people.staff.manage`; reason required). */
+        post: operations["people_staff_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the identity verification of a pending profile (`people.staff.manage`; L3-E-058). */
+        post: operations["people_staff_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/workload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capacity position of a faculty member (`people.read`): Domain D teaching load vs the active
+         *     plan / policy maximum, availability.
+         */
+        get: operations["people_workload_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/workload-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workload plans of a staff member (`people.read`). */
+        get: operations["people_workload_plan_list"];
+        put?: never;
+        /**
+         * Create a draft workload plan for a faculty member (`people.leave.manage`): teaching staff with
+         *     a working engagement only; a second open plan for the same period is a conflict.
+         */
+        post: operations["people_workload_plan_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/workload-plans/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a submitted plan (`people.approve`, step-up): approve → active, reject → back to draft. */
+        post: operations["people_workload_plan_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/workload-plans/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft (`people.leave.manage`): evaluates the Domain D teaching load against the
+         *     maximum; over-allocation needs `exceptionReason` (409 otherwise); `WORKLOAD_PLAN_APPROVAL` →
+         *     submitted (auto-approval: active).
+         */
+        post: operations["people_workload_plan_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/modules": {
         parameters: {
             query?: never;
@@ -17155,6 +20320,11 @@ export interface components {
          */
         AcademicYearStatus: "planned" | "open" | "closing" | "closed";
         /**
+         * @description How a leave type earns its entitlement.
+         * @enum {string}
+         */
+        AccrualFrequency: "monthly" | "yearly" | "none";
+        /**
          * @description Outcome chosen by the Institution Activation Authority.
          * @enum {string}
          */
@@ -18006,21 +21176,101 @@ export interface components {
          * @enum {string}
          */
         AssessmentWindowStatus: "scheduled" | "open" | "extended" | "closed" | "cancelled";
+        /** @description Reassignment to another position (L3-E-012). */
+        AssignmentChange: {
+            /** Format: uuid */
+            positionId: string;
+            reason: string;
+            /** Format: date */
+            startDate: string;
+        };
+        /** @description Assign an engagement to a position. */
+        AssignmentCreate: {
+            /** Format: date */
+            endDate?: string | null;
+            /** Format: uuid */
+            engagementId: string;
+            /** @description Primary occupancy (default `true`). */
+            isPrimary?: boolean | null;
+            reason?: string | null;
+            /** Format: date */
+            startDate: string;
+        };
+        AssignmentEnd: {
+            /** Format: date */
+            endDate: string;
+            outcome: components["schemas"]["EndOutcome"];
+            reason: string;
+        };
+        AssignmentList: {
+            items: components["schemas"]["AssignmentView"][];
+        };
         /**
          * @description Lifecycle of a time-bound assignment (emergency contact, pickup authorisation, financial responsibility, communication authorisation).
          * @enum {string}
          */
         AssignmentStatus: "active" | "suspended" | "revoked" | "expired";
+        /** @description An occupancy of a position by an engagement. */
+        AssignmentView: {
+            displayName: string;
+            /** Format: date */
+            endDate?: string | null;
+            /** @description `completed`, `terminated`, `superseded`, `engagement_closed`. */
+            endOutcome?: string | null;
+            /** Format: uuid */
+            engagementId: string;
+            engagementNumber: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            isPrimary: boolean;
+            positionCode: string;
+            /** Format: uuid */
+            positionId: string;
+            positionTitle: string;
+            processInstanceId?: string | null;
+            reason?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            /** Format: date */
+            startDate: string;
+            status: components["schemas"]["PositionAssignmentStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * @description Attempt kind of a registered paper (L2-I12).
          * @enum {string}
          */
         AttemptKind: "regular" | "backlog" | "supplementary" | "improvement";
+        /** @description Bulk capture of one date. */
+        AttendanceBulkCreate: {
+            entries: components["schemas"]["AttendanceBulkEntry"][];
+            /** @description `YYYY-MM-DD`. */
+            workDate: string;
+        };
+        /** @description One entry of a bulk capture. */
+        AttendanceBulkEntry: {
+            remark?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["AttendanceDayStatus"];
+        };
         /**
          * @description Attendance capture state of a session (L3-D-024).
          * @enum {string}
          */
         AttendanceCaptureStatus: "not_started" | "capturing" | "submitted" | "finalised";
+        /** @description Correct a recorded day (remark required, history kept). */
+        AttendanceCorrect: {
+            remark?: string | null;
+            status: components["schemas"]["AttendanceDayStatus"];
+        };
         /** @description Governed correction of a finalised attendance record. */
         AttendanceCorrection: {
             /** Format: date-time */
@@ -18053,6 +21303,49 @@ export interface components {
         };
         AttendanceCorrectionList: {
             items: components["schemas"]["AttendanceCorrection"][];
+        };
+        /**
+         * Format: uuid
+         * @description One staff attendance day (payroll input).
+         */
+        AttendanceDayId: string;
+        AttendanceDayList: {
+            items: components["schemas"]["AttendanceDayView"][];
+        };
+        /**
+         * @description Attendance of a staff member on one work date.
+         * @enum {string}
+         */
+        AttendanceDayStatus: "present" | "absent" | "half_day" | "on_leave" | "holiday" | "weekly_off";
+        /** @description One attendance day. */
+        AttendanceDayView: {
+            id: components["schemas"]["AttendanceDayId"];
+            /** Format: uuid */
+            leaveRequestId?: string | null;
+            remark?: string | null;
+            source: components["schemas"]["AttendanceSource"];
+            staffId: components["schemas"]["StaffMemberId"];
+            status: components["schemas"]["AttendanceDayStatus"];
+            /** Format: int64 */
+            version: number;
+            /** Format: date */
+            workDate: string;
+        };
+        /** @description The daily attendance grid of an institution. */
+        AttendanceGrid: {
+            items: components["schemas"]["AttendanceGridRow"][];
+            /** Format: date */
+            workDate: string;
+        };
+        /** @description One staff member on the daily grid. */
+        AttendanceGridRow: {
+            /** @description Operationally available (engagement working, e.g. not on long leave). */
+            available: boolean;
+            day?: null | components["schemas"]["AttendanceDayView"];
+            displayName: string;
+            engagementStatus: components["schemas"]["EngagementStatus"];
+            staffId: components["schemas"]["StaffMemberId"];
+            staffNumber: string;
         };
         /**
          * @description One attendance mark (L2-D04 attendance status).
@@ -18107,6 +21400,20 @@ export interface components {
             /** Format: int64 */
             version?: number | null;
         };
+        /** @description Record one day. */
+        AttendanceRecordCreate: {
+            remark?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["AttendanceDayStatus"];
+            /** @description `YYYY-MM-DD`. */
+            workDate: string;
+        };
+        /**
+         * @description Origin of an attendance day record.
+         * @enum {string}
+         */
+        AttendanceSource: "manual" | "bulk" | "leave" | "correction";
         AttendanceSummary: {
             /** Format: int64 */
             finalisedSessions: number;
@@ -18387,6 +21694,11 @@ export interface components {
             /** @description Every marked submission needs an approved moderation before finalisation. */
             moderationRequired?: boolean;
         };
+        /**
+         * @description 7C: how a component amount is computed.
+         * @enum {string}
+         */
+        CalculationBasis: "fixed" | "percent_of_basic" | "percent_of_gross" | "statutory";
         /** @description Academic calendar: the stable identity of a calendar series (versions live under it). */
         Calendar: {
             code: string;
@@ -18682,6 +21994,53 @@ export interface components {
          * @enum {string}
          */
         CampusType: "main" | "satellite" | "city" | "medical" | "engineering" | "research" | "off_campus" | "online" | "other";
+        CandidateCreate: {
+            email: string;
+            familyName?: string | null;
+            givenName: string;
+            notes?: string | null;
+            phone?: string | null;
+            source?: string | null;
+        };
+        CandidateList: {
+            items: components["schemas"]["CandidateView"][];
+        };
+        /**
+         * @description 7A: candidate of a requisition.
+         * @enum {string}
+         */
+        CandidateStatus: "applied" | "shortlisted" | "interviewed" | "offered" | "offer_accepted" | "offer_declined" | "rejected" | "withdrawn";
+        /** @description Interview notes / decline / reject reason. */
+        CandidateStep: {
+            notes?: string | null;
+            reason?: string | null;
+        };
+        /** @description A candidate of a requisition. */
+        CandidateView: {
+            email: string;
+            familyName?: string | null;
+            givenName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            notes?: string | null;
+            offeredDesignation?: string | null;
+            offeredGrade?: string | null;
+            /** Format: uuid */
+            onboardingCaseId?: string | null;
+            phone?: string | null;
+            /** Format: date */
+            proposedJoiningDate?: string | null;
+            /** Format: uuid */
+            requisitionId: string;
+            requisitionNumber: string;
+            source?: string | null;
+            status: components["schemas"]["CandidateStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         CaptureAttendance: {
             records: components["schemas"]["MarkInput"][];
         };
@@ -18736,10 +22095,22 @@ export interface components {
             /** @description Derived from the provider's status and accreditation validity when not given. */
             providerAccredited?: boolean | null;
         };
+        CertificateCreate: {
+            kind: components["schemas"]["CertificateKind"];
+            purpose: string;
+        };
         CertificateDecision: {
             /** @description `accepted` | `rejected` | `flagged`. */
             outcome: components["schemas"]["CertificateVerificationStatus"];
             reason?: string | null;
+        };
+        /**
+         * @description Certificate kinds.
+         * @enum {string}
+         */
+        CertificateKind: "service" | "experience";
+        CertificateList: {
+            items: components["schemas"]["CertificateView"][];
         };
         CertificateVerification: {
             certificateNumber: string;
@@ -18781,6 +22152,40 @@ export interface components {
          * @enum {string}
          */
         CertificateVerificationStatus: "submitted" | "under_verification" | "accepted" | "rejected" | "flagged";
+        /** @description A certificate request. */
+        CertificateView: {
+            /** @example CERT-000001 */
+            certificateNumber?: string | null;
+            /** @description What the issued certificate states. */
+            content?: Record<string, never> | null;
+            decidedBy?: string | null;
+            displayName: string;
+            /** Format: uuid */
+            engagementId?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: date-time */
+            issuedAt?: string | null;
+            kind: components["schemas"]["CertificateKind"];
+            processInstanceId?: string | null;
+            purpose: string;
+            /** @description `self` | `hr`. */
+            requestedVia: string;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            status: components["schemas"]["HrCaseStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Kind of a governed engagement change.
+         * @enum {string}
+         */
+        ChangeKind: "activation" | "modification" | "transfer";
         /**
          * @description `POST …/positions/{id}/changes`: an effective-dated successor revision of an active
          *     definition (absent members carry over from the latest revision).
@@ -18804,6 +22209,26 @@ export interface components {
          * @enum {string}
          */
         ChangeRequestStatus: "requested" | "validated" | "approved" | "applied" | "rejected" | "withdrawn";
+        /** @description A governed engagement change (activation, modification, transfer). */
+        ChangeRequestView: {
+            /** Format: date-time */
+            createdAt: string;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: date */
+            effectiveDate?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["ChangeKind"];
+            processInstanceId?: string | null;
+            proposal: components["schemas"]["EngagementChanges"];
+            reason?: string | null;
+            /**
+             * @description `pending_approval`, `approved` (activation waiting for the start date), `rejected`,
+             *     `applied`, `cancelled`.
+             */
+            status: string;
+        };
         /** @description `PUT …/institutions/{id}/timezone`. */
         ChangeTimezone: {
             /**
@@ -18984,6 +22409,9 @@ export interface components {
             name: string;
             ok: boolean;
         };
+        ClearanceBody: {
+            items: components["schemas"]["SeparationClearanceItem"][];
+        };
         /**
          * @description Clearance item of an exit or a qualification completion (L3-C-046).
          * @enum {string}
@@ -19001,6 +22429,13 @@ export interface components {
             prepareSuccessor?: boolean;
             reason?: string | null;
             successor?: null | components["schemas"]["SuccessorYear"];
+        };
+        /** @description Closure → exit (L3-E-007). */
+        CloseBody: {
+            /** Format: date */
+            lastWorkingDate: string;
+            reason: string;
+            separationKind?: null | components["schemas"]["SeparationKind"];
         };
         ClosureEvidence: {
             detail: string;
@@ -19121,6 +22556,10 @@ export interface components {
          * @enum {string}
          */
         CommunicationTopic: "academic" | "attendance" | "finance" | "discipline" | "emergency" | "general";
+        CompleteBody: {
+            /** @description Archive the profile when no other engagement is live (default `true`). */
+            archiveProfile?: boolean | null;
+        };
         /** @description Complete an approved exit. */
         CompleteExit: {
             /**
@@ -19327,6 +22766,18 @@ export interface components {
             paperId: string;
             reason: string;
         };
+        /** @description Governed correction (L3-E-065): only the fields to correct; an empty string clears a field. */
+        CorrectionChanges: {
+            /** @description `YYYY-MM-DD`, or empty to clear. */
+            dateOfBirth?: string | null;
+            displayName?: string | null;
+            familyName?: string | null;
+            /** @description `Gender` wire name, or empty to clear. */
+            gender?: string | null;
+            givenName?: string | null;
+            phone?: string | null;
+            workEmail?: string | null;
+        };
         CorrectionDecision: {
             decision: components["schemas"]["CorrectionDecisionValue"];
             reason?: string | null;
@@ -19338,8 +22789,25 @@ export interface components {
         CorrectionDecisionValue: "apply" | "no_change" | "reject";
         /** @enum {string} */
         CorrectionKind: "correction" | "revocation";
+        CorrectionList: {
+            items: components["schemas"]["CorrectionView"][];
+        };
         /** @enum {string} */
         CorrectionResolution: "corrected" | "revoked" | "no_change";
+        /** @description One governed correction (before / after). */
+        CorrectionView: {
+            actor?: string | null;
+            afterValue?: string | null;
+            beforeValue?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            field: string;
+            /** Format: uuid */
+            id: string;
+            reason: string;
+            /** Format: int64 */
+            staffVersion: number;
+        };
         /**
          * @description Course Offering lifecycle (L2-D01 §10 + §71 state transition matrix).
          * @enum {string}
@@ -20055,6 +23523,20 @@ export interface components {
             /** Format: int32 */
             skipped: number;
         };
+        /** @description One entry of the basic staff directory (what every staff member may see). */
+        DirectoryEntry: {
+            designation?: string | null;
+            displayName: string;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            staffCategory: components["schemas"]["StaffCategory"];
+            staffId: components["schemas"]["StaffMemberId"];
+            staffNumber: string;
+            workEmail?: string | null;
+        };
+        DirectoryList: {
+            items: components["schemas"]["DirectoryEntry"][];
+        };
         DisputeCreate: {
             /** @description Part of the outstanding amount in dispute (default: all of it). */
             amount?: string | null;
@@ -20099,6 +23581,16 @@ export interface components {
             studentAccountId: string;
             /** Format: int64 */
             version: number;
+        };
+        DocumentCreate: {
+            documentType: string;
+            reference: string;
+            title: string;
+            /** Format: date */
+            validUntil?: string | null;
+        };
+        DocumentList: {
+            items: components["schemas"]["DocumentView"][];
         };
         /** @description A document / certificate request. */
         DocumentRequest: {
@@ -20149,6 +23641,31 @@ export interface components {
          * @enum {string}
          */
         DocumentStatus: "submitted" | "verified" | "rejected" | "waived" | "superseded";
+        /** @description A profile document (reference only, never the content). */
+        DocumentView: {
+            /** @description `identity`, `address`, `education`, `employment`, `medical`, `other`. */
+            documentType: string;
+            /** Format: uuid */
+            id: string;
+            reference: string;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["VerificationStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: date */
+            validUntil?: string | null;
+            /** Format: date-time */
+            verifiedAt?: string | null;
+            verifiedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        DocumentsBody: {
+            documents: components["schemas"]["OnboardingDocument"][];
+            /** @description Hand the documents to HR verification. */
+            submitForVerification?: boolean;
+        };
         /** @description `POST …/org-type-blueprints` and `PUT …/org-type-blueprints/{id}` (draft only). */
         DraftBlueprint: {
             /** Format: date */
@@ -20240,6 +23757,11 @@ export interface components {
         DuplicateCaseList: {
             items: components["schemas"]["DuplicateCase"][];
         };
+        /**
+         * @description Eligibility commands (L3-E-029).
+         * @enum {string}
+         */
+        EligibilityAction: "request" | "review" | "approve" | "reject" | "suspend" | "reinstate" | "expire";
         /** @description One appended assessment (history is never rewritten). */
         EligibilityAssessment: {
             actor?: string | null;
@@ -20257,6 +23779,15 @@ export interface components {
             /** Format: date-time */
             recordedAt: string;
             toStatus: components["schemas"]["ScholarshipEligibilityStatus"];
+        };
+        EligibilityBody: {
+            action: components["schemas"]["EligibilityAction"];
+            reason?: string | null;
+            /**
+             * Format: date
+             * @description Approval validity (approve only; after today).
+             */
+            validUntil?: string | null;
         };
         /**
          * @description Evaluate eligibility. Evidence is optional: the 3B progression eligibility / credit ledger is
@@ -20365,6 +23896,129 @@ export interface components {
             phone?: string | null;
             /** Format: int32 */
             priority?: number | null;
+        };
+        /**
+         * @description Employment type of an engagement.
+         * @enum {string}
+         */
+        EmploymentType: "permanent" | "probation" | "contract" | "visiting" | "temporary";
+        /**
+         * @description 7B: leave encashment decision (L3-E-051).
+         * @enum {string}
+         */
+        EncashmentStatus: "requested" | "eligible" | "not_eligible" | "approved" | "paid" | "rejected";
+        /**
+         * @description How an occupancy ends (L3-E-013).
+         * @enum {string}
+         */
+        EndOutcome: "completed" | "terminated";
+        /** @description Proposed engagement attributes (modification / transfer); `None` = unchanged. */
+        EngagementChanges: {
+            /** Format: uuid */
+            campusId?: string | null;
+            designation?: string | null;
+            employmentType?: null | components["schemas"]["EmploymentType"];
+            /** Format: date */
+            endDate?: string | null;
+            grade?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** Format: date */
+            probationEndDate?: string | null;
+            staffCategory?: null | components["schemas"]["StaffCategory"];
+        };
+        /** @description A new engagement of a staff record (pending until activation; L3-E-001 / 008). */
+        EngagementCreate: {
+            /** Format: uuid */
+            campusId?: string | null;
+            designation: string;
+            employmentType: components["schemas"]["EmploymentType"];
+            /** Format: date */
+            endDate?: string | null;
+            grade?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** Format: date */
+            probationEndDate?: string | null;
+            /**
+             * Format: uuid
+             * @description Rejoining (L3-E-008): the closed engagement this one follows.
+             */
+            rejoinOfEngagementId?: string | null;
+            /** Format: uuid */
+            reportsToStaffId?: string | null;
+            staffCategory?: null | components["schemas"]["StaffCategory"];
+            /** Format: date */
+            startDate: string;
+        };
+        EngagementList: {
+            items: components["schemas"]["EngagementRecordView"][];
+        };
+        /** @description An engagement with its staff member and open governed change. */
+        EngagementRecordView: {
+            /** Format: uuid */
+            campusId?: string | null;
+            designation: string;
+            displayName: string;
+            employmentType: components["schemas"]["EmploymentType"];
+            /** Format: date */
+            endDate?: string | null;
+            /** @example ENG-000001 */
+            engagementNumber: string;
+            grade?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            lastWorkingDate?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            pendingChange?: null | components["schemas"]["ChangeRequestView"];
+            /** Format: date */
+            probationEndDate?: string | null;
+            /** Format: uuid */
+            rejoinOfEngagementId?: string | null;
+            /** Format: uuid */
+            reportsToStaffId?: string | null;
+            staffCategory: components["schemas"]["StaffCategory"];
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            /** Format: date */
+            startDate: string;
+            status: components["schemas"]["EngagementStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Workforce engagement lifecycle (L2-E01: Pending → Active ↔ Suspended / Deputed / LongLeave → Closed).
+         * @enum {string}
+         */
+        EngagementStatus: "pending" | "active" | "suspended" | "deputed" | "long_leave" | "closed" | "cancelled";
+        /** @description An engagement as the directory shows it. */
+        EngagementView: {
+            /** Format: uuid */
+            campusId?: string | null;
+            designation: string;
+            employmentType: components["schemas"]["EmploymentType"];
+            /** Format: date */
+            endDate?: string | null;
+            /** @example ENG-000001 */
+            engagementNumber: string;
+            grade?: string | null;
+            id: components["schemas"]["StaffEngagementId"];
+            /** Format: date */
+            lastWorkingDate?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** Format: date */
+            probationEndDate?: string | null;
+            reportsToStaffId?: null | components["schemas"]["StaffMemberId"];
+            staffCategory: components["schemas"]["StaffCategory"];
+            /** Format: date */
+            startDate: string;
+            status: components["schemas"]["EngagementStatus"];
+            /** Format: int64 */
+            version: number;
         };
         EnrolmentRestriction: {
             /** Format: date */
@@ -21699,6 +25353,11 @@ export interface components {
         FacultyAttendance: {
             items: components["schemas"]["TaughtSectionSessions"][];
         };
+        /**
+         * @description Faculty availability in a planning period.
+         * @enum {string}
+         */
+        FacultyAvailability: "available" | "partially_available" | "unavailable";
         /** @description Faculty member on a section (§5.3). */
         FacultyBrief: {
             /** Format: uuid */
@@ -21708,6 +25367,15 @@ export interface components {
             role: components["schemas"]["FacultyRole"];
             status: components["schemas"]["FacultyAssignmentStatus"];
         };
+        FacultyCreate: {
+            disciplines?: string | null;
+            highestQualification?: string | null;
+        };
+        /**
+         * @description 7A: faculty teaching eligibility (L2-E03).
+         * @enum {string}
+         */
+        FacultyEligibilityStatus: "requested" | "under_review" | "approved" | "suspended" | "expired" | "rejected";
         FacultyPolicyDraft: {
             allowedRoles?: components["schemas"]["FacultyRole"][] | null;
             /** Format: double */
@@ -21720,6 +25388,30 @@ export interface components {
             notes?: string | null;
             /** @description `compatible` | `incompatible` (impact + architecture review outcome). */
             outcome: string;
+        };
+        /** @description Faculty profile of a teaching staff member. */
+        FacultyProfileView: {
+            disciplines?: string | null;
+            displayName: string;
+            eligibilityReason?: string | null;
+            eligibilityStatus?: null | components["schemas"]["FacultyEligibilityStatus"];
+            /** Format: date */
+            eligibilityValidUntil?: string | null;
+            /** Format: uuid */
+            engagementId: string;
+            highestQualification?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            /** @description `active` | `suspended`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         /**
          * @description Teaching role of a faculty assignment.
@@ -21852,6 +25544,51 @@ export interface components {
             field: string;
             /** @description Human readable explanation. */
             message: string;
+        };
+        FinalSettlementCreate: {
+            notes?: string | null;
+            recoveries?: components["schemas"]["SettlementRecovery"][] | null;
+        };
+        FinalSettlementList: {
+            items: components["schemas"]["FinalSettlementView"][];
+        };
+        /**
+         * @description Separation final settlement (L3-E-056).
+         * @enum {string}
+         */
+        FinalSettlementStatus: "initiated" | "calculated" | "pending_approval" | "approved" | "rejected" | "completed";
+        FinalSettlementView: {
+            /** Format: date-time */
+            completedAt?: string | null;
+            encashmentAmount: string;
+            encashmentDays: string;
+            /** Format: uuid */
+            engagementId: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            journalEntryNumber?: string | null;
+            /** Format: date */
+            lastWorkingDate: string;
+            netPay: string;
+            notes?: string | null;
+            /** @example FNF-000001 */
+            number?: string | null;
+            processInstanceId?: string | null;
+            recoveries: components["schemas"]["SettlementRecovery"][];
+            recoveryAmount: string;
+            /** Format: uuid */
+            runId?: string | null;
+            salaryAmount: string;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["FinalSettlementStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         /** @description Finance-owned evidence about one subject, as Finance publishes it. Domain C decides. */
         FinanceEvidence: {
@@ -22100,6 +25837,11 @@ export interface components {
         FlexibleReason: {
             reason?: string | null;
         };
+        /**
+         * @description Gender as recorded on the profile (optional).
+         * @enum {string}
+         */
+        Gender: "female" | "male" | "other" | "undisclosed";
         GenerateCharges: {
             /** @description Publish each generated charge (default `true`); otherwise they stay `validated`. */
             publish?: boolean | null;
@@ -22487,6 +26229,11 @@ export interface components {
          * @enum {string}
          */
         HoldSource: "academic" | "administrative" | "discipline" | "documents" | "finance";
+        /**
+         * @description 7A (7B leave cases reuse it): generic HR case lifecycle (L2-E04).
+         * @enum {string}
+         */
+        HrCaseStatus: "initiated" | "pending_approval" | "approved" | "rejected" | "processing" | "completed" | "failed" | "closed" | "archived";
         /** @description The party the money belongs to. */
         IdentifyRequest: {
             /** Format: uuid */
@@ -22974,6 +26721,530 @@ export interface components {
          * @enum {string}
          */
         LearningProviderStatus: "proposed" | "under_review" | "active" | "suspended" | "offboarded";
+        /** @description Run an accrual for a period. */
+        LeaveAccrualCreate: {
+            /** Format: int32 */
+            leaveYear: number;
+            /**
+             * Format: int32
+             * @description 1 … 12: monthly accrual of `monthly` types; absent: opening entitlement of `yearly` types.
+             */
+            month?: number | null;
+        };
+        LeaveAccrualRunList: {
+            items: components["schemas"]["LeaveAccrualRunView"][];
+        };
+        /** @description An accrual run (idempotent per institution and period). */
+        LeaveAccrualRunView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: int32 */
+            leaveYear: number;
+            /** @description `YYYY` (opening entitlements) or `YYYY-MM` (monthly accrual). */
+            period: string;
+            /** Format: uuid */
+            policyId: string;
+            /**
+             * Format: int64
+             * @description Entries posted by this execution.
+             */
+            processed: number;
+            /** Format: int32 */
+            runs: number;
+            /**
+             * Format: int64
+             * @description Entries already posted by an earlier execution (idempotency).
+             */
+            skipped: number;
+            /** Format: int32 */
+            staffCount: number;
+            status: string;
+        };
+        /** @description Request a balance adjustment. */
+        LeaveAdjustmentCreate: {
+            /**
+             * @description Signed non-zero days, two decimals at most.
+             * @example 2.00
+             */
+            days: string;
+            /** Format: uuid */
+            leaveTypeId: string;
+            /** Format: int32 */
+            leaveYear: number;
+            reason?: string | null;
+        };
+        LeaveAdjustmentList: {
+            items: components["schemas"]["LeaveAdjustmentView"][];
+        };
+        /**
+         * @description 7B: governed leave balance adjustment (L3-E-049).
+         * @enum {string}
+         */
+        LeaveAdjustmentStatus: "requested" | "pending_approval" | "approved" | "applied" | "rejected";
+        /** @description A governed balance adjustment. */
+        LeaveAdjustmentView: {
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * @description Signed days (`"2.00"`, `"-1.50"`).
+             * @example 2.00
+             */
+            days: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            leaveTypeCode: string;
+            /** Format: uuid */
+            leaveTypeId: string;
+            /** Format: int32 */
+            leaveYear: number;
+            /** Format: uuid */
+            ledgerEntryId?: string | null;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["LeaveAdjustmentStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        LeaveBalanceList: {
+            items: components["schemas"]["LeaveBalanceView"][];
+        };
+        /** @description Leave balance of one leave type and year (contract §5.3; days as strings). */
+        LeaveBalanceView: {
+            /** @example 6.50 */
+            available: string;
+            /** @example 3.50 */
+            consumed: string;
+            /** @example 12.00 */
+            entitled: string;
+            /** @example CL */
+            leaveTypeCode: string;
+            /** Format: uuid */
+            leaveTypeId: string;
+            /** Format: int32 */
+            leaveYear: number;
+            /** @example 2.00 */
+            reserved: string;
+        };
+        /** @description One row a bulk command could not process. */
+        LeaveBulkFailure: {
+            /**
+             * Format: uuid
+             * @description Staff member / request concerned.
+             */
+            id: string;
+            reason: string;
+        };
+        /** @description Summary of a bulk command (`{processed, skipped, failed[]}`, contract §5.1). */
+        LeaveBulkSummary: {
+            failed: components["schemas"]["LeaveBulkFailure"][];
+            /** Format: int64 */
+            processed: number;
+            /** Format: int64 */
+            skipped: number;
+        };
+        /** @description Complete a case with Leave Management's decision. */
+        LeaveCaseComplete: {
+            /**
+             * Format: uuid
+             * @description Links the request when the case was opened without one.
+             */
+            leaveRequestId?: string | null;
+            reason?: string | null;
+        };
+        /** @description Open a leave case. */
+        LeaveCaseCreate: {
+            caseType: string;
+            description?: string | null;
+            /** Format: uuid */
+            leaveRequestId?: string | null;
+        };
+        LeaveCaseList: {
+            items: components["schemas"]["LeaveCaseView"][];
+        };
+        /** @description An HR leave case coordinating a Leave Management decision. */
+        LeaveCaseView: {
+            caseType: string;
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            /** Format: uuid */
+            engagementId: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description The authoritative leave outcome recorded on the case (`approved`, `rejected`, `cancelled`). */
+            leaveOutcome?: string | null;
+            /**
+             * Format: uuid
+             * @description The Leave Management request the case coordinates (owned by Leave Management).
+             */
+            leaveRequestId?: string | null;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["HrCaseStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Approve or reject (`POST …/decision`).
+         * @enum {string}
+         */
+        LeaveDecision: "approve" | "reject";
+        /** @description Decision body of every 7B governed decision. */
+        LeaveDecisionBody: {
+            decision: components["schemas"]["LeaveDecision"];
+            reason?: string | null;
+        };
+        /** @description Request encashment of leave days. */
+        LeaveEncashmentCreate: {
+            /** @example 5.00 */
+            days: string;
+            /** Format: uuid */
+            leaveTypeId: string;
+            /** Format: int32 */
+            leaveYear: number;
+            reason?: string | null;
+        };
+        LeaveEncashmentList: {
+            items: components["schemas"]["LeaveEncashmentView"][];
+        };
+        /** @description An encashment eligibility decision (7C pays the `encashment` ledger entry). */
+        LeaveEncashmentView: {
+            /**
+             * @description Balance when eligibility was evaluated.
+             * @example 9.50
+             */
+            availableDays: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @example 5.00 */
+            days: string;
+            /** @example 10.00 */
+            encashmentCap: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            leaveTypeCode: string;
+            /** Format: uuid */
+            leaveTypeId: string;
+            /** Format: int32 */
+            leaveYear: number;
+            /**
+             * Format: uuid
+             * @description The `encashment` ledger entry (negative days) once approved.
+             */
+            ledgerEntryId?: string | null;
+            processInstanceId?: string | null;
+            reason?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["EncashmentStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Kind of an append-only leave ledger transaction (L2-E05 §6.6).
+         * @enum {string}
+         */
+        LeaveEntryKind: "opening" | "accrual" | "carry_forward" | "adjustment" | "reservation" | "release" | "consumption" | "expiry" | "encashment" | "reversal";
+        /** @description Raise a leave exception. */
+        LeaveExceptionCreate: {
+            category: string;
+            description?: string | null;
+            /** Format: uuid */
+            leaveRequestId?: string | null;
+            /** Format: uuid */
+            staffId?: string | null;
+        };
+        LeaveExceptionList: {
+            items: components["schemas"]["LeaveExceptionView"][];
+        };
+        /** @description Resolve an exception. */
+        LeaveExceptionResolve: {
+            resolution?: string | null;
+        };
+        /**
+         * @description 7B: leave exception (L3-E-052).
+         * @enum {string}
+         */
+        LeaveExceptionStatus: "raised" | "under_review" | "resolved" | "closed";
+        /** @description A leave exception under review. */
+        LeaveExceptionView: {
+            /** @description `balance_shortfall`, `policy_conflict`, `attendance_mismatch`, `backdated_request`, `other`. */
+            category: string;
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            leaveRequestId?: string | null;
+            /** @example LEX-000001 */
+            number: string;
+            resolution?: string | null;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            resolvedBy?: string | null;
+            /** Format: uuid */
+            staffId?: string | null;
+            status: components["schemas"]["LeaveExceptionStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One ledger entry (read-only view of the append-only ledger). */
+        LeaveLedgerEntryView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** @example -2.50 */
+            days: string;
+            /** Format: date */
+            effectiveOn: string;
+            /** Format: uuid */
+            id: string;
+            isPaid: boolean;
+            kind: components["schemas"]["LeaveEntryKind"];
+            leaveTypeCode: string;
+            /** Format: uuid */
+            leaveTypeId: string;
+            /** Format: int32 */
+            leaveYear: number;
+            postingKey: string;
+            reason?: string | null;
+            /** Format: uuid */
+            reversesEntryId?: string | null;
+            /** Format: uuid */
+            sourceId: string;
+            sourceType: string;
+        };
+        LeaveLedgerList: {
+            items: components["schemas"]["LeaveLedgerEntryView"][];
+        };
+        /** @description New leave policy version (draft). */
+        LeavePolicyCreate: {
+            /** @description `YYYY-MM-DD`. */
+            effectiveFrom: string;
+            /** @description `YYYY-MM-DD` holidays excluded from leave days. */
+            holidays?: string[] | null;
+            name?: string | null;
+            /** @description ISO weekdays (default `[7]` = Sunday). */
+            weeklyOffDays?: number[] | null;
+        };
+        LeavePolicyList: {
+            items: components["schemas"]["LeavePolicyView"][];
+        };
+        /**
+         * @description 7B: leave policy version (L2-E05 §6.3).
+         * @enum {string}
+         */
+        LeavePolicyStatus: "draft" | "under_review" | "approved" | "scheduled" | "active" | "superseded" | "archived";
+        /** @description A leave policy version with its leave types. */
+        LeavePolicyView: {
+            /** Format: date */
+            effectiveFrom: string;
+            holidays: string[];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            leaveTypes: components["schemas"]["LeaveTypeView"][];
+            name: string;
+            processInstanceId?: string | null;
+            status: components["schemas"]["LeavePolicyStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesPolicyId?: string | null;
+            /** @description Rule validation findings of the last submission. */
+            validationFindings: string[];
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+            /** @description ISO weekdays (1 = Monday … 7 = Sunday). */
+            weeklyOffDays: number[];
+        };
+        /** @description Optional reason of a state command (`{}` allowed). */
+        LeaveReasonBody: {
+            reason?: string | null;
+        };
+        /** @description New leave request (submitted at once: validation, then `LEAVE_APPROVAL`). */
+        LeaveRequestCreate: {
+            /** @description `YYYY-MM-DD` (inclusive). */
+            endDate: string;
+            halfDayEnd?: boolean | null;
+            halfDayStart?: boolean | null;
+            /** Format: uuid */
+            leaveTypeId: string;
+            reason?: string | null;
+            /**
+             * Format: uuid
+             * @description HR on-behalf requests only (`POST /institutions/{id}/leave-requests`); ignored on `/me`.
+             */
+            staffId?: string | null;
+            /** @description `YYYY-MM-DD`. */
+            startDate: string;
+        };
+        LeaveRequestList: {
+            items: components["schemas"]["LeaveRequestView"][];
+            /** @description Request number to continue after (`?cursor=`), when more rows exist. */
+            nextCursor?: string | null;
+        };
+        /**
+         * @description 7B: leave request (L2-E05 §6.4).
+         * @enum {string}
+         */
+        LeaveRequestStatus: "draft" | "submitted" | "validated" | "pending_approval" | "approved" | "rejected" | "reserved" | "consumed" | "cancelled" | "closed";
+        /** @description A leave request (contract §5.3). */
+        LeaveRequestView: {
+            approverStaffId?: null | components["schemas"]["StaffMemberId"];
+            /** Format: date-time */
+            createdAt: string;
+            /** @example 2.50 */
+            days: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            displayName: string;
+            /** Format: date */
+            endDate: string;
+            engagementId: components["schemas"]["StaffEngagementId"];
+            halfDayEnd: boolean;
+            halfDayStart: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            isPaid: boolean;
+            /** @example CL */
+            leaveTypeCode: string;
+            /** Format: uuid */
+            leaveTypeId: string;
+            /** Format: int32 */
+            leaveYear: number;
+            /** @example LV-000001 */
+            number: string;
+            processInstanceId?: string | null;
+            reason?: string | null;
+            /** @description Calendar-month segments (filled on single reads and after commands). */
+            segments: components["schemas"]["LeaveSegmentView"][];
+            staffId: components["schemas"]["StaffMemberId"];
+            staffNumber: string;
+            /** Format: date */
+            startDate: string;
+            status: components["schemas"]["LeaveRequestStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One calendar-month segment of a request. */
+        LeaveSegmentView: {
+            /**
+             * Format: uuid
+             * @description The `consume:<YYYY-MM>` ledger entry, once consumed.
+             */
+            consumedEntryId?: string | null;
+            /** @example 2.50 */
+            days: string;
+            /** Format: date */
+            firstDay: string;
+            /** Format: date */
+            lastDay: string;
+            /**
+             * @description `YYYY-MM`.
+             * @example 2026-07
+             */
+            month: string;
+        };
+        /** @description New leave type of a draft policy. */
+        LeaveTypeCreate: {
+            accrualFrequency?: null | components["schemas"]["AccrualFrequency"];
+            /** @example 12.00 */
+            annualEntitlement?: string | null;
+            /** @description `StaffCategory` names (default: every category). */
+            applicableCategories?: string[] | null;
+            /** @example 5.00 */
+            carryForwardCap?: string | null;
+            /** @description `^[A-Z0-9][A-Z0-9_-]{0,15}$` (e.g. `CL`, `EL`, `SL`, `LOP`). */
+            code: string;
+            /** @example 0.00 */
+            encashmentCap?: string | null;
+            halfDayAllowed?: boolean | null;
+            isPaid?: boolean | null;
+            name?: string | null;
+            requiresBalance?: boolean | null;
+        };
+        LeaveTypeList: {
+            items: components["schemas"]["LeaveTypeView"][];
+        };
+        /** @description A leave type of a policy version. */
+        LeaveTypeView: {
+            accrualFrequency: components["schemas"]["AccrualFrequency"];
+            /** @example 12.00 */
+            annualEntitlement: string;
+            applicableCategories: string[];
+            /** @example 5.00 */
+            carryForwardCap: string;
+            /** @example CL */
+            code: string;
+            /** @example 0.00 */
+            encashmentCap: string;
+            halfDayAllowed: boolean;
+            /** Format: uuid */
+            id: string;
+            isPaid: boolean;
+            name: string;
+            /** Format: uuid */
+            policyId: string;
+            requiresBalance: boolean;
+        };
+        /** @description Close a leave year. */
+        LeaveYearEndCreate: {
+            /** Format: int32 */
+            leaveYear: number;
+        };
+        LeaveYearEndRunList: {
+            items: components["schemas"]["LeaveYearEndRunView"][];
+        };
+        /** @description A year-end run (carry forward up to each type's cap, expire the rest). */
+        LeaveYearEndRunView: {
+            /** @example 15.00 */
+            carriedDays: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @example 4.50 */
+            expiredDays: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /**
+             * Format: int32
+             * @description The leave year closed.
+             */
+            leaveYear: number;
+            /** Format: uuid */
+            policyId: string;
+            /** Format: int32 */
+            runs: number;
+            /** Format: int32 */
+            staffCount: number;
+            status: string;
+        };
         /** @description A new user ledger account. */
         LedgerAccountCreate: {
             accountType: components["schemas"]["LedgerAccountType"];
@@ -23120,6 +27391,49 @@ export interface components {
         LogoutResponse: {
             /** @description Keycloak RP-initiated logout URL; navigate the browser there to end the SSO session. */
             endSessionUrl: string;
+        };
+        /** @description Plan a long leave. */
+        LongLeaveCreate: {
+            /** Format: uuid */
+            leaveCaseId?: string | null;
+            plannedEnd?: string | null;
+            /** @description `YYYY-MM-DD`. */
+            plannedStart: string;
+            reason?: string | null;
+        };
+        LongLeaveList: {
+            items: components["schemas"]["LongLeaveView"][];
+        };
+        /** @description A long leave of an engagement. */
+        LongLeaveView: {
+            /** Format: date */
+            actualEnd?: string | null;
+            /** Format: date */
+            actualStart?: string | null;
+            available: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            engagementId: string;
+            /** @description Current engagement status and operational availability (working = available). */
+            engagementStatus: components["schemas"]["EngagementStatus"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            leaveCaseId?: string | null;
+            /** Format: date */
+            plannedEnd?: string | null;
+            /** Format: date */
+            plannedStart: string;
+            reason: string;
+            /** Format: uuid */
+            staffId: string;
+            /** @description `planned`, `active`, `ended`, `cancelled`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description `approve | reject` of the pending proposal. */
         MalpracticeApprovalBody: {
@@ -23534,6 +27848,15 @@ export interface components {
         MarksReasonBody: {
             reason?: string | null;
         };
+        /** @description Duplicate → canonical (L3-E-009). */
+        MergeBody: {
+            /**
+             * Format: uuid
+             * @description The record that survives.
+             */
+            canonicalStaffId: string;
+            reason: string;
+        };
         /**
          * @description Authentication assurance of a session (ADR-L5-0038 §3.8).
          *
@@ -23621,6 +27944,20 @@ export interface components {
             value: string;
             /** Format: int64 */
             version: number;
+        };
+        /** @description Engagement modification (L3-E-002; `ENGAGEMENT_CHANGE`). */
+        ModifyBody: {
+            designation?: string | null;
+            /** Format: date */
+            effectiveDate?: string | null;
+            employmentType?: null | components["schemas"]["EmploymentType"];
+            /** Format: date */
+            endDate?: string | null;
+            grade?: string | null;
+            /** Format: date */
+            probationEndDate?: string | null;
+            reason: string;
+            staffCategory?: null | components["schemas"]["StaffCategory"];
         };
         /**
          * @description `PATCH /campuses/{id}`: governed modification of B03 metadata (L3-B-019). Absent members
@@ -23904,6 +28241,18 @@ export interface components {
         MyFlexibleLearning: {
             enrolments: components["schemas"]["FlexibleEnrolment"][];
             opportunities: components["schemas"]["LearningOpportunity"][];
+        };
+        MyLeaveTypeList: {
+            items: components["schemas"]["LeaveTypeView"][];
+        };
+        /** @description The caller's own profile (My HR). */
+        MyProfileView: {
+            certificateRequests: components["schemas"]["CertificateView"][];
+            documents: components["schemas"]["DocumentView"][];
+            engagement?: null | components["schemas"]["EngagementView"];
+            faculty?: null | components["schemas"]["FacultyProfileView"];
+            qualifications: components["schemas"]["QualificationView"][];
+            staff?: null | components["schemas"]["StaffRecordView"];
         };
         MyResources: {
             items: components["schemas"]["CourseResource"][];
@@ -24691,6 +29040,14 @@ export interface components {
             /** Format: int64 */
             unreadCount: number;
         };
+        /** @description Offer terms. */
+        OfferBody: {
+            /** @description Defaults to the requisition's designation. */
+            offeredDesignation?: string | null;
+            offeredGrade?: string | null;
+            /** Format: date */
+            proposedJoiningDate: string;
+        };
         /** @description Course offering with its sections (§5.3). */
         Offering: {
             /** Format: uuid */
@@ -25125,6 +29482,79 @@ export interface components {
         OfferingWindowList: {
             items: components["schemas"]["OfferingEnrolmentWindow"][];
         };
+        /** @description Opens an onboarding case. */
+        OnboardingCreate: {
+            /** Format: uuid */
+            campusId?: string | null;
+            /**
+             * Format: date
+             * @description Defaults to the offer's proposed joining date.
+             */
+            joiningDate?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /**
+             * Format: date
+             * @description Required when the requisition hires on probation.
+             */
+            probationEndDate?: string | null;
+            /** Format: uuid */
+            reportsToStaffId?: string | null;
+            /** @description Login to link to the staff record created at joining. */
+            subjectRef?: string | null;
+        };
+        /** @description One submitted onboarding document. */
+        OnboardingDocument: {
+            /** @description `identity`, `address`, `education`, `employment`, `medical`, `other`. */
+            documentType: string;
+            /** @description Document number or storage reference. */
+            reference: string;
+        };
+        OnboardingList: {
+            items: components["schemas"]["OnboardingView"][];
+        };
+        /**
+         * @description 7A: onboarding case (L2-E04 hiring → joining).
+         * @enum {string}
+         */
+        OnboardingStatus: "initiated" | "documentation_pending" | "verification_pending" | "ready_for_joining" | "joined" | "cancelled";
+        /** @description An onboarding case. */
+        OnboardingView: {
+            /** Format: uuid */
+            campusId?: string | null;
+            /** Format: uuid */
+            candidateId: string;
+            candidateName: string;
+            documents: components["schemas"]["OnboardingDocument"][];
+            documentsVerified: boolean;
+            /** Format: uuid */
+            engagementId?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: date */
+            joiningDate: string;
+            /** @example ONB-000001 */
+            number: string;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** Format: date */
+            probationEndDate?: string | null;
+            /** @description Set while joining awaits its decision. */
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            reportsToStaffId?: string | null;
+            /** Format: uuid */
+            requisitionId: string;
+            /** Format: uuid */
+            staffId?: string | null;
+            status: components["schemas"]["OnboardingStatus"];
+            statusReason?: string | null;
+            subjectRef?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         OpportunityCapacity: {
             /** Format: int32 */
             capacity: number;
@@ -25286,6 +29716,38 @@ export interface components {
             /** Format: date-time */
             lastUsedAt?: string | null;
         };
+        /** @description A pay component (added or replaced by code on a draft). */
+        PayComponentInput: {
+            /** @example 30000.00 */
+            amount?: string | null;
+            basis: components["schemas"]["CalculationBasis"];
+            code: string;
+            kind: components["schemas"]["PayComponentKind"];
+            name: string;
+            /** @example 40 */
+            rate?: string | null;
+            /** Format: int32 */
+            sequence?: number | null;
+        };
+        /**
+         * @description 7C: pay component kind.
+         * @enum {string}
+         */
+        PayComponentKind: "earning" | "deduction" | "employer_contribution";
+        /** @description A pay component of a configuration version. */
+        PayComponentView: {
+            /** @example 30000.00 */
+            amount?: string | null;
+            basis: components["schemas"]["CalculationBasis"];
+            /** @example BASIC */
+            code: string;
+            kind: components["schemas"]["PayComponentKind"];
+            name: string;
+            /** @example 40.0000 */
+            rate?: string | null;
+            /** Format: int32 */
+            sequence: number;
+        };
         /**
          * Format: uuid
          * @description Bulk collection population (L3-F-013).
@@ -25364,6 +29826,399 @@ export interface components {
             unidentifiedReceiptId?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        PayrollAdjustmentCreate: {
+            lines: components["schemas"]["PayrollAdjustmentLine"][];
+            reason: string;
+        };
+        PayrollAdjustmentLine: {
+            /**
+             * @description Signed delta (`"-500.00"`).
+             * @example 1500.00
+             */
+            amount: string;
+            code: string;
+            kind?: null | components["schemas"]["PayComponentKind"];
+            name?: string | null;
+        };
+        PayrollAdjustmentList: {
+            items: components["schemas"]["PayrollAdjustmentView"][];
+        };
+        /**
+         * @description 7C: payroll adjustment (L2-E06 §7.3).
+         * @enum {string}
+         */
+        PayrollAdjustmentStatus: "requested" | "validated" | "pending_approval" | "approved" | "calculated" | "applied" | "closed" | "rejected";
+        PayrollAdjustmentView: {
+            /** Format: date-time */
+            appliedAt?: string | null;
+            deductionDelta: string;
+            employerDelta: string;
+            /** Format: uuid */
+            engagementId: string;
+            grossDelta: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            journalEntryNumber?: string | null;
+            lines: components["schemas"]["PayrollAdjustmentLine"][];
+            netDelta: string;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            resultId: string;
+            /** Format: uuid */
+            revisedResultId?: string | null;
+            /** Format: uuid */
+            runId: string;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["PayrollAdjustmentStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        PayrollBulkFailure: {
+            /** Format: uuid */
+            id: string;
+            reason: string;
+        };
+        /** @description Summary of a bulk command (`{processed, skipped, failed[]}`). */
+        PayrollBulkSummary: {
+            failed: components["schemas"]["PayrollBulkFailure"][];
+            /** Format: int64 */
+            processed: number;
+            /** Format: int64 */
+            skipped: number;
+        };
+        /** @description New configuration version. */
+        PayrollConfigCreate: {
+            /**
+             * Format: uuid
+             * @description Copy components and statutory rules from this version.
+             */
+            copyFrom?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            /**
+             * Format: int32
+             * @description Leave encashment day rate divisor (default 30).
+             */
+            encashmentDivisor?: number | null;
+            name: string;
+            rounding?: null | components["schemas"]["PayrollRounding"];
+        };
+        PayrollConfigList: {
+            items: components["schemas"]["PayrollConfigView"][];
+        };
+        /**
+         * @description 7C: payroll configuration version (L2-E06 §7.3).
+         * @enum {string}
+         */
+        PayrollConfigStatus: "draft" | "review" | "approved" | "active" | "superseded" | "archived";
+        /** @description A payroll configuration version (components and rules on the detail only). */
+        PayrollConfigView: {
+            /** Format: date-time */
+            activatedAt?: string | null;
+            /** Format: date-time */
+            approvedAt?: string | null;
+            components: components["schemas"]["PayComponentView"][];
+            /** Format: uuid */
+            copiedFromId?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: int32 */
+            encashmentDivisor: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            processInstanceId?: string | null;
+            rounding: components["schemas"]["PayrollRounding"];
+            status: components["schemas"]["PayrollConfigStatus"];
+            statusReason?: string | null;
+            statutoryRules: components["schemas"]["StatutoryRuleView"][];
+            /** Format: date-time */
+            supersededAt?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /** @enum {string} */
+        PayrollDecision: "approve" | "reject";
+        /** @description Decision body (`POST …/decision`). */
+        PayrollDecisionBody: {
+            decision: components["schemas"]["PayrollDecision"];
+            reason?: string | null;
+        };
+        /** @description A business exception found by calculation (blocks validation). */
+        PayrollException: {
+            code: string;
+            /** Format: uuid */
+            engagementId?: string | null;
+            message: string;
+            /** Format: uuid */
+            staffId?: string | null;
+            staffNumber?: string | null;
+        };
+        /** @description An off-cycle item. */
+        PayrollOffCycleItem: {
+            /** @example 5000.00 */
+            amount: string;
+            /** @example BONUS */
+            componentCode: string;
+            /** Format: uuid */
+            engagementId: string;
+            note?: string | null;
+        };
+        PayrollPeriodCreate: {
+            /** Format: int32 */
+            month: number;
+            /** Format: int32 */
+            year: number;
+        };
+        PayrollPeriodList: {
+            items: components["schemas"]["PayrollPeriodView"][];
+        };
+        /**
+         * @description Payroll period (month).
+         * @enum {string}
+         */
+        PayrollPeriodStatus: "open" | "closed";
+        PayrollPeriodView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: int32 */
+            month: number;
+            /** Format: date */
+            periodEnd: string;
+            /** Format: date */
+            periodStart: string;
+            status: components["schemas"]["PayrollPeriodStatus"];
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            year: number;
+        };
+        /** @description Optional reason body of state commands. */
+        PayrollReasonBody: {
+            reason?: string | null;
+        };
+        PayrollResultLine: {
+            /** @example 30000.00 */
+            amount: string;
+            basis?: string | null;
+            code: string;
+            kind: components["schemas"]["PayComponentKind"];
+            /** Format: int32 */
+            lineNo: number;
+            name: string;
+            /** @description `calculation`, `encashment`, `adjustment`, `retro`, `off_cycle`, `recovery`. */
+            source: string;
+            /** Format: uuid */
+            sourceRef?: string | null;
+        };
+        PayrollResultList: {
+            items: components["schemas"]["PayrollResultView"][];
+            /** @description Staff number to continue after (`?cursor=`). */
+            nextCursor?: string | null;
+        };
+        /**
+         * @description 7C: employee-level payroll result (L2-E06 §7.2).
+         * @enum {string}
+         */
+        PayrollResultStatus: "calculated" | "validated" | "finalized" | "superseded";
+        /** @description A per-employee payroll result with its lines (immutable once finalised). */
+        PayrollResultView: {
+            /** Format: uuid */
+            configId?: string | null;
+            displayName: string;
+            employedDays: string;
+            employerContributions: string;
+            /** Format: uuid */
+            engagementId: string;
+            exceptions: components["schemas"]["PayrollException"][];
+            /** Format: date-time */
+            finalizedAt?: string | null;
+            grossEarnings: string;
+            /** Format: uuid */
+            id: string;
+            lines: components["schemas"]["PayrollResultLine"][];
+            lopDays: string;
+            netPay: string;
+            payableDays: string;
+            /** @example 30.00 */
+            periodDays: string;
+            /** Format: date */
+            periodEnd: string;
+            /** Format: date */
+            periodStart: string;
+            /** Format: int32 */
+            revision: number;
+            /** Format: uuid */
+            runId: string;
+            /** Format: uuid */
+            salaryAssignmentId?: string | null;
+            /** @description Calculation snapshot: configuration version, rules, structure, inputs. */
+            snapshot: Record<string, never>;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            status: components["schemas"]["PayrollResultStatus"];
+            /** Format: uuid */
+            structureId?: string | null;
+            /** Format: uuid */
+            supersedesResultId?: string | null;
+            totalDeductions: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Line rounding of a payroll configuration.
+         * @enum {string}
+         */
+        PayrollRounding: "round2" | "rupee";
+        /** @description New run of a period. */
+        PayrollRunCreate: {
+            description?: string | null;
+            /** @description Off-cycle runs only. */
+            items?: components["schemas"]["PayrollOffCycleItem"][] | null;
+            kind: components["schemas"]["PayrollRunKind"];
+        };
+        /**
+         * @description 7C: payroll run kind.
+         * @enum {string}
+         */
+        PayrollRunKind: "regular" | "off_cycle" | "final_settlement" | "retro";
+        PayrollRunList: {
+            items: components["schemas"]["PayrollRunView"][];
+        };
+        /**
+         * @description 7C: payroll run (L2-E06 §7.1).
+         * @enum {string}
+         */
+        PayrollRunStatus: "created" | "calculating" | "calculated" | "validating" | "pending_approval" | "approved" | "finalized" | "posted" | "closed" | "failed" | "reprocessing";
+        /** @description A payroll run (contract §5.3). */
+        PayrollRunView: {
+            /** Format: date-time */
+            approvedAt?: string | null;
+            /** Format: date-time */
+            calculatedAt?: string | null;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: uuid */
+            configId?: string | null;
+            description?: string | null;
+            employeeDeductions: string;
+            employerContributions: string;
+            exceptions: components["schemas"]["PayrollException"][];
+            /** Format: date-time */
+            finalizedAt?: string | null;
+            /** @example 45000.00 */
+            grossEarnings: string;
+            /** Format: int32 */
+            headcount: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            items: components["schemas"]["PayrollOffCycleItem"][];
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            journalEntryNumber?: string | null;
+            kind: components["schemas"]["PayrollRunKind"];
+            netPay: string;
+            /** @example PR-000001 */
+            number: string;
+            /** Format: date */
+            periodEnd: string;
+            /** Format: uuid */
+            periodId: string;
+            /** Format: date */
+            periodStart: string;
+            /** Format: date-time */
+            postedAt?: string | null;
+            processInstanceId?: string | null;
+            status: components["schemas"]["PayrollRunStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Statutory rule kinds (simplified governed rate + ceiling rules, contract §12).
+         * @enum {string}
+         */
+        PayrollStatutoryKind: "pf" | "esi" | "professional_tax" | "tds";
+        /** @description A professional-tax slab: `amount` applies while gross ≤ `up_to` (`None` = no upper bound). */
+        PayrollTaxSlab: {
+            /** @example 200.00 */
+            amount: string;
+            /** @example 15000.00 */
+            upTo?: string | null;
+        };
+        /** @description One payslip line (lines of the same code are summed). */
+        PayslipLine: {
+            /** @example 30000.00 */
+            amount: string;
+            /** @example BASIC */
+            code: string;
+            name: string;
+        };
+        PayslipList: {
+            items: components["schemas"]["PayslipView"][];
+        };
+        /**
+         * @description 7C: payslip.
+         * @enum {string}
+         */
+        PayslipStatus: "issued" | "reissued" | "withdrawn";
+        /** @description A payslip (contract §5.3). */
+        PayslipView: {
+            deductions: components["schemas"]["PayslipLine"][];
+            displayName: string;
+            earnings: components["schemas"]["PayslipLine"][];
+            employerContributions: components["schemas"]["PayslipLine"][];
+            /** @example 45000.00 */
+            grossEarnings: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            issuedAt: string;
+            /** @example 1.50 */
+            lopDays: string;
+            netPay: string;
+            /** @example PS-000001 */
+            number: string;
+            payableDays: string;
+            /** Format: uuid */
+            payrollRunId: string;
+            /** Format: date */
+            periodEnd: string;
+            /** Format: date */
+            periodStart: string;
+            /** Format: date-time */
+            reissuedAt?: string | null;
+            /** Format: uuid */
+            resultId: string;
+            /** Format: int32 */
+            revision: number;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            status: components["schemas"]["PayslipStatus"];
+            statusReason?: string | null;
+            totalDeductions: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            withdrawnAt?: string | null;
         };
         PeriodList: {
             items: components["schemas"]["PeriodView"][];
@@ -25627,6 +30482,22 @@ export interface components {
             version: components["schemas"]["Version"];
         };
         /**
+         * @description 7A: position assignment / occupancy (L2-E02).
+         * @enum {string}
+         */
+        PositionAssignmentStatus: "draft" | "pending_approval" | "approved" | "scheduled" | "active" | "suspended" | "closed" | "superseded" | "archived";
+        /** @description A new position (`draft`). */
+        PositionCreate: {
+            allowsMultiple?: boolean;
+            /** @description `^[A-Z0-9][A-Z0-9_.-]{0,31}$`, unique per institution. */
+            code: string;
+            grade?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            staffCategory?: null | components["schemas"]["StaffCategory"];
+            title: string;
+        };
+        /**
          * Format: uuid
          * @description Effective-dated position definition (not a person or an appointment).
          */
@@ -25669,6 +30540,30 @@ export interface components {
          * @enum {string}
          */
         PositionStatus: "draft" | "active" | "retired" | "archived";
+        /** @description An institutional position. */
+        PositionView: {
+            allowsMultiple: boolean;
+            /** @example PROF-CS-01 */
+            code: string;
+            grade?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /**
+             * Format: int64
+             * @description Active occupants.
+             */
+            occupants: number;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            staffCategory?: null | components["schemas"]["StaffCategory"];
+            status: components["schemas"]["PositionStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description The authenticated principal (technical identity bound to a SutraERP canonical identity). */
         Principal: {
             displayName: string;
@@ -25696,11 +30591,62 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description A probation review recommendation. */
+        ProbationCreate: {
+            assessment?: string | null;
+            /**
+             * Format: date
+             * @description New probation end (extension only; after the current one).
+             */
+            extendedUntil?: string | null;
+            outcome: components["schemas"]["ProbationOutcome"];
+            /**
+             * Format: date
+             * @description Defaults to today (business date).
+             */
+            reviewDate?: string | null;
+        };
+        ProbationList: {
+            items: components["schemas"]["ProbationView"][];
+        };
+        /**
+         * @description 7A: probation review outcome (L3-E-043).
+         * @enum {string}
+         */
+        ProbationOutcome: "confirmed" | "extended" | "terminated";
         /**
          * @description Academic probation case (L3-C-030).
          * @enum {string}
          */
         ProbationStatus: "active" | "cleared" | "escalated";
+        /** @description A probation review. */
+        ProbationView: {
+            assessment?: string | null;
+            decidedBy?: string | null;
+            displayName: string;
+            /** Format: uuid */
+            engagementId: string;
+            engagementNumber: string;
+            /** Format: date */
+            extendedUntil?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            outcome: components["schemas"]["ProbationOutcome"];
+            /** Format: date */
+            previousProbationEnd?: string | null;
+            processInstanceId?: string | null;
+            /** Format: date */
+            reviewDate: string;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            status: components["schemas"]["HrCaseStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description RFC 9457 problem document with SutraERP extension members. */
         Problem: {
             /** @description SutraERP extension: request correlation id (technical context only). */
@@ -25762,6 +30708,28 @@ export interface components {
         /** @description Applied profile revisions of an institution. */
         ProfileRevisionList: {
             items: components["schemas"]["ProfileRevision"][];
+        };
+        ProfileSyncList: {
+            items: components["schemas"]["ProfileSyncView"][];
+        };
+        /** @description Which engagement attributes flowed into the profile. */
+        ProfileSyncView: {
+            actor?: string | null;
+            afterValues: Record<string, never>;
+            beforeValues: Record<string, never>;
+            /** @description `modification`, `transfer`, `probation`. */
+            cause: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            engagementId: string;
+            fields: string[];
+            /** Format: uuid */
+            id: string;
+        };
+        ProfileVerifyBody: {
+            outcome: components["schemas"]["VerifyOutcome"];
+            reason?: string | null;
         };
         Programme: {
             /** @description Campuses offering the programme. */
@@ -26158,6 +31126,14 @@ export interface components {
          * @description Correction or revocation of a conferred qualification (L3-C-050).
          */
         QualificationCorrectionId: string;
+        QualificationCreate: {
+            awardingBody: string;
+            grade?: string | null;
+            qualificationType: string;
+            title: string;
+            /** Format: int32 */
+            yearOfCompletion?: number | null;
+        };
         /** @description Current qualification eligibility determination (L3-C-036). 3C reads it. */
         QualificationEligibility: {
             /** @description `ledger` or `manual`. */
@@ -26190,11 +31166,35 @@ export interface components {
         QualificationEligibilityList: {
             items: components["schemas"]["QualificationEligibility"][];
         };
+        QualificationList: {
+            items: components["schemas"]["QualificationView"][];
+        };
         /**
          * @description Qualification outcome (L1, MEME amendment §2).
          * @enum {string}
          */
         QualificationOutcome: "certificate" | "diploma" | "advanced_diploma" | "degree" | "degree_with_research";
+        /** @description A qualification of a staff member. */
+        QualificationView: {
+            awardingBody: string;
+            grade?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `doctorate`, `postgraduate`, `graduate`, `diploma`, `certificate`, `other`. */
+            qualificationType: string;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["VerificationStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: date-time */
+            verifiedAt?: string | null;
+            verifiedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            yearOfCompletion?: number | null;
+        };
         /**
          * @description Area a check belongs to (drives grouping in the web checklist).
          * @enum {string}
@@ -26897,6 +31897,12 @@ export interface components {
             summary?: string | null;
             topics: components["schemas"]["TopicInput"][];
         };
+        /** @description Reporting manager (L3-E-018); `null` removes it. */
+        ReportingBody: {
+            reason?: string | null;
+            /** Format: uuid */
+            reportsToStaffId?: string | null;
+        };
         /** @description `POST …/institutions/{id}/org-restructures`. */
         RequestRestructure: {
             /**
@@ -26917,6 +31923,64 @@ export interface components {
         RequestedMove: {
             orgUnitId: components["schemas"]["OrgUnitId"];
             toParentId: components["schemas"]["OrgUnitId"];
+        };
+        /** @description A new requisition (`draft`). */
+        RequisitionCreate: {
+            /** Format: uuid */
+            campusId?: string | null;
+            designation: string;
+            employmentType: components["schemas"]["EmploymentType"];
+            grade?: string | null;
+            justification?: string | null;
+            /** Format: int32 */
+            openings: number;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** Format: uuid */
+            positionId?: string | null;
+            staffCategory: components["schemas"]["StaffCategory"];
+            title: string;
+        };
+        RequisitionList: {
+            items: components["schemas"]["RequisitionView"][];
+        };
+        /**
+         * @description 7A: hiring requisition.
+         * @enum {string}
+         */
+        RequisitionStatus: "draft" | "pending_approval" | "approved" | "open" | "filled" | "cancelled";
+        /** @description A hiring requisition. */
+        RequisitionView: {
+            /** Format: uuid */
+            campusId?: string | null;
+            designation: string;
+            employmentType: components["schemas"]["EmploymentType"];
+            /**
+             * Format: int64
+             * @description Candidates who joined through onboarding.
+             */
+            filled: number;
+            grade?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            justification?: string | null;
+            /** @example REQ-000001 */
+            number: string;
+            /** Format: int32 */
+            openings: number;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** Format: uuid */
+            positionId?: string | null;
+            processInstanceId?: string | null;
+            staffCategory: components["schemas"]["StaffCategory"];
+            status: components["schemas"]["RequisitionStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
         };
         ResolveClearance: {
             note?: string | null;
@@ -27274,6 +32338,88 @@ export interface components {
             changeNote?: string | null;
             ruleKey: string;
             values: unknown;
+        };
+        SalaryAssignmentCreate: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            reason?: string | null;
+            /**
+             * Format: uuid
+             * @description Defaults to the active structure of the engagement's grade.
+             */
+            structureId?: string | null;
+        };
+        SalaryAssignmentEnd: {
+            /** Format: date */
+            endDate: string;
+            reason?: string | null;
+        };
+        SalaryAssignmentList: {
+            items: components["schemas"]["SalaryAssignmentView"][];
+        };
+        /**
+         * @description Effective-dated salary assignment.
+         * @enum {string}
+         */
+        SalaryAssignmentStatus: "active" | "ended";
+        SalaryAssignmentView: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /** Format: uuid */
+            engagementId: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            reason?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["SalaryAssignmentStatus"];
+            structureCode: string;
+            /** Format: uuid */
+            structureId: string;
+            /** Format: int64 */
+            version: number;
+        };
+        SalaryStructureCreate: {
+            /** @example AP-1 */
+            code: string;
+            /** @description Engagement grade this structure pays. */
+            grade?: string | null;
+            lines: components["schemas"]["SalaryStructureLine"][];
+            name: string;
+        };
+        /** @description A salary structure line. */
+        SalaryStructureLine: {
+            /** @example 30000.00 */
+            amount?: string | null;
+            componentCode: string;
+            rate?: string | null;
+        };
+        SalaryStructureList: {
+            items: components["schemas"]["SalaryStructureView"][];
+        };
+        SalaryStructureUpdate: {
+            grade?: string | null;
+            lines: components["schemas"]["SalaryStructureLine"][];
+            name: string;
+        };
+        SalaryStructureView: {
+            code: string;
+            grade?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            lines: components["schemas"]["SalaryStructureLine"][];
+            name: string;
+            status: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description Scheduling requirement of one section (input to generation). */
         SchedulingRequirement: {
@@ -27636,6 +32782,60 @@ export interface components {
             /** Format: uuid */
             sectionId?: string | null;
         };
+        /** @description One clearance line (library, finance, IT, …). */
+        SeparationClearanceItem: {
+            cleared: boolean;
+            department: string;
+            remarks?: string | null;
+        };
+        /** @description Opens a separation. */
+        SeparationCreate: {
+            kind: components["schemas"]["SeparationKind"];
+            /** Format: date */
+            lastWorkingDate: string;
+            /** Format: date */
+            noticeDate?: string | null;
+            reason: string;
+        };
+        /**
+         * @description 7A: why an engagement ends (7C reads it for the final settlement).
+         * @enum {string}
+         */
+        SeparationKind: "resignation" | "retirement" | "termination" | "contract_end" | "death" | "other";
+        SeparationList: {
+            items: components["schemas"]["SeparationView"][];
+        };
+        /** @description A separation case. */
+        SeparationView: {
+            archivedProfile: boolean;
+            clearance: components["schemas"]["SeparationClearanceItem"][];
+            clearanceComplete: boolean;
+            decidedBy?: string | null;
+            displayName: string;
+            /** Format: uuid */
+            engagementId: string;
+            engagementNumber: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            kind: components["schemas"]["SeparationKind"];
+            /** Format: date */
+            lastWorkingDate: string;
+            /** Format: date */
+            noticeDate?: string | null;
+            /** @example SEP-000001 */
+            number: string;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            status: components["schemas"]["HrCaseStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         SessionArchival: {
             /** Format: uuid */
             academicTermId: string;
@@ -27731,6 +32931,12 @@ export interface components {
             /** Format: uuid */
             reversalEntryId?: string | null;
         };
+        SettlementRecovery: {
+            /** @example 5000.00 */
+            amount: string;
+            code: string;
+            name: string;
+        };
         /** @enum {string} */
         Severity: "info" | "success" | "warning" | "critical";
         /** @description Immutable point-in-time baseline a simulation is bound to (L4-B-032-BH-001). */
@@ -27784,6 +32990,129 @@ export interface components {
         SimulationStatus: "draft" | "evaluated" | "accepted" | "discarded";
         /** @enum {string} */
         SponsorType: "institutional" | "government" | "private" | "external";
+        /**
+         * @description Workforce category (L2-E01).
+         * @enum {string}
+         */
+        StaffCategory: "teaching" | "non_teaching" | "administrative";
+        StaffCorrectionBody: {
+            changes: components["schemas"]["CorrectionChanges"];
+            reason: string;
+        };
+        /** @description A new staff record (HR creation, L3-E-058). */
+        StaffCreate: {
+            /** Format: date */
+            dateOfBirth?: string | null;
+            displayName?: string | null;
+            familyName?: string | null;
+            gender?: null | components["schemas"]["Gender"];
+            givenName: string;
+            initialStatus?: null | components["schemas"]["StaffStatus"];
+            phone?: string | null;
+            staffCategory: components["schemas"]["StaffCategory"];
+            /** @description Login subject to link (`dev|meera.shah@sutra.dev`); one live record per login. */
+            subjectRef?: string | null;
+            workEmail?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description One employment / engagement of a staff member (L2-E01).
+         */
+        StaffEngagementId: string;
+        /** @description Staff records of an institution. */
+        StaffList: {
+            items: components["schemas"]["StaffView"][];
+            /** @description Staff number to continue after (`?cursor=`), when more rows exist. */
+            nextCursor?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description Canonical workforce member + core employee profile (L2-E01 / L2-E07).
+         */
+        StaffMemberId: string;
+        StaffPositionList: {
+            items: components["schemas"]["PositionView"][];
+        };
+        /** @description A staff record with its full core profile and current engagement. */
+        StaffRecordView: {
+            /** Format: uuid */
+            canonicalStaffId?: string | null;
+            /** Format: date */
+            dateOfBirth?: string | null;
+            displayName: string;
+            engagement?: null | components["schemas"]["EngagementView"];
+            familyName?: string | null;
+            gender?: string | null;
+            givenName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            phone?: string | null;
+            staffCategory: components["schemas"]["StaffCategory"];
+            /** @example EMP-000001 */
+            staffNumber: string;
+            status: components["schemas"]["StaffStatus"];
+            statusReason?: string | null;
+            subjectRef?: string | null;
+            /** Format: date-time */
+            verifiedAt?: string | null;
+            /** Format: int64 */
+            version: number;
+            workEmail?: string | null;
+        };
+        /**
+         * @description Staff record / employee profile lifecycle (L2-E07 §10; duplicate resolution L3-E-009).
+         * @enum {string}
+         */
+        StaffStatus: "draft" | "pending_verification" | "verified" | "active" | "suspended" | "merged" | "archived";
+        /** @description Core profile maintenance (L3-E-059): the full set of editable fields. */
+        StaffUpdate: {
+            /** Format: date */
+            dateOfBirth?: string | null;
+            displayName?: string | null;
+            familyName?: string | null;
+            gender?: null | components["schemas"]["Gender"];
+            givenName: string;
+            phone?: string | null;
+            staffCategory: components["schemas"]["StaffCategory"];
+            workEmail?: string | null;
+        };
+        /** @description A staff record with its current engagement. */
+        StaffView: {
+            canonicalStaffId?: null | components["schemas"]["StaffMemberId"];
+            displayName: string;
+            engagement?: null | components["schemas"]["EngagementView"];
+            familyName?: string | null;
+            givenName: string;
+            id: components["schemas"]["StaffMemberId"];
+            /** Format: uuid */
+            institutionId: string;
+            staffCategory: components["schemas"]["StaffCategory"];
+            /** @example EMP-000001 */
+            staffNumber: string;
+            status: components["schemas"]["StaffStatus"];
+            subjectRef?: string | null;
+            /** Format: int64 */
+            version: number;
+            workEmail?: string | null;
+        };
+        /** @description Capacity position of a faculty member: teaching load (Domain D) vs plan / policy maximum. */
+        StaffWorkloadView: {
+            activePlan?: null | components["schemas"]["WorkloadPlanView"];
+            /** @description Operationally available (working engagement, not on long leave). */
+            available: boolean;
+            /** @example 16.00 */
+            effectiveMaxHours?: string | null;
+            engagementStatus?: null | components["schemas"]["EngagementStatus"];
+            items: components["schemas"]["TeachingLoadItemView"][];
+            overAllocated: boolean;
+            /** @example 16.00 */
+            policyMaxWeeklyHours?: string | null;
+            staffId: components["schemas"]["StaffMemberId"];
+            /** @example 8.00 */
+            totalWeeklyHours: string;
+        };
         /** @description Optional reason carried by a state command. */
         StateCommand: {
             reason?: string | null;
@@ -27854,6 +33183,32 @@ export interface components {
             totalDebits: string;
             /** Format: int64 */
             version: number;
+        };
+        /** @description A statutory rule (added or replaced by kind on a draft). */
+        StatutoryRuleInput: {
+            employeeComponentCode: string;
+            employeeRate?: string | null;
+            employerComponentCode?: string | null;
+            employerRate?: string | null;
+            fixedAmount?: string | null;
+            kind: components["schemas"]["PayrollStatutoryKind"];
+            slabs?: components["schemas"]["PayrollTaxSlab"][] | null;
+            threshold?: string | null;
+            wageCeiling?: string | null;
+        };
+        /** @description A statutory rule of a configuration version. */
+        StatutoryRuleView: {
+            employeeComponentCode: string;
+            /** @example 12.0000 */
+            employeeRate?: string | null;
+            employerComponentCode?: string | null;
+            employerRate?: string | null;
+            fixedAmount?: string | null;
+            kind: components["schemas"]["PayrollStatutoryKind"];
+            slabs: components["schemas"]["PayrollTaxSlab"][];
+            threshold?: string | null;
+            /** @example 15000.00 */
+            wageCeiling?: string | null;
         };
         /**
          * @description Approve / reject decision of a pending approval step.
@@ -28388,6 +33743,23 @@ export interface components {
             sessions: components["schemas"]["TeachingSession"][];
             title: string;
         };
+        /** @description One teaching assignment counted in the load. */
+        TeachingLoadItemView: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: uuid */
+            assignmentId: string;
+            offeringCode: string;
+            /** Format: uuid */
+            offeringId: string;
+            role: string;
+            /** Format: uuid */
+            sectionId: string;
+            status: string;
+            title: string;
+            /** @example 4.00 */
+            weeklyHours?: string | null;
+        };
         /** @description A teachable section of a term (offering read port), for schedulers and delivery screens. */
         TeachingSection: {
             /** Format: uuid */
@@ -28658,6 +34030,16 @@ export interface components {
             /** @description Base32 shared secret for manual entry. */
             secret: string;
         };
+        /** @description Transfer between org units / campuses (L3-E-003; `ENGAGEMENT_CHANGE`). */
+        TransferBody: {
+            /** Format: uuid */
+            campusId?: string | null;
+            /** Format: date */
+            effectiveDate?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            reason: string;
+        };
         /** @description One account row of the trial balance. */
         TrialBalanceRow: {
             accountType: components["schemas"]["LedgerAccountType"];
@@ -28902,11 +34284,21 @@ export interface components {
             /** Format: date-time */
             validatedAt: string;
         };
+        /**
+         * @description 7A: qualification / document verification.
+         * @enum {string}
+         */
+        VerificationStatus: "pending" | "verified" | "rejected" | "expired";
         /** @description Body of `…/documents/{documentId}/verify`. */
         VerifyAdmissionDocument: {
             /** @description Required for `rejected` and `waived`. */
             note?: string | null;
             outcome: components["schemas"]["AdmissionVerificationOutcome"];
+        };
+        VerifyBody: {
+            /** @description `true` = documents verified; `false` = returned for rework (reason required). */
+            approved: boolean;
+            reason?: string | null;
         };
         VerifyCertificate: {
             authenticityConfirmed?: boolean | null;
@@ -28915,6 +34307,11 @@ export interface components {
             providerAccredited?: boolean | null;
             reason?: string | null;
         };
+        /**
+         * @description Verification outcome.
+         * @enum {string}
+         */
+        VerifyOutcome: "verified" | "rejected";
         /** @description Body of `…/documents/{documentId}/verify`. */
         VerifyStudentDocument: {
             note?: string | null;
@@ -28994,6 +34391,79 @@ export interface components {
             roles: components["schemas"]["Role"][];
             /** Format: int32 */
             scenarios: number;
+        };
+        /** @description New workload plan (draft). */
+        WorkloadPlanCreate: {
+            /**
+             * Format: uuid
+             * @description Domain D academic term (optional: the plan applies to every term otherwise).
+             */
+            academicTermId?: string | null;
+            availability: components["schemas"]["FacultyAvailability"];
+            availableFrom?: string | null;
+            availableTo?: string | null;
+            /** @example 16.00 */
+            maxWeeklyHours?: string | null;
+            notes?: string | null;
+            /** @example 12.00 */
+            plannedWeeklyHours: string;
+            termLabel?: string | null;
+        };
+        WorkloadPlanList: {
+            items: components["schemas"]["WorkloadPlanView"][];
+        };
+        /**
+         * @description 7B: faculty availability + workload plan (L3-E-030).
+         * @enum {string}
+         */
+        WorkloadPlanStatus: "draft" | "submitted" | "approved" | "active" | "superseded";
+        /** @description Submit a plan for approval. */
+        WorkloadPlanSubmit: {
+            /** @description Required when the load exceeds the maximum (exception for approval). */
+            exceptionReason?: string | null;
+        };
+        /** @description A workload plan. */
+        WorkloadPlanView: {
+            /** Format: uuid */
+            academicTermId?: string | null;
+            availability: components["schemas"]["FacultyAvailability"];
+            /** Format: date */
+            availableFrom?: string | null;
+            /** Format: date */
+            availableTo?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * @description Maximum applied at submission (plan maximum, else the Domain D policy maximum).
+             * @example 16.00
+             */
+            effectiveMaxHours?: string | null;
+            /** Format: uuid */
+            engagementId: string;
+            exceptionReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example 16.00 */
+            maxWeeklyHours?: string | null;
+            notes?: string | null;
+            overAllocated: boolean;
+            /** @example 12.00 */
+            plannedWeeklyHours: string;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            status: components["schemas"]["WorkloadPlanStatus"];
+            statusReason?: string | null;
+            /**
+             * @description Domain D teaching load at submission.
+             * @example 8.00
+             */
+            teachingWeeklyHours?: string | null;
+            termLabel: string;
+            /** Format: int64 */
+            version: number;
         };
         Workspace: {
             /** @description Navigation group (platform, institution, academics, students, …). */
@@ -63533,6 +69003,7134 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_attendance_correct: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the day */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceCorrect"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceDayView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_accept: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the candidate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_decline: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the candidate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_interview: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the candidate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_offer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the candidate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnboardingCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_reject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the candidate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_shortlist: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the candidate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_certificate_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_certificate_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_certificate_issue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_settlement_of_engagement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalSettlementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_settlement_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalSettlementCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalSettlementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_long_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongLeaveList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_long_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LongLeaveCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongLeaveView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_modify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModifyBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_probation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProbationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_probation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProbationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProbationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_reporting_set: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportingBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_salary_assignment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAssignmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_salary_assignment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAssignmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_separation_of_engagement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_separation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeparationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_transfer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the engagement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_faculty_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_faculty_eligibility: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the faculty profile */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EligibilityBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_faculty_reactivate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the faculty profile */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_faculty_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the faculty profile */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_settlement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalSettlementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_settlement_calculate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the settlement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalSettlementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_settlement_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the settlement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalSettlementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_settlement_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the settlement */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalSettlementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_attendance_grid: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceGrid"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_attendance_record: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceRecordCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceDayView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_attendance_bulk: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceBulkCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_directory_list: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive match on name or designation. */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_settlement_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalSettlementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_accrual_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveAccrualRunList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_accrual_run: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveAccrualCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveAccrualRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_consumption_sweep: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_exception_list: {
+        parameters: {
+            query?: {
+                /** @description `LeaveExceptionStatus` wire name. */
+                status?: string;
+                /** @description ≤ 200 (default 50). */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveExceptionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_exception_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveExceptionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_policy_list: {
+        parameters: {
+            query?: {
+                /** @description `LeavePolicyStatus` wire name. */
+                status?: string;
+                /** @description ≤ 200 (default 50). */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_policy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeavePolicyCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_request_list: {
+        parameters: {
+            query?: {
+                /** @description `LeaveRequestStatus` wire name. */
+                status?: string;
+                staffId?: string;
+                /** @description ≤ 200 (default 50). */
+                limit?: number;
+                /** @description Request number to continue after. */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_request_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveRequestCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_year_end_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveYearEndRunList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_year_end_run: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveYearEndCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveYearEndRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_config_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_config_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollConfigCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_period_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollPeriodList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_period_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollPeriodCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollPeriodView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_list: {
+        parameters: {
+            query?: {
+                /** @description `PositionStatus` wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffPositionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PositionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_requisition_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequisitionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_requisition_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequisitionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequisitionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_salary_structure_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryStructureList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_salary_structure_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryStructureCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_separation_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_directory_staff_list: {
+        parameters: {
+            query?: {
+                /** @description `StaffStatus` wire name. */
+                status?: string;
+                /** @description Case-insensitive match on name, staff number or work e-mail. */
+                q?: string;
+                /** @description ≤ 200 (default 50). */
+                limit?: number;
+                /** @description Staff number to continue after. */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_adjustment_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the adjustment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_case_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveCaseComplete"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_case_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_encashment_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the encashment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveEncashmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_exception_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveExceptionResolve"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_exception_review: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_policy_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_policy_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_type_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveTypeList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_type_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveTypeCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_policy_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_policy_supersede: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_request_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_request_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_request_consume: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_request_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_long_end: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the long leave */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongLeaveView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_long_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the long leave */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongLeaveView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_attendance_self_list: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceDayList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_certificate_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_certificate_self_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CertificateCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_self_approval_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_self_approval_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_self_balances: {
+        parameters: {
+            query?: {
+                leaveYear?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveBalanceList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_self_request_list: {
+        parameters: {
+            query?: {
+                /** @description `LeaveRequestStatus` wire name. */
+                status?: string;
+                staffId?: string;
+                /** @description ≤ 200 (default 50). */
+                limit?: number;
+                /** @description Request number to continue after. */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_self_request_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveRequestCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_self_request_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_self_types: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyLeaveTypeList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payslip_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayslipList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payslip_self_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayslipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_profile_self_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_directory_self_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_workload_self_get: {
+        parameters: {
+            query?: {
+                academicTermId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffWorkloadView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the onboarding case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the onboarding case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_documents: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the onboarding case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentsBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_join: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the onboarding case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_ready: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the onboarding case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the onboarding case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_adjustment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_adjustment_apply: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the adjustment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_adjustment_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the adjustment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_adjustment_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the adjustment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_config_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the configuration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_pay_component_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_pay_component_put: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the configuration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayComponentInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_config_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the configuration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_statutory_rule_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_statutory_rule_put: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the configuration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatutoryRuleInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_config_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the configuration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_config_supersede: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the configuration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollRunCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollResultView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_adjustment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollAdjustmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_adjustment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollAdjustmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_calculate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_finalise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payslip_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayslipList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payslip_issue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_reprocess: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_result_list: {
+        parameters: {
+            query?: {
+                /** @description Include superseded revisions. */
+                includeSuperseded?: boolean;
+                /** @description At most 200 (default 50). */
+                limit?: number;
+                /** @description Staff number to continue after. */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollResultList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_run_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the run */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payslip_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayslipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payslip_reissue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the payslip */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayslipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payslip_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the payslip */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayslipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_assignment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_assignment_change: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_assignment_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_assignment_end: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentEnd"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the position */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_assignment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_assign: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_freeze: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the position */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_position_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the position */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_probation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProbationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_probation_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the review */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProbationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_requisition_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequisitionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_requisition_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requisition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequisitionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_requisition_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requisition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequisitionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_requisition_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requisition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequisitionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_salary_assignment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_salary_assignment_end: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAssignmentEnd"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_salary_structure_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_salary_structure_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the structure */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryStructureUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryStructureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_separation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_separation_clearance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearanceBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_separation_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_separation_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_profile_document_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the document */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileVerifyBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_profile_qualification_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the qualification */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileVerifyBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualificationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_directory_staff_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the staff record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the staff record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the staff record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_attendance_staff_list: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceDayList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_certificate_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_certificate_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CertificateCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_correction_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrectionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_correct: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the staff record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffCorrectionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_profile_document_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_profile_document_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_engagement_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EngagementCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_faculty_get_by_staff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_faculty_establish: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacultyCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_adjustment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveAdjustmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_adjustment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveAdjustmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_balance_list: {
+        parameters: {
+            query?: {
+                leaveYear?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveBalanceList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_case_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveCaseList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_case_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveCaseCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_encashment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveEncashmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_encashment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveEncashmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveEncashmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_leave_ledger_list: {
+        parameters: {
+            query?: {
+                leaveYear?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveLedgerList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_merge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the duplicate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_profile_sync_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileSyncList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_profile_qualification_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualificationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_profile_qualification_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QualificationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualificationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the staff record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_submit_verification: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the staff record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the staff record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_staff_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the staff record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_workload_get: {
+        parameters: {
+            query?: {
+                academicTermId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffWorkloadView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_workload_plan_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkloadPlanList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_workload_plan_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkloadPlanCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkloadPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_workload_plan_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkloadPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_workload_plan_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkloadPlanSubmit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkloadPlanView"];
+                };
+            };
+            "4XX": {
                 headers: {
                     [name: string]: unknown;
                 };

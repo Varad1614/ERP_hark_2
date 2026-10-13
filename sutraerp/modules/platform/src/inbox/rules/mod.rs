@@ -15,6 +15,7 @@
 //! | [`delivery_4b`] | 4B | `academic::events::delivery` |
 //! | [`flexible_4c`] | 4C | `academic::events::flexible` |
 //! | [`exams_6a`] / [`exams_6b`] / [`exams_6c`] | 6A / 6B / 6C | `exams::events::{setup, marks, results}` |
+//! | [`people_7a`] / [`people_7b`] / [`people_7c`] | 7A / 7B / 7C | `people::events::{workforce, leave, payroll}` |
 //!
 //! Nobody subscribes to `student.status_changed` here (it is for other domains).
 //!
@@ -35,6 +36,9 @@ pub mod institution_2a;
 pub mod ledger_5c;
 pub mod offering_4a;
 pub mod payments_5b;
+pub mod people_7a;
+pub mod people_7b;
+pub mod people_7c;
 pub mod registration_3b;
 pub mod structure_2b;
 pub mod student_3a;
@@ -62,6 +66,9 @@ pub fn event_types() -> Vec<&'static str> {
     v.extend_from_slice(exams_6a::EVENT_TYPES);
     v.extend_from_slice(exams_6b::EVENT_TYPES);
     v.extend_from_slice(exams_6c::EVENT_TYPES);
+    v.extend_from_slice(people_7a::EVENT_TYPES);
+    v.extend_from_slice(people_7b::EVENT_TYPES);
+    v.extend_from_slice(people_7c::EVENT_TYPES);
     v
 }
 
@@ -98,6 +105,12 @@ pub fn plan(env: &EventEnvelope) -> Option<Result<Vec<InboxAction>, String>> {
         Some(exams_6b::plan(env))
     } else if exams_6c::EVENT_TYPES.contains(&t) {
         Some(exams_6c::plan(env))
+    } else if people_7a::EVENT_TYPES.contains(&t) {
+        Some(people_7a::plan(env))
+    } else if people_7b::EVENT_TYPES.contains(&t) {
+        Some(people_7b::plan(env))
+    } else if people_7c::EVENT_TYPES.contains(&t) {
+        Some(people_7c::plan(env))
     } else {
         None
     }
@@ -157,6 +170,7 @@ mod tests {
             .chain(sutra_contracts::academic::events::all_event_types())
             .chain(sutra_contracts::finance::events::all_event_types())
             .chain(sutra_contracts::exams::events::all_event_types())
+            .chain(sutra_contracts::people::events::all_event_types())
             .collect();
         for t in &all {
             assert!(
@@ -208,5 +222,10 @@ mod tests {
         assert!(own(exams_6a::EVENT_TYPES, &[xe::setup::EVENT_TYPES]));
         assert!(own(exams_6b::EVENT_TYPES, &[xe::marks::EVENT_TYPES]));
         assert!(own(exams_6c::EVENT_TYPES, &[xe::results::EVENT_TYPES]));
+        // Batch 7: each people slice claims only its own file's types.
+        use sutra_contracts::people::events as pe;
+        assert!(own(people_7a::EVENT_TYPES, &[pe::workforce::EVENT_TYPES]));
+        assert!(own(people_7b::EVENT_TYPES, &[pe::leave::EVENT_TYPES]));
+        assert!(own(people_7c::EVENT_TYPES, &[pe::payroll::EVENT_TYPES]));
     }
 }

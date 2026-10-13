@@ -38,6 +38,9 @@ export default [
     route("examinations/:tab?", "routes/admin/examinations.tsx"),
     route("assessments", "routes/faculty/assessments.tsx"),
     route("results", "routes/student/results.tsx"),
+    // Batch 7 (Domain E) screens — owners in docs/batch7-contracts.md §10.
+    route("people/:tab?", "routes/admin/people.tsx"),
+    route("leave/:tab?", "routes/faculty/leave.tsx"),
     // One route module serves every workspace in the catalog (99); unknown keys render a 404 tile.
     route("workspaces/:key/:tab?", "routes/workspace.tsx"),
     // Role navigation screens (students, finance, timetable, …) — stubs until their batch lands.

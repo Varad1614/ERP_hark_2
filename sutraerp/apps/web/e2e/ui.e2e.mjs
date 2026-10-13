@@ -17,9 +17,12 @@
 import { existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";
-import { apiBin, apiLogin, BASE, check, children, failed, go, log, newProblems, psql, seedInstitution, seedStudent, settle, shot, shotCount, SHOTS, signIn, signOut, startApi, startWeb, step, stop, STUDENT_SUBJECT, TENANT, waitFor, watch } from "./lib/harness.mjs";
+import { apiBin, apiLogin, BASE, check, children, expectedFailures, failed, go, log, newProblems, psql, seedInstitution, seedStudent, settle, shot, shotCount, SHOTS, signIn, signOut, startApi, startWeb, step, stop, STUDENT_SUBJECT, TENANT, waitFor, watch } from "./lib/harness.mjs";
 
 const FACULTY_SUBJECT = "dev|meera.shah@sutra.dev";
+// 7B: the dev faculty login has no staff record in this walk-through, so the My HR panels'
+// `/api/v1/people/me/*` reads answer 404 "staff record not found" (the panel shows its empty state).
+expectedFailures.push((p, status, body) => status === 404 && p.startsWith("/api/v1/people/me/") && body.includes("staff record not found"));
 
 /** Prototype navigation per role (SutraERP-Prototype-Lite.html ROLES[*].nav). */
 const NAV = {
@@ -29,11 +32,11 @@ const NAV = {
 };
 const ACCENT = { administrator: "#e8743b", faculty: "#3b7be8", student: "#7254e6" };
 /** Screens not built yet → "Coming in Batch N" page. */
-const COMING = { administrator: ["/people", "/reports"], faculty: ["/leave"], student: [] };
-/** Batch 6 screens now live (real exam screens, no “Coming in Batch N” page). */
-const LIVE_B6 = { administrator: ["/examinations"], faculty: ["/assessments"], student: ["/results"] };
+const COMING = { administrator: ["/reports"], faculty: [], student: [] };
+/** Batch 6 / 7 screens now live (real exam and people screens, no “Coming in Batch N” page). */
+const LIVE_B6 = { administrator: ["/examinations", "/people"], faculty: ["/assessments", "/leave"], student: ["/results"] };
 /** Home KPI tiles still pending per role (figures whose backend lands in a later batch). */
-const PENDING_KPIS = { administrator: 2, faculty: 0, student: 0 };
+const PENDING_KPIS = { administrator: 1, faculty: 0, student: 0 };
 
 function seedDelivery(setup, studentIds) {
   const component = psql(
@@ -110,7 +113,7 @@ async function roleTour(page, role) {
       await page.waitForTimeout(400);
       check((await page.locator(`nav.sb-pills a[href="${h}"].on`).count()) === 1, `${h} pill active`);
       if (COMING[role].includes(h)) check((await page.locator("[data-coming]").count()) === 1, `${h} shows “Coming in Batch N”`);
-      if (LIVE_B6[role].includes(h)) check((await page.locator("[data-coming]").count()) === 0 && (await page.locator("[data-page-head], .sb-page-head, h1").count()) >= 1, `${h} is the live Batch 6 screen`);
+      if (LIVE_B6[role].includes(h)) check((await page.locator("[data-coming]").count()) === 0 && (await page.locator("[data-page-head], .sb-page-head, h1").count()) >= 1, `${h} is a live Batch 6/7 screen`);
       await shot(page, `${r}-${h.slice(1).replace(/\//g, "_")}`);
     }
   });

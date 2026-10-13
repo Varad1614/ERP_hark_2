@@ -1,4 +1,4 @@
-//! Shared harness for the Batch 2 / 3 / 4 / 5 / 6 DB test files (`db_b2*.rs` … `db_b6*.rs`). Foundation-owned: slices add
+//! Shared harness for the Batch 2 / 3 / 4 / 5 / 6 / 7 DB test files (`db_b2*.rs` … `db_b7*.rs`). Foundation-owned: slices add
 //! their own helpers in their own test file, not here. Same setup as `tests/db.rs`: migrations
 //! as the schema owner, the API running as the runtime login role.
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used)]
@@ -31,6 +31,11 @@ pub mod b5;
 /// examination session and paper, plus direct registration / final-marks / internal-assessment
 /// seeding so 6B/6C can test before 6A's / 6B's APIs merge.
 pub mod b6;
+
+/// Batch 7 foundation helpers: an active institution with the default chart of accounts, plus
+/// direct staff record / engagement / leave ledger / attendance seeding so 7B/7C can test before
+/// 7A's / 7B's APIs merge.
+pub mod b7;
 
 pub const INSTITUTIONS: &str = "/api/v1/institution/institutions";
 pub const RUNTIME_USER: &str = "sutra_it_runtime";

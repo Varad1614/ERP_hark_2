@@ -261,6 +261,8 @@ pub mod source {
     pub const BANK_TRANSACTION: &str = "bank_transaction";
     pub const OPENING_BALANCE: &str = "opening_balance";
     pub const PERIOD_CLOSE: &str = "period_close";
+    // Batch 7 (Domain E): payroll liability postings through `PayrollPostingPort`.
+    pub const PAYROLL_RUN: &str = "payroll_run";
 }
 
 /// Debit or credit side of a posting line.
@@ -583,6 +585,88 @@ pub trait ExamFeePort: Send + Sync + 'static {
     ) -> Result<ExamFeeCharge, KernelError>;
 }
 
+// ---- Batch 7 (Domain E) block: payroll liability postings ----
+
+/// A payroll posting Domain E asks Finance to record (L2-E06 §4.2 "Payroll calculates money,
+/// Finance moves and accounts money"). Amounts are **signed**: a corrective posting (adjustment,
+/// reversal of an over-payment) may carry negative amounts; Finance turns each into a debit or a
+/// credit on the right account. `net_pay` must equal `gross_earnings − employee_deductions`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PayrollPostingRequest {
+    pub institution_id: InstitutionId,
+    /// The Domain E payroll run (journal `source_id`).
+    pub payroll_run_id: Uuid,
+    /// Distinguishes several postings of one run (`finalise`, `adjustment:<id>`,
+    /// `settlement:<id>`); `(payroll_run, payroll_run_id, posting_key)` is the idempotency key.
+    pub posting_key: String,
+    /// Business date in the institution timezone (period guard applies).
+    pub posting_date: NaiveDate,
+    pub description: String,
+    pub gross_earnings: Decimal,
+    pub employee_deductions: Decimal,
+    pub employer_contributions: Decimal,
+    pub net_pay: Decimal,
+    /// Actor recorded on the journal audit.
+    pub actor: Option<String>,
+}
+
+impl PayrollPostingRequest {
+    /// `net_pay = gross − deductions`, two decimals at most, a posting key and something to post.
+    pub fn validate(&self) -> Result<(), String> {
+        let amounts = [
+            self.gross_earnings,
+            self.employee_deductions,
+            self.employer_contributions,
+            self.net_pay,
+        ];
+        if amounts
+            .iter()
+            .any(|a| a.scale() > 2 && a.normalize().scale() > 2)
+        {
+            return Err("payroll amounts take at most two decimals".into());
+        }
+        if self.posting_key.trim().is_empty() {
+            return Err("a posting key is required".into());
+        }
+        if self.gross_earnings - self.employee_deductions != self.net_pay {
+            return Err(format!(
+                "net pay {} must equal gross earnings {} minus deductions {}",
+                self.net_pay, self.gross_earnings, self.employee_deductions
+            ));
+        }
+        if amounts.iter().all(|a| a.is_zero()) {
+            return Err("nothing to post: every amount is zero".into());
+        }
+        Ok(())
+    }
+}
+
+/// The journal entry recorded for a [`PayrollPostingRequest`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PayrollPostingReceipt {
+    pub journal_entry_id: JournalEntryId,
+    pub entry_number: String,
+    /// `true` when `(payroll_run_id, posting_key)` had been posted before (no new entry).
+    pub already_posted: bool,
+}
+
+/// Write port into Domain F for payroll liabilities (Batch 7). Runs its own owner-local
+/// transaction in Finance: seeds the payroll accounts on first use (`5410` salaries and wages,
+/// `2410` salaries payable, `2420` payroll deductions and statutory dues payable — outside the
+/// Batch 5 default chart), posts one balanced journal entry (`source_type = payroll_run`): Dr
+/// salaries (gross + employer contributions) / Cr salaries payable (net) / Cr deductions payable
+/// (deductions + employer contributions), and emits `journal_entry.posted`. Idempotent on
+/// `(payroll_run_id, posting_key)`. Errors: invalid request → `Validation`; closed period →
+/// `Conflict`. Implemented by `sutra_finance::PgPayrollPostings`.
+#[async_trait::async_trait]
+pub trait PayrollPostingPort: Send + Sync + 'static {
+    async fn post_payroll(
+        &self,
+        scope: &ExecutionScope,
+        request: PayrollPostingRequest,
+    ) -> Result<PayrollPostingReceipt, KernelError>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -662,5 +746,46 @@ mod tests {
         for a in SystemAccount::ALL {
             assert_eq!(SystemAccount::parse(a.key()), Some(a));
         }
+    }
+}
+
+#[cfg(test)]
+mod payroll_posting_tests {
+    use super::*;
+    use std::str::FromStr;
+
+    fn d(s: &str) -> Decimal {
+        Decimal::from_str(s).unwrap_or_default()
+    }
+
+    fn req(gross: &str, ded: &str, er: &str, net: &str) -> PayrollPostingRequest {
+        PayrollPostingRequest {
+            institution_id: InstitutionId(Uuid::nil()),
+            payroll_run_id: Uuid::nil(),
+            posting_key: "finalise".into(),
+            posting_date: NaiveDate::default(),
+            description: "Payroll".into(),
+            gross_earnings: d(gross),
+            employee_deductions: d(ded),
+            employer_contributions: d(er),
+            net_pay: d(net),
+            actor: None,
+        }
+    }
+
+    #[test]
+    fn payroll_requests_validate_net_pay() {
+        assert!(req("50000.00", "6200.00", "1800.00", "43800.00")
+            .validate()
+            .is_ok());
+        assert!(req("-500.00", "0", "0", "-500.00").validate().is_ok());
+        assert!(req("50000.00", "6200.00", "0", "43000.00")
+            .validate()
+            .is_err());
+        assert!(req("0", "0", "0", "0").validate().is_err());
+        assert!(req("10.005", "0", "0", "10.005").validate().is_err());
+        let mut r = req("1.00", "0", "0", "1.00");
+        r.posting_key = " ".into();
+        assert!(r.validate().is_err());
     }
 }

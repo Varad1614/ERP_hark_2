@@ -541,7 +541,8 @@ pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_stud
 
 /// Domain D (Batch 4) adapters: Domain B reference reads, Domain C student directory,
 /// registration reader and credit posting, the Campus teaching-space stub (Batch 8) and the
-/// People staff stub (Batch 7). Tests reuse it to build an `AcademicState` with
+/// real People staff directory (Batch 7 foundation; subject-only fallback when no staff record
+/// exists). Tests reuse it to build an `AcademicState` with
 /// `ApprovalMode::AwaitDecision` (`sutra_academic::router_with_state`).
 pub fn academic_deps(
     pool: PgPool,
@@ -555,7 +556,7 @@ pub fn academic_deps(
         registrations: Arc::new(sutra_student::PgRegistrationReader::new(pool.clone())),
         credits: Arc::new(sutra_student::PgCreditPosting::new(pool.clone())),
         spaces: Arc::new(sutra_campus::NoTeachingSpaces),
-        staff: Arc::new(sutra_people::SubjectOnlyStaff),
+        staff: Arc::new(sutra_people::PgStaffDirectory::new(pool.clone())),
         workflow,
         pool,
     }
@@ -602,6 +603,23 @@ pub fn exams_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_exams:
     }
 }
 
+/// Domain E (Batch 7) adapters: Domain B reference reads, the Domain D faculty workload reader
+/// and the Domain F payroll posting port. Tests reuse it to build a `PeopleState` with
+/// `ApprovalMode::AwaitDecision` (`sutra_people::router_with_state`).
+pub fn people_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_people::PeopleDeps {
+    sutra_people::PeopleDeps {
+        references: Arc::new(sutra_institution::PgInstitutionReferences::new(
+            pool.clone(),
+        )),
+        workload: Arc::new(sutra_academic::PgFacultyWorkload::new(pool.clone())),
+        postings: Arc::new(sutra_finance::PgPayrollPostings::new(
+            finance_deps(pool.clone(), workflow.clone()).into_state(),
+        )),
+        workflow,
+        pool,
+    }
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
@@ -627,7 +645,10 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.pool.clone(),
             ctx.workflow.clone(),
         )))
-        .merge(sutra_people::router())
+        .merge(sutra_people::router(people_deps(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+        )))
         .merge(sutra_finance::router(finance_deps(
             ctx.pool.clone(),
             ctx.workflow.clone(),

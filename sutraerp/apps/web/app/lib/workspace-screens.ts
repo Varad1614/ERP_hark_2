@@ -8,7 +8,7 @@ import type { Role } from "./roles";
 type Routes = Partial<Record<Role, string>>;
 const all = (to: string): Routes => ({ administrator: to, faculty: to, student: to });
 
-/** Built screens per workspace key and role (Batches 1–6). */
+/** Built screens per workspace key and role (Batches 1–7). */
 export const WORKSPACE_SCREENS: Record<string, Routes> = {
   // A · Platform (Batch 1)
   "W-A02": all("/profile"),
@@ -62,6 +62,14 @@ export const WORKSPACE_SCREENS: Record<string, Routes> = {
   "W-I13": { administrator: "/examinations/revaluation", student: "/results" },
   "W-I14": { administrator: "/examinations/malpractice" },
   "W-I16": { administrator: "/examinations/revaluation" },
+  // E · People & workforce (Batch 7)
+  "W-E01": { administrator: "/people/staff", faculty: "/leave" },
+  "W-E02": { administrator: "/people/positions" },
+  "W-E03": { administrator: "/people/staff" },
+  "W-E04": { administrator: "/people/recruitment", faculty: "/leave" },
+  "W-E05": { administrator: "/people/leave", faculty: "/leave" },
+  "W-E06": { administrator: "/people/payroll", faculty: "/leave" },
+  "W-E07": { administrator: "/people/staff", faculty: "/leave" },
 };
 
 /** Delivery batch by domain letter of the workspace key (W-<letter>NN). */

@@ -326,6 +326,9 @@ export function watch(page) {
     const expected =
       (u.pathname === "/api/v1/auth/session" && r.status() === 401) ||
       body.includes("mfa-step-up-required") ||
+      // Batch 7: My HR reads (`/people/me/*`, also the faculty home leave shortcut) answer 404 for a
+      // login without a staff record; the screens show their empty state.
+      (r.status() === 404 && u.pathname.startsWith("/api/v1/people/me/") && body.includes("staff record not found")) ||
       expectedFailures.some((f) => f(u.pathname, r.status(), body));
     log(`  ${expected ? "expected" : "UNEXPECTED"} ${r.request().method()} ${u.pathname} → ${r.status()} ${body.slice(0, 300)}`);
     if (!expected) problems.push(`${r.request().method()} ${u.pathname} → ${r.status()} ${body.slice(0, 300)}`);

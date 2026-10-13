@@ -282,10 +282,27 @@ pub enum Permission {
     ResultPublish,
     /// Batch 6: decide governed examination approvals — policy, session, schedule, moderation, final marks, malpractice decisions, revaluation outcomes (step-up).
     ExamApprove,
+    // ---- Batch 7 (Domain E). HR reads use `PeopleRead`; staff act on their own records with `PeopleSelfService`. ----
+    /// Read staff records, engagements, positions, HR cases, leave and payroll of the tenant (HR / payroll office: administrators).
+    PeopleRead,
+    /// Self-service on one's **own** staff record (resolved from the session subject): profile, leave, payslips; the staff directory; leave decisions of one's reports (administrators and faculty).
+    PeopleSelfService,
+    /// 7A: staff records, engagements, positions, reporting lines, faculty establishment / eligibility, recruitment, onboarding, probation, separation, certificates, profile verification.
+    StaffManage,
+    /// 7B: leave policies, accrual / year-end runs, balance adjustments, encashment, leave exceptions and cases, long leave, attendance days, workload plans.
+    LeaveManage,
+    /// 7B: decide leave requests on behalf of any manager.
+    LeaveDecide,
+    /// 7C: payroll configuration, salary structures and assignments, payroll periods and runs (create, calculate, validate), adjustments, final settlements.
+    PayrollManage,
+    /// 7C: approve, finalise and post payroll runs and adjustments; issue payslips (step-up).
+    PayrollApprove,
+    /// Batch 7: decide governed HR approvals — engagement activation / change, position assignment, onboarding acceptance, probation, separation, leave policy and payroll configuration activation (step-up).
+    PeopleApprove,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 86] = [
+    pub const ALL: [Permission; 94] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -372,6 +389,14 @@ impl Permission {
         Permission::ResultManage,
         Permission::ResultPublish,
         Permission::ExamApprove,
+        Permission::PeopleRead,
+        Permission::PeopleSelfService,
+        Permission::StaffManage,
+        Permission::LeaveManage,
+        Permission::LeaveDecide,
+        Permission::PayrollManage,
+        Permission::PayrollApprove,
+        Permission::PeopleApprove,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -462,6 +487,14 @@ impl Permission {
             Permission::ResultManage => "exam.result.manage",
             Permission::ResultPublish => "exam.result.publish",
             Permission::ExamApprove => "exam.approve",
+            Permission::PeopleRead => "people.read",
+            Permission::PeopleSelfService => "people.self",
+            Permission::StaffManage => "people.staff.manage",
+            Permission::LeaveManage => "people.leave.manage",
+            Permission::LeaveDecide => "people.leave.decide",
+            Permission::PayrollManage => "people.payroll.manage",
+            Permission::PayrollApprove => "people.payroll.approve",
+            Permission::PeopleApprove => "people.approve",
         }
     }
 
@@ -489,6 +522,8 @@ impl Permission {
                 | Permission::PeriodClose
                 | Permission::ResultPublish
                 | Permission::ExamApprove
+                | Permission::PayrollApprove
+                | Permission::PeopleApprove
         )
     }
 }
@@ -585,6 +620,15 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             ResultManage,
             ResultPublish,
             ExamApprove,
+            // Batch 7 (Domain E): HR / payroll office = administrators; staff self-service too.
+            PeopleRead,
+            PeopleSelfService,
+            StaffManage,
+            LeaveManage,
+            LeaveDecide,
+            PayrollManage,
+            PayrollApprove,
+            PeopleApprove,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -601,6 +645,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             // Batch 6: examination reads + marks entry on papers of sections they teach.
             ExamRead,
             MarksEntry,
+            // Batch 7: own staff record, leave (and their reports' leave decisions), payslips, staff directory.
+            PeopleSelfService,
         ],
         Role::Student => &[
             InstitutionRead,
@@ -992,6 +1038,38 @@ mod tests {
         }
         assert!(!Permission::MarksEntry.requires_step_up());
         assert!(!Permission::ExamRead.requires_step_up());
+    }
+
+    #[test]
+    fn batch7_domain_e_grants() {
+        let admin_only = [
+            Permission::PeopleRead,
+            Permission::StaffManage,
+            Permission::LeaveManage,
+            Permission::LeaveDecide,
+            Permission::PayrollManage,
+            Permission::PayrollApprove,
+            Permission::PeopleApprove,
+        ];
+        for p in admin_only {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
+        }
+        assert!(is_granted(
+            &[Role::Administrator],
+            Permission::PeopleSelfService
+        ));
+        assert!(is_granted(&[Role::Faculty], Permission::PeopleSelfService));
+        assert!(!is_granted(&[Role::Student], Permission::PeopleSelfService));
+        for p in [Permission::PayrollApprove, Permission::PeopleApprove] {
+            assert!(p.requires_step_up(), "{p:?}");
+        }
+        assert!(!Permission::LeaveDecide.requires_step_up());
+        assert!(!Permission::PeopleSelfService.requires_step_up());
+        assert!(Permission::ALL
+            .iter()
+            .filter(|p| p.as_str().starts_with("people."))
+            .all(|p| p.as_str().split('.').count() >= 2));
     }
 
     #[test]

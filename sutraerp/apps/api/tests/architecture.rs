@@ -464,3 +464,98 @@ async fn exam_operations_follow_the_slice_prefix_and_tag_rules() {
         "the foundation grading-scheme endpoints are mounted"
     );
 }
+
+/// Batch 7 (Domain E): every `/api/v1/people` operation carries an explicit `operationId` with its
+/// slice's prefix and the matching tag (`docs/batch7-contracts.md` §5.2); people tags are used
+/// exactly for people paths, no other domain uses a `people_` operation id, and the first path
+/// parameter after a collection is `{id}`.
+#[tokio::test]
+async fn people_operations_follow_the_slice_prefix_and_tag_rules() {
+    const RULES: &[(&str, &[&str])] = &[
+        // foundation
+        ("people-directory", &["people_directory_"]),
+        // 7A
+        (
+            "people-workforce",
+            &[
+                "people_staff_",
+                "people_engagement_",
+                "people_position_",
+                "people_reporting_",
+                "people_faculty_",
+                "people_profile_",
+            ],
+        ),
+        (
+            "people-hr",
+            &[
+                "people_recruitment_",
+                "people_onboarding_",
+                "people_probation_",
+                "people_separation_",
+                "people_certificate_",
+            ],
+        ),
+        // 7B
+        ("people-leave", &["people_leave_"]),
+        (
+            "people-attendance",
+            &["people_attendance_", "people_workload_"],
+        ),
+        // 7C
+        (
+            "people-payroll",
+            &[
+                "people_payroll_",
+                "people_pay_",
+                "people_salary_",
+                "people_payslip_",
+                "people_settlement_",
+            ],
+        ),
+    ];
+    let spec: serde_json::Value =
+        serde_json::from_str(&sutra_api::openapi::spec_json().unwrap()).unwrap();
+    let mut people_ops = 0;
+    for (path, item) in spec["paths"].as_object().unwrap() {
+        let people = path.starts_with("/api/v1/people/");
+        for (method, op) in item.as_object().unwrap() {
+            let tags: Vec<&str> = op["tags"]
+                .as_array()
+                .map(|t| t.iter().filter_map(|x| x.as_str()).collect())
+                .unwrap_or_default();
+            let people_tag = tags.iter().any(|t| RULES.iter().any(|(tag, _)| tag == t));
+            assert_eq!(
+                people, people_tag,
+                "{method} {path}: Domain E tags are used exactly for /api/v1/people paths"
+            );
+            let id = op["operationId"].as_str().unwrap_or_default();
+            if !people {
+                assert!(
+                    !id.starts_with("people_"),
+                    "{method} {path}: `people_` operation ids are reserved for Domain E"
+                );
+                continue;
+            }
+            people_ops += 1;
+            assert!(!id.is_empty(), "{method} {path} has no operationId");
+            let ok = RULES.iter().any(|(tag, prefixes)| {
+                tags.contains(tag) && prefixes.iter().any(|p| id.starts_with(p))
+            });
+            assert!(
+                ok,
+                "{method} {path}: operationId `{id}` does not match the prefixes of its tag {tags:?}"
+            );
+            if let Some(first) = path.split('/').find(|seg| seg.starts_with('{')) {
+                assert_eq!(
+                    first, "{id}",
+                    "{method} {path}: first path parameter must be {{id}}"
+                );
+            }
+        }
+    }
+    assert!(
+        people_ops >= 4,
+        "the foundation staff-directory endpoints are mounted"
+    );
+}

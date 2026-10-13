@@ -22,6 +22,8 @@ pub mod directory;
 /// Batch 6 foundation: examination fee charges for Domain I (`ExamFeePort`).
 pub mod exam_fees;
 pub mod fees;
+/// Batch 7 foundation: payroll liability postings for Domain E (`PayrollPostingPort`).
+pub mod payroll_postings;
 pub mod shared;
 
 // ---- foundation area (party accounts + balances)
@@ -52,6 +54,7 @@ pub use clearance::PgFinanceClearance;
 pub use directory::{PgChargeDirectory, PgPostingPort, PgReceivableReader};
 pub use exam_fees::PgExamFees;
 pub use payments::gateway::MockPaymentGateway;
+pub use payroll_postings::PgPayrollPostings;
 pub use shared::FinanceState;
 
 pub const MODULE: ModuleDescriptor = ModuleDescriptor {

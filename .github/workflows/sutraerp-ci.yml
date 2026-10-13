@@ -2,7 +2,7 @@ name: SutraERP CI
 
 on:
   push:
-    branches: [main, erp_merge, "dev/**", "batch5/**", "batch6/**", "ui/**"]
+    branches: [main, erp_merge, "dev/**", "batch5/**", "batch6/**", "batch7/**", "ui/**"]
     paths: ["sutraerp/**", ".github/workflows/sutraerp-ci.yml"]
   workflow_dispatch:
   pull_request:
@@ -159,7 +159,7 @@ jobs:
           path: sutraerp/target/debug/sutra-api
           retention-days: 3
 
-  # Click-through e2e suites in preview mode (Batch 3 student, Batch 4 academic, Batch 5 finance, Batch 6 exams,
+  # Click-through e2e suites in preview mode (Batch 3 student, Batch 4 academic, Batch 5 finance, Batch 6 exams, Batch 7 people,
   # UI re-skin shell/homes/workspaces); screenshots uploaded as artifacts (the sandbox OOMs running
   # chromium + API + preview together). Runs on ui/**, batch*/** and erp_merge.
   e2e:
@@ -169,7 +169,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [finance, student, academic, ui, exams]
+        suite: [finance, student, academic, ui, exams, people]
     services:
       postgres:
         image: postgres:18

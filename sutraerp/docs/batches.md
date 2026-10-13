@@ -12,7 +12,7 @@ SutraERP is delivered as a modular monolith in ten batches. Each batch ends gree
 | 4 | Academic | D | Courses, sections, timetable, attendance, coursework/assignments, faculty "My classes" | ✅ complete (slices F, 4A–4C integrated, see below) |
 | 5 | Finance | F | Fee structures, demands, concessions, payments & receipts (rust_decimal end to end), reconciliation, student fees screen | planned |
 | 6 | Examinations | I | Exam scheduling, seating, registration & hall tickets, assessments & marks, gradebook, moderation, result computation (SGPA/CGPA), verification, publication, grade cards, revaluation | in progress (6·F foundation, see below) |
-| 7 | People & workforce | E | Staff records, recruitment/onboarding, leave, payroll inputs, staff directory | planned |
+| 7 | People & workforce | E | Staff records, recruitment/onboarding, positions, leave & approvals, attendance & workload, payroll engine (Finance postings), payslips, staff directory | in progress (7·F foundation, see below) |
 | 8 | Campus · Services · Resources | G · H · J | Facilities, hostel, transport, service desk, library & learning resources | planned |
 | 9 | Production hardening | cross-cutting | OTLP exporter + Prometheus/Loki/Tempo/Grafana, tamper-evident audit chaining (ADR-L5-0012), GHCR push + Cosign signing on trusted runners, K8s manifests/Helm, OpenBao secrets, Flowable OSS 8 adapter + BPMN deployment, OpenSearch projections, performance/capacity gates, DR drills | planned |
 
@@ -98,3 +98,17 @@ Contracts, scenario coverage and file ownership: [`batch6-contracts.md`](batch6-
 | **6A** | Exam setup: policy, sessions, papers, scheduling / timetable, venues, seating, invigilation, registration (self, bulk, late, amendments, withdrawal, finalisation), hall tickets (finance-dues and attendance conditions), conduct basics, contingencies | <!-- batch6:6a:status -->✅ |
 | **6B** | Assessment & marks: internal assessment import (Batch 4), marks entry by teaching faculty, verification / approval of final marks, evaluation rounds, moderation, withheld marks, gradebook, malpractice basics | <!-- batch6:6b:status -->✅ |
 | **6C** | Results: computation engine (SGPA / CGPA), withholding, verification, approval, publication / withdrawal / republication, grade cards, revaluation / rechecking (Finance fee), supplementary eligibility, completion evaluation, session closure | <!-- batch6:6c:status -->✅ |
+
+## Batch 7 slices
+
+Contracts, scenario coverage and file ownership: [`batch7-contracts.md`](batch7-contracts.md).
+43 of 75 L3-E scenarios in scope; 32 deferred to a later 7D (workforce / faculty / HR / profile
+depth: E-005, E-010, E-014…017, E-019…025, E-027, E-028, E-032, E-035…038, E-040, E-042,
+E-061…063, E-067, E-069…073, E-075).
+
+| Slice | Scope | Status |
+|-------|-------|--------|
+| **7·F** | Foundation: Domain E ids / lifecycle states (shared StaffStatus, EngagementStatus, leave ledger kinds, attendance days) / V1 event contracts / permissions (`people.*`), shared tables (staff records, engagements, append-only leave ledger, attendance days), staff / lifecycle / leave / attendance helpers, `WorkforceDirectory` / `LeaveReader`, real `StaffDirectory` for Domain D (subject-only fallback), Domain D `FacultyWorkloadPort` and Domain F `PayrollPostingPort` (`payroll_run` journal entries), staff-directory API, pre-mounted routers + OpenAPI tags, inbox rule hooks, web route frames (Admin People, Faculty Leave / My HR) | <!-- batch7:7f:status -->in progress |
+| **7A** | Staff records, recruitment & onboarding, positions: profiles + verification, engagements (activation, modification, transfer, suspension, closure, rejoining, duplicates), positions + assignments, reporting managers, faculty establishment / eligibility, onboarding, probation, separation, certificates (25 scenarios) | <!-- batch7:7a:status -->planned |
+| **7B** | Leave, attendance & workload: leave policy, accrual, request → decision (reference approval), reservation / consumption, cancellation, adjustment, carry forward, encashment, exceptions, leave cases, long leave, attendance days, faculty workload plans (12 scenarios) | <!-- batch7:7b:status -->planned |
+| **7C** | Payroll: configuration + statutory rules, salary assignments, runs (calculate → approve → finalise → Finance posting), payslips, adjustments, retro pay, final settlement, off-cycle (6 scenarios) | <!-- batch7:7c:status -->planned |

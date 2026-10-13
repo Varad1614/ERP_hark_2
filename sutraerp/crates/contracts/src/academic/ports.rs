@@ -202,3 +202,46 @@ pub trait AcademicExamFacts: Send + Sync + 'static {
         student_id: StudentId,
     ) -> Result<Option<AttendanceStanding>, KernelError>;
 }
+
+// ---- Batch 7 (Domain E) block: faculty teaching load owned by Domain D ----
+
+/// One approved / active faculty assignment counted in a faculty member's teaching load.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TeachingLoadItem {
+    pub assignment_id: FacultyAssignmentId,
+    pub offering_id: CourseOfferingId,
+    pub section_id: OfferingSectionId,
+    pub academic_term_id: Uuid,
+    pub offering_code: String,
+    pub title: String,
+    pub role: FacultyRole,
+    pub status: FacultyAssignmentStatus,
+    /// Weekly contact hours (4A governance); `None` when not recorded.
+    pub weekly_hours: Option<rust_decimal::Decimal>,
+}
+
+/// The teaching load of one faculty member (login subject) in an institution.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FacultyWorkload {
+    pub faculty_subject_ref: String,
+    pub items: Vec<TeachingLoadItem>,
+    /// Σ `weekly_hours` of the items (missing hours count 0).
+    pub total_weekly_hours: rust_decimal::Decimal,
+    /// `max_weekly_hours` of the institution's **effective** faculty assignment policy.
+    pub policy_max_weekly_hours: Option<rust_decimal::Decimal>,
+}
+
+/// Read port over Domain D faculty assignments People (7B workload plans, L3-E-030) needs.
+/// Implemented by `sutra_academic::PgFacultyWorkload` over the 4A tables (**real**).
+#[async_trait::async_trait]
+pub trait FacultyWorkloadPort: Send + Sync + 'static {
+    /// Approved / active assignments of `faculty_subject_ref` in the institution, optionally
+    /// limited to one academic term.
+    async fn teaching_load(
+        &self,
+        scope: &ExecutionScope,
+        institution_id: InstitutionId,
+        faculty_subject_ref: &str,
+        academic_term_id: Option<Uuid>,
+    ) -> Result<FacultyWorkload, KernelError>;
+}

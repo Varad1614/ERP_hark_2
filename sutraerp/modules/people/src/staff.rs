@@ -1,4 +1,5 @@
-//! Batch 4 stub of [`StaffDirectory`] (staff records land in Batch 7): any non-empty login
+//! Batch 4 stub of [`StaffDirectory`] (kept for tests / tools; the composition root wires
+//! [`crate::PgStaffDirectory`] since Batch 7): any non-empty login
 //! subject is accepted as an active staff member with no further facts, so Academic (4A) can
 //! assign faculty by login subject until then.
 

@@ -1,5 +1,6 @@
 import { ArrowUpRight, BadgeCheck, Check, CircleCheck, ListTodo, Sun } from "lucide-react";
 import { AdminKpis, FacultyKpis, StudentKpis, RightNowTile, AnnouncementTile } from "../features/home/live";
+import { useLeaveShortcutLabel } from "../features/people/leave";
 import type { Todo as LiveTodo } from "@sutra/api-client";
 import { Badge, BentoGrid, BentoTile, Button, Drawer, EmptyState, IconChip, useToast } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -140,6 +141,7 @@ export default function Home() {
   const toast = useToast();
   const [done, setDone] = useState<Record<number, boolean>>({});
   const [openTodo, setOpenTodo] = useState<number | null>(null);
+  const leaveLabel = useLeaveShortcutLabel(role === "faculty", "Apply leave");
 
   const go = (to: string) => {
     if (to.startsWith("todo:")) setOpenTodo(Number(to.slice(5)));
@@ -203,11 +205,11 @@ export default function Home() {
         <BentoTile title="Shortcuts">
           <div className="sb-shortcuts">
             {cfg.shortcuts.map((s) => (
-              <button key={s.label} type="button" className="sb-shortcut" onClick={() => go(s.to)}>
+              <button key={s.label} type="button" className="sb-shortcut" onClick={() => go(s.to)} data-shortcut={s.to}>
                 <div className="sb-shortcut-icon">
                   <s.icon strokeWidth={1.75} />
                 </div>
-                {s.label}
+                {s.to === "leave" ? leaveLabel : s.label}
               </button>
             ))}
           </div>
