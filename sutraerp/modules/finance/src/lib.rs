@@ -19,6 +19,8 @@
 
 pub mod clearance;
 pub mod directory;
+/// Batch 6 foundation: examination fee charges for Domain I (`ExamFeePort`).
+pub mod exam_fees;
 pub mod fees;
 pub mod shared;
 
@@ -48,6 +50,7 @@ use utoipa_axum::router::OpenApiRouter;
 
 pub use clearance::PgFinanceClearance;
 pub use directory::{PgChargeDirectory, PgPostingPort, PgReceivableReader};
+pub use exam_fees::PgExamFees;
 pub use payments::gateway::MockPaymentGateway;
 pub use shared::FinanceState;
 

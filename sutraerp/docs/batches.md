@@ -11,7 +11,7 @@ SutraERP is delivered as a modular monolith in ten batches. Each batch ends gree
 | 3 | Student lifecycle | C | Admissions → enrolment → progression → exit, guardians, documents & certificates, student workspace | ✅ complete (slices F, 3A–3C integrated, see below) |
 | 4 | Academic | D | Courses, sections, timetable, attendance, coursework/assignments, faculty "My classes" | ✅ complete (slices F, 4A–4C integrated, see below) |
 | 5 | Finance | F | Fee structures, demands, concessions, payments & receipts (rust_decimal end to end), reconciliation, student fees screen | planned |
-| 6 | Examinations | I | Exam scheduling, assessments & gradebook, moderation, results publication, grade cards | planned |
+| 6 | Examinations | I | Exam scheduling, seating, registration & hall tickets, assessments & marks, gradebook, moderation, result computation (SGPA/CGPA), verification, publication, grade cards, revaluation | in progress (6·F foundation, see below) |
 | 7 | People & workforce | E | Staff records, recruitment/onboarding, leave, payroll inputs, staff directory | planned |
 | 8 | Campus · Services · Resources | G · H · J | Facilities, hostel, transport, service desk, library & learning resources | planned |
 | 9 | Production hardening | cross-cutting | OTLP exporter + Prometheus/Loki/Tempo/Grafana, tamper-evident audit chaining (ADR-L5-0012), GHCR push + Cosign signing on trusted runners, K8s manifests/Helm, OpenBao secrets, Flowable OSS 8 adapter + BPMN deployment, OpenSearch projections, performance/capacity gates, DR drills | planned |
@@ -87,3 +87,14 @@ Gates at integration: fmt, clippy `-D warnings`, API DB tests 131/131 (`db_b4_fo
 `db_b4b`, `db_b4c` plus the Batch 2/3 suites), `cargo test --workspace` 366, web typecheck/lint/test/build,
 and the `pnpm e2e:academic` click-through (admin, student and faculty) with `pnpm e2e:student` as the
 Batch 3 regression.
+
+## Batch 6 slices
+
+Contracts, scenario coverage and file ownership: [`batch6-contracts.md`](batch6-contracts.md).
+
+| Slice | Scope | Status |
+|-------|-------|--------|
+| **6·F** | Foundation: Domain I ids / lifecycle states (shared Session, Paper, Registration, Mark, Result machines) / V1 event contracts / permissions (`exam.*`), shared tables (grading schemes, sessions, papers, registrations, paper marks + history, term results + lines), lifecycle / registration / marks / results helpers, pure grading engine (SGPA / CGPA, `rust_decimal`), `ExamDirectory` / `MarksReader` / real `ResultsPort`, Domain D `AcademicExamFacts` and Domain F `ExamFeePort` (`exam_fee` charges), grading-scheme API, pre-mounted routers + OpenAPI tags, inbox rule hooks, web route frames (Admin Examinations, Faculty Assessments, Student Results) | <!-- batch6:6f:status -->✅ |
+| **6A** | Exam setup: policy, sessions, papers, scheduling / timetable, venues, seating, invigilation, registration (self, bulk, late, amendments, withdrawal, finalisation), hall tickets (finance-dues and attendance conditions), conduct basics, contingencies | <!-- batch6:6a:status -->✅ |
+| **6B** | Assessment & marks: internal assessment import (Batch 4), marks entry by teaching faculty, verification / approval of final marks, evaluation rounds, moderation, withheld marks, gradebook, malpractice basics | <!-- batch6:6b:status -->✅ |
+| **6C** | Results: computation engine (SGPA / CGPA), withholding, verification, approval, publication / withdrawal / republication, grade cards, revaluation / rechecking (Finance fee), supplementary eligibility, completion evaluation, session closure | <!-- batch6:6c:status -->✅ |

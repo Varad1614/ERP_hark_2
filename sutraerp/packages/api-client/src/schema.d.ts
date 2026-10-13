@@ -4661,6 +4661,3388 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/completion-evaluations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One completion evaluation (`exam.read`). */
+        get: operations["exam_completion_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/completion-evaluations/{id}/reevaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-evaluate after a revised result (`exam.result.manage`; L3-I-150) — supersedes this one. */
+        post: operations["exam_completion_reevaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/conduct-records/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One conduct record (`exam.read`). */
+        get: operations["exam_conduct_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/conduct-records/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete the conduct with attendance (`exam.setup.manage`, L3-I-055 / I-043 / I-057). */
+        post: operations["exam_conduct_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/conduct-records/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending postponement (`exam.approve`): approve applies it, reject clears it. */
+        post: operations["exam_conduct_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/conduct-records/{id}/postpone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Postpone and reschedule a sitting under an authorised contingency (`exam.setup.manage`,
+         *     reason required, `CONTINGENCY_DECISION`, L3-I-185). Auto-approved in Batch 6; with an awaited
+         *     decision the plan stays pending on the record until `/decision`.
+         */
+        post: operations["exam_conduct_postpone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/conduct-records/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume a suspended conduct once the interruption is resolved (`exam.setup.manage`,
+         *     L3-I-175).
+         */
+        post: operations["exam_conduct_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/conduct-records/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the conduct (`exam.setup.manage`). */
+        post: operations["exam_conduct_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/conduct-records/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a conduct in progress under an authorised contingency (`exam.setup.manage`, reason
+         *     required, L3-I-174).
+         */
+        post: operations["exam_conduct_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-exceptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One exception case (`exam.read`). */
+        get: operations["exam_exception_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-exceptions/{id}/classify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Classify a raised exception (`exam.setup.manage`). */
+        post: operations["exam_exception_classify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-exceptions/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a resolved exception (`exam.setup.manage`). */
+        post: operations["exam_exception_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-exceptions/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve an exception with its resolution (`exam.setup.manage`). */
+        post: operations["exam_exception_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-exceptions/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an exception under review (`exam.setup.manage`). */
+        post: operations["exam_exception_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One paper (`exam.read`). */
+        get: operations["exam_paper_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a draft / scheduled paper (`exam.setup.manage`, `If-Match`). */
+        patch: operations["exam_paper_update"];
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a draft / scheduled / ready paper (`exam.setup.manage`, reason required). */
+        post: operations["exam_paper_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/conducted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a ready paper conducted (`exam.setup.manage`; normally set by conduct completion). */
+        post: operations["exam_paper_conducted"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recorded evaluations of a paper with each script's resolution (`exam.read`). */
+        get: operations["exam_evaluation_list"];
+        put?: never;
+        /**
+         * Records one evaluation of a script (first — one per panel member —, second, adjudication;
+         *     `exam.marks.enter`, faculty: own sections). The resolved value is written to the marks row.
+         */
+        post: operations["exam_evaluation_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/gradebook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gradebook of a paper (`exam.read`; faculty: own sections): every effective candidate graded
+         *     with `shared::grading` and the session's scheme — the engine 6C computes results with.
+         */
+        get: operations["exam_gradebook_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/mark-sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A paper's mark sheet (`exam.read`; faculty: own sections). */
+        get: operations["exam_mark_sheet_of_paper"];
+        put?: never;
+        /**
+         * Opens a paper's mark sheet (`exam.marks.manage`); the paper must accept marks (`conducted`),
+         *     it moves to `evaluation`.
+         */
+        post: operations["exam_mark_sheet_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/marks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Candidates' marks on a paper with grade previews (`exam.read`; faculty: own sections). */
+        get: operations["exam_marks_list"];
+        /**
+         * Bulk marks entry (`exam.marks.enter`; faculty only on papers of sections they teach, else
+         *     404): each row carries its `version` (stale → 412); values through `marks::update(→ entered)`.
+         */
+        put: operations["exam_marks_enter"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Moderations of a paper (`exam.read`). */
+        get: operations["exam_moderation_list"];
+        put?: never;
+        /**
+         * Requests a moderation of verified marks under policy (L3-I-075; `exam.marks.manage`):
+         *     `grace` (≤ 10 % of the maximum) or `scaling` (50 … 120 %), with a dry-run report.
+         */
+        post: operations["exam_moderation_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a scheduled paper ready for conduct (`exam.setup.manage`). */
+        post: operations["exam_paper_ready"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-papers/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Schedule a draft paper (`exam.setup.manage`). */
+        post: operations["exam_paper_schedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One policy version (`exam.read`). */
+        get: operations["exam_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a draft policy version (`exam.setup.manage`, `If-Match`). */
+        patch: operations["exam_policy_update"];
+        trace?: never;
+    };
+    "/api/v1/exams/exam-policies/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an approved / scheduled version (`exam.setup.manage`): a future `effectiveFrom`
+         *     schedules it; otherwise the institution's active version is superseded and this one becomes
+         *     the single authoritative policy.
+         */
+        post: operations["exam_policy_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-policies/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a policy under review (`exam.approve`): approve → `approved`, reject → `draft`. */
+        post: operations["exam_policy_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-policies/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire a policy version with its history preserved (`exam.setup.manage`, reason required).
+         *     A version still governing an operational session cannot be retired (`409`).
+         */
+        post: operations["exam_policy_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-policies/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft policy for review (`exam.setup.manage`); `POLICY_APPROVAL` decides
+         *     (auto-approved in Batch 6).
+         */
+        post: operations["exam_policy_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-policies/{id}/supersede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explicitly supersede the active version without activating another (`exam.setup.manage`,
+         *     reason required).
+         */
+        post: operations["exam_policy_supersede"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One registration (`exam.read`). */
+        get: operations["exam_registration_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}/amend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Amend or correct a registration (`exam.registration.manage`, reason required, L3-I-021 /
+         *     I-022): papers are added / withdrawn with their history; the registration becomes `amended`
+         *     until confirmed again.
+         */
+        post: operations["exam_registration_amend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}/arrangements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record an approved special examination arrangement (`exam.registration.manage`, L3-I-029);
+         *     it is printed on the hall ticket (L3-I-040).
+         */
+        post: operations["exam_registration_arrangement_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm an amended registration again (`exam.registration.manage`). */
+        post: operations["exam_registration_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a registration held for review (`exam.approve`): approve → confirmed, reject →
+         *     rejected with the reason (L3-I-026).
+         */
+        post: operations["exam_registration_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}/papers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add one paper to a registration (`exam.registration.manage`; an amendment). */
+        post: operations["exam_registration_paper_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}/reinstate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reinstate a withdrawn registration (`exam.registration.manage`, reason required,
+         *     L3-I-024): back to `confirmed` unless the candidate registered again meanwhile (`409`).
+         */
+        post: operations["exam_registration_reinstate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}/scope-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-reads the student's 3B term registration and aligns the registered papers with it
+         *     (`exam.registration.manage`, L3-I-027): papers whose course was dropped are withdrawn,
+         *     newly added courses of the session are registered.
+         */
+        post: operations["exam_registration_scope_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-registrations/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a registration (`exam.registration.manage`, reason required, L3-I-023); its
+         *     current hall ticket is invalidated (L3-I-039).
+         */
+        post: operations["exam_registration_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-schedules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One schedule with its sittings and conflicts (`exam.read`). */
+        get: operations["exam_schedule_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-schedules/{id}/conflicts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current conflicts of a schedule (`exam.read`, L3-I-014). */
+        get: operations["exam_schedule_conflicts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-schedules/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a schedule under review (`exam.approve`): approve → `approved`, reject → `draft`. */
+        post: operations["exam_schedule_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-schedules/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish an approved schedule as the official timetable (`exam.setup.manage`, L3-I-013):
+         *     draft papers of its sittings become `scheduled`; students and faculty are notified.
+         */
+        post: operations["exam_schedule_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-schedules/{id}/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revise the published timetable (`exam.setup.manage`, reason required, L3-I-008): the
+         *     published version becomes `revised` and the next draft version opens with its sittings;
+         *     returns the new draft.
+         */
+        post: operations["exam_schedule_revise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-schedules/{id}/sittings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sittings of a schedule (`exam.read`). */
+        get: operations["exam_schedule_sitting_list"];
+        put?: never;
+        /** Add a sitting to a draft schedule (`exam.setup.manage`). */
+        post: operations["exam_schedule_sitting_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-schedules/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft schedule for approval (`exam.setup.manage`): it needs sittings and no open
+         *     conflict (`409` listing them); `SCHEDULE_APPROVAL` decides (auto-approved in Batch 6).
+         */
+        post: operations["exam_schedule_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-schedules/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw the published timetable (`exam.setup.manage`, reason required, L3-I-016):
+         *     students and faculty are notified.
+         */
+        post: operations["exam_schedule_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One session with its papers (`exam.read`). */
+        get: operations["exam_session_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit a session (`exam.setup.manage`, `If-Match`). After the draft stage the edit is a
+         *     governed revision: `reason` required, before / after recorded; activities already completed
+         *     under the session keep their context (L3-I-005).
+         */
+        patch: operations["exam_session_update"];
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a scheduled session (`exam.setup.manage`): from now on operational workflows
+         *     (registration, conduct, marks, results) may consume it. Needs a grading scheme and at least
+         *     one live paper.
+         */
+        post: operations["exam_session_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The closure of a session (`exam.read`; 404 before initiation). */
+        get: operations["exam_closure_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/closure/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a closed session (`exam.result.manage`; L3-I-192). */
+        post: operations["exam_closure_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/closure/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close the session when nothing blocks it (`exam.result.manage`; `SESSION_CLOSURE`). */
+        post: operations["exam_closure_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/closure/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending closure (`exam.approve`, step-up): approve closes, reject reopens. */
+        post: operations["exam_closure_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/closure/initiate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start closing an active session (`exam.result.manage`; session → `closing`). */
+        post: operations["exam_closure_initiate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a session under review (`exam.approve`): approve → `approved`, reject → `draft`
+         *     (reason required).
+         */
+        post: operations["exam_session_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exception cases of a session (`exam.read`). */
+        get: operations["exam_exception_list"];
+        put?: never;
+        /** Raise an exception case (`exam.setup.manage`). */
+        post: operations["exam_exception_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/hall-tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hall tickets of a session (`exam.read`). */
+        get: operations["exam_hall_ticket_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/hall-tickets/finalise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalise the hall-ticket population for conduct (`exam.registration.manage`,
+         *     `Idempotency-Key`, L3-I-042): reports effective registrations without an active ticket and
+         *     freezes bulk issuance (release / reissue stay possible).
+         */
+        post: operations["exam_hall_ticket_finalise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/hall-tickets/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue hall tickets to every effective registration without a current ticket
+         *     (`exam.registration.manage`, `Idempotency-Key`, L3-I-037 / I-038). Candidates failing an
+         *     entry condition get a `withheld` ticket with the evidence.
+         */
+        post: operations["exam_hall_ticket_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/malpractice-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Malpractice cases of a session (`exam.read`; `?status=`). */
+        get: operations["exam_malpractice_list"];
+        put?: never;
+        /**
+         * Reports suspected malpractice (`exam.marks.manage`; `MAL-` number). A second open case for
+         *     the same candidate and paper is `409`.
+         */
+        post: operations["exam_malpractice_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge a duplicate session (draft / under review / approved, no registrations) into the
+         *     authoritative session of the same term (`exam.setup.manage`, L3-I-006): papers for offerings
+         *     the target lacks move over, the rest are cancelled; the duplicate returns to draft and is
+         *     marked merged (it can no longer be submitted or revised).
+         */
+        post: operations["exam_session_merge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/papers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Papers of a session (`exam.read`). */
+        get: operations["exam_paper_list"];
+        put?: never;
+        /**
+         * Add a paper for a Domain D offering of the session's term (`exam.setup.manage`). Credits,
+         *     title and curriculum component come from the offering; one live paper per offering (`409`).
+         */
+        post: operations["exam_paper_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/papers/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate one paper per running offering of the session's term that has none yet
+         *     (`exam.setup.manage`, bulk: `Idempotency-Key`, summary).
+         */
+        post: operations["exam_paper_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/publications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Publications of a session (`exam.read`). */
+        get: operations["exam_publication_list"];
+        put?: never;
+        /** Plan a publication of approved results (`exam.result.publish`). */
+        post: operations["exam_publication_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/registration-overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Deadline overrides of a session (`exam.read`). */
+        get: operations["exam_registration_override_list"];
+        put?: never;
+        /**
+         * Request a registration deadline override for one candidate (`exam.registration.manage`,
+         *     `DEADLINE_OVERRIDE`, L3-I-020). Auto-approved in Batch 6; the candidate may then register
+         *     (channel `late`) until `validUntil`.
+         */
+        post: operations["exam_registration_override_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/registration-population/finalise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalise the registration population (`exam.registration.manage`, `Idempotency-Key`,
+         *     L3-I-036): every confirmed / amended registration becomes `locked`
+         *     (`exam_registration.locked`); registrations still pending are reported as skipped.
+         */
+        post: operations["exam_registration_population_finalise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/registration-window/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopen (extend) the registration window (`exam.setup.manage`, reason required, L3-I-025);
+         *     a finalised population becomes open for registration again.
+         */
+        post: operations["exam_registration_window_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Registrations of a session ordered by number (`exam.read`). */
+        get: operations["exam_registration_list"];
+        put?: never;
+        /**
+         * Register a candidate on their behalf (`exam.registration.manage`, L3-I-034). Within the
+         *     window the channel is `administrative`; after it (policy permitting late registration) it is
+         *     `late` and the policy's late fee is raised in Finance (L3-I-019). Ineligible papers record a
+         *     `rejected` registration with the reasons (L3-I-026); a second live registration is `409`
+         *     (L3-I-032).
+         */
+        post: operations["exam_registration_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/registrations/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk / institution-assisted registration (`exam.registration.manage`, `Idempotency-Key`,
+         *     L3-I-018): each student is registered for the session's papers their term registration
+         *     covers; students already registered are skipped, ineligible ones reported.
+         */
+        post: operations["exam_registration_bulk"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen a suspended session (`exam.setup.manage`). */
+        post: operations["exam_session_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/result-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Result computation batches of a session (`exam.read`). */
+        get: operations["exam_result_batch_list"];
+        put?: never;
+        /**
+         * Open the result computation batch of an active session (`exam.result.manage`; one live batch
+         *     per session → 409).
+         */
+        post: operations["exam_result_batch_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current results of a session (`exam.read`; `?status=`, `?includeSuperseded=true`). */
+        get: operations["exam_result_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/revaluation-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review requests of a session (`exam.read`). */
+        get: operations["exam_revaluation_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule an approved session for its operational period (`exam.setup.manage`); a grading
+         *     scheme must be bound.
+         */
+        post: operations["exam_session_schedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Schedule versions of a session, newest first (`exam.read`). */
+        get: operations["exam_schedule_list"];
+        put?: never;
+        /** Plan a draft schedule for a session (`exam.setup.manage`; one live schedule per session). */
+        post: operations["exam_schedule_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft session for review (`exam.setup.manage`); `SESSION_APPROVAL` decides
+         *     (auto-approved in Batch 6). A second governed session of the same term and kind is a
+         *     duplicate (`409`; merge it instead, L3-I-006).
+         */
+        post: operations["exam_session_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/supplementary-eligibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subsequent-attempt eligibilities determined from a session (`exam.read`). */
+        get: operations["exam_supplementary_list"];
+        put?: never;
+        /**
+         * Determine subsequent-attempt eligibility from the session's published failed lines
+         *     (`exam.result.manage`; idempotent bulk command).
+         */
+        post: operations["exam_supplementary_determine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sessions/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an operational session (`exam.setup.manage`, reason required, L3-I-005). */
+        post: operations["exam_session_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sittings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One sitting with its venues (`exam.read`). */
+        get: operations["exam_sitting_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Move / resize a sitting of a draft schedule (`exam.setup.manage`, `If-Match`; conflict
+         *     resolution, L3-I-014).
+         */
+        patch: operations["exam_sitting_update"];
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sittings/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a sitting of a draft schedule (`exam.setup.manage`, reason required). */
+        post: operations["exam_sitting_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sittings/{id}/conduct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sitting's live conduct record, else its latest (`exam.read`). */
+        get: operations["exam_conduct_get_for_sitting"];
+        put?: never;
+        /**
+         * Open the conduct record of a sitting (`exam.setup.manage`): the session must be operational
+         *     and the timetable official; practical / viva / project papers need a live examiner duty
+         *     (L3-I-012 / I-043). A scheduled paper becomes `ready`.
+         */
+        post: operations["exam_conduct_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sittings/{id}/invigilation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staffing of a sitting: duties, required invigilators and shortage (`exam.read`). */
+        get: operations["exam_invigilation_list"];
+        put?: never;
+        /**
+         * Assign an invigilator / examiner to a sitting (`exam.setup.manage`): one live duty per person
+         *     and sitting, no overlapping duties for the same person (`409`).
+         */
+        post: operations["exam_invigilation_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sittings/{id}/seating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sitting's current plan (draft / published), else its latest (`exam.read`). */
+        get: operations["exam_seating_get_for_sitting"];
+        put?: never;
+        /**
+         * Generate a draft seating plan for a sitting (`exam.setup.manage`); an existing draft is
+         *     cancelled and replaced, a published plan must be revised instead (`409`).
+         */
+        post: operations["exam_seating_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sittings/{id}/venues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Venues allocated to a sitting (`exam.read`). */
+        get: operations["exam_sitting_venue_list"];
+        put?: never;
+        /**
+         * Allocate a venue to a sitting (`exam.setup.manage`, L3-I-009): the seats must fit in the
+         *     venue's capacity left over by concurrent sittings (`409` otherwise).
+         */
+        post: operations["exam_sitting_venue_allocate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-sittings/{id}/venues/{venueId}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Release a venue from a sitting (`exam.setup.manage`). */
+        post: operations["exam_sitting_venue_release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/exam-venues/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One venue (`exam.read`). */
+        get: operations["exam_venue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a venue (`exam.setup.manage`, `If-Match`). */
+        patch: operations["exam_venue_update"];
+        trace?: never;
+    };
+    "/api/v1/exams/grade-cards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One grade card (`exam.read`). */
+        get: operations["exam_grade_card_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/grade-cards/{id}/reissue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reissue a grade card from the current published result (`exam.result.publish`). */
+        post: operations["exam_grade_card_reissue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/grade-cards/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a grade card (`exam.result.publish`, reason required). */
+        post: operations["exam_grade_card_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/grading-schemes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One grading scheme (`exam.read`). */
+        get: operations["exam_grading_scheme_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/grading-schemes/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire a grading scheme (`exam.setup.manage`): no new session may bind it; results already
+         *     computed under it keep it.
+         */
+        post: operations["exam_grading_scheme_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/hall-tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One hall ticket (`exam.read`). */
+        get: operations["exam_hall_ticket_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/hall-tickets/{id}/reissue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reissue a ticket (`exam.registration.manage`, reason required; duplicate / conflicting /
+         *     lost ticket, L3-I-041, or after a new special arrangement, I-040): the current one becomes
+         *     `reissued` and a new number replaces it, so exactly one valid ticket remains.
+         */
+        post: operations["exam_hall_ticket_reissue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/hall-tickets/{id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release a withheld ticket once its conditions are satisfied (`exam.registration.manage`,
+         *     L3-I-038): the conditions are re-evaluated; still unsatisfied → `409` with the evidence.
+         *     `override: true` in the reason body is not supported — clear the condition at its source.
+         */
+        post: operations["exam_hall_ticket_release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/hall-tickets/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw (invalidate) a ticket (`exam.registration.manage`, reason required, L3-I-039). */
+        post: operations["exam_hall_ticket_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/hall-tickets/{id}/withhold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withhold an active ticket (`exam.registration.manage`, reason required). */
+        post: operations["exam_hall_ticket_withhold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/institutions/{id}/completion-evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Completion evaluations of an institution (`exam.read`; `?studentId=`). */
+        get: operations["exam_completion_list"];
+        put?: never;
+        /** Evaluate (or re-evaluate) a student's academic completion (`exam.result.manage`). */
+        post: operations["exam_completion_evaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/institutions/{id}/exam-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Policy versions of an institution, newest first (`exam.read`). */
+        get: operations["exam_policy_list"];
+        put?: never;
+        /** Define a policy (draft) or the next version of an existing code (`exam.setup.manage`). */
+        post: operations["exam_policy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/institutions/{id}/exam-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessions of an institution, newest first (`exam.read`). */
+        get: operations["exam_session_list"];
+        put?: never;
+        /** Create a draft session for an academic term (`exam.setup.manage`). */
+        post: operations["exam_session_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/institutions/{id}/exam-venues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Venues of an institution (`exam.read`). */
+        get: operations["exam_venue_list"];
+        put?: never;
+        /** Register a venue (`exam.setup.manage`; code unique per institution). */
+        post: operations["exam_venue_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/institutions/{id}/grading-schemes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Grading schemes of an institution (`exam.read`). */
+        get: operations["exam_grading_scheme_list"];
+        put?: never;
+        /**
+         * Create a grading scheme (`exam.setup.manage`). Bands are validated (one band from 0 %, at
+         *     least one pass and one failing band, unique grades / minimums, monotonic grade points).
+         */
+        post: operations["exam_grading_scheme_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/institutions/{id}/mark-sheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Papers of an institution's examination sessions with their mark sheet status (Admin →
+         *     Examinations → Marks; `exam.read`).
+         */
+        get: operations["exam_mark_sheet_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/invigilation-duties/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm an assigned duty (`exam.setup.manage`). */
+        post: operations["exam_invigilation_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/invigilation-duties/{id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release a duty (`exam.setup.manage`, reason required) — the staffing view then shows any
+         *     shortage (L3-I-011).
+         */
+        post: operations["exam_invigilation_release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/invigilation-duties/{id}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace a duty with another person (`exam.setup.manage`, reason required; allowed during
+         *     conduct, L3-I-060). The replaced duty keeps its history; the new one links to it.
+         */
+        post: operations["exam_invigilation_replace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One malpractice case with its decisions (`exam.read`). */
+        get: operations["exam_malpractice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/appeal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Appeal against a decision (`decided → appealed`; `exam.marks.manage`, reason required). */
+        post: operations["exam_malpractice_appeal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decision on the pending committee decision / review outcome (`exam.approve`, step-up). */
+        post: operations["exam_malpractice_approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archives a closed case (`exam.marks.manage`). */
+        post: operations["exam_malpractice_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Closes a decided case (`exam.marks.manage`). */
+        post: operations["exam_malpractice_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Committee decision with a penalty (`MALPRACTICE_DECISION`; `exam.marks.manage`). A
+         *     debarring penalty sets the registered paper(s) `debarred`.
+         */
+        post: operations["exam_malpractice_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/hearing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Schedules the committee hearing (`under_investigation → hearing`; `exam.marks.manage`). */
+        post: operations["exam_malpractice_hearing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/investigate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Opens the investigation (`reported → under_investigation`; `exam.marks.manage`). */
+        post: operations["exam_malpractice_investigate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Merges an undecided duplicate into the authoritative case (`exam.marks.manage`). */
+        post: operations["exam_malpractice_merge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Formal reopening after an authorised review (`exam.marks.manage`, reason required). */
+        post: operations["exam_malpractice_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/malpractice-cases/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Appeal review outcome (`MALPRACTICE_REVIEW`; `exam.marks.manage`): `uphold`, `modify`
+         *     (new penalty) or `overturn` (papers restored).
+         */
+        post: operations["exam_malpractice_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One mark sheet (`exam.read`). */
+        get: operations["exam_mark_sheet_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Changes a sheet's policy settings before submission (`exam.marks.manage`). */
+        patch: operations["exam_mark_sheet_update"];
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evaluators of a sheet (`exam.read`). */
+        get: operations["exam_mark_sheet_assignment_list"];
+        put?: never;
+        /**
+         * Assigns an evaluator (examiner / panel member / second examiner / adjudicator;
+         *     `exam.marks.manage`).
+         */
+        post: operations["exam_mark_sheet_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decision on a pending final marks approval (`exam.approve`, step-up): `approve | reject`. */
+        post: operations["exam_mark_sheet_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Submission exceptions of a sheet (`exam.read`). */
+        get: operations["exam_marks_exception_list"];
+        put?: never;
+        /**
+         * Raises a marks submission exception (late submission / missing marks, L3-I-074;
+         *     `exam.marks.enter`, faculty: own sections).
+         */
+        post: operations["exam_marks_exception_raise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/finalise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Final approved marks (`exam.marks.manage`): rows `approved → finalised`; the paper becomes
+         *     `marks_finalised` when every effective candidate is final.
+         */
+        post: operations["exam_mark_sheet_finalise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/import-internal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Imports finalised internal assessment from Batch 4 into the candidates' internal marks
+         *     (`exam.marks.manage`); re-import after a 4B correction updates rows that are not final.
+         */
+        post: operations["exam_mark_sheet_import_internal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/request-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Requests final marks approval (`MARKS_APPROVAL`, `exam.marks.manage`). Auto-approval returns
+         *     the sheet `approved`; otherwise it awaits `…/decision`.
+         */
+        post: operations["exam_mark_sheet_request_approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Returns submitted marks to the evaluator (`exam.marks.manage`, reason required). */
+        post: operations["exam_mark_sheet_return"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluator submission (`exam.marks.enter`; faculty: own sections): rows `entered → submitted`,
+         *     sheet `in_evaluation → evaluated`, `mark_sheet.submitted`.
+         */
+        post: operations["exam_mark_sheet_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/mark-sheets/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Exam-cell verification (`exam.marks.manage`): rows `submitted → verified`, sheet `validated`. */
+        post: operations["exam_mark_sheet_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/marks-exceptions/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepts or rejects a submission exception (`exam.marks.manage`; decision `accept | reject`). */
+        post: operations["exam_marks_exception_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Papers of the sections the caller teaches with their sheet status (Faculty Assessments;
+         *     `exam.marks.enter`).
+         */
+        get: operations["exam_marks_self_assessments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/assessments/{id}/marks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Marks of one of the caller's papers (`exam.marks.enter`; 404 unless they teach a section of
+         *     its offering).
+         */
+        get: operations["exam_marks_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/exam-registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own registrations (`exam.self`). */
+        get: operations["exam_registration_self_list"];
+        put?: never;
+        /**
+         * Register oneself for an operational session (`exam.self`): inside the window (or with an
+         *     approved deadline override, channel `late` + late fee); papers must be covered by the
+         *     student's term registration; ineligible papers record a `rejected` registration.
+         */
+        post: operations["exam_registration_self_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/exam-registrations/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Operational sessions the caller can register for, with the papers their term registration
+         *     covers (`exam.self`).
+         */
+        get: operations["exam_registration_self_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/exam-registrations/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw one's own registration (`exam.self`, reason required, L3-I-023). */
+        post: operations["exam_registration_self_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/exam-timetable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's examination timetable (`exam.self`): sittings of the published timetable for
+         *     the papers on their effective registrations.
+         */
+        get: operations["exam_schedule_self_timetable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/grade-cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own grade cards (`exam.self`). */
+        get: operations["exam_grade_card_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/hall-tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own hall tickets (`exam.self`): current tickets of their registrations. */
+        get: operations["exam_hall_ticket_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/invigilation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own invigilation / examiner duties (`exam.read`, faculty). */
+        get: operations["exam_invigilation_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's own results (`exam.self`): published results in full, withdrawn ones as a
+         *     notice; nothing before publication.
+         */
+        get: operations["exam_result_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/revaluation-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own review requests (`exam.self`). */
+        get: operations["exam_revaluation_self_list"];
+        put?: never;
+        /**
+         * Request a revaluation / rechecking of one of the caller's own published papers within the
+         *     review window (`exam.self`). The fee is raised in Finance (pay it under Student Fees).
+         */
+        post: operations["exam_revaluation_self_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/me/revaluation-requests/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw one of the caller's own requests before its review starts (`exam.self`). */
+        post: operations["exam_revaluation_self_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/moderations/{id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Applies an approved moderation (`exam.marks.manage`): verified scripts `→ moderated`. */
+        post: operations["exam_moderation_apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/moderations/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decision on a validated moderation (`exam.approve`, step-up): `approve | reject`. */
+        post: operations["exam_moderation_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/moderations/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validates a moderation and requests its approval (`MODERATION_APPROVAL`; `exam.marks.manage`). */
+        post: operations["exam_moderation_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/moderations/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraws an open moderation (`exam.marks.manage`). */
+        post: operations["exam_moderation_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/paper-marks/{id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Releases withheld marks back to entry (`exam.marks.manage`). */
+        post: operations["exam_marks_release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/paper-marks/{id}/withhold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withholds a candidate's marks (incomplete evaluation, L3-I-076; `exam.marks.manage`, reason
+         *     required); `paper_mark.withheld` notifies the student.
+         */
+        post: operations["exam_marks_withhold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/publications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One publication (`exam.read`). */
+        get: operations["exam_publication_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/publications/{id}/authorise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request authorisation of a publication (`exam.result.publish`; `RESULT_PUBLICATION`). */
+        post: operations["exam_publication_authorise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/publications/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a pending publication (`exam.result.publish`, reason required; L3-I-105). */
+        post: operations["exam_publication_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/publications/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending publication authorisation (`exam.result.publish`, step-up). */
+        post: operations["exam_publication_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/publications/{id}/delay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delay a pending publication (`exam.result.publish`; L3-I-104). */
+        post: operations["exam_publication_delay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/publications/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the session's approved results (`exam.result.publish`): results → `published`,
+         *     `term_result.published` (or `.revised` for a replacement revision).
+         */
+        post: operations["exam_publication_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/publications/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve a publication delay (`exam.result.publish`). */
+        post: operations["exam_publication_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/publications/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a failed publication (safe recovery, L3-I-116). */
+        post: operations["exam_publication_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/registration-overrides/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending deadline override (`exam.approve`). */
+        post: operations["exam_registration_override_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/result-batches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One result batch (`exam.read`). */
+        get: operations["exam_result_batch_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/result-batches/{id}/compute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compute (or recompute before approval) every effective candidate of the session from final
+         *     marks (`exam.result.manage`; idempotent re-runs).
+         */
+        post: operations["exam_result_batch_compute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/result-batches/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve / reject a validated batch awaiting its decision (`exam.result.publish`, step-up). */
+        post: operations["exam_result_batch_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/result-batches/{id}/finalise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalise an approved batch → ready for publication (`exam.result.publish`). */
+        post: operations["exam_result_batch_finalise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/result-batches/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopen a validated / approved batch before publication (`exam.result.manage`, reason
+         *     required, L3-I-099).
+         */
+        post: operations["exam_result_batch_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/result-batches/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify the computed results and request result approval (`exam.result.manage`;
+         *     `RESULT_APPROVAL`, auto-approved in Batch 6).
+         */
+        post: operations["exam_result_batch_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/result-decisions/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending correction / withdrawal (`exam.result.publish`, step-up). */
+        post: operations["exam_result_decision_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One review request (`exam.read`). */
+        get: operations["exam_revaluation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}/approve-marks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve the revised marks: final marks revised and the result republished as a new revision
+         *     when they changed (`exam.result.manage`).
+         */
+        post: operations["exam_revaluation_approve_marks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the review outcome (`exam.result.manage`; revised external marks). */
+        post: operations["exam_revaluation_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Correct a closed review's outcome (`exam.result.manage`; L3-I-132). */
+        post: operations["exam_revaluation_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve / reject a fee-verified request (`exam.approve`, step-up). */
+        post: operations["exam_revaluation_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}/start-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the review of an approved request (`exam.result.manage`). */
+        post: operations["exam_revaluation_start_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify the fee (raised in Finance; settled through Student Fees) and request the decision
+         *     (`exam.result.manage`; `REVALUATION_DECISION`). 409 while the fee is outstanding.
+         */
+        post: operations["exam_revaluation_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}/verify-outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify the review outcome (`exam.result.manage`). */
+        post: operations["exam_revaluation_verify_outcome"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/revaluation-requests/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a request before its review starts (`exam.result.manage`). */
+        post: operations["exam_revaluation_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/seating-plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One seating plan (`exam.read`). */
+        get: operations["exam_seating_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/seating-plans/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a draft seating plan (`exam.setup.manage`). */
+        post: operations["exam_seating_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/seating-plans/{id}/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revise a published seating plan (`exam.setup.manage`, reason required, L3-I-059): the plan
+         *     becomes `revised` and a regenerated draft replaces it (returned).
+         */
+        post: operations["exam_seating_revise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/supplementary-eligibility/{id}/authorise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authorise the attempt in a supplementary / improvement session (`exam.result.manage`). */
+        post: operations["exam_supplementary_authorise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/term-results/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One term result with its lines (`exam.read`). */
+        get: operations["exam_result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/term-results/{id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an approved correction of one paper's final marks (`exam.result.manage`;
+         *     `RESULT_CORRECTION`): final marks are revised through `revise_final` and the result is
+         *     replaced at the same level (published → `term_result.revised`).
+         */
+        post: operations["exam_result_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/term-results/{id}/grade-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The valid grade card of a result's candidate (`exam.read`; 404 when none). */
+        get: operations["exam_grade_card_of_result"];
+        put?: never;
+        /** Issue the grade card of a published result (`exam.result.publish`; `GC-` number). */
+        post: operations["exam_grade_card_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/term-results/{id}/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recompute one result before approval (`exam.result.manage`; L3-I-087). */
+        post: operations["exam_result_recompute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/term-results/{id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release a withheld result once its blocking condition is resolved (`exam.result.manage`;
+         *     L3-I-086/098). The response is the current result (a new revision when it changed).
+         */
+        post: operations["exam_result_release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/term-results/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a withdrawn result (`exam.result.publish`; L3-I-110). */
+        post: operations["exam_result_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/term-results/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request withdrawal of a published result (`exam.result.publish`; `RESULT_WITHDRAWAL`). */
+        post: operations["exam_result_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/term-results/{id}/withhold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withhold an unpublished result (`exam.result.manage`, reason required; L3-I-097/102). */
+        post: operations["exam_result_withhold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/adjustments/{id}": {
         parameters: {
             query?: never;
@@ -14498,6 +17880,9 @@ export interface components {
          * @enum {string}
          */
         AssessmentKind: "assignment" | "quiz" | "test" | "lab" | "project" | "presentation" | "viva";
+        AssessmentList: {
+            items: components["schemas"]["AssessmentView"][];
+        };
         AssessmentModeration: {
             /** Format: date-time */
             createdAt: string;
@@ -14561,6 +17946,25 @@ export interface components {
          * @enum {string}
          */
         AssessmentSubmissionStatus: "pending" | "submitted" | "late" | "marked" | "moderated" | "finalized" | "absent";
+        /** @description A paper of a section the faculty member teaches. */
+        AssessmentView: {
+            acceptsMarks: boolean;
+            /** Format: int64 */
+            candidates: number;
+            /** Format: int64 */
+            entered: number;
+            paperCode: string;
+            paperId: components["schemas"]["ExamPaperId"];
+            paperStatus: components["schemas"]["ExamPaperStatus"];
+            sections: string[];
+            sessionCode: string;
+            sessionId: components["schemas"]["ExamSessionId"];
+            sessionName: string;
+            sessionStatus: string;
+            sheetId?: null | components["schemas"]["MarkSheetId"];
+            sheetStatus?: null | components["schemas"]["EvaluationStatus"];
+            title: string;
+        };
         /** @description An assessment window; coursework is kind `assignment` (contract §5.3). */
         AssessmentWindow: {
             /** Format: uuid */
@@ -14607,6 +18011,11 @@ export interface components {
          * @enum {string}
          */
         AssignmentStatus: "active" | "suspended" | "revoked" | "expired";
+        /**
+         * @description Attempt kind of a registered paper (L2-I12).
+         * @enum {string}
+         */
+        AttemptKind: "regular" | "backlog" | "supplementary" | "improvement";
         /**
          * @description Attendance capture state of a session (L3-D-024).
          * @enum {string}
@@ -14737,6 +18146,11 @@ export interface components {
             passed: boolean;
             /** Format: double */
             requiredCredits?: number | null;
+        };
+        /** @description Authorisation of a subsequent attempt. */
+        AuthoriseBody: {
+            /** Format: uuid */
+            supplementarySessionId: string;
         };
         /** @description An offering open for enrolment in one of the student's institutions. */
         AvailableCourse: {
@@ -15535,7 +18949,7 @@ export interface components {
          * @description Where a charge came from.
          * @enum {string}
          */
-        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine";
+        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee";
         /**
          * @description Student charge lifecycle (L2-F01 §18–19 canonical states and transitions).
          * @enum {string}
@@ -15595,6 +19009,32 @@ export interface components {
             /** @description Owning domain of the evidence (Academic Calendar evaluates, never modifies it). */
             owner: string;
             status: components["schemas"]["EvidenceStatus"];
+        };
+        /** @description A session closure. */
+        ClosureView: {
+            /** Format: date-time */
+            archivedAt?: string | null;
+            /**
+             * @description Blockers found at the last check (`unpublishedResults`, `liveReviews`,
+             *     `openPublications`, `ready`, `blockers[]`).
+             */
+            checks: Record<string, never>;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: int32 */
+            completedRegistrations: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            /** @description `closing` | `closed` | `archived` | `reopened` */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         CollectionItemInput: {
             /** @example 5000.00 */
@@ -15689,6 +19129,11 @@ export interface components {
              */
             effectiveOn?: string | null;
         };
+        /** @description Evaluate a student's completion. */
+        CompletionCreate: {
+            /** Format: uuid */
+            studentId: string;
+        };
         CompletionDeferral: {
             completionId: components["schemas"]["QualificationCompletionId"];
             /** Format: date-time */
@@ -15711,10 +19156,51 @@ export interface components {
          */
         CompletionDeferralId: string;
         /**
+         * @description Academic completion evaluation (L2-I13; L3-I-145/150/153).
+         * @enum {string}
+         */
+        CompletionEvaluationStatus: "pending" | "eligible" | "not_eligible" | "blocked" | "superseded";
+        CompletionList: {
+            items: components["schemas"]["CompletionView"][];
+        };
+        /**
          * @description Completion pathway: full programme completion or NEP multiple-entry/exit intermediate exit.
          * @enum {string}
          */
         CompletionPathway: "completion" | "meme_exit";
+        /** @description A completion evaluation and its evidence record. */
+        CompletionView: {
+            /** @example 8.12 */
+            cgpa?: string | null;
+            /** Format: int32 */
+            componentsPassed: number;
+            /** Format: int32 */
+            componentsRequired: number;
+            /** @example 164.00 */
+            creditsEarned: string;
+            /** @example 160.00 */
+            creditsRequired: string;
+            /** Format: uuid */
+            curriculumVersionId?: string | null;
+            displayName: string;
+            /** Format: date-time */
+            evaluatedAt: string;
+            /** @description Published results and figures the evaluation rests on (L3-I-153). */
+            evidence: Record<string, never>;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            status: components["schemas"]["CompletionEvaluationStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * @description NEP 2020 course categories of a slot.
          * @enum {string}
@@ -15738,6 +19224,21 @@ export interface components {
             title: string;
             /** Format: double */
             weight: number;
+        };
+        /** @description Summary of a computation run (bulk command, contract §5.1). */
+        ComputeSummaryView: {
+            batch: components["schemas"]["ResultBatchView"];
+            /** Format: int32 */
+            computed: number;
+            failed: string[];
+            /** Format: int32 */
+            processed: number;
+            /** Format: int32 */
+            skipped: number;
+            /** Format: int32 */
+            unchanged: number;
+            /** Format: int32 */
+            withheld: number;
         };
         ConditionInput: {
             /** Format: uuid */
@@ -15812,6 +19313,18 @@ export interface components {
             directoryConsent?: boolean | null;
             /** Format: int32 */
             graduationYear?: number | null;
+            reason: string;
+        };
+        /** @description Approved correction of final marks of one paper (L3-I-088/100/117). */
+        CorrectionBody: {
+            /** @example 64.00 */
+            externalMarks?: string | null;
+            /** @example 2.00 */
+            graceMarks?: string | null;
+            /** @example 28.00 */
+            internalMarks?: string | null;
+            /** Format: uuid */
+            paperId: string;
             reason: string;
         };
         CorrectionDecision: {
@@ -16485,6 +19998,12 @@ export interface components {
             deficiencies?: string[];
             note?: string | null;
         };
+        /** @description Delay of a publication. */
+        DelayBody: {
+            reason: string;
+            /** Format: date */
+            until?: string | null;
+        };
         /** @description Body of an approval decision endpoint. */
         DeliveryDecision: {
             decision: components["schemas"]["DeliveryDecisionValue"];
@@ -16523,6 +20042,18 @@ export interface components {
         DetermineRepeat: {
             /** @description `term` or `year`. */
             repeatUnit: string;
+        };
+        /** @description Summary of an eligibility determination (bulk command). */
+        DetermineSummaryView: {
+            /** Format: int32 */
+            eligible: number;
+            /** Format: int32 */
+            exhausted: number;
+            failed: string[];
+            /** Format: int32 */
+            processed: number;
+            /** Format: int32 */
+            skipped: number;
         };
         DisputeCreate: {
             /** @description Part of the outstanding amount in dispute (default: all of it). */
@@ -16749,6 +20280,9 @@ export interface components {
             /** Format: double */
             familyIncome?: number | null;
         };
+        EligibilityList: {
+            items: components["schemas"]["EligibilityView"][];
+        };
         /** @description Evidence of an eligibility evaluation (L4-C-039-BH-001). */
         EligibilityResult: {
             /** Format: double */
@@ -16767,6 +20301,39 @@ export interface components {
             source: string;
             /** @description Unresolved requirements (empty when eligible). */
             unmet?: string[];
+        };
+        /** @description A subsequent-attempt eligibility. */
+        EligibilityView: {
+            /** Format: int32 */
+            attemptsUsed: number;
+            /** Format: uuid */
+            authorisedSessionId?: string | null;
+            bestGrade?: string | null;
+            /** @example 38.50 */
+            bestPercent?: string | null;
+            /** Format: uuid */
+            curriculumComponentId: string;
+            displayName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            maxAttempts: number;
+            paperCode: string;
+            /** Format: uuid */
+            paperId: string;
+            /** Format: uuid */
+            registrationId: string;
+            /** Format: uuid */
+            resultId: string;
+            /** Format: uuid */
+            sessionId: string;
+            status: components["schemas"]["SupplementaryEligibilityStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: int64 */
+            version: number;
         };
         EmergencyContact: {
             alternatePhone?: string | null;
@@ -16863,8 +20430,46 @@ export interface components {
             /** Format: int32 */
             policyVersionNo: number;
         };
+        EvaluationCreate: {
+            /** @description Defaults to the caller. */
+            evaluatorRef?: string | null;
+            /** @example 62.00 */
+            marks: string;
+            paperMarkId: components["schemas"]["PaperMarkId"];
+            remark?: string | null;
+            round: components["schemas"]["EvaluationRound"];
+        };
+        /**
+         * Format: uuid
+         * @description One evaluation round of an answer script (first, second, adjudicating).
+         */
+        EvaluationId: string;
+        EvaluationList: {
+            items: components["schemas"]["EvaluationView"][];
+            resolutions: components["schemas"]["EvaluationResolutionView"][];
+        };
         /** @enum {string} */
         EvaluationOutcome: "eligible" | "not_eligible" | "conditionally_eligible";
+        /** @description Result of recording an evaluation. */
+        EvaluationRecorded: {
+            evaluation: components["schemas"]["EvaluationView"];
+            mark: components["schemas"]["MarkRowView"];
+            resolution: components["schemas"]["EvaluationResolutionView"];
+        };
+        /** @description Where a script stands after its evaluations. */
+        EvaluationResolutionView: {
+            first?: string | null;
+            /**
+             * @description Authoritative evaluated marks when resolved.
+             * @example 63.50
+             */
+            marks?: string | null;
+            /** Format: uuid */
+            paperMarkId: string;
+            second?: string | null;
+            /** @description `none | resolved | awaiting_second | awaiting_adjudication`. */
+            state: string;
+        };
         /** @description Result of a recognition / evaluation run. */
         EvaluationResult: {
             /** Format: date */
@@ -16880,8 +20485,1026 @@ export interface components {
             /** Format: int64 */
             settled: number;
         };
+        /**
+         * @description Evaluation round of an answer script (L3-I-080/081/082).
+         * @enum {string}
+         */
+        EvaluationRound: "first" | "second" | "adjudication";
+        /**
+         * @description Per-paper evaluation lifecycle of a mark sheet (L2-I08 §20).
+         * @enum {string}
+         */
+        EvaluationStatus: "pending" | "planned" | "assigned" | "in_evaluation" | "evaluated" | "moderation" | "validated" | "approved" | "finalised" | "closed" | "archived";
+        /** @description One recorded evaluation of a script. */
+        EvaluationView: {
+            /** Format: date-time */
+            createdAt: string;
+            evaluatorRef: string;
+            id: components["schemas"]["EvaluationId"];
+            /** @example 62.00 */
+            marks: string;
+            paperMarkId: components["schemas"]["PaperMarkId"];
+            registrationId: components["schemas"]["ExamRegistrationId"];
+            remark?: string | null;
+            round: components["schemas"]["EvaluationRound"];
+        };
+        EvaluatorAssignmentCreate: {
+            evaluatorName?: string | null;
+            /** @description Login subject of the evaluator. */
+            evaluatorRef: string;
+            /** @description `examiner | panel_member | second_examiner | adjudicator`. */
+            role: string;
+        };
+        EvaluatorAssignmentList: {
+            items: components["schemas"]["EvaluatorAssignmentView"][];
+        };
+        /** @description An evaluator assigned to a mark sheet. */
+        EvaluatorAssignmentView: {
+            /** Format: date-time */
+            createdAt: string;
+            evaluatorName?: string | null;
+            evaluatorRef: string;
+            /** Format: uuid */
+            id: string;
+            markSheetId: components["schemas"]["MarkSheetId"];
+            /** @description `examiner | panel_member | second_examiner | adjudicator`. */
+            role: string;
+            status: string;
+        };
         /** @enum {string} */
         EvidenceStatus: "satisfied" | "waived" | "missing" | "failed" | "not_available";
+        /** @description A special examination arrangement. */
+        ExamArrangementCreate: {
+            /** Format: int32 */
+            extraMinutes?: number | null;
+            kind: string;
+            note: string;
+            /** Format: uuid */
+            paperId?: string | null;
+        };
+        /** @description An approved special examination arrangement (L3-I-029 / I-040). */
+        ExamArrangementView: {
+            /** Format: int32 */
+            extraMinutes?: number | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `extra_time | scribe | separate_room | assistive_technology | medical | other`. */
+            kind: string;
+            note: string;
+            /** Format: uuid */
+            paperId?: string | null;
+            status: string;
+        };
+        /** @description One candidate's attendance outcome at completion. */
+        ExamAttendanceEntry: {
+            /** @description `present | absent | denied_entry`. */
+            outcome: string;
+            reason?: string | null;
+            /** Format: uuid */
+            registrationId: string;
+        };
+        /** @description One attendance row of a completed conduct. */
+        ExamConductAttendanceView: {
+            displayName: string;
+            /** @description `present | absent | denied_entry`. */
+            outcome: string;
+            reason?: string | null;
+            /** Format: uuid */
+            registrationId: string;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+        };
+        /**
+         * @description Completion of a conduct: listed outcomes; unlisted candidates get `defaultOutcome`
+         *     (default `absent`).
+         */
+        ExamConductComplete: {
+            attendance?: components["schemas"]["ExamAttendanceEntry"][];
+            defaultOutcome?: string | null;
+        };
+        /** @description Postpone + reschedule a sitting (contingency, reason required). */
+        ExamConductPostpone: {
+            /** Format: date */
+            newDate: string;
+            /** @example 14:00 */
+            newStartsAt: string;
+            reason?: string | null;
+        };
+        /** @description A conduct record with its attendance. */
+        ExamConductRecordView: {
+            /** Format: int32 */
+            absentCount: number;
+            attendance: components["schemas"]["ExamConductAttendanceView"][];
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: int32 */
+            deniedCount: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            paperId: string;
+            /** @description Postponement awaiting its contingency decision. */
+            pendingPostpone?: Record<string, never> | null;
+            /** Format: int32 */
+            presentCount: number;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            /** Format: uuid */
+            sittingId: string;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** @description `ConductStatus` wire name. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Deadline override request (L3-I-020). */
+        ExamDeadlineOverrideCreate: {
+            reason: string;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: date */
+            validUntil: string;
+        };
+        ExamDeadlineOverrideList: {
+            items: components["schemas"]["ExamDeadlineOverrideView"][];
+        };
+        /** @description A deadline override. */
+        ExamDeadlineOverrideView: {
+            /** Format: uuid */
+            id: string;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            sessionId: string;
+            /** @description `pending | approved | rejected | used | expired`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: date */
+            validUntil: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ExamExceptionClassify: {
+            classification: string;
+            reason?: string | null;
+            severity?: string | null;
+        };
+        ExamExceptionCreate: {
+            category: string;
+            description: string;
+            /** Format: uuid */
+            paperId?: string | null;
+            /** Format: uuid */
+            registrationId?: string | null;
+            severity?: string | null;
+            /** Format: uuid */
+            sittingId?: string | null;
+        };
+        ExamExceptionList: {
+            items: components["schemas"]["ExamExceptionView"][];
+        };
+        ExamExceptionResolve: {
+            resolution: string;
+        };
+        /** @description An examination exception case. */
+        ExamExceptionView: {
+            /** @description `conduct | venue | paper | candidate | technical | other`. */
+            category: string;
+            classification?: string | null;
+            description: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example EXC-000001 */
+            number: string;
+            /** Format: uuid */
+            paperId?: string | null;
+            /** Format: uuid */
+            registrationId?: string | null;
+            resolution?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            /** @description `low | medium | high | critical`. */
+            severity?: string | null;
+            /** Format: uuid */
+            sittingId?: string | null;
+            /** @description `raised | classified | under_review | resolved | closed`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        ExamHallTicketList: {
+            items: components["schemas"]["ExamHallTicketView"][];
+        };
+        /** @description Summary of the registration's current hall ticket. */
+        ExamHallTicketRef: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            status: string;
+        };
+        /** @description A hall ticket. */
+        ExamHallTicketView: {
+            /** @description Evidence of the entry-condition evaluation. */
+            conditions: Record<string, never>;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: date-time */
+            issuedAt?: string | null;
+            /** @example HT-000001 */
+            number: string;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            registrationId: string;
+            /** Format: uuid */
+            replacesId?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            specialArrangements?: string | null;
+            /** @description `HallTicketStatus` wire name. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: int64 */
+            version: number;
+            withheldReason?: string | null;
+        };
+        /** @description Assign a duty. */
+        ExamInvigilationAssign: {
+            name?: string | null;
+            /** @description Default `invigilator`. */
+            role?: string | null;
+            /** @description Login subject of the invigilator / examiner (e.g. `dev|meera.shah@sutra.dev`). */
+            subjectRef: string;
+            /** Format: uuid */
+            venueId?: string | null;
+        };
+        /** @description One invigilation / examiner duty. */
+        ExamInvigilationDutyView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name?: string | null;
+            /** Format: uuid */
+            replacesId?: string | null;
+            /** @description `invigilator | chief_invigilator | practical_examiner | external_examiner`. */
+            role: string;
+            /** Format: uuid */
+            sittingId: string;
+            /** @description `assigned | confirmed | replaced | released | completed`. */
+            status: string;
+            statusReason?: string | null;
+            subjectRef: string;
+            /** Format: uuid */
+            venueId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Replace a duty (mid-conduct allowed, reason required). */
+        ExamInvigilationReplace: {
+            name?: string | null;
+            reason?: string | null;
+            subjectRef: string;
+        };
+        /** @description Staffing of a sitting (L3-I-011). */
+        ExamInvigilationStaffing: {
+            /**
+             * Format: int64
+             * @description Live invigilator duties (examiners are counted separately).
+             */
+            assigned: number;
+            /** Format: int64 */
+            candidates: number;
+            duties: components["schemas"]["ExamInvigilationDutyView"][];
+            /** Format: int64 */
+            examiners: number;
+            /**
+             * Format: int32
+             * @description Candidates per invigilator under the governing policy.
+             */
+            ratio: number;
+            /** Format: int64 */
+            required: number;
+            /** Format: int64 */
+            shortage: number;
+            /** Format: uuid */
+            sittingId: string;
+        };
+        /** @description Late registration fee raised in Finance (L3-I-019). */
+        ExamLateFeeView: {
+            /** @example 500.00 */
+            amount: string;
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            feeCode: string;
+        };
+        /**
+         * @description Mode of an examinable paper.
+         * @enum {string}
+         */
+        ExamMode: "theory" | "practical" | "viva" | "project";
+        ExamMyDutyList: {
+            items: components["schemas"]["ExamMyDutyView"][];
+        };
+        /** @description A duty of the caller with its sitting (`/me/invigilation`). */
+        ExamMyDutyView: {
+            /** Format: int32 */
+            durationMinutes: number;
+            /** Format: uuid */
+            id: string;
+            paperCode: string;
+            role: string;
+            /** Format: uuid */
+            sessionId: string;
+            /** Format: date */
+            sitsOn: string;
+            /** Format: uuid */
+            sittingId: string;
+            /** @example 09:30:00 */
+            startsAt: string;
+            status: string;
+            title: string;
+            venueCode?: string | null;
+        };
+        /** @description A hall ticket with the registration it admits to (self-service). */
+        ExamMyHallTicket: {
+            displayName: string;
+            registrationNumber: string;
+            studentNumber: string;
+            ticket: components["schemas"]["ExamHallTicketView"];
+        };
+        ExamMyHallTicketList: {
+            items: components["schemas"]["ExamMyHallTicket"][];
+        };
+        /** @description New paper from a Domain D offering of the session's term. */
+        ExamPaperCreate: {
+            /**
+             * Format: int32
+             * @description Default 180.
+             */
+            durationMinutes?: number | null;
+            /** @description Share of internal assessment (default `"0"`). */
+            internalWeight?: string | null;
+            /** @description External maximum (default `"100"`). */
+            maxMarks?: string | null;
+            mode?: null | components["schemas"]["ExamMode"];
+            /** Format: uuid */
+            offeringId: string;
+            /** @description Defaults to the offering code. */
+            paperCode?: string | null;
+            /** @description Default `"40"`. */
+            passPercent?: string | null;
+            /** @description Defaults to the offering title. */
+            title?: string | null;
+        };
+        /** @description Defaults for papers generated from every offering of the term. */
+        ExamPaperGenerate: {
+            /** Format: int32 */
+            durationMinutes?: number | null;
+            internalWeight?: string | null;
+            maxMarks?: string | null;
+            mode?: null | components["schemas"]["ExamMode"];
+            passPercent?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description Examinable component of a session (one course offering / curriculum component, theory or practical).
+         */
+        ExamPaperId: string;
+        ExamPaperList: {
+            items: components["schemas"]["ExamPaperView"][];
+        };
+        /**
+         * @description Examinable paper of a session (one curriculum component / offering).
+         * @enum {string}
+         */
+        ExamPaperStatus: "draft" | "scheduled" | "ready" | "conducted" | "evaluation" | "marks_finalised" | "cancelled";
+        /** @description Paper edit (draft / scheduled papers only). */
+        ExamPaperUpdate: {
+            /** Format: int32 */
+            durationMinutes?: number | null;
+            internalWeight?: string | null;
+            maxMarks?: string | null;
+            mode?: null | components["schemas"]["ExamMode"];
+            passPercent?: string | null;
+            title?: string | null;
+        };
+        /** @description A paper of a session (decimals as strings). */
+        ExamPaperView: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** @example 4.00 */
+            credits: string;
+            /** Format: uuid */
+            curriculumComponentId: string;
+            /** Format: int32 */
+            durationMinutes?: number | null;
+            id: components["schemas"]["ExamPaperId"];
+            /** @example 40.00 */
+            internalWeight: string;
+            /** @example 100.00 */
+            maxMarks: string;
+            mode: components["schemas"]["ExamMode"];
+            /** Format: uuid */
+            offeringId?: string | null;
+            paperCode: string;
+            /** @example 40.00 */
+            passPercent: string;
+            sessionId: components["schemas"]["ExamSessionId"];
+            status: components["schemas"]["ExamPaperStatus"];
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description New policy version / draft edit. On create, `code` + `name` are required; a code that
+         *     already exists creates the next version, copying the latest version's rules for every
+         *     member left out.
+         */
+        ExamPolicyInput: {
+            code?: string | null;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            hallTicketApproval?: boolean | null;
+            /** Format: int32 */
+            invigilatorRatio?: number | null;
+            /** @example 500.00 */
+            lateFeeAmount?: string | null;
+            lateFeeCode?: string | null;
+            lateRegistrationAllowed?: boolean | null;
+            /** Format: int32 */
+            maxAttempts?: number | null;
+            /** @example 75 */
+            minAttendancePercent?: string | null;
+            name?: string | null;
+            registrationWindowEnforced?: boolean | null;
+            requireDuesCleared?: boolean | null;
+            selfServiceAllowed?: boolean | null;
+        };
+        ExamPolicyList: {
+            items: components["schemas"]["ExamPolicyView"][];
+        };
+        /** @description One examination policy version (decimals as strings). */
+        ExamPolicyView: {
+            code: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            hallTicketApproval: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /**
+             * Format: int32
+             * @description Candidates per invigilator (shortage detection).
+             */
+            invigilatorRatio: number;
+            /** @example 500.00 */
+            lateFeeAmount?: string | null;
+            lateFeeCode?: string | null;
+            lateRegistrationAllowed: boolean;
+            /** Format: int32 */
+            maxAttempts: number;
+            /**
+             * @description Hall tickets are withheld below this attendance percentage (besides 4B's own threshold).
+             * @example 75.00
+             */
+            minAttendancePercent?: string | null;
+            name: string;
+            processInstanceId?: string | null;
+            /** @description Registrations outside the session window are refused (late / override path instead). */
+            registrationWindowEnforced: boolean;
+            /** @description Hall tickets are withheld while the student has outstanding dues. */
+            requireDuesCleared: boolean;
+            selfServiceAllowed: boolean;
+            /**
+             * @description `ExamPolicyStatus` wire name.
+             * @example active
+             */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /** @description Add one paper (amendment shortcut). */
+        ExamRegistrationAddPaper: {
+            attemptKind?: null | components["schemas"]["AttemptKind"];
+            /** Format: int32 */
+            attemptNo?: number | null;
+            /** Format: uuid */
+            paperId: string;
+            reason?: string | null;
+        };
+        /** @description Amend / correct a registration (L3-I-021 / I-022). */
+        ExamRegistrationAmend: {
+            addPapers?: components["schemas"]["ExamRegistrationPaperInput"][];
+            reason?: string | null;
+            withdrawPapers?: string[];
+        };
+        /** @description Bulk / institution-assisted registration. */
+        ExamRegistrationBulk: {
+            /** @description Students to register; empty = every student seated in a section of a paper's offering. */
+            studentIds?: string[];
+        };
+        /** @description Registration on behalf of a candidate (administrative / late). */
+        ExamRegistrationCreate: {
+            /** @description Empty = every paper the student's term registration covers. */
+            papers?: components["schemas"]["ExamRegistrationPaperInput"][];
+            reason?: string | null;
+            /** @description Hold for review (`REGISTRATION_REVIEW`) instead of confirming at once. */
+            review?: boolean;
+            /** Format: uuid */
+            studentId: string;
+        };
+        /**
+         * Format: uuid
+         * @description A candidate's examination registration in a session (L2-I04).
+         */
+        ExamRegistrationId: string;
+        ExamRegistrationList: {
+            items: components["schemas"]["ExamRegistrationView"][];
+            nextCursor?: string | null;
+        };
+        /** @description A paper to register (supplementary / backlog / improvement attempts: `attemptKind`). */
+        ExamRegistrationPaperInput: {
+            attemptKind?: null | components["schemas"]["AttemptKind"];
+            /**
+             * Format: int32
+             * @description Defaults to one more than the student's earlier attempts of the component.
+             */
+            attemptNo?: number | null;
+            /** Format: uuid */
+            paperId: string;
+        };
+        /** @description A registered paper as the API shows it. */
+        ExamRegistrationPaperView: {
+            attemptKind: components["schemas"]["AttemptKind"];
+            /** Format: int32 */
+            attemptNo: number;
+            paperCode: string;
+            /** Format: uuid */
+            paperId: string;
+            /** Format: uuid */
+            registrationPaperId: string;
+            /** @description `registered | withdrawn | absent | appeared | debarred`. */
+            status: string;
+            title: string;
+        };
+        /** @description Reopen the registration window (L3-I-025). */
+        ExamRegistrationReopen: {
+            /** Format: date */
+            closesOn: string;
+            reason?: string | null;
+        };
+        /**
+         * @description Examination registration lifecycle (L2-I04 §20; `rejected` = L3-I-026 ineligibility outcome).
+         * @enum {string}
+         */
+        ExamRegistrationStatus: "draft" | "pending_validation" | "pending_review" | "approved" | "confirmed" | "locked" | "amended" | "withdrawn" | "rejected" | "completed" | "archived";
+        /** @description An examination registration (contract §5.3). */
+        ExamRegistrationView: {
+            arrangements: components["schemas"]["ExamArrangementView"][];
+            channel: components["schemas"]["RegistrationChannel"];
+            displayName: string;
+            hallTicket?: null | components["schemas"]["ExamHallTicketRef"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            lateFee?: null | components["schemas"]["ExamLateFeeView"];
+            papers: components["schemas"]["ExamRegistrationPaperView"][];
+            registrationNumber: string;
+            /** Format: uuid */
+            sessionId: string;
+            status: components["schemas"]["ExamRegistrationStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A detected scheduling conflict (L3-I-014). */
+        ExamScheduleConflict: {
+            /**
+             * Format: int64
+             * @description Candidates affected (candidate overlaps) or seats over capacity (venues).
+             */
+            count: number;
+            detail: string;
+            /** @description `candidate_overlap | venue_over_capacity`. */
+            kind: string;
+            sittingIds: string[];
+        };
+        ExamScheduleConflictList: {
+            items: components["schemas"]["ExamScheduleConflict"][];
+        };
+        ExamScheduleCreate: {
+            name: string;
+        };
+        ExamScheduleList: {
+            items: components["schemas"]["ExamScheduleView"][];
+        };
+        /** @description A schedule version with its sittings and current conflicts. */
+        ExamScheduleView: {
+            conflicts: components["schemas"]["ExamScheduleConflict"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            sittings: components["schemas"]["ExamSittingView"][];
+            /**
+             * @description `ExamScheduleStatus` wire name.
+             * @example published
+             */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /** @description One seat of a plan. */
+        ExamSeatView: {
+            displayName: string;
+            /** Format: uuid */
+            registrationId: string;
+            /** @example HALL-A-001 */
+            seatNo: string;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            venueCode: string;
+            /** Format: uuid */
+            venueId: string;
+        };
+        /** @description A seating plan with its seats. */
+        ExamSeatingPlanView: {
+            /** Format: int32 */
+            candidates: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            planNo: number;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            seats: components["schemas"]["ExamSeatView"][];
+            /** Format: uuid */
+            sittingId: string;
+            /** @description `draft | published | revised | cancelled`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description An operational session open to the caller. */
+        ExamSelfOption: {
+            code: string;
+            name: string;
+            papers: components["schemas"]["ExamSelfOptionPaper"][];
+            registered: boolean;
+            /** Format: date */
+            registrationClosesOn?: string | null;
+            /** Format: date */
+            registrationOpensOn?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            /** @description `not_yet_open | open | closed | override`. */
+            window: string;
+        };
+        ExamSelfOptionList: {
+            items: components["schemas"]["ExamSelfOption"][];
+        };
+        /** @description A paper the caller may register for. */
+        ExamSelfOptionPaper: {
+            covered: boolean;
+            /** @example 4.00 */
+            credits: string;
+            paperCode: string;
+            /** Format: uuid */
+            paperId: string;
+            title: string;
+        };
+        /** @description Self-service registration. */
+        ExamSelfRegistrationCreate: {
+            /** @description Empty = every paper the term registration covers. */
+            papers?: components["schemas"]["ExamRegistrationPaperInput"][];
+            /** Format: uuid */
+            sessionId: string;
+        };
+        /** @description New examination session (draft). */
+        ExamSessionCreate: {
+            /**
+             * Format: uuid
+             * @description Domain B academic term of the institution.
+             */
+            academicTermId: string;
+            /** @example ESE-NOV-2026 */
+            code: string;
+            /** Format: date */
+            endsOn?: string | null;
+            /** Format: uuid */
+            gradingSchemeId?: string | null;
+            kind?: null | components["schemas"]["ExamSessionKind"];
+            name: string;
+            /**
+             * Format: uuid
+             * @description Defaults to the institution's active policy.
+             */
+            policyId?: string | null;
+            /** Format: date */
+            registrationClosesOn?: string | null;
+            /** Format: date */
+            registrationOpensOn?: string | null;
+            /** Format: date */
+            startsOn?: string | null;
+        };
+        /**
+         * Format: uuid
+         * @description Examination session (L2-I02): the governed context of one examination cycle.
+         */
+        ExamSessionId: string;
+        /**
+         * @description Session classification (L2-I02 locked decision 7: classifications, not lifecycle events).
+         * @enum {string}
+         */
+        ExamSessionKind: "regular" | "supplementary" | "improvement" | "makeup" | "special";
+        ExamSessionList: {
+            items: components["schemas"]["ExamSessionView"][];
+        };
+        /** @description Merge a duplicate session into the authoritative one (L3-I-006). */
+        ExamSessionMerge: {
+            /** Format: uuid */
+            intoSessionId: string;
+            reason?: string | null;
+        };
+        /**
+         * @description Examination session lifecycle (L2-I02 §20 + amendment 2026-08-24; closure L2-I16).
+         * @enum {string}
+         */
+        ExamSessionStatus: "draft" | "under_review" | "approved" | "scheduled" | "active" | "suspended" | "reopened" | "closing" | "closed" | "archived";
+        /**
+         * @description Session edit; after the draft stage it is a governed revision (reason required, recorded
+         *     with before / after values).
+         */
+        ExamSessionUpdate: {
+            /** Format: date */
+            endsOn?: string | null;
+            /** Format: uuid */
+            gradingSchemeId?: string | null;
+            name?: string | null;
+            /** Format: uuid */
+            policyId?: string | null;
+            reason?: string | null;
+            /** Format: date */
+            registrationClosesOn?: string | null;
+            /** Format: date */
+            registrationOpensOn?: string | null;
+            /** Format: date */
+            startsOn?: string | null;
+        };
+        /** @description An examination session with its papers. */
+        ExamSessionView: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** Format: uuid */
+            academicYearId?: string | null;
+            code: string;
+            /** Format: date */
+            endsOn?: string | null;
+            gradingSchemeId?: null | components["schemas"]["GradingSchemeId"];
+            id: components["schemas"]["ExamSessionId"];
+            /** Format: uuid */
+            institutionId: string;
+            kind: components["schemas"]["ExamSessionKind"];
+            /**
+             * Format: uuid
+             * @description Set when this duplicate was merged into the authoritative session (L3-I-006).
+             */
+            mergedIntoId?: string | null;
+            name: string;
+            papers: components["schemas"]["ExamPaperView"][];
+            /** Format: uuid */
+            policyId?: string | null;
+            /** Format: date */
+            registrationClosesOn?: string | null;
+            /** Format: date */
+            registrationOpensOn?: string | null;
+            /**
+             * Format: int64
+             * @description Governed revisions recorded after the draft stage (L3-I-005).
+             */
+            revisions: number;
+            /** Format: date */
+            startsOn?: string | null;
+            status: components["schemas"]["ExamSessionStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One item a bulk command could not process. */
+        ExamSetupBulkFailure: {
+            /**
+             * Format: uuid
+             * @description The item (student, offering, registration …) concerned.
+             */
+            id?: string | null;
+            reason: string;
+        };
+        /** @description Summary of a 6A bulk command (`{processed, skipped, failed[]}`, contract §5.1). */
+        ExamSetupBulkSummary: {
+            failed: components["schemas"]["ExamSetupBulkFailure"][];
+            /** Format: int64 */
+            processed: number;
+            /** Format: int64 */
+            skipped: number;
+        };
+        /** @description Body of a 6A decision endpoint. */
+        ExamSetupDecisionBody: {
+            decision: components["schemas"]["ExamSetupDecisionKind"];
+            reason?: string | null;
+        };
+        /**
+         * @description Decision of a governed 6A approval step (`POST …/{id}/decision`, `exam.approve`).
+         * @enum {string}
+         */
+        ExamSetupDecisionKind: "approve" | "reject";
+        /** @description New sitting of a draft schedule. */
+        ExamSittingCreate: {
+            /**
+             * Format: int32
+             * @description Defaults to the paper's duration (180 when unset).
+             */
+            durationMinutes?: number | null;
+            /** Format: uuid */
+            paperId: string;
+            /** Format: date */
+            sitsOn: string;
+            /** @example 09:30 */
+            startsAt: string;
+        };
+        ExamSittingList: {
+            items: components["schemas"]["ExamSittingView"][];
+        };
+        /** @description Sitting edit (draft schedules; conflict resolution, L3-I-014). */
+        ExamSittingUpdate: {
+            /** Format: int32 */
+            durationMinutes?: number | null;
+            /** Format: date */
+            sitsOn?: string | null;
+            startsAt?: string | null;
+        };
+        /** @description One sitting (paper, date, start, duration) of a schedule. */
+        ExamSittingView: {
+            /** Format: int32 */
+            durationMinutes: number;
+            /** Format: uuid */
+            id: string;
+            /** @example theory */
+            mode: string;
+            paperCode: string;
+            /** Format: uuid */
+            paperId: string;
+            /** Format: date */
+            postponedFrom?: string | null;
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: uuid */
+            sessionId: string;
+            /** Format: date */
+            sitsOn: string;
+            /**
+             * @description Local start time `HH:MM`.
+             * @example 09:30
+             */
+            startsAt: string;
+            /** @description `planned | postponed | cancelled | completed`. */
+            status: string;
+            statusReason?: string | null;
+            title: string;
+            venues: components["schemas"]["ExamVenueAllocationView"][];
+            /** Format: int64 */
+            version: number;
+        };
+        ExamTimetable: {
+            items: components["schemas"]["ExamTimetableEntry"][];
+        };
+        /** @description One entry of the caller's examination timetable. */
+        ExamTimetableEntry: {
+            /** Format: int32 */
+            durationMinutes: number;
+            paperCode: string;
+            /** Format: uuid */
+            paperId: string;
+            /** Format: date */
+            postponedFrom?: string | null;
+            /** Format: uuid */
+            registrationId: string;
+            seatNo?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            /** Format: date */
+            sitsOn: string;
+            /** Format: uuid */
+            sittingId: string;
+            /** @example 09:30 */
+            startsAt: string;
+            /** @description `planned | postponed | completed`. */
+            status: string;
+            title: string;
+            venueCode?: string | null;
+        };
+        /** @description Allocate a venue to a sitting. */
+        ExamVenueAllocate: {
+            /**
+             * Format: int32
+             * @description Seats used (defaults to the capacity still free at that time).
+             */
+            seats?: number | null;
+            /** Format: uuid */
+            venueId: string;
+        };
+        ExamVenueAllocationList: {
+            items: components["schemas"]["ExamVenueAllocationView"][];
+        };
+        /** @description A venue allocated to a sitting. */
+        ExamVenueAllocationView: {
+            /** Format: int32 */
+            capacity: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            seats: number;
+            /** Format: uuid */
+            sittingId: string;
+            /** @example allocated */
+            status: string;
+            venueCode: string;
+            /** Format: uuid */
+            venueId: string;
+            venueName: string;
+        };
+        ExamVenueCreate: {
+            /** Format: int32 */
+            capacity: number;
+            /** @example HALL-A */
+            code: string;
+            location?: string | null;
+            name: string;
+        };
+        ExamVenueList: {
+            items: components["schemas"]["ExamVenueView"][];
+        };
+        ExamVenueUpdate: {
+            /** Format: int32 */
+            capacity?: number | null;
+            location?: string | null;
+            name?: string | null;
+            /** @description `active | inactive`. */
+            status?: string | null;
+        };
+        /** @description An examination venue. */
+        ExamVenueView: {
+            /** Format: int32 */
+            capacity: number;
+            code: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            location?: string | null;
+            name: string;
+            /** @description `active | inactive`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
         ExceptionHold: {
             onHold: boolean;
             reason?: string | null;
@@ -17571,6 +22194,58 @@ export interface components {
              */
             quorum?: number | null;
         };
+        /** @description One band of a grading scheme (decimals as strings). */
+        GradeBandView: {
+            /** @example A+ */
+            grade: string;
+            /**
+             * @description Grade point (0 … 10).
+             * @example 9.00
+             */
+            gradePoint: string;
+            isPass: boolean;
+            /**
+             * @description Minimum percentage (0 … 100) earning this grade.
+             * @example 80.00
+             */
+            minPercent: string;
+        };
+        GradeCardList: {
+            items: components["schemas"]["GradeCardView"][];
+        };
+        /**
+         * @description Grade card issued from a published result.
+         * @enum {string}
+         */
+        GradeCardStatus: "issued" | "reissued" | "withdrawn";
+        /** @description A grade card (with the result it certifies when loaded). */
+        GradeCardView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            issuedAt: string;
+            /** @example GC-000001 */
+            number: string;
+            /** Format: uuid */
+            registrationId: string;
+            result?: null | components["schemas"]["TermResultView"];
+            /** Format: uuid */
+            resultId: string;
+            /** Format: uuid */
+            sessionId: string;
+            status: components["schemas"]["GradeCardStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        GradeCount: {
+            count: number;
+            grade: string;
+        };
         /** @description A grade level (class) with its sections and subjects. */
         GradeLevel: {
             /**
@@ -17583,6 +22258,82 @@ export interface components {
             nepStage?: null | components["schemas"]["NepStage"];
             sections?: string[];
             subjects?: components["schemas"]["SchoolSubject"][];
+        };
+        /** @description Gradebook of a paper (`shared::grading` with the session's scheme). */
+        Gradebook: {
+            absent: number;
+            /** @example 64.25 */
+            averagePercent?: string | null;
+            candidates: number;
+            /** @example 4.00 */
+            credits: string;
+            /** @description Grade → count. */
+            distribution: components["schemas"]["GradeCount"][];
+            failed: number;
+            graded: number;
+            /** @example 40.00 */
+            internalWeight: string;
+            lines: components["schemas"]["GradebookLine"][];
+            paperCode: string;
+            paperId: components["schemas"]["ExamPaperId"];
+            /** @example 40.00 */
+            passPercent: string;
+            passed: number;
+            title: string;
+        };
+        /** @description Gradebook line of one candidate. */
+        GradebookLine: {
+            absent: boolean;
+            attemptKind: components["schemas"]["AttemptKind"];
+            displayName: string;
+            externalMarks?: string | null;
+            graceMarks: string;
+            grade?: string | null;
+            /** @example 8.00 */
+            gradePoint?: string | null;
+            internalMarks?: string | null;
+            paperMarkId: components["schemas"]["PaperMarkId"];
+            passed: boolean;
+            /** @example 72.50 */
+            percent?: string | null;
+            registrationId: components["schemas"]["ExamRegistrationId"];
+            status: components["schemas"]["MarkStatus"];
+            studentNumber: string;
+        };
+        /** @description New grading scheme. */
+        GradingSchemeCreate: {
+            bands: components["schemas"]["GradeBandView"][];
+            /**
+             * @description `^[A-Z0-9][A-Z0-9_-]{1,31}$`, unique per institution.
+             * @example TEN-POINT
+             */
+            code: string;
+            name: string;
+        };
+        /**
+         * Format: uuid
+         * @description Grading scheme of an institution (grade bands → grade points; foundation API).
+         */
+        GradingSchemeId: string;
+        GradingSchemeList: {
+            items: components["schemas"]["GradingSchemeView"][];
+        };
+        /**
+         * @description Grading scheme status (foundation API).
+         * @enum {string}
+         */
+        GradingSchemeStatus: "active" | "retired";
+        /** @description A grading scheme with its bands (highest first). */
+        GradingSchemeView: {
+            bands: components["schemas"]["GradeBandView"][];
+            code: string;
+            id: components["schemas"]["GradingSchemeId"];
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            status: components["schemas"]["GradingSchemeStatus"];
+            /** Format: int64 */
+            version: number;
         };
         Guardian: {
             address?: string | null;
@@ -18370,6 +23121,127 @@ export interface components {
             /** @description Keycloak RP-initiated logout URL; navigate the browser there to end the SSO session. */
             endSessionUrl: string;
         };
+        /** @description `approve | reject` of the pending proposal. */
+        MalpracticeApprovalBody: {
+            decision: string;
+            reason?: string | null;
+        };
+        /** @description Suspected malpractice report. */
+        MalpracticeCaseCreate: {
+            allegation: string;
+            evidence?: string | null;
+            paperId?: null | components["schemas"]["ExamPaperId"];
+            registrationId: components["schemas"]["ExamRegistrationId"];
+        };
+        /**
+         * Format: uuid
+         * @description Malpractice case (L2-I14).
+         */
+        MalpracticeCaseId: string;
+        MalpracticeCaseList: {
+            items: components["schemas"]["MalpracticeCaseView"][];
+        };
+        /**
+         * @description Malpractice case (L2-I14 §21; L3-I-162…171).
+         * @enum {string}
+         */
+        MalpracticeCaseStatus: "reported" | "under_investigation" | "hearing" | "decided" | "appealed" | "under_review" | "upheld" | "modified" | "overturned" | "closed" | "archived";
+        /**
+         * @description A malpractice case. 6C reads `sessionId, registrationId, paperId, status, penalty,
+         *     marksDeduction` of decided cases.
+         */
+        MalpracticeCaseView: {
+            allegation: string;
+            /** Format: date-time */
+            archivedAt?: string | null;
+            caseNumber: string;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decisions: components["schemas"]["MalpracticeDecisionView"][];
+            evidence?: string | null;
+            id: components["schemas"]["MalpracticeCaseId"];
+            /** @example 10.00 */
+            marksDeduction?: string | null;
+            mergedIntoId?: null | components["schemas"]["MalpracticeCaseId"];
+            paperId?: null | components["schemas"]["ExamPaperId"];
+            penalty?: null | components["schemas"]["MalpracticePenalty"];
+            pending?: null | components["schemas"]["MalpracticeProposalView"];
+            processInstanceId?: string | null;
+            registrationId: components["schemas"]["ExamRegistrationId"];
+            reportedBy?: string | null;
+            sessionId: components["schemas"]["ExamSessionId"];
+            status: components["schemas"]["MalpracticeCaseStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Committee decision with a penalty. */
+        MalpracticeDecisionCreate: {
+            /**
+             * @description Required for `marks_deduction` (decimal string).
+             * @example 10.00
+             */
+            marksDeduction?: string | null;
+            penalty: components["schemas"]["MalpracticePenalty"];
+            reason: string;
+        };
+        /**
+         * Format: uuid
+         * @description Committee decision on a malpractice case (incl. review outcomes).
+         */
+        MalpracticeDecisionId: string;
+        /** @description One decision / review / merge / reopen record. */
+        MalpracticeDecisionView: {
+            /** Format: date-time */
+            createdAt: string;
+            decidedBy?: string | null;
+            id: components["schemas"]["MalpracticeDecisionId"];
+            /** @description `decision | review | merge | reopen`. */
+            kind: string;
+            /** @example 10.00 */
+            marksDeduction?: string | null;
+            outcome: string;
+            penalty?: string | null;
+            processInstanceId?: string | null;
+            reason?: string | null;
+        };
+        MalpracticeMergeBody: {
+            /** @description The authoritative case of the same candidate and paper. */
+            intoCaseId: components["schemas"]["MalpracticeCaseId"];
+            reason?: string | null;
+        };
+        /**
+         * @description Penalty of a malpractice decision (consumed by 6C result processing, L3-I-095/112).
+         * @enum {string}
+         */
+        MalpracticePenalty: "none" | "warning" | "marks_deduction" | "paper_cancelled" | "session_cancelled" | "debarred";
+        /** @description A proposal awaiting its governed decision. */
+        MalpracticeProposalView: {
+            /** @description `decision | review`. */
+            kind: string;
+            marksDeduction?: string | null;
+            outcome?: string | null;
+            penalty?: null | components["schemas"]["MalpracticePenalty"];
+            reason?: string | null;
+        };
+        /** @description Optional reason of a malpractice state command. */
+        MalpracticeReasonBody: {
+            reason?: string | null;
+        };
+        /** @description Appeal review outcome. */
+        MalpracticeReviewCreate: {
+            marksDeduction?: string | null;
+            /** @description `uphold | modify | overturn`. */
+            outcome: string;
+            penalty?: null | components["schemas"]["MalpracticePenalty"];
+            reason: string;
+        };
         /**
          * Format: uuid
          * @description Manual journal request (L3-F-026).
@@ -18477,6 +23349,112 @@ export interface components {
             /** Format: uuid */
             studentId: string;
         };
+        /** @description Grade preview of one candidate (`shared::grading`, the engine 6C computes with). */
+        MarkPreview: {
+            grade?: string | null;
+            /** @example 8.00 */
+            gradePoint?: string | null;
+            passed: boolean;
+            /** @example 72.50 */
+            percent?: string | null;
+        };
+        /** @description Candidates of a paper with the sheet (if open). */
+        MarkRowList: {
+            items: components["schemas"]["MarkRowView"][];
+            paperCode: string;
+            paperId: components["schemas"]["ExamPaperId"];
+            paperStatus: components["schemas"]["ExamPaperStatus"];
+            sheet?: null | components["schemas"]["MarkSheetView"];
+        };
+        /** @description One candidate's marks on a paper (contract §5.3). */
+        MarkRowView: {
+            absent: boolean;
+            attemptKind: components["schemas"]["AttemptKind"];
+            /** Format: int32 */
+            attemptNo: number;
+            displayName: string;
+            /** @description `false` for withdrawn papers / non-effective registrations (shown, never entered). */
+            effective: boolean;
+            /** @example 61.00 */
+            externalMarks?: string | null;
+            /** @example 100.00 */
+            externalMax: string;
+            /** @example 0.00 */
+            graceMarks: string;
+            id: components["schemas"]["PaperMarkId"];
+            /** @example 34.50 */
+            internalMarks?: string | null;
+            /** @example 40.00 */
+            internalMax?: string | null;
+            /** Format: uuid */
+            internalSourceId?: string | null;
+            paperId: components["schemas"]["ExamPaperId"];
+            paperStatus: components["schemas"]["RegistrationPaperStatus"];
+            preview?: null | components["schemas"]["MarkPreview"];
+            registrationId: components["schemas"]["ExamRegistrationId"];
+            registrationNumber: string;
+            registrationStatus: components["schemas"]["ExamRegistrationStatus"];
+            status: components["schemas"]["MarkStatus"];
+            studentNumber: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * Format: uuid
+         * @description Marks collection sheet of a paper (evaluation lifecycle, L2-I08).
+         */
+        MarkSheetId: string;
+        /** @description Policy settings of a mark sheet. */
+        MarkSheetSettingsBody: {
+            /**
+             * @description First / second difference above which an adjudicating evaluation is required.
+             * @example 10.00
+             */
+            differenceThreshold?: string | null;
+            /**
+             * Format: date
+             * @description Submission deadline (business date).
+             */
+            dueOn?: string | null;
+            secondEvaluationRequired?: boolean | null;
+        };
+        /** @description A paper's mark sheet (evaluation lifecycle). */
+        MarkSheetView: {
+            /** Format: date-time */
+            approvalRequestedAt?: string | null;
+            /** Format: date-time */
+            approvedAt?: string | null;
+            approvedBy?: string | null;
+            /** @description A final marks approval is awaiting its decision. */
+            awaitingDecision: boolean;
+            /** @example 10.00 */
+            differenceThreshold: string;
+            /** Format: date */
+            dueOn?: string | null;
+            /** Format: date-time */
+            finalisedAt?: string | null;
+            id: components["schemas"]["MarkSheetId"];
+            paperId: components["schemas"]["ExamPaperId"];
+            processInstanceId?: string | null;
+            secondEvaluationRequired: boolean;
+            sessionId: components["schemas"]["ExamSessionId"];
+            status: components["schemas"]["EvaluationStatus"];
+            statusReason?: string | null;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            submittedBy?: string | null;
+            /** Format: date-time */
+            verifiedAt?: string | null;
+            verifiedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Marks of one candidate on one paper (`exams.paper_mark`; L2-I08 §20 condensed to the
+         *     per-candidate record — the per-paper evaluation lifecycle is 6B's mark sheet).
+         * @enum {string}
+         */
+        MarkStatus: "pending" | "entered" | "submitted" | "verified" | "moderated" | "approved" | "withheld" | "finalised";
         MarkSubmission: {
             feedback?: string | null;
             /** Format: double */
@@ -18487,6 +23465,74 @@ export interface components {
         MarkedCount: {
             /** Format: int64 */
             marked: number;
+        };
+        MarksBulkFailure: {
+            reason: string;
+            /** Format: uuid */
+            registrationId: string;
+        };
+        /** @description Summary of a bulk command. */
+        MarksBulkSummary: {
+            failed: components["schemas"]["MarksBulkFailure"][];
+            /** @description Student numbers without a finalised internal assessment result. */
+            missing: string[];
+            processed: number;
+            skipped: number;
+        };
+        /** @description `approve | reject` (exceptions: `accept | reject`) with a reason. */
+        MarksDecisionBody: {
+            decision: string;
+            reason?: string | null;
+        };
+        MarksEntryBody: {
+            rows: components["schemas"]["MarksEntryRow"][];
+        };
+        /** @description One row of a bulk marks entry (decimals as strings; `If-Match` per row via `version`). */
+        MarksEntryRow: {
+            absent?: boolean | null;
+            /** @example 61.50 */
+            externalMarks?: string | null;
+            id: components["schemas"]["PaperMarkId"];
+            internalMarks?: string | null;
+            internalMax?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        MarksExceptionCreate: {
+            /** @description `late_submission | missing_marks`. */
+            kind: string;
+            paperMarkId?: null | components["schemas"]["PaperMarkId"];
+            reason: string;
+        };
+        /**
+         * Format: uuid
+         * @description Marks submission exception (L3-I-074/076).
+         */
+        MarksExceptionId: string;
+        MarksExceptionList: {
+            items: components["schemas"]["MarksExceptionView"][];
+        };
+        /** @description A marks submission exception. */
+        MarksExceptionView: {
+            /** Format: date-time */
+            createdAt: string;
+            id: components["schemas"]["MarksExceptionId"];
+            /** @description `late_submission | missing_marks`. */
+            kind: string;
+            markSheetId: components["schemas"]["MarkSheetId"];
+            paperId: components["schemas"]["ExamPaperId"];
+            paperMarkId?: null | components["schemas"]["PaperMarkId"];
+            reason: string;
+            resolution?: string | null;
+            resolvedBy?: string | null;
+            /** @description `raised | accepted | rejected`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Optional reason of a marks state command. */
+        MarksReasonBody: {
+            reason?: string | null;
         };
         /**
          * @description Authentication assurance of a session (ADR-L5-0038 §3.8).
@@ -18528,6 +23574,53 @@ export interface components {
             targetBlueprintId: components["schemas"]["OrgTypeBlueprintId"];
             /** @description Target unit type key; default: the current key. */
             unitType?: string | null;
+        };
+        ModerationCreate: {
+            /** @description `grace | scaling`. */
+            kind: string;
+            reason: string;
+            /**
+             * @description Grace marks, or the scaling percentage.
+             * @example 3.00
+             */
+            value: string;
+        };
+        /**
+         * Format: uuid
+         * @description Moderation of a paper's marks under policy (L3-I-075).
+         */
+        ModerationId: string;
+        ModerationList: {
+            items: components["schemas"]["ModerationView"][];
+        };
+        /**
+         * @description Moderation of a paper (L3-I-075).
+         * @enum {string}
+         */
+        ModerationStatus: "requested" | "validated" | "approved" | "applied" | "rejected" | "withdrawn";
+        /** @description A moderation of a paper with its before / after report. */
+        ModerationView: {
+            /** Format: int32 */
+            appliedCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            decidedBy?: string | null;
+            id: components["schemas"]["ModerationId"];
+            /** @description `grace | scaling`. */
+            kind: string;
+            markSheetId: components["schemas"]["MarkSheetId"];
+            paperId: components["schemas"]["ExamPaperId"];
+            processInstanceId?: string | null;
+            reason: string;
+            /** @description Per script: `{paperMarkId, studentNumber, before{externalMarks, graceMarks, preview?}, after{…}}`. */
+            report: unknown;
+            sessionId: components["schemas"]["ExamSessionId"];
+            status: components["schemas"]["ModerationStatus"];
+            statusReason?: string | null;
+            /** @example 3.00 */
+            value: string;
+            /** Format: int64 */
+            version: number;
         };
         /**
          * @description `PATCH /campuses/{id}`: governed modification of B03 metadata (L3-B-019). Absent members
@@ -20174,6 +25267,11 @@ export interface components {
          */
         OrgUnitStatus: "draft" | "active" | "suspended" | "decommissioned" | "archived";
         /**
+         * Format: uuid
+         * @description The candidate's marks for one registered paper (internal + external + grace; L2-I08).
+         */
+        PaperMarkId: string;
+        /**
          * @description Kind of finance party.
          * @enum {string}
          */
@@ -20916,14 +26014,67 @@ export interface components {
             providerReference?: string | null;
             studentNumber: string;
         };
+        /** @description New publication. */
+        PublicationCreate: {
+            /**
+             * Format: date
+             * @description Planned publication date (business date); omitted → `planned`.
+             */
+            scheduledOn?: string | null;
+        };
+        PublicationList: {
+            items: components["schemas"]["PublicationView"][];
+        };
         /**
          * @description Governed publication lifecycle of versioned definitions. A Published version is
          *     **immutable**: a change creates a successor Draft that supersedes it on publication.
          * @enum {string}
          */
         PublicationStatus: "draft" | "in_review" | "published" | "superseded" | "retired";
+        /** @description A result publication. */
+        PublicationView: {
+            /** Format: int32 */
+            attempts: number;
+            /** Format: date-time */
+            authorisedAt?: string | null;
+            /** Format: date */
+            delayedUntil?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            lastError?: string | null;
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: int32 */
+            publishedCount: number;
+            /** Format: date */
+            scheduledOn?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            /** Format: int32 */
+            skippedCount: number;
+            status: components["schemas"]["PublicationStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         PublishOutcome: {
             summary: string;
+        };
+        /** @description Summary of a publication run. */
+        PublishSummaryView: {
+            failed: string[];
+            /** Format: int32 */
+            processed: number;
+            publication: components["schemas"]["PublicationView"];
+            /** Format: int32 */
+            published: number;
+            /** Format: int32 */
+            revised: number;
+            /** Format: int32 */
+            skipped: number;
         };
         /** @description Qualification Completion aggregate (§5.3 minimum: id, studentId, outcome, status, conferredOn, version). */
         QualificationCompletion: {
@@ -21539,6 +26690,11 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /**
+         * @description How a registration was created (L3-I-017/018/019/034).
+         * @enum {string}
+         */
+        RegistrationChannel: "self_service" | "bulk" | "administrative" | "late";
         /** @description Registration history (immutable). */
         RegistrationHistoryEntry: {
             action: string;
@@ -21657,6 +26813,11 @@ export interface components {
             providerReference?: string | null;
             reason?: string | null;
         };
+        /**
+         * @description One registered paper of a registration.
+         * @enum {string}
+         */
+        RegistrationPaperStatus: "registered" | "withdrawn" | "absent" | "appeared" | "debarred";
         /**
          * @description Academic Registration aggregate (L2-C03 §6.9; Frozen + Published = `finalised`).
          * @enum {string}
@@ -21799,6 +26960,111 @@ export interface components {
             role: string;
             toParentId?: null | components["schemas"]["OrgUnitId"];
         };
+        ResultBatchList: {
+            items: components["schemas"]["ResultBatchView"][];
+        };
+        /**
+         * @description Result computation run of a session (L2-I09 §20).
+         * @enum {string}
+         */
+        ResultBatchStatus: "pending" | "aggregated" | "rule_processing" | "computed" | "validated" | "approved" | "finalised" | "ready_for_publication" | "closed" | "archived";
+        /** @description A result computation batch. */
+        ResultBatchView: {
+            /** Format: int32 */
+            candidates: number;
+            /** Format: date-time */
+            computedAt?: string | null;
+            /** Format: int32 */
+            computedCount: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            processInstanceId?: string | null;
+            /** Format: int32 */
+            runCount: number;
+            /** Format: uuid */
+            sessionId: string;
+            status: components["schemas"]["ResultBatchStatus"];
+            statusReason?: string | null;
+            /** Format: int32 */
+            unchangedCount: number;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            withheldCount: number;
+        };
+        /** @description A decision with the result as it stands afterwards. */
+        ResultDecisionOutcome: {
+            decision: components["schemas"]["ResultDecisionView"];
+            result: components["schemas"]["TermResultView"];
+        };
+        /** @description A governed result decision (correction / withdrawal). */
+        ResultDecisionView: {
+            decisionReason?: string | null;
+            externalMarks?: string | null;
+            graceMarks?: string | null;
+            /** Format: uuid */
+            id: string;
+            internalMarks?: string | null;
+            /** @description `correction` | `withdrawal` */
+            kind: string;
+            /** Format: uuid */
+            paperId?: string | null;
+            processInstanceId?: string | null;
+            reason: string;
+            /** Format: uuid */
+            resultId: string;
+            /** Format: uuid */
+            sessionId: string;
+            /** @description `pending` | `approved` | `rejected` */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One line of a term result. */
+        ResultLineView: {
+            attemptKind: components["schemas"]["AttemptKind"];
+            /** @example 4.00 */
+            credits: string;
+            /** Format: uuid */
+            curriculumComponentId: string;
+            /** @example 60.00 */
+            externalMarks?: string | null;
+            /** @example 0.00 */
+            graceMarks: string;
+            /** @example B+ */
+            grade?: string | null;
+            /** @example 7.00 */
+            gradePoint?: string | null;
+            /** @example 30.00 */
+            internalMarks?: string | null;
+            /** Format: int32 */
+            lineNo: number;
+            /** @example 140.00 */
+            maxMarks: string;
+            paperCode: string;
+            /** Format: uuid */
+            paperId: string;
+            passed: boolean;
+            /** @example 66.00 */
+            percent?: string | null;
+            remark?: string | null;
+            title: string;
+            /** @example 90.00 */
+            totalMarks?: string | null;
+        };
+        /**
+         * @description Outcome of a computed term result.
+         * @enum {string}
+         */
+        ResultOutcome: "pass" | "fail" | "withheld" | "incomplete" | "malpractice";
+        /**
+         * @description Term result of a candidate (`exams.term_result`; L2-I09 §20 + L2-I10 publication states
+         *     condensed to the per-candidate record — batch-level states are 6C's result batch).
+         * @enum {string}
+         */
+        ResultStatus: "pending" | "computed" | "validated" | "approved" | "withheld" | "published" | "withdrawn" | "superseded" | "archived";
         /** @description Resume a deferred completion once remediation evidence exists. */
         ResumeCompletion: {
             resolutionNote: string;
@@ -21822,6 +27088,55 @@ export interface components {
             postingDate?: string | null;
             reason: string;
         };
+        /** @description A review request of one of the caller's own published papers. */
+        RevaluationCreate: {
+            kind: components["schemas"]["ReviewKind"];
+            /** Format: uuid */
+            paperId: string;
+            reason?: string | null;
+        };
+        RevaluationList: {
+            items: components["schemas"]["RevaluationView"][];
+        };
+        /**
+         * @description Revaluation / rechecking request (L2-I11 §20 + exception amendment 2026-09-03).
+         * @enum {string}
+         */
+        RevaluationStatus: "submitted" | "eligibility_verified" | "fee_pending" | "fee_verified" | "approved" | "review_in_progress" | "review_completed" | "outcome_verified" | "revised_marks_approved" | "result_revision_initiated" | "correction_review" | "withdrawn" | "rejected" | "closed" | "archived";
+        /** @description A revaluation / rechecking request (contract §5.3). */
+        RevaluationView: {
+            displayName: string;
+            /** @example 500.00 */
+            feeAmount: string;
+            /** Format: uuid */
+            feeChargeId?: string | null;
+            feeChargeNumber?: string | null;
+            feeSettled: boolean;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["ReviewKind"];
+            /** @example REV-000001 */
+            number: string;
+            outcome?: null | components["schemas"]["ReviewOutcomeView"];
+            paperCode: string;
+            /** Format: uuid */
+            paperId: string;
+            processInstanceId?: string | null;
+            reason?: string | null;
+            /** Format: uuid */
+            registrationId: string;
+            /** Format: uuid */
+            resultId: string;
+            /** Format: uuid */
+            revisedResultId?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            status: components["schemas"]["RevaluationStatus"];
+            statusReason?: string | null;
+            studentNumber: string;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description Journal reversal request. */
         ReverseRequest: {
             /**
@@ -21830,6 +27145,34 @@ export interface components {
              */
             postingDate?: string | null;
             reason: string;
+        };
+        /** @description Review outcome. */
+        ReviewCompleteBody: {
+            /**
+             * @description Revised external marks after the review.
+             * @example 58.00
+             */
+            externalMarks: string;
+            notes?: string | null;
+        };
+        /** @description Correction of a closed review's outcome. */
+        ReviewCorrectBody: {
+            /** @example 56.00 */
+            externalMarks: string;
+            reason: string;
+        };
+        /**
+         * @description Kind of a post-result review (L2-I11).
+         * @enum {string}
+         */
+        ReviewKind: "revaluation" | "rechecking";
+        /** @description Outcome of a completed review. */
+        ReviewOutcomeView: {
+            changed: boolean;
+            /** @example 52.00 */
+            fromMarks?: string | null;
+            /** @example 58.00 */
+            toMarks?: string | null;
         };
         /** @description `POST …/revise`: successor draft of a published structure (content copied, then edited). */
         ReviseBody: {
@@ -22977,6 +28320,11 @@ export interface components {
             /** Format: date */
             startsOn?: string | null;
         };
+        /**
+         * @description Subsequent-attempt eligibility (L2-I12; L3-I-133/138/142).
+         * @enum {string}
+         */
+        SupplementaryEligibilityStatus: "eligible" | "applied" | "authorised" | "exhausted" | "cancelled";
         SyllabusCoverage: {
             /**
              * Format: double
@@ -23121,6 +28469,52 @@ export interface components {
             sequence: number;
             /** Format: date */
             startsOn: string;
+        };
+        TermResultList: {
+            items: components["schemas"]["TermResultView"][];
+        };
+        /** @description A candidate's term result (contract §5.3). */
+        TermResultView: {
+            /** Format: uuid */
+            academicTermId: string;
+            /** @example 8.12 */
+            cgpa?: string | null;
+            /** @example 20.00 */
+            creditsAttempted: string;
+            /** @example 20.00 */
+            creditsEarned: string;
+            displayName: string;
+            /** @example 169.00 */
+            gradePoints: string;
+            /** Format: uuid */
+            gradingSchemeId: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            lines: components["schemas"]["ResultLineView"][];
+            /** @description Student view only: why a withdrawn result shows no details. */
+            notice?: string | null;
+            outcome: components["schemas"]["ResultOutcome"];
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: uuid */
+            registrationId: string;
+            /** Format: int32 */
+            revision: number;
+            /** Format: uuid */
+            sessionId: string;
+            /** @example 8.45 */
+            sgpa?: string | null;
+            status: components["schemas"]["ResultStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            /** Format: uuid */
+            supersedesId?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         /** @enum {string} */
         TermStructure: "semester" | "trimester" | "annual";
@@ -23496,6 +28890,10 @@ export interface components {
             directoryConsent?: boolean;
             /** Format: int32 */
             graduationYear: number;
+        };
+        /** @description Validation notes. */
+        ValidateBody: {
+            notes?: string | null;
         };
         /** @description Outcome of the last validation. */
         ValidationReport: {
@@ -36522,6 +41920,7378 @@ export interface operations {
             };
             /** @description That is the current session (use logout) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_completion_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompletionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_completion_reevaluate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the evaluation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompletionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the conduct record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamConductComplete"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the conduct record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSetupDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_postpone: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the conduct record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamConductPostpone"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_resume: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the conduct record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the conduct record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the conduct record */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_exception_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_exception_classify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamExceptionClassify"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_exception_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_exception_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamExceptionResolve"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_exception_review: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPaperView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the paper */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamPaperUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPaperView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the paper */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPaperView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_conducted: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the paper */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPaperView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_evaluation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_evaluation_record: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationRecorded"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_gradebook_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Gradebook"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_of_paper: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_open: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkSheetSettingsBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkRowList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_enter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksEntryBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkRowList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_moderation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_moderation_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_ready: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the paper */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPaperView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_schedule: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the paper */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPaperView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamPolicyInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSetupDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_supersede: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_amend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the registration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamRegistrationAmend"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_arrangement_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamArrangementCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_confirm: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the registration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the registration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSetupDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_paper_add: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the registration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamRegistrationAddPaper"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_reinstate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the registration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_scope_sync: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the registration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the registration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_conflicts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleConflictList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the schedule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSetupDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the schedule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_revise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the schedule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_sitting_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSittingList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_sitting_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSittingCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSittingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the schedule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the schedule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSessionUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_closure_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_closure_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the closure */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_closure_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the closure */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_closure_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the closure */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_closure_initiate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosureView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSetupDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_exception_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamExceptionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_exception_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamExceptionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamHallTicketList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_finalise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSetupBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_issue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSetupBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["MalpracticeCaseStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_report: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeCaseCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_merge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the duplicate session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSessionMerge"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPaperList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamPaperCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPaperView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_paper_generate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamPaperGenerate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSetupBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_override_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamDeadlineOverrideList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_override_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamDeadlineOverrideCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamDeadlineOverrideView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_population_finalise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSetupBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_window_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamRegistrationReopen"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description `ExamRegistrationStatus` wire name. */
+                status: string | null;
+                /** @description ≤ 200 (default 50). */
+                limit: number | null;
+                /** @description Registration number to continue after. */
+                cursor: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamRegistrationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_bulk: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamRegistrationBulk"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSetupBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_batch_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultBatchList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_batch_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultBatchView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["ResultStatus"];
+                /** @description Include superseded revisions (history). */
+                includeSuperseded: boolean | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermResultList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["RevaluationStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_schedule: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamScheduleCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamScheduleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_supplementary_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                status: null | components["schemas"]["SupplementaryEligibilityStatus"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EligibilityList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_supplementary_determine: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetermineSummaryView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_sitting_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSittingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_sitting_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the sitting */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSittingUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSittingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_sitting_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the sitting */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSittingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_get_for_sitting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_conduct_open: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamConductRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_invigilation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamInvigilationStaffing"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_invigilation_assign: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamInvigilationAssign"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamInvigilationDutyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_seating_get_for_sitting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSeatingPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_seating_generate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSeatingPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_sitting_venue_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamVenueAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_sitting_venue_allocate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamVenueAllocate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamVenueAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_sitting_venue_release: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                venueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamVenueAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_venue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamVenueView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_venue_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the venue */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamVenueUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamVenueView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grade_card_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradeCardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grade_card_reissue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the grade card */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradeCardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grade_card_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the grade card */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradeCardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grading_scheme_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradingSchemeView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grading_scheme_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the grading scheme */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradingSchemeView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamHallTicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_reissue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the hall ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamHallTicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_release: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the hall ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamHallTicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the hall ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamHallTicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_withhold: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the hall ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamHallTicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_completion_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                studentId: string | null;
+                includeSuperseded: boolean | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompletionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_completion_evaluate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompletionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompletionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_policy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamPolicyInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_session_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSessionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_venue_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamVenueList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_venue_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamVenueCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamVenueView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grading_scheme_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradingSchemeList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grading_scheme_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GradingSchemeCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradingSchemeView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_invigilation_confirm: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the duty */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamInvigilationDutyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_invigilation_release: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the duty */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamInvigilationDutyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_invigilation_replace: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the duty */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamInvigilationReplace"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamInvigilationDutyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_appeal: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_approval: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeApprovalBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeDecisionCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_hearing: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_investigate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_merge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the duplicate case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeMergeBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_malpractice_review: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MalpracticeReviewCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MalpracticeCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the mark sheet */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkSheetSettingsBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_assignment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluatorAssignmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_assign: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluatorAssignmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluatorAssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the mark sheet */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_exception_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarksExceptionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_exception_raise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksExceptionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarksExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_finalise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the mark sheet */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_import_internal: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarksBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_request_approval: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the mark sheet */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_return: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the mark sheet */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the mark sheet */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_mark_sheet_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the mark sheet */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_exception_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the exception */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarksExceptionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_self_assessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkRowList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_self_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSelfRegistrationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_self_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSelfOptionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_self_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the registration */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamRegistrationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_schedule_self_timetable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamTimetable"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grade_card_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradeCardList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_hall_ticket_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamMyHallTicketList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_invigilation_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamMyDutyList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermResultList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_self_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevaluationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_self_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_moderation_apply: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the moderation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_moderation_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the moderation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_moderation_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the moderation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_moderation_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the moderation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_release: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the marks row */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkRowView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_marks_withhold: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the marks row */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarksReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkRowView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_authorise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the publication */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the publication */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the publication */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_delay: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the publication */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DelayBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the publication */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishSummaryView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_resume: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the publication */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_publication_retry: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the publication */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishSummaryView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_registration_override_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the override */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamSetupDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamDeadlineOverrideView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_batch_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultBatchView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_batch_compute: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComputeSummaryView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_batch_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultBatchView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_batch_finalise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultBatchView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_batch_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultBatchView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_batch_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultBatchView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_decision_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the decision */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultDecisionOutcome"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_approve_marks: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewCompleteBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_correct: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewCorrectBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_start_review: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_verify_outcome: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_revaluation_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the request */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevaluationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_seating_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSeatingPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_seating_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSeatingPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_seating_revise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamSeatingPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_supplementary_authorise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the eligibility */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthoriseBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EligibilityView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermResultView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_correct: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the result */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultDecisionOutcome"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grade_card_of_result: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradeCardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_grade_card_issue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradeCardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_recompute: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the result */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermResultView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_release: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the result */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermResultView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the result */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermResultView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the result */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultDecisionOutcome"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exam_result_withhold: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the result */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermResultView"];
+                };
+            };
+            "4XX": {
                 headers: {
                     [name: string]: unknown;
                 };

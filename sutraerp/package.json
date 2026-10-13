@@ -17,7 +17,8 @@
     "e2e:student": "pnpm --filter @sutra/web e2e:student",
     "e2e:academic": "pnpm --filter @sutra/web e2e:academic",
     "e2e:finance": "pnpm --filter @sutra/web e2e:finance",
-    "e2e:ui": "pnpm --filter @sutra/web e2e:ui"
+    "e2e:ui": "pnpm --filter @sutra/web e2e:ui",
+    "e2e:exams": "pnpm --filter @sutra/web e2e:exams"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

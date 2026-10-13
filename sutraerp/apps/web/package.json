@@ -13,7 +13,8 @@
     "e2e:student": "node e2e/student.e2e.mjs",
     "e2e:academic": "node e2e/academic.e2e.mjs",
     "e2e:finance": "node e2e/finance.e2e.mjs",
-    "e2e:ui": "node e2e/ui.e2e.mjs"
+    "e2e:ui": "node e2e/ui.e2e.mjs",
+    "e2e:exams": "node e2e/exams.e2e.mjs"
   },
   "dependencies": {
     "@react-router/node": "^8.4.0",

@@ -19,6 +19,8 @@
 //! | `flexible/`, `recognition/`, `resources/` | 4C |
 
 pub mod directory;
+/// Batch 6 foundation: Domain D facts for Exams (`AcademicExamFacts`).
+pub mod exam_facts;
 pub mod shared;
 
 // ---- slice areas (router mount points are pre-registered in `router_with_state`) ----
@@ -43,6 +45,7 @@ use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
 pub use directory::PgOfferingDirectory;
+pub use exam_facts::PgAcademicExamFacts;
 pub use shared::AcademicState;
 
 pub const MODULE: ModuleDescriptor = ModuleDescriptor {

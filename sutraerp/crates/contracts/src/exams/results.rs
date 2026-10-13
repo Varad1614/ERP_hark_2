@@ -1,11 +1,13 @@
-//! Domain I — Examinations contracts.
+//! The Batch 3 [`ResultsPort`] Domain C reads (progression evidence).
 //!
-//! Examinations lands in Batch 6. Batch 3 progression (3B) reads published term results through
-//! [`ResultsPort`]; until Batch 6 the composition root wires `sutra_exams::NoPublishedResults`,
-//! which always answers `None` — 3B then records the progression evidence manually (an
-//! administrator enters the outcome and credits with a reason). Domain C never imports the exams
-//! crate. Re-evaluation outcomes (L3-C-038) arrive later as Exams events; 3B exposes a manual
-//! revision command in Batch 3.
+//! Batch 3 progression (3B) reads published term results through [`ResultsPort`]. Since the
+//! Batch 6 foundation the composition root wires `sutra_exams::PgResultsPort` over
+//! `exams.term_result` (only `published` rows are visible); before 6C publishes anything it
+//! answers `None`, exactly like the former `NoPublishedResults` stub, so 3B keeps recording the
+//! evidence manually. Domain C never imports the exams crate. Re-evaluation outcomes (L3-C-038)
+//! arrive as a new `revision` of the same summary (and as `term_result.revised` events).
+//! The summary keeps its Batch 3 `f64` members (a frozen contract); Exams computes with
+//! `rust_decimal` and converts only at this boundary.
 
 use chrono::{DateTime, Utc};
 use sutra_kernel::error::KernelError;

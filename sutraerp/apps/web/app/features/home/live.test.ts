@@ -39,6 +39,8 @@ describe("workspace directory", () => {
     expect(workspaceBatch("W-G05")).toBe(8);
     expect(workspaceScreen("W-F01", "student")).toBe("/fees");
     expect(workspaceScreen("W-F05", "student")).toBeNull();
-    expect(workspaceScreen("W-I05", "administrator")).toBeNull();
+    expect(workspaceScreen("W-I05", "administrator")).toBe("/examinations/registrations");
+    expect(workspaceScreen("W-I08", "faculty")).toBe("/assessments");
+    expect(workspaceScreen("W-I06", "administrator")).toBeNull();
   });
 });

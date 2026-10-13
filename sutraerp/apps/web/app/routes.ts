@@ -34,6 +34,10 @@ export default [
     // Batch 5 (Domain F) screens — owners in docs/batch5-contracts.md §10.
     route("finance/:tab?", "routes/admin/finance.tsx"),
     route("fees", "routes/student/fees.tsx"),
+    // Batch 6 (Domain I) screens — owners in docs/batch6-contracts.md §10.
+    route("examinations/:tab?", "routes/admin/examinations.tsx"),
+    route("assessments", "routes/faculty/assessments.tsx"),
+    route("results", "routes/student/results.tsx"),
     // One route module serves every workspace in the catalog (99); unknown keys render a 404 tile.
     route("workspaces/:key/:tab?", "routes/workspace.tsx"),
     // Role navigation screens (students, finance, timetable, …) — stubs until their batch lands.

@@ -8,7 +8,7 @@ import type { Role } from "./roles";
 type Routes = Partial<Record<Role, string>>;
 const all = (to: string): Routes => ({ administrator: to, faculty: to, student: to });
 
-/** Built screens per workspace key and role (Batches 1–5). */
+/** Built screens per workspace key and role (Batches 1–6). */
 export const WORKSPACE_SCREENS: Record<string, Routes> = {
   // A · Platform (Batch 1)
   "W-A02": all("/profile"),
@@ -48,6 +48,20 @@ export const WORKSPACE_SCREENS: Record<string, Routes> = {
   "W-F09": { administrator: "/finance/periods" },
   "W-F10": { administrator: "/finance/treasury" },
   "W-F11": { administrator: "/finance/aid" },
+  // I · Examinations (Batch 6)
+  "W-I01": { administrator: "/examinations/sessions" },
+  "W-I02": { administrator: "/examinations/sessions" },
+  "W-I03": { administrator: "/examinations/schedule", student: "/results" },
+  "W-I04": { administrator: "/examinations/registrations", student: "/results" },
+  "W-I05": { administrator: "/examinations/registrations", student: "/results" },
+  "W-I08": { administrator: "/examinations/marks", faculty: "/assessments" },
+  "W-I09": { administrator: "/examinations/results" },
+  "W-I10": { administrator: "/examinations/results", student: "/results" },
+  "W-I11": { administrator: "/examinations/revaluation", student: "/results" },
+  "W-I12": { administrator: "/examinations/revaluation" },
+  "W-I13": { administrator: "/examinations/revaluation", student: "/results" },
+  "W-I14": { administrator: "/examinations/malpractice" },
+  "W-I16": { administrator: "/examinations/revaluation" },
 };
 
 /** Delivery batch by domain letter of the workspace key (W-<letter>NN). */

@@ -365,3 +365,102 @@ async fn finance_operations_follow_the_slice_prefix_and_tag_rules() {
         "the foundation account endpoints are mounted"
     );
 }
+
+/// Batch 6 (Domain I): every `/api/v1/exams` operation carries an explicit `operationId` with its
+/// slice's prefix and the matching tag (`docs/batch6-contracts.md` §5.2); exam tags are used
+/// exactly for exams paths, no other domain uses an `exam_` operation id, and the first path
+/// parameter after a collection is `{id}`.
+#[tokio::test]
+async fn exam_operations_follow_the_slice_prefix_and_tag_rules() {
+    const RULES: &[(&str, &[&str])] = &[
+        // foundation
+        ("exam-grading", &["exam_grading_"]),
+        // 6A
+        (
+            "exam-setup",
+            &["exam_policy_", "exam_session_", "exam_paper_"],
+        ),
+        (
+            "exam-scheduling",
+            &[
+                "exam_schedule_",
+                "exam_sitting_",
+                "exam_venue_",
+                "exam_seating_",
+                "exam_invigilation_",
+                "exam_conduct_",
+                "exam_exception_",
+            ],
+        ),
+        (
+            "exam-registration",
+            &["exam_registration_", "exam_hall_ticket_"],
+        ),
+        // 6B
+        (
+            "exam-marks",
+            &[
+                "exam_mark_sheet_",
+                "exam_marks_",
+                "exam_evaluation_",
+                "exam_moderation_",
+                "exam_gradebook_",
+            ],
+        ),
+        ("exam-integrity", &["exam_malpractice_"]),
+        // 6C
+        (
+            "exam-results",
+            &["exam_result_", "exam_publication_", "exam_grade_card_"],
+        ),
+        (
+            "exam-revaluation",
+            &["exam_revaluation_", "exam_supplementary_"],
+        ),
+        ("exam-completion", &["exam_completion_", "exam_closure_"]),
+    ];
+    let spec: serde_json::Value =
+        serde_json::from_str(&sutra_api::openapi::spec_json().unwrap()).unwrap();
+    let mut exam_ops = 0;
+    for (path, item) in spec["paths"].as_object().unwrap() {
+        let exams = path.starts_with("/api/v1/exams/");
+        for (method, op) in item.as_object().unwrap() {
+            let tags: Vec<&str> = op["tags"]
+                .as_array()
+                .map(|t| t.iter().filter_map(|x| x.as_str()).collect())
+                .unwrap_or_default();
+            let exam_tag = tags.iter().any(|t| RULES.iter().any(|(tag, _)| tag == t));
+            assert_eq!(
+                exams, exam_tag,
+                "{method} {path}: Domain I tags are used exactly for /api/v1/exams paths"
+            );
+            let id = op["operationId"].as_str().unwrap_or_default();
+            if !exams {
+                assert!(
+                    !id.starts_with("exam_"),
+                    "{method} {path}: `exam_` operation ids are reserved for Domain I"
+                );
+                continue;
+            }
+            exam_ops += 1;
+            assert!(!id.is_empty(), "{method} {path} has no operationId");
+            let ok = RULES.iter().any(|(tag, prefixes)| {
+                tags.contains(tag) && prefixes.iter().any(|p| id.starts_with(p))
+            });
+            assert!(
+                ok,
+                "{method} {path}: operationId `{id}` does not match the prefixes of its tag {tags:?}"
+            );
+            if let Some(first) = path.split('/').find(|seg| seg.starts_with('{')) {
+                assert_eq!(
+                    first, "{id}",
+                    "{method} {path}: first path parameter must be {{id}}"
+                );
+            }
+        }
+    }
+    assert!(
+        exam_ops >= 4,
+        "the foundation grading-scheme endpoints are mounted"
+    );
+}

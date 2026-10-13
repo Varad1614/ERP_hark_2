@@ -534,6 +534,55 @@ pub trait PaymentGatewayPort: Send + Sync + 'static {
     ) -> Result<GatewayRefund, KernelError>;
 }
 
+// ---- Batch 6 (Domain I) block: examination fee charges (revaluation / rechecking) ----
+
+/// An examination fee Domain I asks Finance to raise (revaluation / rechecking fee, L2-I11).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExamFeeRequest {
+    pub institution_id: InstitutionId,
+    /// Domain C student (must have a live context in the institution).
+    pub student_id: Uuid,
+    /// Fee head code (`^[A-Z0-9][A-Z0-9_-]{1,31}$`), e.g. `EXAM-REVAL`; created on first use
+    /// (category `examination`, income account `OtherIncome`).
+    pub fee_code: String,
+    pub description: String,
+    /// Positive, ≤ 2 decimals, INR.
+    pub amount: Decimal,
+    pub academic_term_id: Option<Uuid>,
+    pub due_date: Option<NaiveDate>,
+    /// The Domain I aggregate the fee is for (e.g. the revaluation request id): **idempotency
+    /// key** — a second call with the same id returns the charge already raised.
+    pub source_id: Uuid,
+    /// Actor recorded on the charge audit / posting.
+    pub actor: Option<String>,
+}
+
+/// The published charge raised for an [`ExamFeeRequest`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExamFeeCharge {
+    pub charge_id: ChargeId,
+    pub charge_number: String,
+    pub amount: Decimal,
+    /// `true` when the charge for `source_id` already existed (nothing new raised).
+    pub already_raised: bool,
+}
+
+/// Write port into Domain F for examination fees (Batch 6). Runs its own owner-local
+/// transaction in Finance: party account, fee head, charge (`source_type = exam_fee`,
+/// `source_id`), validation, **publication** (Dr receivables / Cr other income through
+/// `shared::posting`) and `charge.published`. Domain I stores `charge_id` and reads settlement
+/// through [`ChargeDirectory::charge`] (`outstanding_amount == 0`). Errors: unknown student / no
+/// live context → `Validation`; invalid amount → `Validation`.
+/// Implemented by `sutra_finance::PgExamFees`.
+#[async_trait::async_trait]
+pub trait ExamFeePort: Send + Sync + 'static {
+    async fn raise_exam_fee(
+        &self,
+        scope: &ExecutionScope,
+        request: ExamFeeRequest,
+    ) -> Result<ExamFeeCharge, KernelError>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

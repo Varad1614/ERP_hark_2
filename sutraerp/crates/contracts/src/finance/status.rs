@@ -145,6 +145,8 @@ status_enum!(
         DebitNote => "debit_note",
         AidRecovery => "aid_recovery",
         Fine => "fine",
+        /// Examination fee raised by Domain I through `ExamFeePort` (Batch 6).
+        ExamFee => "exam_fee",
     }
 );
 

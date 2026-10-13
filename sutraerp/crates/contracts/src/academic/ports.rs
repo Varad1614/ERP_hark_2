@@ -149,3 +149,56 @@ pub trait OfferingDirectory: Send + Sync + 'static {
             }))
     }
 }
+
+// ---- Batch 6 (Domain I) block: examination facts owned by Domain D ----
+
+/// A **finalised** internal assessment result (4B `internal_assessment_result`, current
+/// version, status `finalized` or `archived`) as Exams imports it into a paper's internal marks.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InternalAssessmentFact {
+    pub result_id: Uuid,
+    pub offering_id: CourseOfferingId,
+    pub section_id: OfferingSectionId,
+    pub academic_term_id: Uuid,
+    pub curriculum_component_id: Uuid,
+    pub student_id: StudentId,
+    pub marks_obtained: rust_decimal::Decimal,
+    pub max_marks: rust_decimal::Decimal,
+    /// Increments on every governed correction (L3-D-057).
+    pub result_version: i32,
+    pub finalized_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// The student's attendance standing in the section of an offering (4B attendance evaluation
+/// under the effective policy) — an examination entry condition (hall tickets, L3-I-038).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AttendanceStanding {
+    pub section_id: OfferingSectionId,
+    pub student_id: StudentId,
+    pub attended: i32,
+    pub total: i32,
+    pub percent: rust_decimal::Decimal,
+    pub below_threshold: bool,
+    pub evaluated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Read port over Domain D facts Exams needs (internal assessment + attendance eligibility).
+/// Implemented by `sutra_academic::PgAcademicExamFacts` over the 4B tables (**real**).
+#[async_trait::async_trait]
+pub trait AcademicExamFacts: Send + Sync + 'static {
+    /// Finalised internal assessment results of every student of the offering (any section).
+    async fn internal_results(
+        &self,
+        scope: &ExecutionScope,
+        offering_id: CourseOfferingId,
+    ) -> Result<Vec<InternalAssessmentFact>, KernelError>;
+
+    /// The student's latest attendance evaluation in their section of the offering; `None`
+    /// when attendance was never evaluated (no policy / no finalised sessions).
+    async fn attendance_standing(
+        &self,
+        scope: &ExecutionScope,
+        offering_id: CourseOfferingId,
+        student_id: StudentId,
+    ) -> Result<Option<AttendanceStanding>, KernelError>;
+}

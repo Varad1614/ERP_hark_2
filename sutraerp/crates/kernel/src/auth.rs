@@ -263,10 +263,29 @@ pub enum Permission {
     FinanceApprove,
     /// 5C: close, reopen and archive financial periods / years; accounting close (step-up).
     PeriodClose,
+    // ---- Batch 6 (Domain I). Staff reads use `ExamRead`; students use `ExamSelfService`. ----
+    /// Read examination policy, sessions, papers, schedules, seating, registrations, hall tickets, marks, results and revaluation records of the tenant (staff: administrators and faculty).
+    ExamRead,
+    /// Self-service on one's **own** examinations (resolved from the session subject): registration, hall ticket, timetable, results, grade cards, revaluation requests.
+    ExamSelfService,
+    /// 6A: examination policy versions, sessions, papers, schedules / timetables, venues, seating, invigilation, conduct records, exceptions.
+    ExamSetupManage,
+    /// 6A: examination registrations (bulk, late, administrative, amendments, withdrawal, population finalisation) and hall tickets.
+    ExamRegistrationManage,
+    /// 6B: enter / submit marks on papers of sections the caller teaches (faculty) or any paper (administrators).
+    MarksEntry,
+    /// 6B: verify marks, mark sheets, evaluation rounds, moderation requests, withheld marks, malpractice cases.
+    MarksManage,
+    /// 6C: result computation, verification, withholding, revaluation processing, supplementary eligibility, completion evaluation, session closure.
+    ResultManage,
+    /// 6C: approve, publish, delay, withdraw and republish results; issue grade cards (step-up).
+    ResultPublish,
+    /// Batch 6: decide governed examination approvals — policy, session, schedule, moderation, final marks, malpractice decisions, revaluation outcomes (step-up).
+    ExamApprove,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 77] = [
+    pub const ALL: [Permission; 86] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -344,6 +363,15 @@ impl Permission {
         Permission::TreasuryManage,
         Permission::FinanceApprove,
         Permission::PeriodClose,
+        Permission::ExamRead,
+        Permission::ExamSelfService,
+        Permission::ExamSetupManage,
+        Permission::ExamRegistrationManage,
+        Permission::MarksEntry,
+        Permission::MarksManage,
+        Permission::ResultManage,
+        Permission::ResultPublish,
+        Permission::ExamApprove,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -425,6 +453,15 @@ impl Permission {
             Permission::TreasuryManage => "treasury.manage",
             Permission::FinanceApprove => "finance.approve",
             Permission::PeriodClose => "period.close",
+            Permission::ExamRead => "exam.read",
+            Permission::ExamSelfService => "exam.self",
+            Permission::ExamSetupManage => "exam.setup.manage",
+            Permission::ExamRegistrationManage => "exam.registration.manage",
+            Permission::MarksEntry => "exam.marks.enter",
+            Permission::MarksManage => "exam.marks.manage",
+            Permission::ResultManage => "exam.result.manage",
+            Permission::ResultPublish => "exam.result.publish",
+            Permission::ExamApprove => "exam.approve",
         }
     }
 
@@ -450,6 +487,8 @@ impl Permission {
                 | Permission::CreditRecognitionDecide
                 | Permission::FinanceApprove
                 | Permission::PeriodClose
+                | Permission::ResultPublish
+                | Permission::ExamApprove
         )
     }
 }
@@ -537,6 +576,15 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             TreasuryManage,
             FinanceApprove,
             PeriodClose,
+            // Batch 6 (Domain I): exam cell = administrators; marks entry on any paper.
+            ExamRead,
+            ExamSetupManage,
+            ExamRegistrationManage,
+            MarksEntry,
+            MarksManage,
+            ResultManage,
+            ResultPublish,
+            ExamApprove,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -550,6 +598,9 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             // Batch 4: academic reads + teaching on sections with an active faculty assignment.
             AcademicRead,
             AcademicTeach,
+            // Batch 6: examination reads + marks entry on papers of sections they teach.
+            ExamRead,
+            MarksEntry,
         ],
         Role::Student => &[
             InstitutionRead,
@@ -564,6 +615,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             AcademicSelfService,
             // Batch 5: own fees, payments, receipts, refund requests.
             FinanceSelfService,
+            // Batch 6: own registration, hall ticket, results, grade cards, revaluation requests.
+            ExamSelfService,
         ],
     }
 }
@@ -714,6 +767,7 @@ mod tests {
                     | Permission::AcademicSelfService
                     | Permission::AcademicTeach
                     | Permission::FinanceSelfService
+                    | Permission::ExamSelfService
             )
         }) {
             assert!(a.require(p).is_ok(), "{p:?}");
@@ -907,6 +961,37 @@ mod tests {
         }
         assert!(!Permission::ChargeManage.requires_step_up());
         assert!(!Permission::FinanceRead.requires_step_up());
+    }
+
+    #[test]
+    fn batch6_domain_i_grants() {
+        let admin_only = [
+            Permission::ExamSetupManage,
+            Permission::ExamRegistrationManage,
+            Permission::MarksManage,
+            Permission::ResultManage,
+            Permission::ResultPublish,
+            Permission::ExamApprove,
+        ];
+        for p in admin_only {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
+        }
+        for p in [Permission::ExamRead, Permission::MarksEntry] {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(is_granted(&[Role::Faculty], p), "{p:?}");
+            assert!(!is_granted(&[Role::Student], p), "{p:?}");
+        }
+        assert!(is_granted(&[Role::Student], Permission::ExamSelfService));
+        assert!(!is_granted(
+            &[Role::Administrator, Role::Faculty],
+            Permission::ExamSelfService
+        ));
+        for p in [Permission::ResultPublish, Permission::ExamApprove] {
+            assert!(p.requires_step_up(), "{p:?}");
+        }
+        assert!(!Permission::MarksEntry.requires_step_up());
+        assert!(!Permission::ExamRead.requires_step_up());
     }
 
     #[test]

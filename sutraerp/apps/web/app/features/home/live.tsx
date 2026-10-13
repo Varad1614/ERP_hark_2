@@ -14,6 +14,10 @@ import { formatInr } from "../finance";
 import { pkeys, usePaymentsApi } from "../finance/payments/hooks";
 import { useInstitutions } from "../institution/hooks";
 import { rkeys, useRecordApi } from "../student/record/hooks";
+import { mkeys, useMarksApi } from "../exams/marks/hooks";
+import { toReviewCount } from "../exams/marks";
+import { rkeys as resultKeys, useResultsApi } from "../exams/results/hooks";
+import { latestResult } from "../exams/results";
 import { useSession } from "../../lib/auth";
 import { inboxKeys, useInbox } from "../../lib/inbox";
 import type { Role } from "../../lib/roles";
@@ -170,6 +174,9 @@ export function FacultyKpis({ go }: { go: Go }) {
   const api = useDeliveryApi();
   const tt = useQuery({ queryKey: dkeys.scoped("my", "timetable"), queryFn: () => api.teachingTimetable() });
   const taught = useQuery({ queryKey: dkeys.scoped("my", "attendance"), queryFn: () => api.facultyAttendance() });
+  const marksApi = useMarksApi();
+  const assessments = useQuery({ queryKey: mkeys("me", "assessments"), queryFn: () => marksApi.myAssessments() });
+  const reviewPapers = (assessments.data ?? []).filter((x) => x.acceptsMarks && x.candidates > x.entered);
   const today = isoDay(new Date());
   const todays = (tt.data?.items ?? []).filter((s) => s.dayOfWeek === today).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const sections = taught.data ?? [];
@@ -197,7 +204,15 @@ export function FacultyKpis({ go }: { go: Go }) {
         data-kpi="classes"
       />
       <StatTile icon={Users} tone="green" label="My students" value={taught.data ? String(seated) : "…"} hint={`Across ${sections.length} section${sections.length === 1 ? "" : "s"}`} onClick={() => go("my-students")} data-kpi="students" />
-      <StatTile icon={Inbox} tone="violet" label="To review" value="—" hint="Assessment submissions" pending="Arrives in Batch 6" onClick={() => go("assessments")} data-kpi="review" />
+      <StatTile
+        icon={Inbox}
+        tone="violet"
+        label="To review"
+        value={assessments.data ? String(toReviewCount(assessments.data)) : assessments.isError ? "—" : "…"}
+        hint={assessments.data ? (reviewPapers[0] ? `${reviewPapers[0].paperCode}${reviewPapers.length > 1 ? ` +${reviewPapers.length - 1} more` : ""} · marks to enter` : "No marks pending") : "Examination marks"}
+        onClick={() => go("assessments")}
+        data-kpi="review"
+      />
       <StatTile
         icon={UserCheck}
         tone="blue"
@@ -219,6 +234,9 @@ export function StudentKpis({ go }: { go: Go }) {
   const att = useQuery({ queryKey: dkeys.scoped("me", "attendance"), queryFn: () => api.myAttendance() });
   const asg = useQuery({ queryKey: dkeys.scoped("me", "assignments"), queryFn: () => api.myAssignments() });
   const acc = useQuery({ queryKey: pkeys.scoped("me", "accounts"), queryFn: () => payments.myAccounts() });
+  const resultsApi = useResultsApi();
+  const results = useQuery({ queryKey: resultKeys.scoped("me", "results"), queryFn: () => resultsApi.myResults() });
+  const latest = results.data ? latestResult(results.data) : undefined;
   const lines = att.data ?? [];
   const attended = lines.reduce((n, l) => n + l.attended, 0);
   const total = lines.reduce((n, l) => n + l.total, 0);
@@ -243,7 +261,15 @@ export function StudentKpis({ go }: { go: Go }) {
         onClick={() => go("timetable")}
         data-kpi="attendance"
       />
-      <StatTile icon={Award} tone="green" label="CGPA" value="—" hint="Results and grade cards" pending="Arrives in Batch 6" onClick={() => go("results")} data-kpi="cgpa" />
+      <StatTile
+        icon={Award}
+        tone="green"
+        label="CGPA"
+        value={results.data ? (latest?.cgpa ?? "—") : results.isError ? "—" : "…"}
+        hint={results.data ? (latest?.sgpa ? `This term SGPA ${latest.sgpa}` : "No published results yet") : "Results and grade cards"}
+        onClick={() => go("results")}
+        data-kpi="cgpa"
+      />
       <StatTile
         icon={PencilLine}
         tone="violet"

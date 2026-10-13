@@ -522,7 +522,7 @@ fn build_scheduler(cfg: &Config, pool: &PgPool) -> Scheduler {
 }
 
 /// Domain C (Batch 3) adapters: Domain B reference reads, the real Finance clearance reader
-/// (Batch 5 foundation), the Exams stub until Batch 6,
+/// (Batch 5 foundation), the real Exams results reader (Batch 6 foundation),
 /// no-op ABC and external-scholarship adapters. Tests reuse it to build a `StudentState` with
 /// `ApprovalMode::AwaitDecision` (`sutra_student::router_with_state`).
 pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_student::StudentDeps {
@@ -531,7 +531,7 @@ pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_stud
             pool.clone(),
         )),
         finance: Arc::new(sutra_finance::PgFinanceClearance::new(pool.clone())),
-        results: Arc::new(sutra_exams::NoPublishedResults),
+        results: Arc::new(sutra_exams::PgResultsPort::new(pool.clone())),
         abc: Arc::new(sutra_student::adapters::NoopAbcRegistry),
         external_scholarships: Arc::new(sutra_student::adapters::NoopExternalScholarships),
         workflow,
@@ -578,6 +578,30 @@ pub fn finance_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_fina
     }
 }
 
+/// Domain I (Batch 6) adapters: Domain B reference reads, the Domain C student directory and
+/// registration reader, the Domain D offering directory and examination facts (internal
+/// assessment, attendance), the Domain F clearance reader, charge directory and exam fee port.
+/// Tests reuse it to build an `ExamsState` with `ApprovalMode::AwaitDecision`
+/// (`sutra_exams::router_with_state`).
+pub fn exams_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_exams::ExamsDeps {
+    sutra_exams::ExamsDeps {
+        references: Arc::new(sutra_institution::PgInstitutionReferences::new(
+            pool.clone(),
+        )),
+        students: Arc::new(sutra_student::PgStudentDirectory::new(pool.clone())),
+        registrations: Arc::new(sutra_student::PgRegistrationReader::new(pool.clone())),
+        offerings: Arc::new(sutra_academic::PgOfferingDirectory::new(pool.clone())),
+        academic: Arc::new(sutra_academic::PgAcademicExamFacts::new(pool.clone())),
+        finance: Arc::new(sutra_finance::PgFinanceClearance::new(pool.clone())),
+        charges: Arc::new(sutra_finance::PgChargeDirectory::new(pool.clone())),
+        fees: Arc::new(sutra_finance::PgExamFees::new(
+            finance_deps(pool.clone(), workflow.clone()).into_state(),
+        )),
+        workflow,
+        pool,
+    }
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
@@ -610,7 +634,10 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         )))
         .merge(sutra_campus::router())
         .merge(sutra_services::router())
-        .merge(sutra_exams::router())
+        .merge(sutra_exams::router(exams_deps(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+        )))
         .merge(sutra_resources::router())
         .layer(axum::middleware::from_fn_with_state(
             ctx.idempotency,

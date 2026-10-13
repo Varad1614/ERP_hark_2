@@ -29,7 +29,11 @@ const NAV = {
 };
 const ACCENT = { administrator: "#e8743b", faculty: "#3b7be8", student: "#7254e6" };
 /** Screens not built yet → "Coming in Batch N" page. */
-const COMING = { administrator: ["/examinations", "/people", "/reports"], faculty: ["/assessments", "/leave"], student: ["/results"] };
+const COMING = { administrator: ["/people", "/reports"], faculty: ["/leave"], student: [] };
+/** Batch 6 screens now live (real exam screens, no “Coming in Batch N” page). */
+const LIVE_B6 = { administrator: ["/examinations"], faculty: ["/assessments"], student: ["/results"] };
+/** Home KPI tiles still pending per role (figures whose backend lands in a later batch). */
+const PENDING_KPIS = { administrator: 2, faculty: 0, student: 0 };
 
 function seedDelivery(setup, studentIds) {
   const component = psql(
@@ -92,7 +96,7 @@ async function roleTour(page, role) {
     await page.locator('[data-right-now]:not([data-right-now="loading"])').waitFor();
     check((await page.locator("[data-kpi]").count()) === 4, "four KPI tiles");
     const pending = await page.locator(".sb-stat.is-pending").count();
-    check(pending >= 1, `${pending} KPI tile(s) marked pending (no backend yet), none invented`);
+    check(pending === PENDING_KPIS[role], `${pending} KPI tile(s) marked pending (no backend yet), none invented`);
     await page.locator('[data-home-todos]:not([data-home-todos="loading"])').waitFor();
     check((await page.locator(".sb-shortcut").count()) === 4, "four shortcuts");
     await page.locator('[data-announcement]:not([data-announcement="loading"])').waitFor();
@@ -106,6 +110,7 @@ async function roleTour(page, role) {
       await page.waitForTimeout(400);
       check((await page.locator(`nav.sb-pills a[href="${h}"].on`).count()) === 1, `${h} pill active`);
       if (COMING[role].includes(h)) check((await page.locator("[data-coming]").count()) === 1, `${h} shows “Coming in Batch N”`);
+      if (LIVE_B6[role].includes(h)) check((await page.locator("[data-coming]").count()) === 0 && (await page.locator("[data-page-head], .sb-page-head, h1").count()) >= 1, `${h} is the live Batch 6 screen`);
       await shot(page, `${r}-${h.slice(1).replace(/\//g, "_")}`);
     }
   });
