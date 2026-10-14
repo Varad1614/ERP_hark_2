@@ -15,6 +15,7 @@ use sutra_contracts::platform::auth::{
     ReplayGuard, SessionPolicy, SessionStore, WebauthnPort,
 };
 use sutra_contracts::platform::workflow::WorkflowPort;
+use sutra_contracts::services::ports::OperationalMetricsPort;
 use sutra_infra::nats::{JetStreamPublisher, JetStreamSettings, NatsReadiness};
 use sutra_infra::smtp::{SmtpMailSender, SmtpSettings, SmtpTls};
 use sutra_infra::valkey::{ValkeyCache, ValkeyReadiness, ValkeySettings};
@@ -540,7 +541,7 @@ pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_stud
 }
 
 /// Domain D (Batch 4) adapters: Domain B reference reads, Domain C student directory,
-/// registration reader and credit posting, the Campus teaching-space stub (Batch 8) and the
+/// registration reader and credit posting, the real Campus teaching spaces (Batch 8 foundation) and the
 /// real People staff directory (Batch 7 foundation; subject-only fallback when no staff record
 /// exists). Tests reuse it to build an `AcademicState` with
 /// `ApprovalMode::AwaitDecision` (`sutra_academic::router_with_state`).
@@ -555,7 +556,7 @@ pub fn academic_deps(
         students: Arc::new(sutra_student::PgStudentDirectory::new(pool.clone())),
         registrations: Arc::new(sutra_student::PgRegistrationReader::new(pool.clone())),
         credits: Arc::new(sutra_student::PgCreditPosting::new(pool.clone())),
-        spaces: Arc::new(sutra_campus::NoTeachingSpaces),
+        spaces: Arc::new(sutra_campus::PgTeachingSpaces::new(pool.clone())),
         staff: Arc::new(sutra_people::PgStaffDirectory::new(pool.clone())),
         workflow,
         pool,
@@ -620,6 +621,71 @@ pub fn people_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_peopl
     }
 }
 
+/// Domain G (Batch 8) adapters: Domain B reference reads, the Domain C student directory, the
+/// Domain E workforce directory and the Domain F campus charge port. Tests reuse it to build a
+/// `CampusState` with `ApprovalMode::AwaitDecision` (`sutra_campus::router_with_state`).
+pub fn campus_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_campus::CampusDeps {
+    sutra_campus::CampusDeps {
+        references: Arc::new(sutra_institution::PgInstitutionReferences::new(
+            pool.clone(),
+        )),
+        students: Arc::new(sutra_student::PgStudentDirectory::new(pool.clone())),
+        workforce: Arc::new(sutra_people::PgWorkforceDirectory::new(pool.clone())),
+        charges: Arc::new(sutra_finance::PgCampusCharges::new(
+            finance_deps(pool.clone(), workflow.clone()).into_state(),
+        )),
+        finance: Arc::new(sutra_finance::PgChargeDirectory::new(pool.clone())),
+        workflow,
+        pool,
+    }
+}
+
+/// Domain H (Batch 8) adapters: Domain B reference reads and one `OperationalMetricsPort` per
+/// domain (student, people, finance, campus, resources). Tests reuse it to build a
+/// `ServicesState` with `ApprovalMode::AwaitDecision` (`sutra_services::router_with_state`).
+pub fn services_deps(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+) -> sutra_services::ServicesDeps {
+    sutra_services::ServicesDeps {
+        references: Arc::new(sutra_institution::PgInstitutionReferences::new(
+            pool.clone(),
+        )),
+        metrics: {
+            let ports: Vec<Arc<dyn OperationalMetricsPort>> = vec![
+                Arc::new(sutra_student::PgStudentMetrics::new(pool.clone())),
+                Arc::new(sutra_people::PgPeopleMetrics::new(pool.clone())),
+                Arc::new(sutra_finance::PgFinanceMetrics::new(pool.clone())),
+                Arc::new(sutra_campus::PgCampusMetrics::new(pool.clone())),
+                Arc::new(sutra_resources::PgResourceMetrics::new(pool.clone())),
+            ];
+            ports
+        },
+        workflow,
+        pool,
+    }
+}
+
+/// Domain J (Batch 8) adapters: Domain B reference reads, the Domain E workforce directory and
+/// the Domain F procurement posting port. Tests reuse it to build a `ResourcesState` with
+/// `ApprovalMode::AwaitDecision` (`sutra_resources::router_with_state`).
+pub fn resources_deps(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+) -> sutra_resources::ResourcesDeps {
+    sutra_resources::ResourcesDeps {
+        references: Arc::new(sutra_institution::PgInstitutionReferences::new(
+            pool.clone(),
+        )),
+        workforce: Arc::new(sutra_people::PgWorkforceDirectory::new(pool.clone())),
+        postings: Arc::new(sutra_finance::PgProcurementPostings::new(
+            finance_deps(pool.clone(), workflow.clone()).into_state(),
+        )),
+        workflow,
+        pool,
+    }
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
@@ -653,13 +719,22 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.pool.clone(),
             ctx.workflow.clone(),
         )))
-        .merge(sutra_campus::router())
-        .merge(sutra_services::router())
+        .merge(sutra_campus::router(campus_deps(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+        )))
+        .merge(sutra_services::router(services_deps(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+        )))
         .merge(sutra_exams::router(exams_deps(
             ctx.pool.clone(),
             ctx.workflow.clone(),
         )))
-        .merge(sutra_resources::router())
+        .merge(sutra_resources::router(resources_deps(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+        )))
         .layer(axum::middleware::from_fn_with_state(
             ctx.idempotency,
             sutra_web::idempotency::idempotency,

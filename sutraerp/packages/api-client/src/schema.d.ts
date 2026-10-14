@@ -4661,6 +4661,3586 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campus/catalogue-records/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One catalogue record (`campus.read`). */
+        get: operations["campus_library_catalogue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update the descriptive information of a record (`campus.library.manage`; If-Match). The
+         *     change is effective at once for the catalogue and new obligations; 409 once withdrawn.
+         */
+        patch: operations["campus_library_catalogue_update"];
+        trace?: never;
+    };
+    "/api/v1/campus/catalogue-records/{id}/copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Copies of a record (`campus.read`). */
+        get: operations["campus_library_copy_list"];
+        put?: never;
+        /**
+         * Register a copy of a record (`campus.library.manage`; Idempotency-Key): accession number
+         *     `ACC-…`, status `available` (a copy registered as `damaged` stays restricted). 409 for a
+         *     withdrawn record; 422 unless the location is an active library / reading-room space.
+         */
+        post: operations["campus_library_copy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/catalogue-records/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a draft record to the catalogue (`campus.library.manage`; If-Match). */
+        post: operations["campus_library_catalogue_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/catalogue-records/{id}/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The waiting list of a title (`campus.read`). */
+        get: operations["campus_library_reservation_list"];
+        put?: never;
+        /**
+         * Reserve a title for a member (`campus.library.manage`; Idempotency-Key; L3-G-134): queued at
+         *     the end of the waiting list. 409 when a copy is on the shelf or the member already reserved /
+         *     borrowed it.
+         */
+        post: operations["campus_library_reservation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/catalogue-records/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a record from the catalogue (`campus.library.manage`; If-Match; reason required).
+         *     409 while a copy is issued or reserved.
+         */
+        post: operations["campus_library_catalogue_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/driver-assignments/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a driver assignment (`campus.transport.manage`; not while a ready / running trip uses it). */
+        post: operations["campus_transport_driver_end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-allocations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One residency (`campus.read`). */
+        get: operations["campus_hostel_allocation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-allocations/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear and close a vacating residency (`campus.hostel.manage`): no inspection still open with
+         *     damage, no unpaid damage charge; the bed is released, the mess allocation ends and the
+         *     oldest waitlisted application is offered the vacancy.
+         */
+        post: operations["campus_hostel_allocation_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-allocations/{id}/complaints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Complaints raised for a residency (`campus.read`). */
+        get: operations["campus_hostel_complaint_list"];
+        put?: never;
+        /**
+         * Raise a hostel complaint for a resident (`campus.hostel.manage`): a service desk ticket
+         *     (source `hostel`) followed in the facilities service desk.
+         */
+        post: operations["campus_hostel_complaint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-allocations/{id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request leave for a resident (`campus.hostel.manage`; `RESIDENT_LEAVE_APPROVAL`). */
+        post: operations["campus_hostel_leave_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-allocations/{id}/leaves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leaves of a residency (`campus.read`). */
+        get: operations["campus_hostel_leave_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-allocations/{id}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a room transfer (`campus.hostel.manage`; `ROOM_TRANSFER_APPROVAL`): residency →
+         *     transfer pending; once approved the beds are swapped and the residency is active again.
+         */
+        post: operations["campus_hostel_transfer_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-allocations/{id}/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transfers of a residency (`campus.read`). */
+        get: operations["campus_hostel_transfer_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-allocations/{id}/vacate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start vacating (`campus.hostel.manage`): active → vacating with the last day. */
+        post: operations["campus_hostel_allocation_vacate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-applications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One application (`campus.read`). */
+        get: operations["campus_hostel_application_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-applications/{id}/allocate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Allocate a bed (`campus.hostel.manage`): approved / waitlisted → allocated with an active
+         *     residency and the hostel fee (`HOSTEL-FEE`, students) raised through `CampusChargePort`; an
+         *     approved application with no free bed goes to the waiting list (G-080).
+         */
+        post: operations["campus_hostel_application_allocate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-applications/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide an application under review (`campus.approve`, step-up; `HOSTEL_ADMISSION`). */
+        post: operations["campus_hostel_application_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-applications/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw an open application (`campus.hostel.manage`). */
+        post: operations["campus_hostel_application_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One policy version (`campus.read`). */
+        get: operations["campus_hostel_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-policies/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an approved version (`campus.approve`): the previous active version becomes
+         *     `superseded` (one active per institution).
+         */
+        post: operations["campus_hostel_policy_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-policies/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a submitted policy (`campus.approve`, step-up): approve → `approved`; reject → back to
+         *     an unsubmitted draft with the reason.
+         */
+        post: operations["campus_hostel_policy_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-policies/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft for approval (`campus.hostel.manage`; `HOSTEL_POLICY_APPROVAL`: auto-approved
+         *     in Batch 8, else it waits for `/decision`).
+         */
+        post: operations["campus_hostel_policy_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-rooms/{id}/beds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Beds of a hostel room with their occupants (`campus.read`). */
+        get: operations["campus_hostel_bed_list"];
+        put?: never;
+        /**
+         * Add a bed to a hostel room (`campus.hostel.manage`): the node must be an active
+         *     `hostel_room` space and the room keeps at most `capacity` beds.
+         */
+        post: operations["campus_hostel_bed_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/hostel-rooms/{id}/inspections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspections of a hostel room (`campus.read`). */
+        get: operations["campus_hostel_inspection_list"];
+        put?: never;
+        /** Schedule a room inspection (`campus.hostel.manage`). */
+        post: operations["campus_hostel_inspection_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One node with children, capabilities, availability and pending decommissioning (`campus.read`). */
+        get: operations["campus_infra_node_get"];
+        /**
+         * Change name / classification / floor / area / attributes (`campus.facility.manage`; 409 once
+         *     decommissioned or archived; `infrastructure_node.modified`).
+         */
+        put: operations["campus_infra_node_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a planned node (`campus.facility.manage`; its parent must be active). */
+        post: operations["campus_infra_node_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a planned or decommissioned node (`campus.facility.manage`). */
+        post: operations["campus_infra_node_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The availability profile of a node (`campus.read`; `configured = false`: none set, open all day). */
+        get: operations["campus_infra_node_availability_get"];
+        /** Replace the availability profile (weekly open hours + blackout dates; `campus.facility.manage`). */
+        put: operations["campus_infra_node_availability_set"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the capabilities of a space (`campus.facility.manage`; spaces only). */
+        put: operations["campus_infra_node_capabilities"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/capacity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the capacity (`campus.facility.manage`): refused (409) below the attendees of a
+         *     requested / confirmed reservation from today on.
+         */
+        put: operations["campus_infra_node_capacity"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/decommission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request decommissioning (`campus.approve`, step-up; reason required; `NODE_DECOMMISSION`):
+         *     refused (409) while children are live or reservations from today on exist. Auto-approval
+         *     decommissions at once; otherwise the request waits for the decision endpoint.
+         */
+        post: operations["campus_infra_node_decommission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/decommission-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending decommissioning request (`campus.approve`, step-up): approve
+         *     decommissions the node (blockers re-checked), reject keeps it.
+         */
+        post: operations["campus_infra_node_decommission_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a suspended node (`campus.facility.manage`): the flags it raised are cleared. */
+        post: operations["campus_infra_node_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/infrastructure-nodes/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend an active node (`campus.facility.manage`; reason required): requested / confirmed
+         *     reservations from today on are flagged.
+         */
+        post: operations["campus_infra_node_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The catalogue of an institution (`campus.read`). */
+        get: operations["campus_library_catalogue_list"];
+        put?: never;
+        /**
+         * Catalogue a resource as a draft record (`campus.library.manage`; Idempotency-Key). 409 for a
+         *     duplicate ISBN.
+         */
+        post: operations["campus_library_catalogue_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/hostel-allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Residencies of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_hostel_allocation_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/hostel-applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Applications of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_hostel_application_list"];
+        put?: never;
+        /** Apply on behalf of a student / staff member (`campus.hostel.manage`). */
+        post: operations["campus_hostel_application_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/hostel-beds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every bed of an institution with occupancy (`campus.read`; `?status=`). */
+        get: operations["campus_hostel_bed_occupancy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/hostel-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Policy versions of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_hostel_policy_list"];
+        put?: never;
+        /** Draft a policy version (`campus.hostel.manage`). */
+        post: operations["campus_hostel_policy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/infrastructure-nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Nodes of an institution, filtered (`campus.read`). */
+        get: operations["campus_infra_node_list"];
+        put?: never;
+        /**
+         * Register a node under its parent (`campus.facility.manage`): the campus is validated through
+         *     Domain B, the hierarchy rule and unique code through `insert_node`; starts planned or active.
+         */
+        post: operations["campus_infra_node_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/infrastructure-tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Infrastructure nodes of an institution (`campus.read`). */
+        get: operations["campus_directory_tree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/labs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Labs of an institution (`campus.read`). */
+        get: operations["campus_lab_list"];
+        put?: never;
+        /** Create the lab profile of a `lab` space (`campus.facility.manage`; one per space). */
+        post: operations["campus_lab_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/library-clearances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Clearance requests of an institution, newest first (`campus.read`). */
+        get: operations["campus_library_clearance_list"];
+        put?: never;
+        /**
+         * Request library clearance for a member (`campus.library.manage`; Idempotency-Key;
+         *     `LIBRARY_CLEARANCE`). 409 while another request awaits a decision.
+         */
+        post: operations["campus_library_clearance_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/library-fines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fines of an institution, newest first (`campus.read`); billed fines are re-checked against
+         *     Finance first.
+         */
+        get: operations["campus_library_fine_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/library-loans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Loans of an institution, newest first (`campus.read`; `?limit` ≤ 200, `nextCursor`). */
+        get: operations["campus_library_loan_list"];
+        put?: never;
+        /**
+         * Issue a copy to a member (`campus.library.manage`; Idempotency-Key; L3-G-131). 409 when the
+         *     member may not borrow (status, restriction, unsettled fines, limit) or the copy is not
+         *     available to them.
+         */
+        post: operations["campus_library_loan_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/library-loans/overdue-sweep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Overdue sweep of one institution (bulk; Idempotency-Key; `campus.library.manage`;
+         *     L3-G-137): every live loan past its due date becomes `overdue` (once, `library_loan.overdue`)
+         *     and its fine is (re)assessed for today — idempotent per loan per business day. Ready
+         *     reservations past their hold expire (L3-G-136).
+         */
+        post: operations["campus_library_loan_overdue_sweep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/library-memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Memberships of an institution (`campus.read`). */
+        get: operations["campus_library_membership_list"];
+        put?: never;
+        /**
+         * Enrol a student or staff member as a library member (`campus.library.manage`;
+         *     Idempotency-Key). 422 for an unknown person, 409 when a live membership exists.
+         */
+        post: operations["campus_library_membership_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/library-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Borrowing policy versions of an institution, newest first (`campus.read`). */
+        get: operations["campus_library_policy_list"];
+        put?: never;
+        /** Create a draft borrowing policy version (`campus.library.manage`; Idempotency-Key). */
+        post: operations["campus_library_policy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/library-reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reservations of an institution (`campus.read`). */
+        get: operations["campus_library_reservation_institution_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/maintenance-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preventive plans of an institution (`campus.read`). */
+        get: operations["campus_maintenance_plan_list"];
+        put?: never;
+        /** Create a draft preventive plan for a node (`campus.facility.manage`). */
+        post: operations["campus_maintenance_plan_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/messes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Messes of an institution (`campus.read`). */
+        get: operations["campus_hostel_mess_list"];
+        put?: never;
+        /** Define a mess (`campus.hostel.manage`). */
+        post: operations["campus_hostel_mess_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reservations of an institution (`campus.read`; `?status=&nodeId=&from=&to=&limit=`). */
+        get: operations["campus_reservation_list"];
+        put?: never;
+        /** Book a space for the office or a named student / staff member (`campus.facility.manage`). */
+        post: operations["campus_reservation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/resident-leaves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resident leaves of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_hostel_leave_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/resident-leaves/overdue-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Flag residents who are out past their last leave day (`campus.hostel.manage`; bulk: out →
+         *     overdue).
+         */
+        post: operations["campus_hostel_leave_overdue_check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/room-inspections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspections of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_hostel_inspection_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The ticket queue of an institution (`campus.read`; newest first, cursor-paged). */
+        get: operations["campus_ticket_list"];
+        put?: never;
+        /** Open a ticket from the office (`campus.facility.manage`; source `admin`). */
+        post: operations["campus_ticket_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/tickets/sla-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * SLA check (`campus.facility.manage`; bulk, `Idempotency-Key`): every unresolved ticket past
+         *     its SLA that is not yet flagged gets `slaBreached`, escalation level + 1 and
+         *     `service_ticket.escalated`. Tickets on hold are skipped (the SLA is paused).
+         */
+        post: operations["campus_ticket_sla_check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/transport-allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Passenger allocations of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_transport_allocation_list"];
+        put?: never;
+        /**
+         * Allocate a passenger to a route + stop (`campus.transport.manage`): active when a seat is
+         *     free, otherwise `requested` until one frees up (`/activate`).
+         */
+        post: operations["campus_transport_allocation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/transport-passes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Passes of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_transport_pass_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/transport-routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Routes of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_transport_route_list"];
+        put?: never;
+        /**
+         * Create a route (`campus.transport.manage`): draft route + draft version 1 (add stops, then
+         *     activate).
+         */
+        post: operations["campus_transport_route_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/transport-stops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stops of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_transport_stop_list"];
+        put?: never;
+        /** Create a stop (`campus.transport.manage`; G-096). */
+        post: operations["campus_transport_stop_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/trips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Trips of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_transport_trip_board"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/vehicles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vehicles of an institution (`campus.read`; `?status=`). */
+        get: operations["campus_transport_vehicle_list"];
+        put?: never;
+        /** Register a vehicle (`campus.transport.manage`). */
+        post: operations["campus_transport_vehicle_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/work-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Work orders of an institution (`campus.read`; `?status=&kind=`). */
+        get: operations["campus_workorder_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/lab-equipment/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change equipment status (`campus.facility.manage`): equipment that is not operational makes
+         *     a checked lab `restricted`; when all is operational again it returns to `ready`.
+         */
+        post: operations["campus_lab_equipment_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/labs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One lab with its equipment and sessions (`campus.read`). */
+        get: operations["campus_lab_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/labs/{id}/batch-allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Allocations of a lab's sessions (`campus.read`; `?sessionId=`). */
+        get: operations["campus_lab_batch_list"];
+        put?: never;
+        /**
+         * Allocate a batch of students to a session of this lab (`campus.facility.manage`;
+         *     `Idempotency-Key`): students already allocated are skipped; 409 when the session would
+         *     exceed its capacity; unknown students are 422.
+         */
+        post: operations["campus_lab_batch_allocate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/labs/{id}/equipment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Equipment of a lab (`campus.read`). */
+        get: operations["campus_lab_equipment_list"];
+        put?: never;
+        /** Register equipment in a lab (`campus.facility.manage`; operational). */
+        post: operations["campus_lab_equipment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/labs/{id}/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a readiness check (`campus.facility.manage`): a complete checklist makes the lab
+         *     `ready` (or `restricted` while equipment is not operational); an incomplete one `not_ready`.
+         */
+        post: operations["campus_lab_readiness"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/labs/{id}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessions of a lab (`campus.read`; `?status=`). */
+        get: operations["campus_lab_session_list"];
+        put?: never;
+        /** Plan a practical session in a lab (`campus.facility.manage`; no overlap, capacity ≤ lab). */
+        post: operations["campus_lab_session_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-clearances/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a clearance request (`campus.approve`, step-up; If-Match). Approval re-verifies the
+         *     member: 409 while loans are out or fines are unsettled.
+         */
+        post: operations["campus_library_clearance_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-copies/{id}/condition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the condition of a copy (`campus.library.manage`; If-Match). `damaged` takes an
+         *     available copy out of circulation; a repaired copy returns to `available` (and to the head of
+         *     the reservation queue). 409 for lost / withdrawn copies.
+         */
+        post: operations["campus_library_copy_condition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-copies/{id}/lost": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Declare a copy lost (`campus.library.manage`; If-Match; reason required; L3-G-139). An issued
+         *     copy closes its loan as `lost`, assesses any overdue fine up to today and a replacement
+         *     obligation (replacement cost × the policy's lost-copy factor), billable to a student as
+         *     `LIB-LOST`. A shelf copy is written off without a charge; a copy held for a reservation is
+         *     409 (cancel the reservation first).
+         */
+        post: operations["campus_library_copy_lost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-copies/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a copy from circulation (`campus.library.manage`; If-Match; reason required). 409
+         *     while issued or reserved.
+         */
+        post: operations["campus_library_copy_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-fines/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One fine (`campus.read`). */
+        get: operations["campus_library_fine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-fines/{id}/bill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bill an assessed fine to the student through Finance (`campus.library.manage`; If-Match):
+         *     `CampusChargePort` raises and publishes the charge (`LIB-FINE` / `LIB-LOST`, category
+         *     `library`, idempotent on the fine id) and the fine stores `chargeId` / `chargeNumber`. 409
+         *     for staff (not billed in Batch 8), a zero amount or a loan still out.
+         */
+        post: operations["campus_library_fine_bill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-fines/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a fine waiver (`campus.approve`, step-up; If-Match): approve → `waived`, reject →
+         *     back to `assessed` (billable).
+         */
+        post: operations["campus_library_fine_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-fines/{id}/waiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a waiver of an assessed fine (`campus.library.manage`; If-Match; reason required;
+         *     `FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final).
+         */
+        post: operations["campus_library_fine_waiver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-loans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One loan (`campus.read`). */
+        get: operations["campus_library_loan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-loans/{id}/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renew a loan (`campus.library.manage`; If-Match; L3-G-133): 409 when overdue, out of
+         *     renewals, the member may not borrow or another member reserved the title.
+         */
+        post: operations["campus_library_loan_renew"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-loans/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return a copy (`campus.library.manage`; If-Match; L3-G-132): the loan closes, a late return
+         *     assesses the overdue fine (days late × fine per day of the loan's policy, capped) and the copy
+         *     goes to the reservation queue or back on the shelf.
+         */
+        post: operations["campus_library_loan_return"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-memberships/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One membership (`campus.read`). */
+        get: operations["campus_library_membership_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-memberships/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a membership (`campus.library.manage`; If-Match; L3-G-126): 409 while loans are out or
+         *     fines are unsettled.
+         */
+        post: operations["campus_library_membership_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-memberships/{id}/eligibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Borrowing eligibility of a member (`campus.read`; L3-G-152). */
+        get: operations["campus_library_membership_eligibility"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-memberships/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a suspended membership (`campus.library.manage`; If-Match). */
+        post: operations["campus_library_membership_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-memberships/{id}/restriction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restrict borrowing of a member or resolve the restriction (`campus.library.manage`;
+         *     If-Match; L3-G-152). A restriction needs a reason.
+         */
+        post: operations["campus_library_membership_restriction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-memberships/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an active membership (`campus.library.manage`; If-Match; reason required; L3-G-125). */
+        post: operations["campus_library_membership_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One borrowing policy version (`campus.read`). */
+        get: operations["campus_library_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-policies/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an approved policy (`campus.library.manage`; If-Match): the previous active version
+         *     becomes `superseded`; loans already issued keep their due dates.
+         */
+        post: operations["campus_library_policy_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-policies/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a submitted policy (`campus.approve`, step-up; If-Match). */
+        post: operations["campus_library_policy_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-policies/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft policy for approval (`campus.library.manage`; If-Match;
+         *     `LIBRARY_POLICY_APPROVAL`). Auto-approval leaves it `approved` and ready to activate.
+         */
+        post: operations["campus_library_policy_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-reservations/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a queued or ready reservation (`campus.library.manage`; If-Match). */
+        post: operations["campus_library_reservation_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-reservations/{id}/collect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue the held copy to the member (`campus.library.manage`; If-Match; L3-G-135). */
+        post: operations["campus_library_reservation_collect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/library-reservations/{id}/expire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Expire a ready reservation whose hold has passed (`campus.library.manage`; If-Match;
+         *     L3-G-136). 409 while the hold still runs.
+         */
+        post: operations["campus_library_reservation_expire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-cycles/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete a cycle whose work order is completed / verified (`campus.facility.manage`; 409
+         *     otherwise). Returns the plan.
+         */
+        post: operations["campus_maintenance_cycle_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-cycles/{id}/defer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Defer / reschedule a cycle to a new due date (`campus.facility.manage`; reason required):
+         *     its open work order is rescheduled too. Returns the plan.
+         */
+        post: operations["campus_maintenance_cycle_defer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One plan with its cycles (`campus.read`). */
+        get: operations["campus_maintenance_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-plans/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a suspended plan (`campus.facility.manage`). */
+        post: operations["campus_maintenance_plan_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-plans/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a submitted plan (`campus.approve`, step-up): approve → active, reject → stays draft. */
+        post: operations["campus_maintenance_plan_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-plans/{id}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate cycles + preventive work orders for every period through `through`
+         *     (`campus.facility.manage`; bulk, `Idempotency-Key`; idempotent per period: existing periods
+         *     are skipped). The plan must be active.
+         */
+        post: operations["campus_maintenance_plan_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-plans/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a plan for good (`campus.facility.manage`). */
+        post: operations["campus_maintenance_plan_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-plans/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft plan for approval (`campus.facility.manage`; `MAINTENANCE_PLAN_APPROVAL`):
+         *     auto-approval activates it at once (`maintenance_plan.activated`).
+         */
+        post: operations["campus_maintenance_plan_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/maintenance-plans/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an active plan (`campus.facility.manage`; reason required): no new cycles. */
+        post: operations["campus_maintenance_plan_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/hostel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My hostel application, residency, leaves and complaints (`campus.self`). */
+        get: operations["campus_hostel_self_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/hostel/application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply for a hostel place myself (`campus.self`; students and staff of the institution). */
+        post: operations["campus_hostel_self_apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/hostel/application/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw my open application (`campus.self`). */
+        post: operations["campus_hostel_self_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/hostel/complaints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Raise a complaint about my hostel stay (`campus.self`): a service desk ticket (source `hostel`). */
+        post: operations["campus_hostel_self_complaint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/hostel/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request leave from my residency (`campus.self`). */
+        post: operations["campus_hostel_self_leave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My library: membership, borrowing eligibility, loans, reservations, fines and the latest
+         *     clearance (`campus.self`).
+         */
+        get: operations["campus_library_self_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search the published catalogue of my library (`campus.self`). */
+        get: operations["campus_library_self_catalogue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library/clearance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My latest clearance request (`campus.self`; 404 when none). */
+        get: operations["campus_library_self_clearance"];
+        put?: never;
+        /** Request library clearance (`campus.self`; Idempotency-Key; L3-G-149). */
+        post: operations["campus_library_self_clearance_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library/complaints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Raise a library complaint (`campus.self`; Idempotency-Key): a service desk ticket (category
+         *     and source `library`) followed up by the service desk.
+         */
+        post: operations["campus_library_self_complaint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library/fines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My fines (`campus.self`; billed fines re-checked against Finance). */
+        get: operations["campus_library_self_fines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library/loans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My loans, newest first (`campus.self`). */
+        get: operations["campus_library_self_loans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library/loans/{id}/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renew one of my loans (`campus.self`; If-Match): same rules as the office renewal. */
+        post: operations["campus_library_self_loan_renew"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My reservations (`campus.self`). */
+        get: operations["campus_library_self_reservations"];
+        put?: never;
+        /** Reserve a title (`campus.self`; Idempotency-Key; L3-G-134). */
+        post: operations["campus_library_self_reserve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/library/reservations/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel one of my reservations (`campus.self`; If-Match). */
+        post: operations["campus_library_self_reservation_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/person": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller as a campus person: their student record, else their staff record (`campus.self`;
+         *     404 when the login has neither).
+         */
+        get: operations["campus_directory_self_person"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My reservations (`campus.self`). */
+        get: operations["campus_reservation_self_list"];
+        put?: never;
+        /** Book a space for myself (`campus.self`: faculty book rooms, students study rooms). */
+        post: operations["campus_reservation_self_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My tickets (`campus.self`). */
+        get: operations["campus_ticket_self_list"];
+        put?: never;
+        /** Open my own service request or complaint (`campus.self`; source `self_service`). */
+        post: operations["campus_ticket_self_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/tickets/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify my resolved ticket (`campus.self`, requester only): satisfied → closed; not
+         *     satisfied → reopened (comment required; within 7 days of resolution).
+         */
+        post: operations["campus_ticket_self_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/transport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My allocation, pass and complaints (`campus.self`). */
+        get: operations["campus_transport_self_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/transport/complaints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Raise a transport complaint (`campus.self`): a service desk ticket (source `transport`). */
+        post: operations["campus_transport_self_complaint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/transport/pass": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My live pass (`campus.self`; 404 without one). */
+        get: operations["campus_transport_self_pass"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/transport/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request a seat (`campus.self`): active when a seat is free, else `requested`. */
+        post: operations["campus_transport_self_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/me/transport/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active routes of my institution (`campus.self`). */
+        get: operations["campus_transport_self_routes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/mess-allocations/{id}/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a resident to another mess (`campus.hostel.manage`): this assignment → changed (ends the
+         *     day before), a new active assignment starts in the target mess.
+         */
+        post: operations["campus_hostel_mess_allocation_change"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/messes/{id}/allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dining assignments of a mess (`campus.read`; `?status=`). */
+        get: operations["campus_hostel_mess_allocation_list"];
+        put?: never;
+        /**
+         * Assign a resident to a mess (`campus.hostel.manage`; one active assignment per residency,
+         *     mess capacity checked).
+         */
+        post: operations["campus_hostel_mess_allocation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/practical-sessions/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a session that has not started (`campus.facility.manage`; reason required). */
+        post: operations["campus_lab_session_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/practical-sessions/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete a session in progress (`campus.facility.manage`; `practical_session.completed`). */
+        post: operations["campus_lab_session_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/practical-sessions/{id}/postpone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Postpone a session, optionally to a new slot (`campus.facility.manage`; reason required). */
+        post: operations["campus_lab_session_postpone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/practical-sessions/{id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a planned / postponed session ready (`campus.facility.manage`; the lab must be ready). */
+        post: operations["campus_lab_session_ready"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/practical-sessions/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a ready session (`campus.facility.manage`; the lab must still be ready). */
+        post: operations["campus_lab_session_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/reservations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One reservation (`campus.read`, or its own requester). */
+        get: operations["campus_reservation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/reservations/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a reservation (office or its requester). */
+        post: operations["campus_reservation_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/reservations/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a requested reservation (`campus.facility.manage`; = approve). */
+        post: operations["campus_reservation_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/reservations/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a requested reservation (`RESERVATION_APPROVAL`; routine bookings are decided with
+         *     `campus.facility.manage`): approve → confirmed (slot re-checked), reject → rejected.
+         */
+        post: operations["campus_reservation_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/reservations/{id}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a reservation (office or its requester): the new slot passes the same checks; a
+         *     confirmed booking becomes `rescheduled`, a requested one stays requested.
+         */
+        post: operations["campus_reservation_reschedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/resident-leaves/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a leave request (`campus.hostel.manage`: routine decision, contract §9). */
+        post: operations["campus_hostel_leave_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/resident-leaves/{id}/depart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The resident leaves the hostel (`campus.hostel.manage`): approved → out, residency → on leave. */
+        post: operations["campus_hostel_leave_depart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/resident-leaves/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verified return (`campus.hostel.manage`): out / overdue → returned (late flag when after the
+         *     last leave day), residency → active.
+         */
+        post: operations["campus_hostel_leave_return"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/room-inspections/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close an inspection (`campus.hostel.manage`). */
+        post: operations["campus_hostel_inspection_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/room-inspections/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the inspection outcome (`campus.hostel.manage`): no damage → completed; damage →
+         *     damage found and, for a student resident, the `HOSTEL-DAMAGE` charge → charged.
+         */
+        post: operations["campus_hostel_inspection_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/room-transfers/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a transfer (`campus.approve`): approve → completed (bed swap); reject → residency active. */
+        post: operations["campus_hostel_transfer_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/route-versions/{id}/stops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the ordered stops of a draft version (`campus.transport.manage`; a version that was
+         *     ever active is never rewritten → 409).
+         */
+        post: operations["campus_transport_version_stops"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/spaces/{id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Free / busy calendar of a space from its availability profile and reservations
+         *     (`campus.read`; at most 31 days).
+         */
+        get: operations["campus_space_calendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One ticket with escalations and merged duplicates (`campus.read`, or its requester). */
+        get: operations["campus_ticket_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign or reassign a technician / team (`campus.facility.manage`; `service_ticket.assigned`). */
+        post: operations["campus_ticket_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a ticket (`campus.facility.manage`; reason required). */
+        post: operations["campus_ticket_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a resolved ticket administratively (`campus.facility.manage`; `service_ticket.closed`). */
+        post: operations["campus_ticket_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/escalate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Escalate an open ticket one level by hand (`campus.facility.manage`; reason required;
+         *     `service_ticket.escalated`).
+         */
+        post: operations["campus_ticket_escalate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put a ticket on hold (`campus.facility.manage`; reason required; the SLA check skips it). */
+        post: operations["campus_ticket_hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge a duplicate onto its canonical ticket (`campus.facility.manage`): the canonical ticket
+         *     must be another open, unmerged ticket of the same institution.
+         */
+        post: operations["campus_ticket_merge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen a resolved ticket within 7 days of its resolution (`campus.facility.manage`). */
+        post: operations["campus_ticket_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve with the resolution text (`campus.facility.manage`; `service_ticket.resolved` →
+         *     the requester verifies).
+         */
+        post: operations["campus_ticket_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start work on an assigned / on-hold / reopened ticket (`campus.facility.manage`). */
+        post: operations["campus_ticket_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/triage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Triage an open ticket (`campus.facility.manage`): category / priority, SLA recalculated from
+         *     the creation time.
+         */
+        post: operations["campus_ticket_triage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/work-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Work orders of a ticket (`campus.read`). */
+        get: operations["campus_workorder_list_for_ticket"];
+        put?: never;
+        /** Raise a corrective work order from an unresolved ticket (`campus.facility.manage`). */
+        post: operations["campus_workorder_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-allocations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One passenger allocation (`campus.read`). */
+        get: operations["campus_transport_allocation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-allocations/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a waiting request once a seat is free (`campus.transport.manage`; 409 while full). */
+        post: operations["campus_transport_allocation_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-allocations/{id}/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change the stop / route (`campus.transport.manage`; G-100): this allocation → changed (ends
+         *     the day before), a new active allocation starts; a live pass follows the passenger.
+         */
+        post: operations["campus_transport_allocation_change"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-allocations/{id}/complaints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Complaints raised for an allocation (`campus.read`). */
+        get: operations["campus_transport_complaint_list"];
+        put?: never;
+        /**
+         * Raise a transport complaint for a passenger (`campus.transport.manage`): a service desk ticket
+         *     (source `transport`).
+         */
+        post: operations["campus_transport_complaint_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-allocations/{id}/pass": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a pass (`campus.transport.manage`; G-113): the route's fare is charged to a student as
+         *     `TRANSPORT-PASS` through `CampusChargePort`.
+         */
+        post: operations["campus_transport_pass_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-allocations/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a passenger (`campus.transport.manage`; G-101): requested / active → withdrawn, a live
+         *     pass is cancelled.
+         */
+        post: operations["campus_transport_allocation_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-passes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One pass (`campus.read`). */
+        get: operations["campus_transport_pass_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-passes/{id}/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renew a pass (`campus.transport.manage`; G-114): a renewal pass from the day after this one
+         *     ends up to `validTo` (fare charged again); this pass expires.
+         */
+        post: operations["campus_transport_pass_renew"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-passes/{id}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace a lost / damaged pass (`campus.transport.manage`; G-115): this pass → replaced, a
+         *     replacement pass with the same validity is issued (optional replacement fee).
+         */
+        post: operations["campus_transport_pass_replace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-passes/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a suspended pass (`campus.transport.manage`). */
+        post: operations["campus_transport_pass_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-passes/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend a pass (`campus.transport.manage`; G-116): transport access restricted. */
+        post: operations["campus_transport_pass_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-routes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One route (`campus.read`). */
+        get: operations["campus_transport_route_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-routes/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a route (`campus.transport.manage`; `ROUTE_ACTIVATION`, auto-approved in Batch 8):
+         *     the draft version (≥ 2 active stops) becomes the effective one; a suspended route without a
+         *     draft is restored on its current version.
+         */
+        post: operations["campus_transport_route_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-routes/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending route activation (`campus.approve`, step-up). */
+        post: operations["campus_transport_route_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-routes/{id}/drivers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Drivers of a route (`campus.read`; `?status=`). */
+        get: operations["campus_transport_driver_list"];
+        put?: never;
+        /**
+         * Assign a driver to a route (`campus.transport.manage`; a live staff member of the
+         *     institution, once per route while active).
+         */
+        post: operations["campus_transport_driver_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-routes/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a route (`campus.transport.manage`): only without active passengers. */
+        post: operations["campus_transport_route_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-routes/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend a route (`campus.transport.manage`; G-095): active passengers are flagged. */
+        post: operations["campus_transport_route_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-routes/{id}/trips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Trips of a route (`campus.read`; `?status=`). */
+        get: operations["campus_transport_trip_list"];
+        put?: never;
+        /** Plan a trip of an active route (`campus.transport.manage`; once per route, date and direction). */
+        post: operations["campus_transport_trip_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-routes/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Versions of a route with their stops, newest first (`campus.read`). */
+        get: operations["campus_transport_version_list"];
+        put?: never;
+        /**
+         * Draft a new route version (`campus.transport.manage`; G-094): stops copied from the current
+         *     version; one draft at a time; effective after the current version's start.
+         */
+        post: operations["campus_transport_version_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-stops/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a suspended stop (`campus.transport.manage`): its flags are cleared. */
+        post: operations["campus_transport_stop_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/transport-stops/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a stop (`campus.transport.manage`; G-097): allocations boarding here are flagged for
+         *     adjustment.
+         */
+        post: operations["campus_transport_stop_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/trips/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a planned / ready trip (`campus.transport.manage`; G-105; reason required). */
+        post: operations["campus_transport_trip_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/trips/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete a running trip (`campus.transport.manage`; G-106): the vehicle is released. */
+        post: operations["campus_transport_trip_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/trips/{id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a trip ready (`campus.transport.manage`; G-104): a usable vehicle seating the route's
+         *     passengers, an active driver of the route valid on the trip date and a complete checklist;
+         *     the vehicle becomes `assigned`.
+         */
+        post: operations["campus_transport_trip_ready"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/trips/{id}/replace-vehicle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Put a replacement vehicle on a trip (`campus.transport.manage`; G-109): clears the breakdown
+         *     flag; a ready / running trip assigns the new vehicle and releases the old one when free.
+         */
+        post: operations["campus_transport_trip_replace_vehicle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/trips/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a ready trip (`campus.transport.manage`; not while it needs a replacement vehicle). */
+        post: operations["campus_transport_trip_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a breakdown (`campus.transport.manage`; G-109): the vehicle is `broken_down` and its
+         *     open trips are flagged as needing a replacement vehicle (`/trips/{id}/replace-vehicle`).
+         */
+        post: operations["campus_transport_vehicle_breakdown"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change a vehicle's availability (`campus.transport.manage`; `available`,
+         *     `under_maintenance`, `retired` — retiring needs no open trip).
+         */
+        post: operations["campus_transport_vehicle_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/work-orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One work order with its assignment history (`campus.read`). */
+        get: operations["campus_workorder_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/work-orders/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign / reassign a technician (`campus.facility.manage`; assignment history kept). */
+        post: operations["campus_workorder_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/work-orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a work order that has not been completed (`campus.facility.manage`; reason required). */
+        post: operations["campus_workorder_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/work-orders/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete the work with notes (`campus.facility.manage`); verification follows. */
+        post: operations["campus_workorder_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/work-orders/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen completed / verified work (`campus.facility.manage`; reason required). */
+        post: operations["campus_workorder_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/work-orders/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start work (`campus.facility.manage`; needs an assignee). */
+        post: operations["campus_workorder_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/work-orders/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify completed work (`campus.facility.manage`): accepted → verified
+         *     (`work_order.completed`; the ticket is resolved with the notes and a preventive cycle is
+         *     completed); not accepted → reopened (notes required).
+         */
+        post: operations["campus_workorder_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/completion-evaluations/{id}": {
         parameters: {
             query?: never;
@@ -16040,6 +19620,2051 @@ export interface paths {
         patch: operations["update_profile"];
         trace?: never;
     };
+    "/api/v1/resources/assets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One asset with its custody history (`resources.read`). */
+        get: operations["resources_asset_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/assets/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign the asset to a staff member or a space (`resources.asset.manage`; If-Match;
+         *     L3-J-075 / 076): `asset.assigned`.
+         */
+        post: operations["resources_asset_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/assets/{id}/condition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the asset's condition (`resources.asset.manage`; If-Match; L3-J-079), optionally
+         *     sending it for repair or bringing it back from repair.
+         */
+        post: operations["resources_asset_condition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/assets/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending retirement (`resources.approve`, step-up; If-Match). */
+        post: operations["resources_asset_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/assets/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire an asset (`resources.asset.manage`; If-Match; reason required; `ASSET_RETIREMENT`,
+         *     L3-J-083): not while assigned; `asset.retired`.
+         */
+        post: operations["resources_asset_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/assets/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take the asset back from its custodian (`resources.asset.manage`; If-Match): `available`. */
+        post: operations["resources_asset_return"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/goods-receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One goods receipt with its lines (`resources.read`). */
+        get: operations["resources_receipt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/goods-receipts/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept the inspected delivery (`resources.procurement.manage`; If-Match; L3-J-054 / 057):
+         *     accepted stock lines post `receipt` movements, the order's received quantities rise;
+         *     `goods_receipt.accepted`.
+         */
+        post: operations["resources_receipt_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/goods-receipts/{id}/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the inspection (`resources.procurement.manage`; If-Match): `received → inspecting`. */
+        post: operations["resources_receipt_inspect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/goods-receipts/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject the whole delivery (`resources.procurement.manage`; If-Match; reason required):
+         *     nothing moves into stock.
+         */
+        post: operations["resources_receipt_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assets of an institution (`resources.read`; `?status=`), by number. */
+        get: operations["resources_asset_list"];
+        put?: never;
+        /** Register an asset (`resources.asset.manage`; Idempotency-Key; L3-J-074): `asset.registered`. */
+        post: operations["resources_asset_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/goods-receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Goods receipts of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_receipt_list_all"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Items of an institution (`resources.read`; `?status=`), by code. */
+        get: operations["resources_item_list"];
+        put?: never;
+        /**
+         * Register an item in the item master (`resources.inventory.manage`; Idempotency-Key):
+         *     `draft`; duplicate code → 409.
+         */
+        post: operations["resources_item_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/purchase-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Purchase orders of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_po_list"];
+        put?: never;
+        /** Draft a purchase order (`resources.procurement.manage`; Idempotency-Key; L3-J-043). */
+        post: operations["resources_po_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/replenishment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Replenishment needs of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_stock_replenishment_list"];
+        put?: never;
+        /**
+         * Run the reorder-level check (`resources.inventory.manage`; Idempotency-Key; L3-J-061): every
+         *     active item whose on hand − reservations is at / below its reorder level and has no open
+         *     need gets one (`replenishment_need.raised`); optionally one draft requisition for them all.
+         */
+        post: operations["resources_stock_replenishment_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/requisitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Requisitions of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_requisition_list"];
+        put?: never;
+        /** Raise a purchase requisition (`resources.procurement.manage`; Idempotency-Key). */
+        post: operations["resources_requisition_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/sourcing-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sourcing events of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_sourcing_list"];
+        put?: never;
+        /**
+         * Open a sourcing event for a released requisition (`resources.procurement.manage`;
+         *     Idempotency-Key).
+         */
+        post: operations["resources_sourcing_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stock-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Adjustments of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_stock_adjustment_list"];
+        put?: never;
+        /**
+         * Request a stock adjustment (`resources.inventory.manage`; Idempotency-Key;
+         *     `STOCK_ADJUSTMENT_APPROVAL`, L3-J-059): auto-approval applies it at once.
+         */
+        post: operations["resources_stock_adjustment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stock-issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock issues of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_stock_issue_list"];
+        put?: never;
+        /** Request an issue from a store (`resources.inventory.manage`; Idempotency-Key): `requested`. */
+        post: operations["resources_stock_issue_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stock-movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stock ledger movements of an institution, newest first (`resources.read`; `?itemId=`,
+         *     `?locationId=`, `?limit=`, `?cursor=`).
+         */
+        get: operations["resources_stock_movement_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stock-on-hand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock on hand per item and location (`resources.read`); zero lines are omitted. */
+        get: operations["resources_directory_stock_on_hand"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stock-reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reservations of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_stock_reservation_list"];
+        put?: never;
+        /**
+         * Reserve stock at a location (`resources.inventory.manage`; Idempotency-Key; L3-J-065): 409
+         *     when on hand − existing reservations does not cover it.
+         */
+        post: operations["resources_stock_reservation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stores and locations of an institution (`resources.read`), stores first. */
+        get: operations["resources_store_list"];
+        put?: never;
+        /** Create a store (`resources.inventory.manage`; Idempotency-Key; duplicate code → 409). */
+        post: operations["resources_store_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suppliers of an institution (`resources.read`; `?status=`). */
+        get: operations["resources_supplier_list"];
+        put?: never;
+        /** Register a prospective supplier (`resources.procurement.manage`; Idempotency-Key). */
+        post: operations["resources_supplier_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/vendor-invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vendor invoices of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_payable_invoice_list"];
+        put?: never;
+        /**
+         * Record a supplier invoice / credit note against an order (`resources.procurement.manage`;
+         *     Idempotency-Key; F-044): `received`; the supplier's invoice number is unique per supplier.
+         */
+        post: operations["resources_payable_invoice_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/vendor-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vendor payments of an institution (`resources.read`; `?status=`), newest first. */
+        get: operations["resources_payable_payment_list"];
+        put?: never;
+        /**
+         * Draft a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each
+         *     allocation settles a **posted** invoice of the supplier, at most its outstanding amount
+         *     (net of other draft payments).
+         */
+        post: operations["resources_payable_payment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One item (`resources.read`). */
+        get: operations["resources_item_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change name, category, unit, reorder level / quantity, standard cost
+         *     (`resources.inventory.manage`; If-Match; not archived).
+         */
+        patch: operations["resources_item_update"];
+        trace?: never;
+    };
+    "/api/v1/resources/items/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an item (`resources.inventory.manage`; If-Match): only active items are bought,
+         *     stocked and issued.
+         */
+        post: operations["resources_item_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/items/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivate an item (`resources.inventory.manage`; If-Match): no new purchases or movements. */
+        post: operations["resources_item_deactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/purchase-orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One purchase order with its lines (`resources.read`). */
+        get: operations["resources_po_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/purchase-orders/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the supplier's acknowledgement (`resources.procurement.manage`; If-Match; L3-J-044). */
+        post: operations["resources_po_acknowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/purchase-orders/{id}/amend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Amend quantities / prices of an issued order (`resources.procurement.manage`; If-Match;
+         *     reason required; L3-J-045): never below the received quantity; next revision; back to
+         *     `draft` for re-approval and re-issue.
+         */
+        post: operations["resources_po_amend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/purchase-orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an order with nothing received (`resources.procurement.manage`; If-Match; reason
+         *     required; L3-J-046): the requisition is released again.
+         */
+        post: operations["resources_po_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/purchase-orders/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a fulfilled order (`resources.procurement.manage`; If-Match; L3-J-047): every line
+         *     received and invoiced; `purchase_order.closed`; the requisition is closed.
+         */
+        post: operations["resources_po_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/purchase-orders/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending order approval (`resources.approve`, step-up; If-Match): approve → issued;
+         *     reject → stays `draft` with the reason.
+         */
+        post: operations["resources_po_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/purchase-orders/{id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a draft order to its supplier (`resources.procurement.manage`; If-Match;
+         *     `PURCHASE_ORDER_APPROVAL`; `purchase_order.issued`).
+         */
+        post: operations["resources_po_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/purchase-orders/{id}/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Receipts of an order (`resources.read`), oldest first. */
+        get: operations["resources_receipt_list"];
+        put?: never;
+        /**
+         * Record a supplier delivery against an order (`resources.procurement.manage`;
+         *     Idempotency-Key; L3-J-049): over-receipt → 422.
+         */
+        post: operations["resources_receipt_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/requisitions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One requisition with its lines (`resources.read`). */
+        get: operations["resources_requisition_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/requisitions/{id}/amend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Amend the demand (`resources.procurement.manage`; If-Match; L3-J-040): replaces the lines; a
+         *     draft stays `draft`, a rejected / withdrawn / approved / released requisition becomes
+         *     `amended` with the next revision and needs a fresh approval.
+         */
+        post: operations["resources_requisition_amend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/requisitions/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a requisition that is not ordered (`resources.procurement.manage`; If-Match; reason
+         *     required; L3-J-041).
+         */
+        post: operations["resources_requisition_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/requisitions/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a submitted requisition (`resources.approve`, step-up; If-Match): approve → released;
+         *     reject → rejected (reason required).
+         */
+        post: operations["resources_requisition_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/requisitions/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit for approval (`resources.procurement.manage`; If-Match; `REQUISITION_APPROVAL`). */
+        post: operations["resources_requisition_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/requisitions/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a submitted requisition before its decision (`resources.procurement.manage`;
+         *     If-Match; L3-J-041).
+         */
+        post: operations["resources_requisition_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/sourcing-events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One sourcing event with demand lines and quotations (`resources.read`). */
+        get: operations["resources_sourcing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/sourcing-events/{id}/award": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Award (`resources.procurement.manage`; If-Match; `AWARD_APPROVAL`): RFQ events after
+         *     evaluation, direct events once their quotation is in.
+         */
+        post: operations["resources_sourcing_award"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/sourcing-events/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a sourcing event (`resources.procurement.manage`; If-Match; reason required); an
+         *     awarded event only while no live purchase order uses it.
+         */
+        post: operations["resources_sourcing_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/sourcing-events/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending award (`resources.approve`, step-up; If-Match): approve → awarded; reject →
+         *     the proposal is dropped (reason required) and another quotation may be proposed.
+         */
+        post: operations["resources_sourcing_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/sourcing-events/{id}/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate the quotations (`resources.procurement.manage`; If-Match): `open → evaluating`;
+         *     quotations ranked by total (1 = lowest) and shortlisted.
+         */
+        post: operations["resources_sourcing_evaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/sourcing-events/{id}/quotations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a supplier's quotation (`resources.procurement.manage`; If-Match on the event): the
+         *     event is open, the supplier active, every requisition line priced; one quotation per
+         *     supplier; a direct event takes exactly one.
+         */
+        post: operations["resources_sourcing_quote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/stock-adjustments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a pending adjustment (`resources.approve`, step-up; If-Match): approve → applied;
+         *     reject → rejected (reason required).
+         */
+        post: operations["resources_stock_adjustment_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/stock-issues/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a requested / approved issue (`resources.inventory.manage`; If-Match; reason). */
+        post: operations["resources_stock_issue_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/stock-issues/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a requested issue (`resources.inventory.manage`; If-Match): approve → `approved`;
+         *     reject → `cancelled` (reason required).
+         */
+        post: operations["resources_stock_issue_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/stock-issues/{id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hand the goods over (`resources.inventory.manage`; If-Match): posts the `issue` movement
+         *     (409 when on hand − reservations does not cover it); `stock_issue.issued`.
+         */
+        post: operations["resources_stock_issue_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/stock-issues/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return issued goods to the store (`resources.inventory.manage`; If-Match; L3-J-066): posts a
+         *     `return_to_store` movement; the issue becomes `returned` once everything is back.
+         */
+        post: operations["resources_stock_issue_return"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/stock-reservations/{id}/fulfil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fulfil an active reservation (`resources.inventory.manage`; If-Match): issues the reserved
+         *     quantity at once (an `SIV-` issue, `issue` movement, `stock_issue.issued`) and marks the
+         *     reservation `fulfilled`.
+         */
+        post: operations["resources_stock_reservation_fulfil"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/stock-reservations/{id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Release an active reservation (`resources.inventory.manage`; If-Match; reason). */
+        post: operations["resources_stock_reservation_release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/stores/{id}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Locations of a store (`resources.read`). */
+        get: operations["resources_store_location_list"];
+        put?: never;
+        /**
+         * Add a location (rack / bin / room) inside a store (`resources.inventory.manage`;
+         *     Idempotency-Key).
+         */
+        post: operations["resources_store_location_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One supplier (`resources.read`). */
+        get: operations["resources_supplier_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update the profile (`resources.procurement.manage`; If-Match; not merged / inactive). A
+         *     registered or active supplier keeps its GSTIN / PAN identity unique.
+         */
+        patch: operations["resources_supplier_update"];
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending supplier approval (`resources.approve`, step-up; If-Match). */
+        post: operations["resources_supplier_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge a duplicate supplier onto the canonical one (`resources.procurement.manage`; If-Match;
+         *     L3-J-035): the duplicate becomes `merged` with `canonicalSupplierId`; refused while it has
+         *     open purchase orders or the canonical record is itself merged / inactive.
+         */
+        post: operations["resources_supplier_merge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a prospective supplier (`resources.procurement.manage`; If-Match): PAN (or GSTIN)
+         *     and bank details required; a live supplier with the same GSTIN / PAN → 409 (L3-J-020).
+         */
+        post: operations["resources_supplier_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a suspended supplier to active (`resources.procurement.manage`; If-Match; reason
+         *     required).
+         */
+        post: operations["resources_supplier_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a registered supplier for approval (`resources.procurement.manage`; If-Match;
+         *     `SUPPLIER_APPROVAL`). Auto-approval activates it at once (L3-J-021).
+         */
+        post: operations["resources_supplier_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend an active supplier (`resources.procurement.manage`; If-Match; reason required;
+         *     `supplier.suspended`, L3-J-030). No new RFQ / PO / invoice while suspended.
+         */
+        post: operations["resources_supplier_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/vendor-invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One vendor invoice with its lines (`resources.read`). */
+        get: operations["resources_payable_invoice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/vendor-invoices/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a matched invoice awaiting approval (`resources.approve`, step-up; If-Match): approve
+         *     → `approved`; reject → `cancelled` (reason required; the supplier re-invoices).
+         */
+        post: operations["resources_payable_invoice_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/vendor-invoices/{id}/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Three-way match (`resources.procurement.manage`; If-Match; F-081): `matched` →
+         *     `VENDOR_INVOICE_APPROVAL` (auto-approval → `approved`), or `mismatch` with `matchFindings`.
+         */
+        post: operations["resources_payable_invoice_match"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/vendor-invoices/{id}/post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post an approved invoice to Finance AP (`resources.procurement.manage`; If-Match; F-044 /
+         *     F-082): one balanced journal entry through `ProcurementPostingPort` (idempotent); a
+         *     mismatched or unapproved invoice → 409; `vendor_invoice.posted`.
+         */
+        post: operations["resources_payable_invoice_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/vendor-payments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One vendor payment with its allocations (`resources.read`). */
+        get: operations["resources_payable_payment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/vendor-payments/{id}/post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post a drafted payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr
+         *     accounts payable / Cr the main bank account through `ProcurementPostingPort` (idempotent);
+         *     settles the invoices (`paid` once fully paid); `vendor_payment.posted`.
+         */
+        post: operations["resources_payable_payment_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One dashboard (`services.report.read`). */
+        get: operations["services_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assignments of a dashboard (`services.report.read`). */
+        get: operations["services_dashboard_assignment_list"];
+        put?: never;
+        /**
+         * Assign a dashboard to a role (`services.report.manage`; Idempotency-Key; L3-H-050). The
+         *     dashboard shows on `/me/dashboards` of that role once published. 409 for a duplicate.
+         */
+        post: operations["services_dashboard_assignment_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}/assignments/{assignmentId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an assignment (`services.report.manage`; If-Match on the assignment). */
+        post: operations["services_dashboard_assignment_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide the version under review (`services.report.approve`, step-up; If-Match): approve →
+         *     `approved` (ready to publish), reject → `rejected` (reason required).
+         */
+        post: operations["services_dashboard_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the approved version (`services.report.approve`, step-up; If-Match): the previous
+         *     published version becomes `superseded` (kept), the dashboard shows the new one
+         *     (`dashboard.published`).
+         */
+        post: operations["services_dashboard_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Roll back to an earlier (superseded) version (`services.report.approve`, step-up; If-Match;
+         *     reason required; L3-H-052): the current version is superseded, the earlier one re-published
+         *     (`dashboard.rolled_back`). History is never rewritten.
+         */
+        post: operations["services_dashboard_rollback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the draft version for review (`services.report.manage`; If-Match on the dashboard;
+         *     `DASHBOARD_PUBLICATION`). Auto-approval leaves the version `approved`, ready to publish.
+         */
+        post: operations["services_dashboard_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Versions of a dashboard, newest first (`services.report.read`). */
+        get: operations["services_dashboard_version_list"];
+        put?: never;
+        /**
+         * Prepare a new layout version (`services.report.manage`; Idempotency-Key; L3-H-052): a draft
+         *     version is replaced in place, otherwise version n + 1 is created (409 while one is in review
+         *     or approved). 422 unless every widget is active and its figure exists in the live catalogue;
+         *     a `finance` dashboard binds only `finance.*` figures (F-076).
+         */
+        post: operations["services_dashboard_version_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/dashboards/{id}/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The published version of a dashboard with its live figures (`services.report.read`). 409
+         *     before the first publication.
+         */
+        get: operations["services_dashboard_render"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/dashboards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboards of an institution with their versions (`services.report.read`). */
+        get: operations["services_dashboard_list"];
+        put?: never;
+        /**
+         * Record a dashboard requirement as a draft dashboard (`services.report.manage`;
+         *     Idempotency-Key). 409 for a duplicate code.
+         */
+        post: operations["services_dashboard_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every operational figure of an institution (`services.report.read`). */
+        get: operations["services_directory_metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/reporting-cycles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cycles of an institution, newest first (`services.report.read`). */
+        get: operations["services_regulatory_cycle_institution_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/reporting-frameworks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reporting frameworks of an institution (`services.report.read`). */
+        get: operations["services_regulatory_framework_list"];
+        put?: never;
+        /**
+         * Define a reporting framework version (`services.report.manage`; Idempotency-Key): version n + 1
+         *     of the code, its predecessor the active version. 422 for unknown figures or invalid fields.
+         */
+        post: operations["services_regulatory_framework_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/reports/infrastructure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Infrastructure portfolio report (`services.report.read`; L3-G-320). */
+        get: operations["services_dashboard_report_infrastructure"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/reports/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Library operational report (`services.report.read`; L3-G-154). */
+        get: operations["services_dashboard_report_library"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/widgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Widget definitions of an institution (`services.report.read`). */
+        get: operations["services_dashboard_widget_list"];
+        put?: never;
+        /**
+         * Define a widget (`services.report.manage`; Idempotency-Key). 422 when the metric key is not
+         *     in the live catalogue; 409 for a duplicate code.
+         */
+        post: operations["services_dashboard_widget_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/me/dashboards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The published dashboards assigned to my roles, with their live figures (any signed-in user). */
+        get: operations["services_dashboard_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/report-snapshots/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One snapshot with its frozen values (`services.report.read`). */
+        get: operations["services_regulatory_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/report-snapshots/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a collected snapshot (`services.report.manage`; If-Match; reason required): the cycle
+         *     returns to `collecting`.
+         */
+        post: operations["services_regulatory_snapshot_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/report-snapshots/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a collected snapshot (`services.report.manage`; If-Match): 409 while it has issues. */
+        post: operations["services_regulatory_snapshot_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-cycles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One cycle with its snapshots and packages (`services.report.read`). */
+        get: operations["services_regulatory_cycle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-cycles/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a cycle whose latest package is acknowledged (`services.report.manage`; If-Match;
+         *     L3-H-060; `reporting_cycle.closed`).
+         */
+        post: operations["services_regulatory_cycle_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-cycles/{id}/collect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Collect a snapshot (`services.report.manage`; Idempotency-Key; L3-H-057): the plan's figures
+         *     are read from every domain through the metrics port and frozen with the manual values; the
+         *     issues found are stored (a snapshot with issues cannot be validated). An earlier unvalidated
+         *     snapshot is rejected; the cycle moves to `validating`.
+         */
+        post: operations["services_regulatory_cycle_collect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-cycles/{id}/packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Packages of a cycle, newest first (`services.report.read`). */
+        get: operations["services_regulatory_package_list"];
+        put?: never;
+        /**
+         * Assemble a submission package from a validated snapshot (`services.report.manage`;
+         *     Idempotency-Key): `SUB-…`, linked to the corrected package after a correction; the cycle
+         *     moves to `packaged`.
+         */
+        post: operations["services_regulatory_package_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-frameworks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One framework version (`services.report.read`). */
+        get: operations["services_regulatory_framework_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-frameworks/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an approved framework version (`services.report.manage`; If-Match): the active
+         *     version of the same code is superseded.
+         */
+        post: operations["services_regulatory_framework_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-frameworks/{id}/cycles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cycles of a framework, newest first (`services.report.read`). */
+        get: operations["services_regulatory_cycle_list"];
+        put?: never;
+        /**
+         * Open a reporting cycle of an active framework (`services.report.manage`; Idempotency-Key):
+         *     `RC-…`, collection plan frozen from the framework version. 409 for an inactive framework or
+         *     a period already opened.
+         */
+        post: operations["services_regulatory_cycle_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-frameworks/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a submitted framework (`services.report.approve`, step-up; If-Match). */
+        post: operations["services_regulatory_framework_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/reporting-frameworks/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft framework for approval (`services.report.manage`; If-Match;
+         *     `REPORTING_FRAMEWORK_APPROVAL`). Auto-approval leaves it `approved`, ready to activate.
+         */
+        post: operations["services_regulatory_framework_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/submission-packages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One package (`services.report.read`). */
+        get: operations["services_regulatory_package_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/submission-packages/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the regulator's acknowledgement (`services.report.manage`; If-Match; L3-H-059). */
+        post: operations["services_regulatory_package_acknowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/submission-packages/{id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a correction of a submitted / acknowledged package (`services.report.manage`; If-Match;
+         *     reason required; L3-H-060): the package becomes `corrected`, the cycle returns to
+         *     `collecting` for a new snapshot and a corrected package.
+         */
+        post: operations["services_regulatory_package_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/submission-packages/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a package awaiting approval (`services.report.approve`, step-up; If-Match): approve →
+         *     `approved` (`submission_package.approved`), reject → back to `draft` (reason required).
+         */
+        post: operations["services_regulatory_package_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/submission-packages/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a package (If-Match): a **draft** goes for approval (`services.report.manage`;
+         *     `SUBMISSION_APPROVAL`; auto-approval → `approved`, `submission_package.approved`); an
+         *     **approved** package is submitted to the regulator (`services.report.approve`, step-up; the
+         *     cycle becomes `submitted`).
+         */
+        post: operations["services_regulatory_package_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/widgets/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a draft widget available for dashboards (`services.report.manage`; If-Match). */
+        post: operations["services_dashboard_widget_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/widgets/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a widget (`services.report.manage`; If-Match; reason required). */
+        post: operations["services_dashboard_widget_retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/abc-syncs/{id}": {
         parameters: {
             query?: never;
@@ -21176,6 +26801,121 @@ export interface components {
          * @enum {string}
          */
         AssessmentWindowStatus: "scheduled" | "open" | "extended" | "closed" | "cancelled";
+        /** @description Assign custody. */
+        AssetAssign: {
+            /**
+             * Format: date
+             * @description Default: today.
+             */
+            assignedOn?: string | null;
+            /**
+             * Format: uuid
+             * @description Domain E staff id or Domain G infrastructure node id.
+             */
+            assigneeId: string;
+            /** @description `staff | space`. */
+            assigneeKind: string;
+            note?: string | null;
+        };
+        /** @description One custody period of an asset. */
+        AssetAssignmentView: {
+            /** Format: date */
+            assignedOn: string;
+            /** Format: uuid */
+            assigneeId: string;
+            /** @description `staff | space`. */
+            assigneeKind: string;
+            conditionIn?: string | null;
+            conditionOut: string;
+            /** Format: uuid */
+            id: string;
+            note?: string | null;
+            /** Format: date */
+            returnedOn?: string | null;
+        };
+        /** @description Record a condition change. */
+        AssetCondition: {
+            /** @description `new | good | fair | poor | damaged`. */
+            condition: string;
+            reason?: string | null;
+            /**
+             * @description `true` sends an unassigned asset for repair; `false` on an asset under repair brings it
+             *     back to `available`.
+             */
+            repair?: boolean | null;
+        };
+        /** @description Register an asset manually or from an accepted asset receipt line. */
+        AssetCreate: {
+            /** Format: date */
+            acquiredOn?: string | null;
+            /** @example 45000.00 */
+            acquisitionCost?: string | null;
+            category?: string | null;
+            /** @description `new` by default. */
+            condition?: string | null;
+            /**
+             * Format: uuid
+             * @description Accepted `asset` line of a goods receipt (cost, item and date come from it).
+             */
+            goodsReceiptLineId?: string | null;
+            /** Format: uuid */
+            itemId?: string | null;
+            /** @description Default: the item / order line description. */
+            name?: string | null;
+            serialNumber?: string | null;
+        };
+        /** @description An asset with its custody history (newest first). */
+        AssetDetail: components["schemas"]["AssetView"] & {
+            assignments: components["schemas"]["AssetAssignmentView"][];
+        };
+        AssetList: {
+            items: components["schemas"]["AssetView"][];
+        };
+        /** @description Return an asset from custody. */
+        AssetReturn: {
+            /** @description Condition on return (default: unchanged). */
+            condition?: string | null;
+            note?: string | null;
+            /** Format: date */
+            returnedOn?: string | null;
+        };
+        /** @description An asset. */
+        AssetView: {
+            /** Format: date */
+            acquiredOn?: string | null;
+            /** @example 45000.00 */
+            acquisitionCost?: string | null;
+            category?: string | null;
+            /** @description `new | good | fair | poor | damaged`. */
+            condition: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            custodianId?: string | null;
+            /** @description `staff | space` while assigned. */
+            custodianKind?: string | null;
+            /** Format: uuid */
+            goodsReceiptLineId?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            itemId?: string | null;
+            name: string;
+            /** @example AST-000001 */
+            number: string;
+            processInstanceId?: string | null;
+            /** Format: date */
+            retiredOn?: string | null;
+            retirementPending: boolean;
+            serialNumber?: string | null;
+            /** @description `registered | available | assigned | under_repair | retired`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description Reassignment to another position (L3-E-012). */
         AssignmentChange: {
             /** Format: uuid */
@@ -21458,6 +27198,25 @@ export interface components {
         AuthoriseBody: {
             /** Format: uuid */
             supplementarySessionId: string;
+        };
+        /** @description Replace the availability profile of a node. */
+        AvailabilityProfileBody: {
+            /** @description `YYYY-MM-DD`. */
+            blackoutDates?: string[];
+            /** @description Default `true`. */
+            bookable?: boolean | null;
+            notes?: string | null;
+            /** @description Empty = open all day. */
+            weeklyHours?: components["schemas"]["WeeklyHoursView"][];
+        };
+        /** @description The availability profile of a node. */
+        AvailabilityProfileView: {
+            blackoutDates: string[];
+            bookable: boolean;
+            /** @description `false` = no profile set (open all day, every day). */
+            configured: boolean;
+            notes?: string | null;
+            weeklyHours: components["schemas"]["WeeklyHoursView"][];
         };
         /** @description An offering open for enrolment in one of the student's institutions. */
         AvailableCourse: {
@@ -21965,6 +27724,76 @@ export interface components {
         CampusList: {
             items: components["schemas"]["Campus"][];
         };
+        /** @description The caller as a campus person. */
+        CampusPersonView: {
+            displayName: string;
+            /**
+             * Format: uuid
+             * @description Domain C student id or Domain E staff id.
+             */
+            id: string;
+            kind: components["schemas"]["PersonKind"];
+            /** @description Student number / staff number. */
+            number: string;
+        };
+        /** @description One failed item of a bulk command. */
+        CampusResidenceBulkFailure: {
+            error: string;
+            /** Format: uuid */
+            id: string;
+        };
+        /** @description Result of a bulk command. */
+        CampusResidenceBulkSummary: {
+            failed: components["schemas"]["CampusResidenceBulkFailure"][];
+            /** Format: int64 */
+            processed: number;
+            /** Format: int64 */
+            skipped: number;
+        };
+        /** @description A complaint (hostel / transport → service desk ticket). */
+        CampusResidenceComplaintCreate: {
+            description?: string | null;
+            /** @description `low | medium | high | critical` (default `medium`). */
+            priority?: string | null;
+            title: string;
+        };
+        /** @description Complaints of one slice aggregate (read-only on the foundation ticket table). */
+        CampusResidenceComplaintList: {
+            items: components["schemas"]["CampusResidenceComplaintView"][];
+        };
+        /** @description A service desk ticket opened from hostel / transport (followed in 8A's service desk). */
+        CampusResidenceComplaintView: {
+            category: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @example SR-000001 */
+            number: string;
+            priority: string;
+            /** Format: date-time */
+            slaDueAt: string;
+            source: string;
+            /** Format: uuid */
+            sourceRefId?: string | null;
+            status: string;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Approve or reject (`POST …/decision`).
+         * @enum {string}
+         */
+        CampusResidenceDecision: "approve" | "reject";
+        /** @description Decision body of every 8B governed decision (a rejection needs a reason). */
+        CampusResidenceDecisionBody: {
+            decision: components["schemas"]["CampusResidenceDecision"];
+            reason?: string | null;
+        };
+        /** @description Optional reason of a state command. */
+        CampusResidenceReasonBody: {
+            reason?: string | null;
+        };
         /** @description One entry of a campus' change history. */
         CampusRevision: {
             actor?: string | null;
@@ -22079,6 +27908,82 @@ export interface components {
             /** @example 99000.00 */
             total: string;
         };
+        /** @description A resource to catalogue (L3-G-127). */
+        CatalogueRecordCreate: {
+            authors?: string[] | null;
+            edition?: string | null;
+            isbn?: string | null;
+            /** Format: int32 */
+            publicationYear?: number | null;
+            publisher?: string | null;
+            /**
+             * @description Replacement cost of one copy (lost-copy obligations).
+             * @example 499.00
+             */
+            replacementCost?: string | null;
+            resourceType?: null | components["schemas"]["CatalogueResourceType"];
+            subjects?: string[] | null;
+            title: string;
+        };
+        CatalogueRecordList: {
+            items: components["schemas"]["CatalogueRecordView"][];
+        };
+        /** @description Changes to a catalogue record (absent = unchanged; L3-G-128). */
+        CatalogueRecordUpdate: {
+            authors?: string[] | null;
+            edition?: string | null;
+            isbn?: string | null;
+            /** Format: int32 */
+            publicationYear?: number | null;
+            publisher?: string | null;
+            /** @example 520.00 */
+            replacementCost?: string | null;
+            resourceType?: null | components["schemas"]["CatalogueResourceType"];
+            subjects?: string[] | null;
+            title?: string | null;
+        };
+        /** @description A catalogue record with its copy counts. */
+        CatalogueRecordView: {
+            authors: string[];
+            /** Format: int64 */
+            availableCopies: number;
+            /** Format: int64 */
+            copies: number;
+            edition?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example 9780306406157 */
+            isbn?: string | null;
+            /** Format: int32 */
+            publicationYear?: number | null;
+            publisher?: string | null;
+            /**
+             * Format: int64
+             * @description Reservations still waiting (queued or ready).
+             */
+            queuedReservations: number;
+            /** @example 499.00 */
+            replacementCost: string;
+            resourceType: components["schemas"]["CatalogueResourceType"];
+            status: components["schemas"]["CatalogueStatus"];
+            statusReason?: string | null;
+            subjects: string[];
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Kind of catalogued resource.
+         * @enum {string}
+         */
+        CatalogueResourceType: "book" | "journal" | "reference" | "media" | "other";
+        /**
+         * @description Catalogue record (L3-G-127 / 128).
+         * @enum {string}
+         */
+        CatalogueStatus: "draft" | "published" | "withdrawn";
         /** @description Per-category notification preference. */
         CategoryPreference: {
             category: components["schemas"]["NotificationCategory"];
@@ -22374,7 +28279,7 @@ export interface components {
          * @description Where a charge came from.
          * @enum {string}
          */
-        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee";
+        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge";
         /**
          * @description Student charge lifecycle (L2-F01 §18–19 canonical states and transitions).
          * @enum {string}
@@ -23410,6 +29315,141 @@ export interface components {
             recordedAt: string;
             relationshipId: components["schemas"]["GuardianRelationshipId"];
         };
+        /** @description Make a dashboard available to a role. */
+        DashboardAssignmentCreate: {
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** @description `administrator`, `faculty` or `student`. */
+            role: string;
+        };
+        DashboardAssignmentList: {
+            items: components["schemas"]["DashboardAssignmentView"][];
+        };
+        /**
+         * @description Dashboard assignment to a role (L3-H-050).
+         * @enum {string}
+         */
+        DashboardAssignmentStatus: "active" | "revoked";
+        /** @description Availability of a dashboard to a role (L3-H-050). */
+        DashboardAssignmentView: {
+            /** Format: uuid */
+            dashboardId: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /** @example administrator */
+            role: string;
+            status: components["schemas"]["DashboardAssignmentStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description What a dashboard is for; `finance` binds only `finance.*` figures (F-076).
+         * @enum {string}
+         */
+        DashboardCategory: "operational" | "finance" | "academic" | "campus" | "people" | "regulatory";
+        /** @description A dashboard requirement (L3-H-048). */
+        DashboardCreate: {
+            category?: null | components["schemas"]["DashboardCategory"];
+            code: string;
+            name: string;
+            /** @description What the dashboard must answer, for whom. */
+            purpose: string;
+        };
+        DashboardList: {
+            items: components["schemas"]["DashboardView"][];
+        };
+        /** @description A published dashboard with its figures, as of `generatedAt`. */
+        DashboardRenderView: {
+            category: components["schemas"]["DashboardCategory"];
+            code: string;
+            /** Format: uuid */
+            dashboardId: string;
+            /** Format: date-time */
+            generatedAt: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            /** Format: int32 */
+            versionNo: number;
+            widgets: components["schemas"]["RenderedWidgetView"][];
+        };
+        /** @description Which earlier version to re-publish. */
+        DashboardRollback: {
+            reason?: string | null;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /**
+         * @description Governed dashboard (L3-H-048).
+         * @enum {string}
+         */
+        DashboardStatus: "draft" | "in_review" | "published" | "retired";
+        /** @description A new layout version (widget ids in display order). */
+        DashboardVersionCreate: {
+            changeNote?: string | null;
+            widgetIds: string[];
+        };
+        DashboardVersionList: {
+            items: components["schemas"]["DashboardVersionView"][];
+        };
+        /**
+         * @description One immutable version of a dashboard's layout (L3-H-052).
+         * @enum {string}
+         */
+        DashboardVersionStatus: "draft" | "in_review" | "approved" | "published" | "superseded" | "rejected";
+        /** @description One version of a dashboard. */
+        DashboardVersionView: {
+            changeNote?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            publishedBy?: string | null;
+            status: components["schemas"]["DashboardVersionStatus"];
+            statusReason?: string | null;
+            /** Format: int32 */
+            versionNo: number;
+            widgets: components["schemas"]["DashboardWidgetSlot"][];
+        };
+        /** @description A governed dashboard with its versions and assignments. */
+        DashboardView: {
+            assignments: components["schemas"]["DashboardAssignmentView"][];
+            category: components["schemas"]["DashboardCategory"];
+            /** @example FIN-KPI */
+            code: string;
+            /** Format: uuid */
+            currentVersionId?: string | null;
+            /** Format: int32 */
+            currentVersionNo?: number | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            processInstanceId?: string | null;
+            purpose: string;
+            status: components["schemas"]["DashboardStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+            versions: components["schemas"]["DashboardVersionView"][];
+        };
+        /** @description One widget slot of a frozen dashboard version layout. */
+        DashboardWidgetSlot: {
+            code: string;
+            metricKey: string;
+            /** Format: int32 */
+            position: number;
+            title: string;
+            visualization: components["schemas"]["WidgetVisualization"];
+            /** Format: uuid */
+            widgetId: string;
+        };
         /** @description `POST …/decision` body of blueprint publications and restructures. */
         Decide: {
             decision: components["schemas"]["ApprovalDecision"];
@@ -23451,6 +29491,16 @@ export interface components {
              */
             effectiveOn: string;
             reason: string;
+        };
+        /** @description A decommissioning request (`NODE_DECOMMISSION`). */
+        DecommissionRequestView: {
+            decisionReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            processInstanceId?: string | null;
+            reason: string;
+            /** @description `pending | approved | rejected`. */
+            status: string;
         };
         /** @description Defer completion pending remediation (L3-C-049). */
         DeferCompletion: {
@@ -23684,6 +29734,47 @@ export interface components {
             /** Format: date */
             effectiveFrom: string;
             title: string;
+        };
+        /** @description Assign a staff member as a driver of the route. */
+        DriverAssignmentCreate: {
+            licenceNo: string;
+            /**
+             * Format: uuid
+             * @description Domain E staff member of the institution.
+             */
+            staffId: string;
+            /** Format: date */
+            validFrom: string;
+            /** Format: date */
+            validTo?: string | null;
+        };
+        /** @description Driver assignments. */
+        DriverAssignmentList: {
+            items: components["schemas"]["DriverAssignmentView"][];
+        };
+        /** @description A driver assigned to a route. */
+        DriverAssignmentView: {
+            driverName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            licenceNo: string;
+            routeCode: string;
+            /** Format: uuid */
+            routeId: string;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+            /** @description `active | ended`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: date */
+            validFrom: string;
+            /** Format: date */
+            validTo?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         /**
          * Format: uuid
@@ -24052,6 +30143,11 @@ export interface components {
          * @enum {string}
          */
         EnrolmentWindowStatus: "scheduled" | "open" | "suspended" | "closed" | "closed_permanently";
+        /**
+         * @description Laboratory equipment status (L3-G-060).
+         * @enum {string}
+         */
+        EquipmentStatus: "operational" | "restricted" | "under_maintenance" | "out_of_service";
         /** @description `POST …/institutions/{id}/positions` (created in `draft`, revision 1). */
         EstablishPosition: {
             /** @example HOD-CSE */
@@ -25255,6 +31351,43 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description One row a bulk command could not process. */
+        FacilityBulkFailure: {
+            /** Format: uuid */
+            id: string;
+            reason: string;
+        };
+        /** @description Summary of a bulk command (`{processed, skipped, failed[]}`, contract §5.1). */
+        FacilityBulkSummary: {
+            failed: components["schemas"]["FacilityBulkFailure"][];
+            /** Format: int64 */
+            processed: number;
+            /** Format: int64 */
+            skipped: number;
+        };
+        /**
+         * @description Approve or reject (`POST …/decision`).
+         * @enum {string}
+         */
+        FacilityDecision: "approve" | "reject";
+        /** @description Decision body of every 8A governed decision. */
+        FacilityDecisionBody: {
+            decision: components["schemas"]["FacilityDecision"];
+            reason?: string | null;
+        };
+        /** @description A student or staff member named by the office (validated through the directories). */
+        FacilityPersonInput: {
+            /**
+             * Format: uuid
+             * @description Domain C student id or Domain E staff id.
+             */
+            id: string;
+            kind: components["schemas"]["PersonKind"];
+        };
+        /** @description Optional reason of a state command (`{}` allowed). */
+        FacilityReasonBody: {
+            reason?: string | null;
+        };
         /**
          * @description Who manages the account's second factors.
          * @enum {string}
@@ -25871,6 +32004,120 @@ export interface components {
             /** Format: double */
             longitude: number;
         };
+        /** @description Accept a receipt (all lines in full unless listed). */
+        GoodsReceiptAccept: {
+            lines?: components["schemas"]["GoodsReceiptLineDecision"][] | null;
+        };
+        /** @description Record a delivery. */
+        GoodsReceiptCreate: {
+            deliveryNote?: string | null;
+            lines: components["schemas"]["GoodsReceiptLineInput"][];
+            /**
+             * Format: uuid
+             * @description Receiving store location (default: the order's delivery location).
+             */
+            locationId?: string | null;
+            /**
+             * Format: date
+             * @description Default: today in the institution timezone.
+             */
+            receivedOn?: string | null;
+        };
+        /** @description A goods receipt with its lines. */
+        GoodsReceiptDetail: components["schemas"]["GoodsReceiptView"] & {
+            lines: components["schemas"]["GoodsReceiptLineView"][];
+        };
+        /** @description Inspection result of one receipt line. */
+        GoodsReceiptLineDecision: {
+            /** @example 9 */
+            acceptedQuantity: string;
+            /**
+             * Format: int32
+             * @description Receipt line number.
+             */
+            lineNo: number;
+            /** @description Default: received − accepted. */
+            rejectedQuantity?: string | null;
+            rejectionReason?: string | null;
+        };
+        /** @description One delivered order line. */
+        GoodsReceiptLineInput: {
+            /**
+             * Format: int32
+             * @description Purchase order line number.
+             */
+            lineNo: number;
+            /** @example 10 */
+            quantity: string;
+        };
+        /** @description One received line. */
+        GoodsReceiptLineView: {
+            /** @example 9.000 */
+            acceptedQuantity: string;
+            /**
+             * Format: int64
+             * @description Assets registered from this line (asset lines).
+             */
+            assetsRegistered: number;
+            description: string;
+            /** Format: uuid */
+            id: string;
+            itemCode?: string | null;
+            /** Format: uuid */
+            itemId?: string | null;
+            /** Format: uuid */
+            ledgerEntryId?: string | null;
+            /** @description `stock | asset | service`. */
+            lineKind: string;
+            /** Format: int32 */
+            lineNo: number;
+            /** Format: uuid */
+            purchaseOrderLineId: string;
+            /** Format: int32 */
+            purchaseOrderLineNo: number;
+            /** @example 10.000 */
+            receivedQuantity: string;
+            /** @example 1.000 */
+            rejectedQuantity: string;
+            rejectionReason?: string | null;
+            /** @example 240.00 */
+            unitCost: string;
+        };
+        GoodsReceiptList: {
+            items: components["schemas"]["GoodsReceiptView"][];
+        };
+        /** @description A goods receipt (header). */
+        GoodsReceiptView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            deliveryNote?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            inspectedAt?: string | null;
+            /** Format: uuid */
+            institutionId: string;
+            locationCode: string;
+            /** Format: uuid */
+            locationId: string;
+            /** @example GRN-000001 */
+            number: string;
+            /** Format: uuid */
+            purchaseOrderId: string;
+            purchaseOrderNumber: string;
+            /** Format: date */
+            receivedOn: string;
+            /** @description `received | inspecting | accepted | partially_accepted | rejected`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            supplierId: string;
+            supplierNumber: string;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description Governance configuration revision of a unit. */
         GovernanceConfig: {
             /** Format: date-time */
@@ -26229,6 +32476,202 @@ export interface components {
          * @enum {string}
          */
         HoldSource: "academic" | "administrative" | "discipline" | "documents" | "finance";
+        /** @description Allocate a bed to an approved (or waitlisted) application. */
+        HostelAllocateBody: {
+            /**
+             * Format: uuid
+             * @description A specific free bed; otherwise the first free bed of an active hostel room.
+             */
+            bedId?: string | null;
+            /**
+             * Format: date
+             * @description Residency start (default: today in the institution timezone).
+             */
+            startDate?: string | null;
+        };
+        /** @description Residencies of an institution. */
+        HostelAllocationList: {
+            items: components["schemas"]["HostelAllocationView"][];
+        };
+        /** @description A residency (bed allocation). */
+        HostelAllocationView: {
+            /** Format: uuid */
+            applicationId: string;
+            bedCode: string;
+            /** Format: uuid */
+            bedId: string;
+            /** Format: uuid */
+            chargeId?: string | null;
+            chargeNumber?: string | null;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            endDate?: string | null;
+            /**
+             * @description Hostel fee raised on allocation (students; staff: recorded only).
+             * @example 45000.00
+             */
+            feeAmount: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            personId: string;
+            personKind: string;
+            personName: string;
+            personNumber: string;
+            /** Format: uuid */
+            policyId: string;
+            /** @example HST-B1-101 */
+            roomCode: string;
+            /** Format: uuid */
+            roomNodeId: string;
+            /** Format: date */
+            startDate: string;
+            /** @description `active | on_leave | transfer_pending | vacating | closed`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description An application made by the office on behalf of a student / staff member. */
+        HostelApplicationCreate: {
+            /** Format: uuid */
+            personId: string;
+            /** @description `student | staff`. */
+            personKind: string;
+            preference?: string | null;
+        };
+        /** @description Applications of an institution. */
+        HostelApplicationList: {
+            items: components["schemas"]["HostelApplicationView"][];
+        };
+        /** @description A hostel admission application. */
+        HostelApplicationView: {
+            /** Format: uuid */
+            allocationId?: string | null;
+            /** @description `self_service | office`. */
+            channel: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example HAP-000001 */
+            number: string;
+            /** Format: uuid */
+            personId: string;
+            /** @description `student | staff`. */
+            personKind: string;
+            personName: string;
+            personNumber: string;
+            /** Format: uuid */
+            policyId: string;
+            preference?: string | null;
+            processInstanceId?: string | null;
+            /** @description `submitted | under_review | approved | waitlisted | rejected | withdrawn | allocated`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            waitlistedAt?: string | null;
+        };
+        /** @description A new bed in a hostel room. */
+        HostelBedCreate: {
+            /** @example A */
+            bedCode: string;
+        };
+        /** @description Beds (with occupancy). */
+        HostelBedList: {
+            items: components["schemas"]["HostelBedView"][];
+        };
+        /** @description A bed of a hostel room, with its occupant. */
+        HostelBedView: {
+            /** Format: uuid */
+            allocationId?: string | null;
+            /** @example A */
+            bedCode: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            occupantName?: string | null;
+            occupantNumber?: string | null;
+            /** @example HST-B1-101 */
+            roomCode: string;
+            roomName: string;
+            /** Format: uuid */
+            roomNodeId: string;
+            /** @description `available | occupied | out_of_service`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A new policy version (draft). */
+        HostelPolicyCreate: {
+            /** @example 21:30 */
+            curfewTime?: string | null;
+            /** @example 5000.00 */
+            deposit?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            eligibilityNote?: string | null;
+            /** @example 45000.00 */
+            feePerTerm: string;
+            /** Format: int32 */
+            maxStayTerms?: number | null;
+            name: string;
+        };
+        /** @description Policy versions of an institution. */
+        HostelPolicyList: {
+            items: components["schemas"]["HostelPolicyView"][];
+        };
+        /** @description A hostel policy version. */
+        HostelPolicyView: {
+            /** Format: date-time */
+            activatedAt?: string | null;
+            /** @description `HH:MM`. */
+            curfewTime?: string | null;
+            /** @example 5000.00 */
+            deposit: string;
+            /** Format: date */
+            effectiveFrom: string;
+            eligibilityNote?: string | null;
+            /**
+             * @description Hostel fee charged per term on allocation (students).
+             * @example 45000.00
+             */
+            feePerTerm: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: int32 */
+            maxStayTerms?: number | null;
+            name: string;
+            processInstanceId?: string | null;
+            /** @description `draft | approved | active | superseded` (a draft with a `processInstanceId` awaits a decision). */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Start vacating a residency. */
+        HostelVacateBody: {
+            /**
+             * Format: date
+             * @description Last day of residency (default: today).
+             */
+            endDate?: string | null;
+            reason?: string | null;
+        };
         /**
          * @description 7A (7B leave cases reuse it): generic HR case lifecycle (L2-E04).
          * @enum {string}
@@ -26304,6 +32747,118 @@ export interface components {
         };
         /** @enum {string} */
         ImpactSeverity: "info" | "warning" | "uncertain" | "blocking";
+        /** @description Change the capacity (seats / beds / persons). */
+        InfrastructureCapacityBody: {
+            /** Format: int32 */
+            capacity: number;
+            reason?: string | null;
+        };
+        /** @description Register a node. */
+        InfrastructureNodeCreate: {
+            /** @example 64.50 */
+            areaSqM?: string | null;
+            attributes?: Record<string, never> | null;
+            /**
+             * Format: uuid
+             * @description Domain B campus; defaults to the parent's campus.
+             */
+            campusId?: string | null;
+            /** Format: int32 */
+            capacity?: number | null;
+            /** @example MAIN-B1-101 */
+            code: string;
+            /** @example 2026-11-01 */
+            effectiveFrom?: string | null;
+            /** Format: int32 */
+            floorNumber?: number | null;
+            name: string;
+            nodeType: components["schemas"]["InfrastructureNodeType"];
+            /**
+             * Format: uuid
+             * @description Required for everything but a site.
+             */
+            parentId?: string | null;
+            spaceType?: null | components["schemas"]["SpaceType"];
+            status?: null | components["schemas"]["InfrastructureStatus"];
+        };
+        /** @description One node with its children, capabilities, availability profile and pending decommissioning. */
+        InfrastructureNodeDetail: {
+            availability?: null | components["schemas"]["AvailabilityProfileView"];
+            capabilities: components["schemas"]["SpaceCapabilityView"][];
+            children: components["schemas"]["InfrastructureNodeView"][];
+            decommission?: null | components["schemas"]["DecommissionRequestView"];
+            /**
+             * Format: int64
+             * @description Requested / confirmed reservations from today on.
+             */
+            futureReservations: number;
+            node: components["schemas"]["InfrastructureNodeView"];
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * Format: uuid
+         * @description Node of the physical infrastructure hierarchy: site → building → floor → space / zone (L2-G10).
+         */
+        InfrastructureNodeId: string;
+        /** @description Nodes of an institution. */
+        InfrastructureNodeList: {
+            items: components["schemas"]["InfrastructureNodeView"][];
+        };
+        /**
+         * @description Level of a node in the physical infrastructure hierarchy (L2-G10).
+         * @enum {string}
+         */
+        InfrastructureNodeType: "site" | "building" | "floor" | "space" | "zone";
+        /** @description Change attributes / classification (absent members are kept). */
+        InfrastructureNodeUpdate: {
+            areaSqM?: string | null;
+            attributes?: Record<string, never> | null;
+            effectiveFrom?: string | null;
+            /** Format: int32 */
+            floorNumber?: number | null;
+            name?: string | null;
+            spaceType?: null | components["schemas"]["SpaceType"];
+        };
+        /** @description An infrastructure node as screens show it (reusable by the slices). */
+        InfrastructureNodeView: {
+            /** @example 64.50 */
+            areaSqM?: string | null;
+            attributes: Record<string, never>;
+            /** Format: uuid */
+            campusId: string;
+            /** Format: int32 */
+            capacity?: number | null;
+            /** @example MAIN-B1-101 */
+            code: string;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /** Format: int32 */
+            floorNumber?: number | null;
+            id: components["schemas"]["InfrastructureNodeId"];
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            nodeType: components["schemas"]["InfrastructureNodeType"];
+            parentId?: null | components["schemas"]["InfrastructureNodeId"];
+            spaceType?: null | components["schemas"]["SpaceType"];
+            status: components["schemas"]["InfrastructureStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Infrastructure node lifecycle (L2-G10 §lifecycle, L3-G-290 / 314 / 315 / 316).
+         * @enum {string}
+         */
+        InfrastructureStatus: "planned" | "active" | "suspended" | "decommissioned" | "archived";
+        /**
+         * @description The infrastructure nodes of an institution, ordered by code (parents before children is
+         *     the client's job: `parentId` links them).
+         */
+        InfrastructureTree: {
+            items: components["schemas"]["InfrastructureNodeView"][];
+        };
         /** @description A student starts an online payment with the (mock) gateway. */
         InitiatePaymentRequest: {
             /** @example 25000.00 */
@@ -26496,6 +33051,66 @@ export interface components {
          * @enum {string}
          */
         InterventionStatus: "planned" | "triggered" | "in_progress" | "completed" | "cancelled";
+        /** @description Create an item. */
+        InventoryItemCreate: {
+            category?: string | null;
+            code: string;
+            /** @description `consumable | asset | service`. */
+            kind: string;
+            name: string;
+            reorderLevel?: string | null;
+            reorderQuantity?: string | null;
+            standardCost?: string | null;
+            /** @description Default `each`. */
+            unit?: string | null;
+        };
+        InventoryItemList: {
+            items: components["schemas"]["InventoryItemView"][];
+        };
+        /** @description Change an item's attributes. */
+        InventoryItemUpdate: {
+            category?: string | null;
+            name?: string | null;
+            reorderLevel?: string | null;
+            reorderQuantity?: string | null;
+            standardCost?: string | null;
+            unit?: string | null;
+        };
+        /** @description An item of the item master with its on hand across the institution's locations. */
+        InventoryItemView: {
+            category?: string | null;
+            /** @example PAPER-A4 */
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description `consumable | asset | service`. */
+            kind: string;
+            name: string;
+            /** @example 40.000 */
+            onHand: string;
+            /** @example 12.000 */
+            reorderLevel?: string | null;
+            /** @example 50.000 */
+            reorderQuantity?: string | null;
+            /** @example 5.000 */
+            reserved: string;
+            /** @example 250.00 */
+            standardCost?: string | null;
+            /** @description `draft | active | inactive | archived`. */
+            status: string;
+            unit: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * Format: uuid
+         * @description Item master record (L3-J-051).
+         */
+        ItemId: string;
         /**
          * Format: uuid
          * @description Posted, balanced, append-only journal entry of the general ledger (L2-F05).
@@ -26585,6 +33200,119 @@ export interface components {
          * @enum {string}
          */
         KeyDateKind: "holiday" | "instruction_start" | "instruction_end" | "exam_window" | "registration_window" | "break" | "event";
+        /** @description Allocate a batch of students to a session. */
+        LabBatchAllocationCreate: {
+            batchLabel?: string | null;
+            /** Format: uuid */
+            sessionId: string;
+            /** @description Domain C student ids. */
+            studentIds: string[];
+        };
+        /** @description Allocations. */
+        LabBatchAllocationList: {
+            items: components["schemas"]["LabBatchAllocationView"][];
+        };
+        /** @description A student allocated to a practical session. */
+        LabBatchAllocationView: {
+            batchLabel?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            personId: string;
+            personKind: components["schemas"]["PersonKind"];
+            /** Format: uuid */
+            sessionId: string;
+        };
+        /** @description One readiness checklist item. */
+        LabChecklistItem: {
+            done: boolean;
+            item: string;
+        };
+        /** @description Create the lab profile of a `lab` space. */
+        LabCreate: {
+            /**
+             * Format: int32
+             * @description Defaults to the space capacity.
+             */
+            capacity?: number | null;
+            /** @description Defaults to the space name. */
+            name?: string | null;
+            /** Format: uuid */
+            nodeId: string;
+        };
+        /** @description A lab with its equipment and sessions. */
+        LabDetail: {
+            equipment: components["schemas"]["LabEquipmentView"][];
+            lab: components["schemas"]["LabView"];
+            sessions: components["schemas"]["PracticalSessionView"][];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Register equipment. */
+        LabEquipmentCreate: {
+            /** @example MICRO-01 */
+            code: string;
+            name: string;
+        };
+        /** @description Lab equipment. */
+        LabEquipmentList: {
+            items: components["schemas"]["LabEquipmentView"][];
+        };
+        /** @description Change the status of equipment. */
+        LabEquipmentStatusBody: {
+            reason?: string | null;
+            status: components["schemas"]["EquipmentStatus"];
+        };
+        /** @description A piece of lab equipment. */
+        LabEquipmentView: {
+            code: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            labId: string;
+            name: string;
+            status: components["schemas"]["EquipmentStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Labs. */
+        LabList: {
+            items: components["schemas"]["LabView"][];
+        };
+        /** @description A readiness check. */
+        LabReadinessBody: {
+            checklist: components["schemas"]["LabChecklistItem"][];
+            notes?: string | null;
+        };
+        /**
+         * @description Laboratory availability (L2-G02; L3-G-050, 060).
+         * @enum {string}
+         */
+        LabStatus: "not_ready" | "ready" | "restricted" | "unavailable";
+        /** @description A laboratory. */
+        LabView: {
+            /** Format: int32 */
+            capacity: number;
+            checklist: components["schemas"]["LabChecklistItem"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            nodeCode: string;
+            /** Format: uuid */
+            nodeId: string;
+            /** Format: date-time */
+            readinessCheckedAt?: string | null;
+            readinessNotes?: string | null;
+            status: components["schemas"]["LabStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         LearningCompletion: {
             /** @description `passed` | `failed` | `not_applicable`. */
             assessmentStatus: string;
@@ -27312,6 +34040,204 @@ export interface components {
          * @description Source-to-ledger reconciliation run (L3-F-029).
          */
         LedgerReconciliationId: string;
+        /**
+         * @description Approval state of a governed draft (`LIBRARY_POLICY_APPROVAL`).
+         * @enum {string}
+         */
+        LibraryApprovalState: "not_submitted" | "pending" | "approved" | "rejected";
+        /** @description One item a bulk command could not process. */
+        LibraryBulkFailure: {
+            /** Format: uuid */
+            id: string;
+            reason: string;
+        };
+        /** @description Result of a bulk command (`{processed, skipped, failed[]}`). */
+        LibraryBulkResult: {
+            failed: components["schemas"]["LibraryBulkFailure"][];
+            /** Format: int64 */
+            processed: number;
+            /** Format: int64 */
+            skipped: number;
+        };
+        /** @description Verification result of a clearance request. */
+        LibraryClearanceCheck: {
+            /** Format: int64 */
+            activeLoans: number;
+            /** @description Empty = nothing blocks the clearance. */
+            blockers: string[];
+            /** Format: int64 */
+            liveReservations: number;
+            /** @example 0.00 */
+            unsettledFines: string;
+        };
+        /** @description A clearance request by the office. */
+        LibraryClearanceCreate: {
+            /** Format: uuid */
+            membershipId: string;
+            /** @description Why clearance is needed (programme exit, transfer, separation …). */
+            purpose: string;
+        };
+        LibraryClearanceList: {
+            items: components["schemas"]["LibraryClearanceView"][];
+        };
+        /**
+         * @description Library clearance (L3-G-149).
+         * @enum {string}
+         */
+        LibraryClearanceStatus: "requested" | "approved" | "rejected";
+        /** @description A clearance request. */
+        LibraryClearanceView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            displayName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            memberNumber: string;
+            /** Format: uuid */
+            membershipId: string;
+            personKind: components["schemas"]["PersonKind"];
+            processInstanceId?: string | null;
+            purpose: string;
+            status: components["schemas"]["LibraryClearanceStatus"];
+            statusReason?: string | null;
+            verification: components["schemas"]["LibraryClearanceCheck"];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description The service ticket opened for a library complaint. */
+        LibraryComplaintView: {
+            /** @example SR-000001 */
+            number: string;
+            /** Format: date-time */
+            slaDueAt: string;
+            status: components["schemas"]["TicketStatus"];
+            /** Format: uuid */
+            ticketId: string;
+            title: string;
+        };
+        /**
+         * @description Physical condition of a copy.
+         * @enum {string}
+         */
+        LibraryCopyCondition: "good" | "fair" | "poor" | "damaged";
+        /** @description A condition change (L3-G-130). */
+        LibraryCopyConditionBody: {
+            condition: components["schemas"]["LibraryCopyCondition"];
+            reason?: string | null;
+        };
+        /** @description A copy to register (L3-G-129). */
+        LibraryCopyCreate: {
+            condition?: null | components["schemas"]["LibraryCopyCondition"];
+            /**
+             * Format: uuid
+             * @description Library or reading-room space holding the copy (an active `space` node).
+             */
+            nodeId?: string | null;
+            shelfMark?: string | null;
+        };
+        LibraryCopyList: {
+            items: components["schemas"]["LibraryCopyView"][];
+        };
+        /**
+         * @description Physical copy (L3-G-129 / 130).
+         * @enum {string}
+         */
+        LibraryCopyStatus: "available" | "issued" | "reserved" | "lost" | "damaged" | "withdrawn";
+        /** @description A physical copy. */
+        LibraryCopyView: {
+            /** @example ACC-000001 */
+            accessionNumber: string;
+            condition: components["schemas"]["LibraryCopyCondition"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            nodeCode?: string | null;
+            /** Format: uuid */
+            nodeId?: string | null;
+            /** Format: uuid */
+            recordId: string;
+            shelfMark?: string | null;
+            status: components["schemas"]["LibraryCopyStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Approve / reject.
+         * @enum {string}
+         */
+        LibraryDecision: "approve" | "reject";
+        /** @description Decision of a governed library step (`campus.approve`). */
+        LibraryDecisionBody: {
+            decision: components["schemas"]["LibraryDecision"];
+            reason?: string | null;
+        };
+        /** @description Why a member cannot borrow right now (L3-G-152): empty = eligible. */
+        LibraryEligibilityView: {
+            /** Format: int64 */
+            activeLoans: number;
+            blockers: string[];
+            eligible: boolean;
+            /** Format: int32 */
+            maxLoans?: number | null;
+            /** Format: uuid */
+            membershipId: string;
+            /** @example 0.00 */
+            unsettledFines: string;
+        };
+        /**
+         * @description What a fine is for.
+         * @enum {string}
+         */
+        LibraryFineKind: "overdue" | "replacement";
+        LibraryFineList: {
+            items: components["schemas"]["LibraryFineView"][];
+        };
+        /**
+         * @description Fine (L3-G-137…139).
+         * @enum {string}
+         */
+        LibraryFineStatus: "assessed" | "waiver_requested" | "waived" | "billed" | "paid";
+        /** @description A library fine (money as strings). */
+        LibraryFineView: {
+            /** @example 30.00 */
+            amount: string;
+            /** Format: date */
+            assessedOn: string;
+            /** Format: uuid */
+            chargeId?: string | null;
+            /** @example CHG-000123 */
+            chargeNumber?: string | null;
+            /** Format: int32 */
+            days: number;
+            displayName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            kind: components["schemas"]["LibraryFineKind"];
+            /** Format: uuid */
+            loanId?: string | null;
+            loanNumber?: string | null;
+            memberNumber: string;
+            /** Format: uuid */
+            membershipId: string;
+            /** Format: uuid */
+            personId: string;
+            personKind: components["schemas"]["PersonKind"];
+            processInstanceId?: string | null;
+            status: components["schemas"]["LibraryFineStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description One entry of the student Library. */
         LibraryItem: {
             description?: string | null;
@@ -27333,6 +34259,246 @@ export interface components {
         };
         LibraryList: {
             items: components["schemas"]["LibraryItem"][];
+        };
+        /** @description A loan to issue: the copy by id or accession number. */
+        LibraryLoanCreate: {
+            /** @example ACC-000001 */
+            accessionNumber?: string | null;
+            /** Format: uuid */
+            copyId?: string | null;
+            /** Format: uuid */
+            membershipId: string;
+        };
+        /** @description A page of loans. */
+        LibraryLoanList: {
+            items: components["schemas"]["LibraryLoanView"][];
+            /** Format: uuid */
+            nextCursor?: string | null;
+        };
+        /**
+         * @description Loan (L3-G-131…133, 137, 139).
+         * @enum {string}
+         */
+        LibraryLoanStatus: "active" | "overdue" | "returned" | "lost";
+        /** @description A loan (contract §5.3). */
+        LibraryLoanView: {
+            accessionNumber: string;
+            /** Format: uuid */
+            copyId: string;
+            displayName: string;
+            /** Format: date */
+            dueOn: string;
+            /**
+             * @description Overdue fine assessed on this loan, when any.
+             * @example 6.00
+             */
+            fineAmount?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: date */
+            issuedOn: string;
+            /**
+             * Format: uuid
+             * @description Library membership.
+             */
+            memberId: string;
+            memberNumber: string;
+            /** @example LN-000001 */
+            number: string;
+            /** Format: uuid */
+            personId: string;
+            personKind: components["schemas"]["PersonKind"];
+            /** Format: uuid */
+            recordId: string;
+            /** Format: int32 */
+            renewals: number;
+            /** Format: date */
+            returnedOn?: string | null;
+            status: components["schemas"]["LibraryLoanStatus"];
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A new membership (L3-G-124). */
+        LibraryMembershipCreate: {
+            /**
+             * Format: uuid
+             * @description Domain C student id or Domain E staff id.
+             */
+            personId: string;
+            personKind: components["schemas"]["PersonKind"];
+            /** Format: date */
+            validUntil?: string | null;
+        };
+        LibraryMembershipList: {
+            items: components["schemas"]["LibraryMembershipView"][];
+        };
+        /**
+         * @description Library membership (L3-G-124…126).
+         * @enum {string}
+         */
+        LibraryMembershipStatus: "requested" | "active" | "suspended" | "closed";
+        /** @description A library membership. */
+        LibraryMembershipView: {
+            /**
+             * Format: int64
+             * @description Loans still out (active or overdue).
+             */
+            activeLoans: number;
+            displayName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example LM-000001 */
+            number: string;
+            /** Format: uuid */
+            personId: string;
+            personKind: components["schemas"]["PersonKind"];
+            personNumber: string;
+            /** @description Administrative borrowing restriction (L3-G-152), when one applies. */
+            restrictionReason?: string | null;
+            status: components["schemas"]["LibraryMembershipStatus"];
+            statusReason?: string | null;
+            subjectRef?: string | null;
+            /** Format: date */
+            validUntil?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A new borrowing policy version. */
+        LibraryPolicyCreate: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** @example 2.00 */
+            finePerDay: string;
+            /** Format: int32 */
+            loanDaysStaff: number;
+            /** Format: int32 */
+            loanDaysStudent: number;
+            /**
+             * @description Multiplier of the replacement cost charged for a lost copy (≤ 4 decimals).
+             * @example 1.5000
+             */
+            lostChargeFactor: string;
+            /** @example 200.00 */
+            maxFine?: string | null;
+            /** Format: int32 */
+            maxLoansStaff: number;
+            /** Format: int32 */
+            maxLoansStudent: number;
+            /** Format: int32 */
+            maxRenewals: number;
+            name: string;
+            /** Format: int32 */
+            reservationHoldDays: number;
+        };
+        LibraryPolicyList: {
+            items: components["schemas"]["LibraryPolicyView"][];
+        };
+        /**
+         * @description Borrowing policy version (draft → active → superseded).
+         * @enum {string}
+         */
+        LibraryPolicyStatus: "draft" | "active" | "superseded";
+        /** @description A borrowing policy version as screens show it. */
+        LibraryPolicyView: {
+            approvalState: components["schemas"]["LibraryApprovalState"];
+            /** Format: date */
+            effectiveFrom: string;
+            /** @example 2.00 */
+            finePerDay: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: int32 */
+            loanDaysStaff: number;
+            /** Format: int32 */
+            loanDaysStudent: number;
+            /** @example 1.5000 */
+            lostChargeFactor: string;
+            /** @example 200.00 */
+            maxFine?: string | null;
+            /** Format: int32 */
+            maxLoansStaff: number;
+            /** Format: int32 */
+            maxLoansStudent: number;
+            /** Format: int32 */
+            maxRenewals: number;
+            name: string;
+            processInstanceId?: string | null;
+            /** Format: int32 */
+            reservationHoldDays: number;
+            status: components["schemas"]["LibraryPolicyStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            supersededBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Optional reason of a library state command. */
+        LibraryReasonBody: {
+            reason?: string | null;
+        };
+        /** @description A reservation placed by the office. */
+        LibraryReservationCreate: {
+            /** Format: uuid */
+            membershipId: string;
+        };
+        LibraryReservationList: {
+            items: components["schemas"]["LibraryReservationView"][];
+        };
+        /**
+         * @description Reservation (L3-G-134…136).
+         * @enum {string}
+         */
+        LibraryReservationStatus: "queued" | "ready" | "collected" | "expired" | "cancelled";
+        /** @description A reservation on a title. */
+        LibraryReservationView: {
+            accessionNumber?: string | null;
+            /** Format: uuid */
+            copyId?: string | null;
+            /**
+             * Format: int64
+             * @description Current place among the queued reservations of the title (queued only).
+             */
+            currentPosition?: number | null;
+            displayName: string;
+            /** Format: date */
+            holdUntil?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            loanId?: string | null;
+            memberNumber: string;
+            /** Format: uuid */
+            membershipId: string;
+            personKind: components["schemas"]["PersonKind"];
+            /**
+             * Format: int32
+             * @description Position when placed.
+             */
+            queuePosition: number;
+            /** Format: date */
+            readyOn?: string | null;
+            /** Format: uuid */
+            recordId: string;
+            status: components["schemas"]["LibraryReservationStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Set or lift an administrative borrowing restriction. */
+        LibraryRestrictionBody: {
+            reason?: string | null;
+            /** @description `true` to restrict borrowing, `false` to resolve the restriction. */
+            restricted: boolean;
         };
         /** @description Body of an approval decision endpoint. */
         LifecycleDecision: {
@@ -27432,6 +34598,100 @@ export interface components {
             staffId: string;
             /** @description `planned`, `active`, `ended`, `cancelled`. */
             status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description One generated cycle of a preventive plan (L3-G-024).
+         * @enum {string}
+         */
+        MaintenanceCycleStatus: "scheduled" | "due" | "deferred" | "completed" | "missed";
+        /** @description One generated cycle of a plan. */
+        MaintenanceCycleView: {
+            /** Format: date */
+            dueOn: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            periodStart: string;
+            /** Format: uuid */
+            planId: string;
+            status: components["schemas"]["MaintenanceCycleStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: uuid */
+            workOrderId?: string | null;
+            workOrderNumber?: string | null;
+            workOrderStatus?: null | components["schemas"]["WorkOrderStatus"];
+        };
+        /** @description Defer / reschedule a cycle. */
+        MaintenanceDefer: {
+            dueOn: string;
+            reason?: string | null;
+        };
+        /**
+         * @description How often a preventive plan generates a cycle.
+         * @enum {string}
+         */
+        MaintenanceFrequency: "weekly" | "monthly" | "quarterly" | "half_yearly" | "yearly";
+        /** @description Generate cycles + work orders through a date. */
+        MaintenanceGenerate: {
+            /**
+             * @description Last period start to generate (≤ one year ahead).
+             * @example 2027-02-28
+             */
+            through: string;
+        };
+        /** @description Create a draft plan. */
+        MaintenancePlanCreate: {
+            defaultAssignee?: string | null;
+            description?: string | null;
+            endDate?: string | null;
+            frequency: components["schemas"]["MaintenanceFrequency"];
+            /** Format: uuid */
+            nodeId: string;
+            /** @example 2026-12-01 */
+            startDate: string;
+            title: string;
+        };
+        /** @description A plan with its cycles. */
+        MaintenancePlanDetail: {
+            cycles: components["schemas"]["MaintenanceCycleView"][];
+            plan: components["schemas"]["MaintenancePlanView"];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Plans. */
+        MaintenancePlanList: {
+            items: components["schemas"]["MaintenancePlanView"][];
+        };
+        /**
+         * @description Preventive maintenance plan lifecycle (L3-G-023).
+         * @enum {string}
+         */
+        MaintenancePlanStatus: "draft" | "active" | "suspended" | "retired";
+        /** @description A preventive maintenance plan. */
+        MaintenancePlanView: {
+            approvalState: components["schemas"]["PlanApprovalState"];
+            defaultAssignee?: string | null;
+            description?: string | null;
+            /** Format: date */
+            endDate?: string | null;
+            frequency: components["schemas"]["MaintenanceFrequency"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            nodeCode: string;
+            /** Format: uuid */
+            nodeId: string;
+            processInstanceId?: string | null;
+            /** Format: date */
+            startDate: string;
+            status: components["schemas"]["MaintenancePlanStatus"];
+            statusReason?: string | null;
+            title: string;
             /** Format: int64 */
             version: number;
         };
@@ -27857,6 +35117,108 @@ export interface components {
             canonicalStaffId: string;
             reason: string;
         };
+        /** @description Move a resident to another mess. */
+        MessAllocationChange: {
+            /**
+             * Format: date
+             * @description First day in the new mess (default: today).
+             */
+            effectiveFrom?: string | null;
+            /** Format: uuid */
+            messId: string;
+            reason?: string | null;
+        };
+        /** @description Assign a resident to this mess. */
+        MessAllocationCreate: {
+            /** Format: uuid */
+            hostelAllocationId: string;
+            /**
+             * Format: date
+             * @description Default: today.
+             */
+            startDate?: string | null;
+        };
+        /** @description Dining assignments. */
+        MessAllocationList: {
+            items: components["schemas"]["MessAllocationView"][];
+        };
+        /** @description A resident's dining assignment. */
+        MessAllocationView: {
+            /** Format: date */
+            endDate?: string | null;
+            /** Format: uuid */
+            hostelAllocationId: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            messCode: string;
+            /** Format: uuid */
+            messId: string;
+            personName: string;
+            personNumber: string;
+            /** Format: uuid */
+            previousId?: string | null;
+            /** Format: date */
+            startDate: string;
+            /** @description `active | changed | ended`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A new mess. */
+        MessCreate: {
+            /** Format: int32 */
+            capacity: number;
+            code: string;
+            /** @description `veg | non_veg | mixed`. */
+            menuType: string;
+            name: string;
+        };
+        /** @description Messes of an institution. */
+        MessList: {
+            items: components["schemas"]["MessView"][];
+        };
+        /** @description A mess (dining hall). */
+        MessView: {
+            /**
+             * Format: int64
+             * @description Active dining assignments.
+             */
+            assigned: number;
+            /** Format: int32 */
+            capacity: number;
+            /** @example MESS-A */
+            code: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description `veg | non_veg | mixed`. */
+            menuType: string;
+            name: string;
+            /** @description `active | inactive`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One operational figure (decimal string). */
+        MetricValueView: {
+            /** @example campus */
+            domain: string;
+            /** @example campus.active_spaces */
+            key: string;
+            label: string;
+            /** @example count */
+            unit: string;
+            /** @example 42 */
+            value: string;
+        };
+        /** @description The figures of an institution. */
+        MetricsView: {
+            items: components["schemas"]["MetricValueView"][];
+        };
         /**
          * @description Authentication assurance of a session (ADR-L5-0038 §3.8).
          *
@@ -28208,6 +35570,10 @@ export interface components {
         MyClassList: {
             items: components["schemas"]["MyClass"][];
         };
+        /** @description A clearance I request. */
+        MyClearanceCreate: {
+            purpose: string;
+        };
         /** @description A course the student is seated in (§5.3). */
         MyCourse: {
             /** Format: uuid */
@@ -28233,6 +35599,9 @@ export interface components {
         MyCourseList: {
             items: components["schemas"]["MyCourse"][];
         };
+        MyDashboardList: {
+            items: components["schemas"]["DashboardRenderView"][];
+        };
         MyEnrolments: {
             items: components["schemas"]["SectionEnrolment"][];
             waitlist: components["schemas"]["OfferingWaitlistEntry"][];
@@ -28242,8 +35611,49 @@ export interface components {
             enrolments: components["schemas"]["FlexibleEnrolment"][];
             opportunities: components["schemas"]["LearningOpportunity"][];
         };
+        /** @description The caller's own hostel application. */
+        MyHostelApplicationCreate: {
+            /**
+             * Format: uuid
+             * @description Institution the caller studies / works at.
+             */
+            institutionId: string;
+            preference?: string | null;
+        };
+        /** @description The caller's hostel situation. */
+        MyHostelView: {
+            allocation?: null | components["schemas"]["HostelAllocationView"];
+            application?: null | components["schemas"]["HostelApplicationView"];
+            /** @description Complaints raised for the live residency. */
+            complaints: components["schemas"]["CampusResidenceComplaintView"][];
+            /** @description Leaves of the live residency. */
+            leaves: components["schemas"]["ResidentLeaveView"][];
+            person: components["schemas"]["CampusPersonView"];
+        };
         MyLeaveTypeList: {
             items: components["schemas"]["LeaveTypeView"][];
+        };
+        /** @description A library complaint or service request. */
+        MyLibraryComplaint: {
+            /**
+             * Format: uuid
+             * @description The copy concerned, when any.
+             */
+            copyId?: string | null;
+            description?: string | null;
+            title: string;
+        };
+        /** @description Everything the Student Library panel shows. */
+        MyLibraryView: {
+            clearance?: null | components["schemas"]["LibraryClearanceView"];
+            displayName: string;
+            eligibility?: null | components["schemas"]["LibraryEligibilityView"];
+            fines: components["schemas"]["LibraryFineView"][];
+            loans: components["schemas"]["LibraryLoanView"][];
+            membership?: null | components["schemas"]["LibraryMembershipView"];
+            personKind: components["schemas"]["PersonKind"];
+            personNumber: string;
+            reservations: components["schemas"]["LibraryReservationView"][];
         };
         /** @description The caller's own profile (My HR). */
         MyProfileView: {
@@ -28253,6 +35663,11 @@ export interface components {
             faculty?: null | components["schemas"]["FacultyProfileView"];
             qualifications: components["schemas"]["QualificationView"][];
             staff?: null | components["schemas"]["StaffRecordView"];
+        };
+        /** @description A reservation I place. */
+        MyReservationCreate: {
+            /** Format: uuid */
+            recordId: string;
         };
         MyResources: {
             items: components["schemas"]["CourseResource"][];
@@ -28282,6 +35697,26 @@ export interface components {
             status: components["schemas"]["AssessmentSubmissionStatus"];
             /** Format: date-time */
             submittedAt?: string | null;
+        };
+        /** @description Request a seat on a route. */
+        MyTransportRequest: {
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            routeId: string;
+            /** Format: uuid */
+            stopId: string;
+        };
+        /** @description Routes a passenger can request. */
+        MyTransportRouteList: {
+            items: components["schemas"]["TransportRouteView"][];
+        };
+        /** @description The caller's transport situation. */
+        MyTransportView: {
+            allocation?: null | components["schemas"]["TransportAllocationView"];
+            complaints: components["schemas"]["CampusResidenceComplaintView"][];
+            pass?: null | components["schemas"]["TransportPassView"];
+            person: components["schemas"]["CampusPersonView"];
         };
         /**
          * @description NEP 2020 school stage (5+3+3+4).
@@ -29555,6 +36990,16 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description An operational report: the figures of one area, as of `generatedAt`. */
+        OperationalReportView: {
+            /** Format: date-time */
+            generatedAt: string;
+            /** Format: uuid */
+            institutionId: string;
+            items: components["schemas"]["MetricValueView"][];
+            /** @example library */
+            report: string;
+        };
         OpportunityCapacity: {
             /** Format: int32 */
             capacity: number;
@@ -30251,6 +37696,11 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /**
+         * @description Kind of person a campus record belongs to (resident, passenger, borrower, requester).
+         * @enum {string}
+         */
+        PersonKind: "student" | "staff";
         PickupAuthorisation: {
             /** Format: date-time */
             createdAt: string;
@@ -30286,6 +37736,11 @@ export interface components {
             reason: string;
             source: components["schemas"]["HoldSource"];
         };
+        /**
+         * @description Approval of a draft maintenance plan (`MAINTENANCE_PLAN_APPROVAL`).
+         * @enum {string}
+         */
+        PlanApprovalState: "not_requested" | "pending" | "approved" | "rejected";
         /** @description An institutional policy. */
         Policy: {
             /** Format: date-time */
@@ -30559,6 +38014,62 @@ export interface components {
             orgUnitId?: string | null;
             staffCategory?: null | components["schemas"]["StaffCategory"];
             status: components["schemas"]["PositionStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Plan a practical session. */
+        PracticalSessionCreate: {
+            /**
+             * Format: int32
+             * @description Defaults to (and at most) the lab capacity.
+             */
+            capacity?: number | null;
+            courseCode?: string | null;
+            /** @example 16:00 */
+            endTime: string;
+            /** @example 2026-12-02 */
+            sessionDate: string;
+            /** @example 14:00 */
+            startTime: string;
+            title: string;
+        };
+        /** @description Practical sessions. */
+        PracticalSessionList: {
+            items: components["schemas"]["PracticalSessionView"][];
+        };
+        /** @description Postpone a session (optionally to a new slot). */
+        PracticalSessionPostpone: {
+            endTime?: string | null;
+            reason?: string | null;
+            sessionDate?: string | null;
+            startTime?: string | null;
+        };
+        /**
+         * @description Practical session lifecycle (L3-G-053, 057).
+         * @enum {string}
+         */
+        PracticalSessionStatus: "planned" | "ready" | "in_progress" | "completed" | "postponed" | "cancelled";
+        /** @description A practical session. */
+        PracticalSessionView: {
+            /**
+             * Format: int64
+             * @description Students allocated so far.
+             */
+            allocated: number;
+            /** Format: int32 */
+            capacity: number;
+            courseCode?: string | null;
+            endTime: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            labId: string;
+            /** Format: date */
+            sessionDate: string;
+            startTime: string;
+            status: components["schemas"]["PracticalSessionStatus"];
             statusReason?: string | null;
             title: string;
             /** Format: int64 */
@@ -31044,6 +38555,235 @@ export interface components {
             /** Format: int32 */
             skipped: number;
         };
+        /** @description Supplier acknowledgement of an issued order. */
+        PurchaseOrderAcknowledge: {
+            /** Format: date */
+            expectedDelivery?: string | null;
+            /** @description Supplier's order confirmation reference. */
+            reference: string;
+        };
+        /** @description Amend an issued order. */
+        PurchaseOrderAmend: {
+            /** Format: date */
+            expectedDelivery?: string | null;
+            lines: components["schemas"]["PurchaseOrderLineChange"][];
+            reason?: string | null;
+        };
+        /** @description Create a purchase order from an awarded sourcing event **or** a released requisition. */
+        PurchaseOrderCreate: {
+            /** Format: uuid */
+            deliveryLocationId?: string | null;
+            /** Format: date */
+            expectedDelivery?: string | null;
+            notes?: string | null;
+            /** @description Prices of a direct order (default: the requisition's estimates). */
+            prices?: components["schemas"]["PurchaseOrderPriceInput"][] | null;
+            /** Format: uuid */
+            requisitionId?: string | null;
+            /** Format: uuid */
+            sourcingEventId?: string | null;
+            /**
+             * Format: uuid
+             * @description Required for an order straight from a requisition.
+             */
+            supplierId?: string | null;
+        };
+        /** @description A purchase order with its lines. */
+        PurchaseOrderDetail: components["schemas"]["PurchaseOrderView"] & {
+            lines: components["schemas"]["PurchaseOrderLineView"][];
+        };
+        /** @description One changed line of an amendment. */
+        PurchaseOrderLineChange: {
+            /** Format: int32 */
+            lineNo: number;
+            quantity?: string | null;
+            unitPrice?: string | null;
+        };
+        /** @description One purchase order line. */
+        PurchaseOrderLineView: {
+            /** @example 2400.00 */
+            amount: string;
+            description: string;
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description On posted vendor invoices (net of credit notes).
+             * @example 4.000
+             */
+            invoicedQuantity: string;
+            itemCode?: string | null;
+            /** Format: uuid */
+            itemId?: string | null;
+            /** @description `stock | asset | service`. */
+            lineKind: string;
+            /** Format: int32 */
+            lineNo: number;
+            /** @example 10.000 */
+            quantity: string;
+            /**
+             * @description Accepted into stock / custody so far.
+             * @example 4.000
+             */
+            receivedQuantity: string;
+            unit: string;
+            /** @example 240.00 */
+            unitPrice: string;
+        };
+        PurchaseOrderList: {
+            items: components["schemas"]["PurchaseOrderView"][];
+        };
+        /** @description Price of one requisition line on a direct order. */
+        PurchaseOrderPriceInput: {
+            /** Format: int32 */
+            lineNo: number;
+            /** @example 240.00 */
+            unitPrice: string;
+        };
+        /** @description A purchase order (header). */
+        PurchaseOrderView: {
+            /** Format: date-time */
+            acknowledgedAt?: string | null;
+            acknowledgementRef?: string | null;
+            approvalPending: boolean;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            deliveryLocationId?: string | null;
+            /** Format: date */
+            expectedDelivery?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: date-time */
+            issuedAt?: string | null;
+            notes?: string | null;
+            /** @example PO-000001 */
+            number: string;
+            /** Format: date */
+            orderDate: string;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            quotationId?: string | null;
+            /** Format: uuid */
+            requisitionId?: string | null;
+            /** Format: int32 */
+            revision: number;
+            /** Format: uuid */
+            sourcingEventId?: string | null;
+            /** @description `draft | issued | acknowledged | partially_received | received | closed | cancelled`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            supplierId: string;
+            supplierName: string;
+            supplierNumber: string;
+            /** @example 24000.00 */
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Amend a requisition. */
+        PurchaseRequisitionAmend: {
+            justification?: string | null;
+            lines: components["schemas"]["PurchaseRequisitionLineInput"][];
+            /** Format: date */
+            neededBy?: string | null;
+            /** @description Required unless the requisition is still a draft. */
+            reason?: string | null;
+            title?: string | null;
+        };
+        /** @description Create a requisition. */
+        PurchaseRequisitionCreate: {
+            justification?: string | null;
+            lines: components["schemas"]["PurchaseRequisitionLineInput"][];
+            /** Format: date */
+            neededBy?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            /**
+             * Format: uuid
+             * @description Defaults to the caller's staff record (when the caller is staff).
+             */
+            requesterStaffId?: string | null;
+            title: string;
+        };
+        /** @description A purchase requisition with its lines. */
+        PurchaseRequisitionDetail: components["schemas"]["PurchaseRequisitionView"] & {
+            lines: components["schemas"]["PurchaseRequisitionLineView"][];
+        };
+        /** @description One line of a create / amend body: an active item **or** free text. */
+        PurchaseRequisitionLineInput: {
+            /** @description Required for free-text lines (defaults to the item name). */
+            description?: string | null;
+            /**
+             * @description Defaults to the item's standard cost; required for free-text lines.
+             * @example 250.00
+             */
+            estimatedUnitCost?: string | null;
+            /** Format: uuid */
+            itemId?: string | null;
+            /** @example 10 */
+            quantity: string;
+            unit?: string | null;
+        };
+        /** @description One requisition line. */
+        PurchaseRequisitionLineView: {
+            description: string;
+            /** @example 2500.00 */
+            estimatedAmount: string;
+            /** @example 250.00 */
+            estimatedUnitCost: string;
+            itemCode?: string | null;
+            /** Format: uuid */
+            itemId?: string | null;
+            /** Format: int32 */
+            lineNo: number;
+            /** @example 10.000 */
+            quantity: string;
+            unit: string;
+        };
+        PurchaseRequisitionList: {
+            items: components["schemas"]["PurchaseRequisitionView"][];
+        };
+        /** @description A purchase requisition (header). */
+        PurchaseRequisitionView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            /** @example 2500.00 */
+            estimatedTotal: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            justification?: string | null;
+            /** Format: date */
+            neededBy?: string | null;
+            /** @example PR-000001 */
+            number: string;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            requesterStaffId?: string | null;
+            /** Format: int32 */
+            revision: number;
+            /** @description `manual | replenishment`. */
+            source: string;
+            /** @description `draft | submitted | approved | released | rejected | amended | withdrawn | cancelled | ordered | closed`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description Qualification Completion aggregate (§5.3 minimum: id, studentId, outcome, status, conferredOn, version). */
         QualificationCompletion: {
             auditResult?: null | components["schemas"]["AuditResult"];
@@ -31194,6 +38934,65 @@ export interface components {
             version: number;
             /** Format: int32 */
             yearOfCompletion?: number | null;
+        };
+        /** @description A supplier quotation. */
+        QuotationCreate: {
+            /** Format: int32 */
+            deliveryDays?: number | null;
+            /** @description One price per requisition line. */
+            lines: components["schemas"]["QuotationLineInput"][];
+            reference?: string | null;
+            /** Format: uuid */
+            supplierId: string;
+            /** Format: date */
+            validUntil?: string | null;
+        };
+        /** @description A quotation with its lines. */
+        QuotationDetail: components["schemas"]["QuotationView"] & {
+            lines: components["schemas"]["QuotationLineView"][];
+        };
+        /** @description One priced requisition line of a quotation. */
+        QuotationLineInput: {
+            /** Format: int32 */
+            lineNo: number;
+            /** @example 240.00 */
+            unitPrice: string;
+        };
+        /** @description One priced line of a quotation (requisition line number). */
+        QuotationLineView: {
+            /** @example 2400.00 */
+            amount: string;
+            /** Format: int32 */
+            lineNo: number;
+            /** @example 240.00 */
+            unitPrice: string;
+        };
+        /** @description A supplier quotation (header). */
+        QuotationView: {
+            /** Format: int32 */
+            deliveryDays?: number | null;
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: int32
+             * @description 1 = lowest total after evaluation.
+             */
+            rank?: number | null;
+            reference?: string | null;
+            /** Format: uuid */
+            sourcingEventId: string;
+            /** @description `received | shortlisted | accepted | rejected`. */
+            status: string;
+            /** Format: uuid */
+            supplierId: string;
+            supplierName: string;
+            supplierNumber: string;
+            /** @example 24000.00 */
+            totalAmount: string;
+            /** Format: date */
+            validUntil?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         /**
          * @description Area a check belongs to (drives grouping in the web checklist).
@@ -31889,6 +39688,18 @@ export interface components {
         RenameInstitution: {
             name: string;
         };
+        /** @description One widget with its live figure. */
+        RenderedWidgetView: {
+            code: string;
+            metric?: null | components["schemas"]["MetricValueView"];
+            metricKey: string;
+            /** Format: int32 */
+            position: number;
+            title: string;
+            visualization: components["schemas"]["WidgetVisualization"];
+            /** Format: uuid */
+            widgetId: string;
+        };
         ReopenCase: {
             evidence?: string | null;
             reason: string;
@@ -31897,11 +39708,206 @@ export interface components {
             summary?: string | null;
             topics: components["schemas"]["TopicInput"][];
         };
+        ReplenishmentNeedList: {
+            items: components["schemas"]["ReplenishmentNeedView"][];
+        };
+        /** @description A replenishment need raised by the reorder-level run. */
+        ReplenishmentNeedView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            itemCode: string;
+            /** Format: uuid */
+            itemId: string;
+            itemName: string;
+            /** @example 8.000 */
+            onHand: string;
+            /** @example 12.000 */
+            reorderLevel: string;
+            /** Format: uuid */
+            requisitionId?: string | null;
+            /** @example 0.000 */
+            reserved: string;
+            /** @description `open | requisitioned | closed`. */
+            status: string;
+            /** @example 50.000 */
+            suggestedQuantity: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Options of the reorder-level run. */
+        ReplenishmentRun: {
+            /** @description Also draft one purchase requisition covering every new need. */
+            draftRequisition?: boolean;
+        };
+        /**
+         * @description Approve / reject.
+         * @enum {string}
+         */
+        ReportDecision: "approve" | "reject";
+        /** @description Decision of a governed reporting step (`services.report.approve`). */
+        ReportDecisionBody: {
+            decision: components["schemas"]["ReportDecision"];
+            reason?: string | null;
+        };
+        /** @description Optional reason of a reporting state command. */
+        ReportReasonBody: {
+            reason?: string | null;
+        };
+        /**
+         * @description Collected data snapshot (L3-H-057).
+         * @enum {string}
+         */
+        ReportSnapshotStatus: "collected" | "validated" | "rejected";
+        /** @description One frozen value of a snapshot. */
+        ReportSnapshotValueView: {
+            key: string;
+            label: string;
+            /** @description `metric` (from the owning domain) or `manual`. */
+            source: string;
+            unit?: string | null;
+            /** @example 1250 */
+            value?: string | null;
+            valueText?: string | null;
+        };
+        /** @description A collected snapshot (values only on the single-snapshot reads). */
+        ReportSnapshotView: {
+            collectedBy?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            cycleId: string;
+            /** Format: uuid */
+            id: string;
+            issues: components["schemas"]["ReportingIssue"][];
+            /** Format: int32 */
+            seq: number;
+            status: components["schemas"]["ReportSnapshotStatus"];
+            statusReason?: string | null;
+            values: components["schemas"]["ReportSnapshotValueView"][];
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Approval state of a framework draft (`REPORTING_FRAMEWORK_APPROVAL`).
+         * @enum {string}
+         */
+        ReportingApprovalState: "not_submitted" | "pending" | "approved" | "rejected";
         /** @description Reporting manager (L3-E-018); `null` removes it. */
         ReportingBody: {
             reason?: string | null;
             /** Format: uuid */
             reportsToStaffId?: string | null;
+        };
+        /** @description Manual values of a collection. */
+        ReportingCollect: {
+            manualValues?: {
+                [key: string]: string;
+            };
+        };
+        /** @description The collection plan frozen into a cycle from its framework version. */
+        ReportingCollectionPlan: {
+            manualFields: components["schemas"]["ReportingManualField"][];
+            metricKeys: string[];
+        };
+        /** @description A cycle to open. */
+        ReportingCycleCreate: {
+            /** Format: date */
+            dueOn?: string | null;
+            periodLabel: string;
+        };
+        /** @description A cycle with its snapshots and packages. */
+        ReportingCycleDetail: {
+            cycle: components["schemas"]["ReportingCycleView"];
+            packages: components["schemas"]["SubmissionPackageView"][];
+            snapshots: components["schemas"]["ReportSnapshotView"][];
+        };
+        ReportingCycleList: {
+            items: components["schemas"]["ReportingCycleView"][];
+        };
+        /**
+         * @description Reporting cycle (L3-H-056…060).
+         * @enum {string}
+         */
+        ReportingCycleStatus: "planned" | "collecting" | "validating" | "packaged" | "submitted" | "closed";
+        /** @description A reporting cycle. */
+        ReportingCycleView: {
+            collectionPlan: components["schemas"]["ReportingCollectionPlan"];
+            /** Format: date */
+            dueOn?: string | null;
+            frameworkCode: string;
+            /** Format: uuid */
+            frameworkId: string;
+            /** Format: int32 */
+            frameworkVersionNo: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example RC-000001 */
+            number: string;
+            /** @example 2025-26 */
+            periodLabel: string;
+            status: components["schemas"]["ReportingCycleStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A reporting definition (new code or new version of an existing code). */
+        ReportingFrameworkCreate: {
+            code: string;
+            manualFields?: components["schemas"]["ReportingManualField"][];
+            /** @description Operational figures (`<domain>.<key>`) the return needs. */
+            metricKeys: string[];
+            name: string;
+            /** @description `AISHE`, `NIRF`, `NAAC` … (the receiving body). */
+            regulator: string;
+        };
+        ReportingFrameworkList: {
+            items: components["schemas"]["ReportingFrameworkView"][];
+        };
+        /**
+         * @description Reporting definition version (L3-H-055).
+         * @enum {string}
+         */
+        ReportingFrameworkStatus: "draft" | "active" | "superseded";
+        /** @description A reporting framework version. */
+        ReportingFrameworkView: {
+            approvalState: components["schemas"]["ReportingApprovalState"];
+            /** @example AISHE */
+            code: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            manualFields: components["schemas"]["ReportingManualField"][];
+            metricKeys: string[];
+            name: string;
+            /** Format: uuid */
+            predecessorId?: string | null;
+            processInstanceId?: string | null;
+            regulator: string;
+            status: components["schemas"]["ReportingFrameworkStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /** @description One problem found when collecting a snapshot. */
+        ReportingIssue: {
+            issue: string;
+            key: string;
+        };
+        /** @description A field the institution fills by hand (not reported by any domain). */
+        ReportingManualField: {
+            /** @description `^[a-z][a-z0-9_]{0,47}$`. */
+            key: string;
+            label: string;
+            required?: boolean;
         };
         /** @description `POST …/institutions/{id}/org-restructures`. */
         RequestRestructure: {
@@ -31982,6 +39988,116 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Book a space (office booking may name the requester). */
+        ReservationCreate: {
+            /** Format: int32 */
+            attendees: number;
+            /** @example 2026-12-01 */
+            date: string;
+            /** @example 11:00 */
+            endTime: string;
+            /** Format: uuid */
+            nodeId: string;
+            purpose?: string | null;
+            requester?: null | components["schemas"]["FacilityPersonInput"];
+            /** @example 09:00 */
+            startTime: string;
+        };
+        /** @description Reservations. */
+        ReservationList: {
+            items: components["schemas"]["ReservationView"][];
+        };
+        /** @description Move a reservation. */
+        ReservationReschedule: {
+            /** Format: int32 */
+            attendees?: number | null;
+            date: string;
+            endTime: string;
+            reason?: string | null;
+            startTime: string;
+        };
+        /**
+         * @description Space reservation lifecycle (L2-G10; L3-G-291…293).
+         * @enum {string}
+         */
+        ReservationStatus: "requested" | "confirmed" | "rescheduled" | "cancelled" | "completed" | "rejected";
+        /** @description A space reservation. */
+        ReservationView: {
+            /** Format: int32 */
+            attendees: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            date: string;
+            /** @example 11:00 */
+            endTime: string;
+            flagReason?: string | null;
+            /** @description The space was suspended after the booking. */
+            flagged: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            nodeCode: string;
+            /** Format: uuid */
+            nodeId: string;
+            nodeName: string;
+            /** @example RSV-000001 */
+            number: string;
+            processInstanceId?: string | null;
+            purpose: string;
+            /** Format: uuid */
+            requesterId?: string | null;
+            requesterKind?: null | components["schemas"]["PersonKind"];
+            /** @example 09:00 */
+            startTime: string;
+            status: components["schemas"]["ReservationStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A leave request of a resident. */
+        ResidentLeaveCreate: {
+            destination?: string | null;
+            /** Format: date */
+            fromDate: string;
+            reason?: string | null;
+            /** Format: date */
+            toDate: string;
+        };
+        /** @description Resident leaves. */
+        ResidentLeaveList: {
+            items: components["schemas"]["ResidentLeaveView"][];
+        };
+        /** @description A resident leave / out-pass. */
+        ResidentLeaveView: {
+            /** Format: uuid */
+            allocationId: string;
+            /** Format: date-time */
+            departedAt?: string | null;
+            destination?: string | null;
+            /** Format: date */
+            fromDate: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            personName: string;
+            personNumber: string;
+            processInstanceId?: string | null;
+            reason?: string | null;
+            /** Format: date-time */
+            returnedAt?: string | null;
+            /** @description Returned after the last leave day. */
+            returnedLate: boolean;
+            /** @description `requested | approved | rejected | out | returned | overdue`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: date */
+            toDate: string;
+            /** Format: int64 */
+            version: number;
+        };
         ResolveClearance: {
             note?: string | null;
             status: components["schemas"]["ClearanceResolution"];
@@ -32000,6 +40116,36 @@ export interface components {
             /** Format: uuid */
             sectionId: string;
             title: string;
+        };
+        /** @description One failed element of a bulk command. */
+        ResourcesBulkFailure: {
+            /** Format: uuid */
+            id?: string | null;
+            message: string;
+        };
+        /** @description Result of a bulk command (`{processed, skipped, failed[]}`). */
+        ResourcesBulkResult: {
+            /** @description Records created by the command (needs, requisitions …). */
+            createdIds: string[];
+            failed: components["schemas"]["ResourcesBulkFailure"][];
+            /** Format: int64 */
+            processed: number;
+            /** Format: int64 */
+            skipped: number;
+        };
+        /**
+         * @description Approve / reject.
+         * @enum {string}
+         */
+        ResourcesDecision: "approve" | "reject";
+        /** @description Decision of a governed step (`resources.approve`). */
+        ResourcesDecisionBody: {
+            decision: components["schemas"]["ResourcesDecision"];
+            reason?: string | null;
+        };
+        /** @description Optional reason of a state command. */
+        ResourcesReasonBody: {
+            reason?: string | null;
         };
         /**
          * @description What a financial responsibility covers (L3-C-057; invoices/payments stay with Finance).
@@ -32329,6 +40475,163 @@ export interface components {
          * @enum {string}
          */
         Role: "administrator" | "faculty" | "student";
+        /** @description Inspection outcome. */
+        RoomInspectionComplete: {
+            /**
+             * @description Damage to charge (`"0"` / absent = no damage).
+             * @example 1200.00
+             */
+            damageAmount?: string | null;
+            findings?: string | null;
+        };
+        /** @description Schedule an inspection of a hostel room (optionally for its resident). */
+        RoomInspectionCreate: {
+            /**
+             * Format: uuid
+             * @description The residency inspected (damage is charged to this resident).
+             */
+            allocationId?: string | null;
+            /** Format: date */
+            scheduledOn: string;
+        };
+        /** @description Room inspections. */
+        RoomInspectionList: {
+            items: components["schemas"]["RoomInspectionView"][];
+        };
+        /** @description A room inspection. */
+        RoomInspectionView: {
+            /** Format: uuid */
+            allocationId?: string | null;
+            /** Format: uuid */
+            chargeId?: string | null;
+            chargeNumber?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** @example 1200.00 */
+            damageAmount?: string | null;
+            findings?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            personNumber?: string | null;
+            roomCode: string;
+            /** Format: uuid */
+            roomNodeId: string;
+            /** Format: date */
+            scheduledOn: string;
+            /** @description `scheduled | completed | damage_found | charged | closed`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Request a move to another free bed. */
+        RoomTransferCreate: {
+            reason?: string | null;
+            /** Format: uuid */
+            toBedId: string;
+        };
+        /** @description Room transfers. */
+        RoomTransferList: {
+            items: components["schemas"]["RoomTransferView"][];
+        };
+        /** @description A room transfer request. */
+        RoomTransferView: {
+            /** Format: uuid */
+            allocationId: string;
+            /** Format: date-time */
+            completedAt?: string | null;
+            fromBedCode: string;
+            /** Format: uuid */
+            fromBedId: string;
+            fromRoomCode: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            personNumber: string;
+            processInstanceId?: string | null;
+            reason?: string | null;
+            /** @description `requested | approved | rejected | completed`. */
+            status: string;
+            statusReason?: string | null;
+            toBedCode: string;
+            /** Format: uuid */
+            toBedId: string;
+            toRoomCode: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One stop in a draft version. */
+        RouteStopInput: {
+            /** @example 07:45 */
+            pickupTime?: string | null;
+            /** Format: int32 */
+            sequence: number;
+            /** Format: uuid */
+            stopId: string;
+        };
+        /** @description One stop of a route version, in order. */
+        RouteStopView: {
+            code: string;
+            name: string;
+            /** @description `HH:MM`. */
+            pickupTime?: string | null;
+            /** Format: int32 */
+            sequence: number;
+            /** Format: uuid */
+            stopId: string;
+            /** @description `active | suspended | retired`. */
+            stopStatus: string;
+        };
+        /** @description The ordered stops of a draft version (replaces the list). */
+        RouteStopsBody: {
+            stops: components["schemas"]["RouteStopInput"][];
+        };
+        /** @description A new draft version (stops copied from the current version; edit them before activation). */
+        RouteVersionCreate: {
+            /** Format: int32 */
+            capacity?: number | null;
+            /**
+             * Format: date
+             * @description After the current version's start.
+             */
+            effectiveFrom: string;
+            /** @example 6500.00 */
+            fare?: string | null;
+            note?: string | null;
+        };
+        /** @description Versions of a route, newest first. */
+        RouteVersionList: {
+            items: components["schemas"]["RouteVersionView"][];
+        };
+        /** @description An effective-dated version of a route with its ordered stops. */
+        RouteVersionView: {
+            /** Format: date-time */
+            activatedAt?: string | null;
+            /** Format: int32 */
+            capacity: number;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+            /** @example 6000.00 */
+            fare: string;
+            /** Format: uuid */
+            id: string;
+            note?: string | null;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            routeId: string;
+            /** @description `draft | active | superseded`. */
+            status: string;
+            stops: components["schemas"]["RouteStopView"][];
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
         /**
          * @description A new rule version (`late_fee` {percent, graceDays, cap}, `rounding` {mode},
          *     `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
@@ -32836,6 +41139,11 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /**
+         * Format: uuid
+         * @description Service desk ticket: service request or complaint from any campus service (L2-G01 / G03 / G04 / G05).
+         */
+        ServiceTicketId: string;
         SessionArchival: {
             /** Format: uuid */
             academicTermId: string;
@@ -32988,6 +41296,122 @@ export interface components {
          * @enum {string}
          */
         SimulationStatus: "draft" | "evaluated" | "accepted" | "discarded";
+        /** @description Award the event to one quotation. */
+        SourcingAward: {
+            /** Format: uuid */
+            quotationId: string;
+            /** @description Required when the quotation is not the lowest. */
+            reason?: string | null;
+        };
+        /** @description Start sourcing a released requisition. */
+        SourcingEventCreate: {
+            /** Format: date */
+            closingDate?: string | null;
+            /** @description `rfq` (competitive) or `direct` (simplified, small value). */
+            method: string;
+            /** Format: uuid */
+            requisitionId: string;
+            title?: string | null;
+        };
+        /** @description A sourcing event with the demand lines and the quotations. */
+        SourcingEventDetail: components["schemas"]["SourcingEventView"] & {
+            lines: components["schemas"]["PurchaseRequisitionLineView"][];
+            quotations: components["schemas"]["QuotationDetail"][];
+        };
+        SourcingEventList: {
+            items: components["schemas"]["SourcingEventView"][];
+        };
+        /** @description A sourcing event (header). */
+        SourcingEventView: {
+            awardReason?: string | null;
+            /** Format: date-time */
+            awardedAt?: string | null;
+            /** Format: uuid */
+            awardedQuotationId?: string | null;
+            /** Format: uuid */
+            awardedSupplierId?: string | null;
+            /** Format: date */
+            closingDate?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @example 25000.00 */
+            estimatedValue: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description `rfq | direct`. */
+            method: string;
+            /** @example RFQ-000001 */
+            number: string;
+            /**
+             * Format: uuid
+             * @description Quotation proposed for award, awaiting `AWARD_APPROVAL`.
+             */
+            pendingQuotationId?: string | null;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            requisitionId: string;
+            requisitionNumber: string;
+            /** @description `draft | open | evaluating | awarded | cancelled`. */
+            status: string;
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A reservation occupying a slot. */
+        SpaceBusySlot: {
+            endTime: string;
+            number: string;
+            purpose: string;
+            /** Format: uuid */
+            reservationId: string;
+            startTime: string;
+            status: components["schemas"]["ReservationStatus"];
+        };
+        /** @description Free / busy calendar of a space (L3-G-315). */
+        SpaceCalendar: {
+            /** Format: int32 */
+            capacity?: number | null;
+            code: string;
+            days: components["schemas"]["SpaceCalendarDay"][];
+            nodeId: components["schemas"]["InfrastructureNodeId"];
+            status: components["schemas"]["InfrastructureStatus"];
+        };
+        /** @description One day of a space calendar. */
+        SpaceCalendarDay: {
+            busy: components["schemas"]["SpaceBusySlot"][];
+            /** Format: date */
+            date: string;
+            free: components["schemas"]["SpaceTimeWindow"][];
+            open: components["schemas"]["SpaceTimeWindow"][];
+        };
+        /** @description Replace the capabilities of a space. */
+        SpaceCapabilitiesBody: {
+            capabilities: components["schemas"]["SpaceCapabilityView"][];
+        };
+        /** @description A capability of a space (projector, AC, wheelchair access, fume hood …). */
+        SpaceCapabilityView: {
+            /**
+             * @description `snake_case` code (`projector`, `accessible`, `lab_safety` …).
+             * @example projector
+             */
+            code: string;
+            label: string;
+            /** Format: int32 */
+            quantity?: number | null;
+        };
+        /** @description A time window `HH:MM`–`HH:MM`. */
+        SpaceTimeWindow: {
+            endTime: string;
+            startTime: string;
+        };
+        /**
+         * @description Classification of a space (L3-G-286). Only `space` nodes carry one.
+         * @enum {string}
+         */
+        SpaceType: "classroom" | "lab" | "seminar_room" | "auditorium" | "office" | "hostel_room" | "library" | "reading_room" | "store" | "workshop" | "sports" | "other";
         /** @enum {string} */
         SponsorType: "institutional" | "government" | "private" | "external";
         /**
@@ -33223,6 +41647,265 @@ export interface components {
         /** @description `{ "reason": "…" }` of state commands. */
         StepReason: {
             reason?: string | null;
+        };
+        /** @description Request a stock correction. */
+        StockAdjustmentCreate: {
+            /** Format: uuid */
+            itemId: string;
+            /** Format: uuid */
+            locationId: string;
+            /**
+             * @description Signed quantity (`"-2"` lost, `"3"` found).
+             * @example -2
+             */
+            quantity: string;
+            reason: string;
+        };
+        StockAdjustmentList: {
+            items: components["schemas"]["StockAdjustmentView"][];
+        };
+        /** @description An approved stock correction. */
+        StockAdjustmentView: {
+            /** Format: date */
+            appliedOn?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            decidedBy?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            itemCode: string;
+            /** Format: uuid */
+            itemId: string;
+            /** Format: uuid */
+            ledgerEntryId?: string | null;
+            locationCode: string;
+            /** Format: uuid */
+            locationId: string;
+            processInstanceId?: string | null;
+            /**
+             * @description Signed (+ found / − lost or damaged).
+             * @example -2.000
+             */
+            quantity: string;
+            reason: string;
+            /** @description `requested | approved | applied | rejected`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Request stock from a store. */
+        StockIssueCreate: {
+            /**
+             * Format: uuid
+             * @description Domain E staff member receiving the goods.
+             */
+            issuedToStaffId?: string | null;
+            /** Format: uuid */
+            itemId: string;
+            /** Format: uuid */
+            locationId: string;
+            /**
+             * Format: uuid
+             * @description Domain B org unit consuming them.
+             */
+            orgUnitId?: string | null;
+            purpose: string;
+            /** @example 4 */
+            quantity: string;
+        };
+        StockIssueList: {
+            items: components["schemas"]["StockIssueView"][];
+        };
+        /** @description A stock issue voucher. */
+        StockIssueView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: date */
+            issuedOn?: string | null;
+            /** Format: uuid */
+            issuedToStaffId?: string | null;
+            itemCode: string;
+            /** Format: uuid */
+            itemId: string;
+            /** Format: uuid */
+            ledgerEntryId?: string | null;
+            locationCode: string;
+            /** Format: uuid */
+            locationId: string;
+            /** @example SIV-000001 */
+            number: string;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+            purpose: string;
+            /** @example 4.000 */
+            quantity: string;
+            /** Format: uuid */
+            reservationId?: string | null;
+            /** @example 1.000 */
+            returnedQuantity: string;
+            /** @description `requested | approved | issued | returned | cancelled`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        StockMovementList: {
+            items: components["schemas"]["StockMovementView"][];
+            /**
+             * Format: uuid
+             * @description Pass as `cursor` for the next (older) page.
+             */
+            nextCursor?: string | null;
+        };
+        /** @description One ledger movement. */
+        StockMovementView: {
+            actor?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            effectiveOn: string;
+            /** Format: uuid */
+            id: string;
+            itemCode: string;
+            /** Format: uuid */
+            itemId: string;
+            /** @description `receipt | issue | return_to_store | transfer_out | transfer_in | adjustment | reversal`. */
+            kind: string;
+            locationCode: string;
+            /** Format: uuid */
+            locationId: string;
+            postingKey: string;
+            /** @example -4.000 */
+            quantity: string;
+            reason?: string | null;
+            /** Format: uuid */
+            reversesEntryId?: string | null;
+            /** Format: uuid */
+            sourceId: string;
+            sourceType: string;
+            /** @example 240.00 */
+            unitCost?: string | null;
+        };
+        StockOnHand: {
+            items: components["schemas"]["StockOnHandLine"][];
+        };
+        /** @description On hand of one item at one location (quantity as a decimal string, three places). */
+        StockOnHandLine: {
+            /** @description On hand across all locations is at / below the item's reorder level. */
+            atReorderLevel: boolean;
+            itemCode: string;
+            itemId: components["schemas"]["ItemId"];
+            itemName: string;
+            locationCode: string;
+            locationId: components["schemas"]["StoreLocationId"];
+            /** @example 12.500 */
+            onHand: string;
+            /** @example 5.000 */
+            reorderLevel?: string | null;
+            unit: string;
+        };
+        /** @description Hold stock for a purpose. */
+        StockReservationCreate: {
+            /** Format: uuid */
+            itemId: string;
+            /** Format: uuid */
+            locationId: string;
+            /** Format: date */
+            neededOn?: string | null;
+            purpose: string;
+            /** @example 3 */
+            quantity: string;
+        };
+        /** @description Fulfil a reservation. */
+        StockReservationFulfil: {
+            /** Format: uuid */
+            issuedToStaffId?: string | null;
+            /** Format: uuid */
+            orgUnitId?: string | null;
+        };
+        StockReservationList: {
+            items: components["schemas"]["StockReservationView"][];
+        };
+        /** @description A stock reservation. */
+        StockReservationView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            itemCode: string;
+            /** Format: uuid */
+            itemId: string;
+            locationCode: string;
+            /** Format: uuid */
+            locationId: string;
+            /** Format: date */
+            neededOn?: string | null;
+            purpose: string;
+            /** @example 3.000 */
+            quantity: string;
+            /** @description `active | released | fulfilled`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            stockIssueId?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Return issued goods to the store. */
+        StockReturnCreate: {
+            /** @example 1 */
+            quantity: string;
+            reason?: string | null;
+        };
+        /** @description Create a store or a location. */
+        StoreLocationCreate: {
+            /**
+             * Format: uuid
+             * @description Domain G infrastructure node (stores only; plain uuid).
+             */
+            campusNodeId?: string | null;
+            code: string;
+            name: string;
+        };
+        /**
+         * Format: uuid
+         * @description Store / warehouse or a location inside one (L3-J-053).
+         */
+        StoreLocationId: string;
+        StoreLocationList: {
+            items: components["schemas"]["StoreLocationView"][];
+        };
+        /** @description A store (`parentId = null`) or a location inside one. */
+        StoreLocationView: {
+            /**
+             * Format: uuid
+             * @description Domain G infrastructure node the store sits in (plain uuid).
+             */
+            campusNodeId?: string | null;
+            /** @example CENTRAL */
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            /** Format: uuid */
+            parentId?: string | null;
+            /** @description `active | inactive`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description Draft content (create and full replacement on `PATCH`). */
         StructureDraft: {
@@ -33663,6 +42346,53 @@ export interface components {
         };
         /** @enum {string} */
         SubjectKind: "core" | "elective" | "language" | "co_scholastic";
+        /** @description The regulator's acknowledgement. */
+        SubmissionAcknowledge: {
+            /** @description Acknowledgement / application reference issued by the regulator. */
+            reference: string;
+        };
+        /** @description A package to assemble. */
+        SubmissionPackageCreate: {
+            /**
+             * Format: uuid
+             * @description Defaults to the latest validated snapshot of the cycle.
+             */
+            snapshotId?: string | null;
+        };
+        SubmissionPackageList: {
+            items: components["schemas"]["SubmissionPackageView"][];
+        };
+        /**
+         * @description Submission package (L3-H-058…060).
+         * @enum {string}
+         */
+        SubmissionPackageStatus: "draft" | "pending_approval" | "approved" | "submitted" | "acknowledged" | "corrected";
+        /** @description A submission package. */
+        SubmissionPackageView: {
+            /** Format: date-time */
+            acknowledgedAt?: string | null;
+            acknowledgementRef?: string | null;
+            approvedBy?: string | null;
+            /** Format: uuid */
+            correctedFromId?: string | null;
+            /** Format: uuid */
+            cycleId: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example SUB-000001 */
+            number: string;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            snapshotId: string;
+            status: components["schemas"]["SubmissionPackageStatus"];
+            statusReason?: string | null;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         SubmitVerification: {
             evidenceRef: string;
             /** @description e.g. `document`, `in_person`, `court_order`. */
@@ -33680,6 +42410,68 @@ export interface components {
          * @enum {string}
          */
         SupplementaryEligibilityStatus: "eligible" | "applied" | "authorised" | "exhausted" | "cancelled";
+        SupplierList: {
+            items: components["schemas"]["SupplierView"][];
+        };
+        /** @description Merge a duplicate onto its canonical supplier. */
+        SupplierMerge: {
+            /** Format: uuid */
+            canonicalSupplierId: string;
+            reason?: string | null;
+        };
+        /** @description Profile fields (create / update / register). */
+        SupplierProfile: {
+            address?: string | null;
+            bankAccountName?: string | null;
+            bankAccountNumber?: string | null;
+            bankIfsc?: string | null;
+            category?: string | null;
+            email?: string | null;
+            gstin?: string | null;
+            legalName?: string | null;
+            pan?: string | null;
+            phone?: string | null;
+            tradeName?: string | null;
+        };
+        /** @description A supplier (bank account masked). */
+        SupplierView: {
+            address?: string | null;
+            /** @description Submitted for `SUPPLIER_APPROVAL`, awaiting a decision. */
+            approvalPending: boolean;
+            /** Format: date-time */
+            approvedAt?: string | null;
+            bankAccountName?: string | null;
+            /** @description Masked (`XXXXXX7890`). */
+            bankAccountNumber?: string | null;
+            bankIfsc?: string | null;
+            /** Format: uuid */
+            canonicalSupplierId?: string | null;
+            category?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            email?: string | null;
+            /** @example 27ABCDE1234F1Z5 */
+            gstin?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            legalName: string;
+            /** @example SUP-000001 */
+            number: string;
+            /** @example ABCDE1234F */
+            pan?: string | null;
+            phone?: string | null;
+            processInstanceId?: string | null;
+            /** Format: date-time */
+            registeredAt?: string | null;
+            /** @description `prospective | registered | approved | active | suspended | merged | inactive`. */
+            status: string;
+            statusReason?: string | null;
+            tradeName?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         SyllabusCoverage: {
             /**
              * Format: double
@@ -33890,6 +42682,151 @@ export interface components {
         };
         /** @enum {string} */
         TermStructure: "semester" | "trimester" | "annual";
+        /** @description Assign (or reassign) a technician / team. */
+        TicketAssign: {
+            assignee: string;
+            reason?: string | null;
+        };
+        /**
+         * @description What a ticket is about (routing + SLA defaults).
+         * @enum {string}
+         */
+        TicketCategory: "facility" | "maintenance" | "hostel" | "transport" | "library" | "laboratory" | "it" | "other";
+        /** @description Requester verification of a resolved ticket. */
+        TicketConfirm: {
+            comment?: string | null;
+            /** @description `true` closes the ticket; `false` reopens it (within 7 days of resolution). */
+            satisfied: boolean;
+        };
+        /** @description Open a ticket from the office. */
+        TicketCreate: {
+            category: components["schemas"]["TicketCategory"];
+            description?: string | null;
+            /** @description Complaint (`true`) or service request (default). */
+            isComplaint?: boolean | null;
+            /** Format: uuid */
+            nodeId?: string | null;
+            priority?: null | components["schemas"]["TicketPriority"];
+            requester?: null | components["schemas"]["FacilityPersonInput"];
+            /**
+             * Format: int64
+             * @description Overrides the priority's default SLA.
+             */
+            slaHours?: number | null;
+            title: string;
+        };
+        /** @description A ticket with its escalations and duplicates. */
+        TicketDetail: {
+            /** @description Tickets merged onto this one. */
+            duplicates: string[];
+            escalations: components["schemas"]["TicketEscalationView"][];
+            ticket: components["schemas"]["TicketView"];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One escalation step of a ticket. */
+        TicketEscalationView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** @description `sla_breach` or `manual`. */
+            kind: string;
+            /** Format: int32 */
+            level: number;
+            reason?: string | null;
+        };
+        /** @description A page of tickets. */
+        TicketList: {
+            items: components["schemas"]["TicketView"][];
+            /**
+             * Format: uuid
+             * @description Pass as `?cursor=` for the next page.
+             */
+            nextCursor?: string | null;
+        };
+        /** @description Merge a duplicate onto its canonical ticket. */
+        TicketMerge: {
+            /** Format: uuid */
+            canonicalTicketId: string;
+            reason?: string | null;
+        };
+        /**
+         * @description Ticket priority; drives the default SLA.
+         * @enum {string}
+         */
+        TicketPriority: "low" | "medium" | "high" | "critical";
+        /** @description Resolve with the resolution text. */
+        TicketResolve: {
+            resolution: string;
+        };
+        /** @description Open my own ticket. */
+        TicketSelfCreate: {
+            category: components["schemas"]["TicketCategory"];
+            description?: string | null;
+            /**
+             * Format: uuid
+             * @description Required unless `nodeId` is given (the node's institution is used then).
+             */
+            institutionId?: string | null;
+            isComplaint?: boolean | null;
+            /** Format: uuid */
+            nodeId?: string | null;
+            priority?: null | components["schemas"]["TicketPriority"];
+            title: string;
+        };
+        /**
+         * @description Which part of Campus opened a ticket.
+         * @enum {string}
+         */
+        TicketSource: "self_service" | "admin" | "hostel" | "transport" | "library" | "laboratory" | "preventive";
+        /**
+         * @description Service desk ticket lifecycle (L2-G01 service request / complaint, L3-G-016 / 017 / 018).
+         * @enum {string}
+         */
+        TicketStatus: "open" | "triaged" | "assigned" | "in_progress" | "on_hold" | "resolved" | "closed" | "reopened" | "cancelled" | "merged";
+        /** @description Triage: (re)classify; the SLA is recalculated from the new priority. */
+        TicketTriage: {
+            category?: null | components["schemas"]["TicketCategory"];
+            priority?: null | components["schemas"]["TicketPriority"];
+            reason?: string | null;
+        };
+        /** @description A service desk ticket (contract §5.3). */
+        TicketView: {
+            assignee?: string | null;
+            canonicalTicketId?: null | components["schemas"]["ServiceTicketId"];
+            category: components["schemas"]["TicketCategory"];
+            /** Format: date-time */
+            closedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            description?: string | null;
+            /** Format: int32 */
+            escalationLevel: number;
+            id: components["schemas"]["ServiceTicketId"];
+            /** Format: uuid */
+            institutionId: string;
+            isComplaint: boolean;
+            nodeId?: null | components["schemas"]["InfrastructureNodeId"];
+            /** @example SR-000001 */
+            number: string;
+            priority: components["schemas"]["TicketPriority"];
+            /** Format: uuid */
+            requesterId?: string | null;
+            requesterKind?: null | components["schemas"]["PersonKind"];
+            resolution?: string | null;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            slaBreached: boolean;
+            /** Format: date-time */
+            slaDueAt: string;
+            source: components["schemas"]["TicketSource"];
+            /** Format: uuid */
+            sourceRefId?: string | null;
+            status: components["schemas"]["TicketStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description A timetable version with its slots. */
         Timetable: {
             /** Format: uuid */
@@ -34040,6 +42977,241 @@ export interface components {
             orgUnitId?: string | null;
             reason: string;
         };
+        /** @description Move a passenger to another stop / route. */
+        TransportAllocationChange: {
+            /**
+             * Format: date
+             * @description Default: today.
+             */
+            effectiveFrom?: string | null;
+            reason?: string | null;
+            /**
+             * Format: uuid
+             * @description Default: the current route.
+             */
+            routeId?: string | null;
+            /** Format: uuid */
+            stopId: string;
+        };
+        /** @description Allocate a passenger (office). */
+        TransportAllocationCreate: {
+            /** Format: uuid */
+            personId: string;
+            /** @description `student | staff`. */
+            personKind: string;
+            /** Format: uuid */
+            routeId: string;
+            /**
+             * Format: date
+             * @description Default: today.
+             */
+            startDate?: string | null;
+            /** Format: uuid */
+            stopId: string;
+        };
+        /** @description Passenger allocations. */
+        TransportAllocationList: {
+            items: components["schemas"]["TransportAllocationView"][];
+        };
+        /** @description A passenger allocation (route + boarding stop). */
+        TransportAllocationView: {
+            /** @description `self_service | office`. */
+            channel: string;
+            /** Format: date */
+            endDate?: string | null;
+            flagReason?: string | null;
+            /** @description The stop / route was suspended or dropped: the office must adjust (G-095 / 097). */
+            flagged: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            passId?: string | null;
+            passNumber?: string | null;
+            /** Format: uuid */
+            personId: string;
+            /** @description `student | staff`. */
+            personKind: string;
+            personName: string;
+            personNumber: string;
+            /** Format: uuid */
+            previousId?: string | null;
+            routeCode: string;
+            /** Format: uuid */
+            routeId: string;
+            /** Format: date */
+            startDate: string;
+            /** @description `requested | active | changed | withdrawn`. */
+            status: string;
+            statusReason?: string | null;
+            stopCode: string;
+            /** Format: uuid */
+            stopId: string;
+            stopName: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Issue a pass for an active allocation. */
+        TransportPassIssue: {
+            /** Format: date */
+            validFrom: string;
+            /** Format: date */
+            validTo: string;
+        };
+        /** @description Transport passes. */
+        TransportPassList: {
+            items: components["schemas"]["TransportPassView"][];
+        };
+        /** @description Renew a pass up to a new end date (a new pass from the day after the current one ends). */
+        TransportPassRenew: {
+            /** Format: date */
+            validTo: string;
+        };
+        /** @description Replace a lost / damaged pass. */
+        TransportPassReplace: {
+            /**
+             * @description Optional replacement fee (students are charged).
+             * @example 200.00
+             */
+            fee?: string | null;
+            reason: string;
+        };
+        /** @description A transport pass. */
+        TransportPassView: {
+            /** Format: uuid */
+            allocationId: string;
+            /** Format: uuid */
+            chargeId?: string | null;
+            chargeNumber?: string | null;
+            /** @example 6000.00 */
+            feeAmount: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description `new | renewal | replacement`. */
+            kind: string;
+            /** @example TP-000001 */
+            number: string;
+            personKind: string;
+            personName: string;
+            personNumber: string;
+            /** Format: uuid */
+            replacesId?: string | null;
+            routeCode: string;
+            /** Format: uuid */
+            routeId: string;
+            /** @description `issued | active | expired | suspended | replaced | cancelled`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: date */
+            validFrom: string;
+            /** Format: date */
+            validTo: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A new route (draft, with version 1 in draft). */
+        TransportRouteCreate: {
+            /**
+             * Format: int32
+             * @description Seats offered.
+             */
+            capacity: number;
+            code: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /**
+             * @description Pass fee (`"0"` = free).
+             * @example 6000.00
+             */
+            fare: string;
+            name: string;
+            note?: string | null;
+        };
+        /** @description Routes of an institution. */
+        TransportRouteList: {
+            items: components["schemas"]["TransportRouteView"][];
+        };
+        /** @description A transport route with its current version. */
+        TransportRouteView: {
+            /**
+             * Format: int32
+             * @description Seats of the current version.
+             */
+            capacity?: number | null;
+            /** @example R-01 */
+            code: string;
+            /** Format: uuid */
+            currentVersionId?: string | null;
+            /** Format: int32 */
+            currentVersionNo?: number | null;
+            /** Format: date */
+            effectiveFrom?: string | null;
+            /**
+             * @description Pass fee of the current version.
+             * @example 6000.00
+             */
+            fare?: string | null;
+            /** @description A draft version is waiting to be activated. */
+            hasDraft: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            /**
+             * Format: int64
+             * @description Active passenger allocations.
+             */
+            passengers: number;
+            /** @description Set while an activation awaits a decision. */
+            processInstanceId?: string | null;
+            /** @description `draft | active | suspended | retired`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A new stop. */
+        TransportStopCreate: {
+            code: string;
+            landmark?: string | null;
+            name: string;
+            /**
+             * Format: uuid
+             * @description Optional campus infrastructure node (gate, building) of the stop.
+             */
+            nodeId?: string | null;
+        };
+        /** @description Stops of an institution. */
+        TransportStopList: {
+            items: components["schemas"]["TransportStopView"][];
+        };
+        /** @description A pickup / drop stop. */
+        TransportStopView: {
+            /** @example ST-GATE */
+            code: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            landmark?: string | null;
+            name: string;
+            /** Format: uuid */
+            nodeId?: string | null;
+            /**
+             * Format: int64
+             * @description Active allocations boarding here.
+             */
+            passengers: number;
+            /** @description `active | suspended | retired`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description One account row of the trial balance. */
         TrialBalanceRow: {
             accountType: components["schemas"]["LedgerAccountType"];
@@ -34075,6 +43247,93 @@ export interface components {
             totalCredit: string;
             /** @example 225000.00 */
             totalDebit: string;
+        };
+        /** @description Cancel a trip (reason required). */
+        TripCancelBody: {
+            reason: string;
+        };
+        /** @description Complete a running trip. */
+        TripCompleteBody: {
+            /** Format: int32 */
+            passengerCount?: number | null;
+        };
+        /** @description Plan a trip. */
+        TripCreate: {
+            /** @description `pickup | drop`. */
+            direction: string;
+            /** Format: uuid */
+            driverAssignmentId?: string | null;
+            /** Format: date */
+            tripDate: string;
+            /** Format: uuid */
+            vehicleId?: string | null;
+        };
+        /** @description Trips. */
+        TripList: {
+            items: components["schemas"]["TripView"][];
+        };
+        /** @description Make a trip ready: vehicle, driver and a complete checklist. */
+        TripReadyBody: {
+            /** @description Every item must be `true`. */
+            checklist: Record<string, never>;
+            /**
+             * Format: uuid
+             * @description Default: the planned driver.
+             */
+            driverAssignmentId?: string | null;
+            /**
+             * Format: uuid
+             * @description Default: the planned vehicle.
+             */
+            vehicleId?: string | null;
+        };
+        /** @description Put another vehicle on a trip. */
+        TripReplaceVehicleBody: {
+            reason?: string | null;
+            /** Format: uuid */
+            vehicleId: string;
+        };
+        /** @description A trip of a route on a date. */
+        TripView: {
+            /**
+             * Format: int64
+             * @description Active passengers allocated to the route.
+             */
+            allocatedPassengers: number;
+            /** @description Readiness checklist (`{"brakes": true, …}`). */
+            checklist: Record<string, never>;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** @description `pickup | drop`. */
+            direction: string;
+            /** Format: uuid */
+            driverAssignmentId?: string | null;
+            driverName?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description The vehicle broke down: replace it before the trip can run. */
+            needsVehicle: boolean;
+            /** Format: int32 */
+            passengerCount?: number | null;
+            routeCode: string;
+            /** Format: uuid */
+            routeId: string;
+            /** Format: uuid */
+            routeVersionId: string;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** @description `planned | ready | in_progress | completed | cancelled`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: date */
+            tripDate: string;
+            /** Format: uuid */
+            vehicleId?: string | null;
+            vehicleRegistration?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         /**
          * Format: uuid
@@ -34284,6 +43543,222 @@ export interface components {
             /** Format: date-time */
             validatedAt: string;
         };
+        /** @description A new vehicle (available). */
+        VehicleCreate: {
+            /** Format: int32 */
+            capacity: number;
+            label: string;
+            registrationNo: string;
+        };
+        /** @description Vehicles of an institution. */
+        VehicleList: {
+            items: components["schemas"]["VehicleView"][];
+        };
+        /** @description A manual vehicle status change (`available | under_maintenance | retired`). */
+        VehicleStatusBody: {
+            reason?: string | null;
+            status: string;
+        };
+        /** @description A vehicle. */
+        VehicleView: {
+            /** Format: int32 */
+            capacity: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            label: string;
+            /**
+             * Format: int64
+             * @description Planned / ready / running trips using the vehicle.
+             */
+            openTrips: number;
+            /** @example KA01AB1234 */
+            registrationNo: string;
+            /** @description `available | assigned | under_maintenance | broken_down | retired`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Record a supplier invoice or credit note. */
+        VendorInvoiceCreate: {
+            /** @description A credit note: quantities / prices positive, amounts post negative. */
+            creditNote?: boolean;
+            /** Format: date */
+            dueDate?: string | null;
+            /** Format: date */
+            invoiceDate: string;
+            lines: components["schemas"]["VendorInvoiceLineInput"][];
+            /** Format: uuid */
+            purchaseOrderId: string;
+            supplierInvoiceNumber: string;
+        };
+        /** @description A vendor invoice with its lines. */
+        VendorInvoiceDetail: components["schemas"]["VendorInvoiceView"] & {
+            lines: components["schemas"]["VendorInvoiceLineView"][];
+        };
+        /** @description One three-way match finding. */
+        VendorInvoiceFinding: {
+            /** @description `quantity_exceeds_received | price_variance | credit_exceeds_invoiced`. */
+            code: string;
+            /** Format: int32 */
+            lineNo: number;
+            message: string;
+        };
+        /** @description One invoiced order line. */
+        VendorInvoiceLineInput: {
+            /**
+             * Format: int32
+             * @description Purchase order line number.
+             */
+            lineNo: number;
+            /** @example 10 */
+            quantity: string;
+            /** @example 240.00 */
+            unitPrice: string;
+        };
+        /** @description One invoiced order line, with what the order and receipts say. */
+        VendorInvoiceLineView: {
+            /** @example 2400.00 */
+            amount: string;
+            description: string;
+            /** @example 0.000 */
+            invoicedQuantity: string;
+            /** @description `stock | asset | service`. */
+            lineKind: string;
+            /** Format: int32 */
+            lineNo: number;
+            /** @example 240.00 */
+            orderUnitPrice: string;
+            /** @example 10.000 */
+            orderedQuantity: string;
+            /** Format: uuid */
+            purchaseOrderLineId: string;
+            /** Format: int32 */
+            purchaseOrderLineNo: number;
+            /** @example 10.000 */
+            quantity: string;
+            /** @example 10.000 */
+            receivedQuantity: string;
+            /** @example 240.00 */
+            unitPrice: string;
+        };
+        VendorInvoiceList: {
+            items: components["schemas"]["VendorInvoiceView"][];
+        };
+        /** @description A vendor invoice / credit note (header; signed amounts, credit notes negative). */
+        VendorInvoiceView: {
+            approvalPending: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date */
+            dueDate?: string | null;
+            /** @example JE-000012 */
+            entryNumber?: string | null;
+            /** @example 0.00 */
+            expenseAmount: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example 2400.00 */
+            inventoryAmount: string;
+            /** Format: date */
+            invoiceDate: string;
+            isCreditNote: boolean;
+            /**
+             * Format: uuid
+             * @description Finance journal entry of the posting.
+             */
+            journalEntryId?: string | null;
+            matchFindings: components["schemas"]["VendorInvoiceFinding"][];
+            /** Format: date-time */
+            matchedAt?: string | null;
+            /** @example VINV-000001 */
+            number: string;
+            /** @example 0.00 */
+            paidAmount: string;
+            /** Format: date-time */
+            postedAt?: string | null;
+            processInstanceId?: string | null;
+            /** Format: uuid */
+            purchaseOrderId: string;
+            purchaseOrderNumber: string;
+            /** @description `received | matched | mismatch | approved | posted | paid | cancelled`. */
+            status: string;
+            statusReason?: string | null;
+            /** Format: uuid */
+            supplierId: string;
+            supplierInvoiceNumber: string;
+            supplierName: string;
+            supplierNumber: string;
+            /** @example 2400.00 */
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One invoice to settle. */
+        VendorPaymentAllocationInput: {
+            /** @example 2400.00 */
+            amount: string;
+            /** Format: uuid */
+            vendorInvoiceId: string;
+        };
+        /** @description One invoice settled by a payment. */
+        VendorPaymentAllocationView: {
+            /** @example 2400.00 */
+            amount: string;
+            invoiceNumber: string;
+            supplierInvoiceNumber: string;
+            /** Format: uuid */
+            vendorInvoiceId: string;
+        };
+        /** @description Pay a supplier. */
+        VendorPaymentCreate: {
+            allocations: components["schemas"]["VendorPaymentAllocationInput"][];
+            /** Format: date */
+            paymentDate: string;
+            reference?: string | null;
+            /** Format: uuid */
+            supplierId: string;
+        };
+        /** @description A vendor payment with its allocations. */
+        VendorPaymentDetail: components["schemas"]["VendorPaymentView"] & {
+            allocations: components["schemas"]["VendorPaymentAllocationView"][];
+        };
+        VendorPaymentList: {
+            items: components["schemas"]["VendorPaymentView"][];
+        };
+        /** @description A vendor payment. */
+        VendorPaymentView: {
+            /** @example 2400.00 */
+            amount: string;
+            /** Format: date-time */
+            createdAt: string;
+            entryNumber?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            /** @example VPAY-000001 */
+            number: string;
+            /** Format: date */
+            paymentDate: string;
+            /** Format: date-time */
+            postedAt?: string | null;
+            reference?: string | null;
+            /** @description `draft | posted`. */
+            status: string;
+            /** Format: uuid */
+            supplierId: string;
+            supplierName: string;
+            supplierNumber: string;
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * @description 7A: qualification / document verification.
          * @enum {string}
@@ -34372,6 +43847,15 @@ export interface components {
             /** @description `processed | duplicate | ignored`. */
             status: string;
         };
+        /** @description One weekly opening window (ISO weekday 1 = Monday … 7 = Sunday, business-local `HH:MM`). */
+        WeeklyHoursView: {
+            /** @example 18:00 */
+            closesAt: string;
+            /** @example 08:00 */
+            opensAt: string;
+            /** Format: int32 */
+            weekday: number;
+        };
         /** @description Student / faculty weekly view (contract §5.3). */
         WeeklyTimetable: {
             items: components["schemas"]["TimetableSlot"][];
@@ -34381,10 +43865,140 @@ export interface components {
              */
             weekOf: string;
         };
+        /** @description A widget to define. */
+        WidgetCreate: {
+            code: string;
+            description?: string | null;
+            /** @description `<domain>.<key>` from `GET /services/institutions/{id}/metrics`. */
+            metricKey: string;
+            title: string;
+            visualization?: null | components["schemas"]["WidgetVisualization"];
+        };
+        WidgetList: {
+            items: components["schemas"]["WidgetView"][];
+        };
+        /**
+         * @description Widget definition (L3-H-054).
+         * @enum {string}
+         */
+        WidgetStatus: "draft" | "active" | "retired";
+        /** @description A widget definition. */
+        WidgetView: {
+            /** @example FIN-RECEIVABLES */
+            code: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example finance.receivables_outstanding */
+            metricKey: string;
+            status: components["schemas"]["WidgetStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+            visualization: components["schemas"]["WidgetVisualization"];
+        };
+        /**
+         * @description How a widget presents its figure.
+         * @enum {string}
+         */
+        WidgetVisualization: "stat" | "gauge" | "table";
         /** @description Result of finalising every registered registration of a closed window (L3-C-025). */
         WindowFinalisation: {
             finalisedRegistrationIds: string[];
             window: components["schemas"]["RegistrationWindow"];
+        };
+        /** @description Assign / reassign a technician. */
+        WorkOrderAssign: {
+            assignee: string;
+            reason?: string | null;
+        };
+        /** @description One technician assignment of a work order. */
+        WorkOrderAssignmentView: {
+            assignee: string;
+            /** Format: date-time */
+            createdAt: string;
+            previousAssignee?: string | null;
+            reason?: string | null;
+        };
+        /** @description Completion notes. */
+        WorkOrderComplete: {
+            notes: string;
+        };
+        /** @description Raise a corrective work order from a ticket. */
+        WorkOrderCreate: {
+            /** @description Technician / team; the work order (and an unassigned ticket) become assigned. */
+            assignee?: string | null;
+            description?: string | null;
+            scheduledFor?: string | null;
+            /** @description Defaults to the ticket title. */
+            title?: string | null;
+        };
+        /** @description A work order with its assignment history. */
+        WorkOrderDetail: {
+            assignments: components["schemas"]["WorkOrderAssignmentView"][];
+            /** Format: int64 */
+            version: number;
+            workOrder: components["schemas"]["WorkOrderView"];
+        };
+        /**
+         * @description Corrective (from a ticket) or preventive (from a plan cycle).
+         * @enum {string}
+         */
+        WorkOrderKind: "corrective" | "preventive";
+        /** @description Work orders. */
+        WorkOrderList: {
+            items: components["schemas"]["WorkOrderView"][];
+        };
+        /**
+         * @description Work order lifecycle (L2-G01; L3-G-020…022, 026).
+         * @enum {string}
+         */
+        WorkOrderStatus: "created" | "assigned" | "in_progress" | "on_hold" | "completed" | "verified" | "reopened" | "cancelled";
+        /** @description Verification of completed work. */
+        WorkOrderVerify: {
+            /** @description `true` verifies (resolves the ticket); `false` reopens (notes required). */
+            accepted: boolean;
+            notes?: string | null;
+        };
+        /** @description A work order. */
+        WorkOrderView: {
+            assignee?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
+            completionNotes?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            kind: components["schemas"]["WorkOrderKind"];
+            nodeCode?: string | null;
+            /** Format: uuid */
+            nodeId?: string | null;
+            /** @example WO-000001 */
+            number: string;
+            /** Format: uuid */
+            planId?: string | null;
+            /** Format: date */
+            scheduledFor?: string | null;
+            /** Format: date-time */
+            startedAt?: string | null;
+            status: components["schemas"]["WorkOrderStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            ticketId?: string | null;
+            ticketNumber?: string | null;
+            title: string;
+            verificationNotes?: string | null;
+            /** Format: date-time */
+            verifiedAt?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         WorkflowEntry: {
             label: string;
@@ -47390,6 +57004,7996 @@ export interface operations {
             };
             /** @description That is the current session (use logout) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_catalogue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_catalogue_update: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueRecordUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_copy_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryCopyList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_copy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryCopyCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryCopyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_catalogue_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_reservation_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_reservation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReservationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_catalogue_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_driver_end: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverAssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_allocation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_allocation_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the residency */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_complaint_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusResidenceComplaintList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_complaint_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceComplaintCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusResidenceComplaintView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_leave_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResidentLeaveCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResidentLeaveView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_leave_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResidentLeaveList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_transfer_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomTransferCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomTransferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_transfer_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomTransferList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_allocation_vacate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the residency */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostelVacateBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_application_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelApplicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_application_allocate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the application */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostelAllocateBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelApplicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_application_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the application */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelApplicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_application_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the application */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelApplicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_policy_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_policy_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_policy_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the policy */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_bed_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelBedList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_bed_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostelBedCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelBedView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_inspection_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomInspectionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_inspection_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomInspectionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomInspectionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfrastructureNodeUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_archive: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_availability_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_availability_set: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvailabilityProfileBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_capabilities: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpaceCapabilitiesBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_capacity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfrastructureCapacityBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_decommission: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_decommission_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the node */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_catalogue_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["CatalogueStatus"];
+                /** @description Matches title, authors, ISBN or subjects. */
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueRecordList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_catalogue_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueRecordCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_allocation_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_application_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelApplicationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_application_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostelApplicationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelApplicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_bed_occupancy: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelBedList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_policy_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelPolicyList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_policy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostelPolicyCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_list: {
+        parameters: {
+            query?: {
+                parentId?: string;
+                campusId?: string;
+                nodeType?: string;
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_infra_node_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InfrastructureNodeCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureNodeDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_directory_tree: {
+        parameters: {
+            query?: {
+                /** @description Domain B campus. */
+                campusId?: string;
+                /** @description `InfrastructureNodeType` wire name. */
+                nodeType?: string;
+                /** @description `InfrastructureStatus` wire name. */
+                status?: string;
+                /** @description `SpaceType` wire name. */
+                spaceType?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureTree"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                /** @description Allocation list: one session. */
+                sessionId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_clearance_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["LibraryClearanceStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryClearanceList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_clearance_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryClearanceCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryClearanceView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_fine_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["LibraryFineStatus"];
+                membershipId?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFineList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_loan_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["LibraryLoanStatus"];
+                membershipId?: string;
+                limit?: number;
+                /** @description `nextCursor` of the previous page. */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryLoanList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_loan_issue: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryLoanCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryLoanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_loan_overdue_sweep: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryBulkResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_membership_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["LibraryMembershipStatus"];
+                /** @description Matches number, person number or name. */
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryMembershipList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_membership_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryMembershipCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryMembershipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_policy_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["LibraryPolicyStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryPolicyList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_policy_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryPolicyCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_reservation_institution_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["LibraryReservationStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenancePlanCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_mess_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_mess_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                nodeId?: string;
+                from?: string;
+                to?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReservationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_leave_queue: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResidentLeaveList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_leave_overdue_check: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusResidenceBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_inspection_queue: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomInspectionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                category?: string;
+                priority?: string;
+                breached?: boolean;
+                complaint?: boolean;
+                /** @description `true` = only tickets that are not closed / cancelled / merged. */
+                open?: boolean;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_sla_check: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacilityBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_allocation_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_allocation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransportAllocationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_pass_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportPassList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_route_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportRouteList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_route_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransportRouteCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportRouteView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_stop_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportStopList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_stop_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransportStopCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportStopView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_trip_board: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_vehicle_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_vehicle_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VehicleCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                kind?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_equipment_status: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the equipment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabEquipmentStatusBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabEquipmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_batch_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                /** @description Allocation list: one session. */
+                sessionId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabBatchAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_batch_allocate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabBatchAllocationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabBatchAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_equipment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabEquipmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_equipment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabEquipmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabEquipmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_readiness: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the lab */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabReadinessBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_session_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                /** @description Allocation list: one session. */
+                sessionId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticalSessionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_session_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PracticalSessionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticalSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_clearance_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryClearanceView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_copy_condition: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryCopyConditionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryCopyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_copy_lost: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryCopyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_copy_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryCopyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_fine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFineView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_fine_bill: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFineView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_fine_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFineView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_fine_waiver: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFineView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_loan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryLoanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_loan_renew: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryLoanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_loan_return: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryLoanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_membership_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryMembershipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_membership_close: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryMembershipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_membership_eligibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryEligibilityView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_membership_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryMembershipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_membership_restriction: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryRestrictionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryMembershipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_membership_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryMembershipView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_policy_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_policy_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_policy_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryPolicyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_reservation_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_reservation_collect: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_reservation_expire: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_cycle_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the cycle */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_cycle_defer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the cycle */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceDefer"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_generate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceGenerate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacilityBulkSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_maintenance_plan_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the plan */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenancePlanDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_self_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyHostelView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_self_apply: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MyHostelApplicationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelApplicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_self_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the application */
+                "If-Match": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostelApplicationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_self_complaint: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceComplaintCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusResidenceComplaintView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_self_leave: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResidentLeaveCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResidentLeaveView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyLibraryView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_catalogue: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueRecordList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_clearance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryClearanceView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_clearance_request: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MyClearanceCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryClearanceView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_complaint: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MyLibraryComplaint"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryComplaintView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_fines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFineList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_loans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryLoanList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_loan_renew: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryLoanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_reservations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_reserve: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MyReservationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_library_self_reservation_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_directory_self_person: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusPersonView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_self_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                nodeId?: string;
+                from?: string;
+                to?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_self_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReservationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_self_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                category?: string;
+                priority?: string;
+                breached?: boolean;
+                complaint?: boolean;
+                /** @description `true` = only tickets that are not closed / cancelled / merged. */
+                open?: boolean;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_self_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketSelfCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_self_confirm: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketConfirm"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_self_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTransportView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_self_complaint: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceComplaintCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusResidenceComplaintView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_self_pass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportPassView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_self_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MyTransportRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_self_routes: {
+        parameters: {
+            query: {
+                institutionId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTransportRouteList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_mess_allocation_change: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the assignment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessAllocationChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_mess_allocation_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessAllocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_mess_allocation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessAllocationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_session_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticalSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_session_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticalSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_session_postpone: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PracticalSessionPostpone"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticalSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_session_ready: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticalSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_lab_session_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the session */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticalSessionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the reservation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_confirm: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the reservation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the reservation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_reservation_reschedule: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the reservation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReservationReschedule"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_leave_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the leave */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResidentLeaveView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_leave_depart: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the leave */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResidentLeaveView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_leave_return: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the leave */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResidentLeaveView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_inspection_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the inspection */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomInspectionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_inspection_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the inspection */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomInspectionComplete"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomInspectionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_hostel_transfer_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the transfer */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomTransferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_version_stops: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the route version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteStopsBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_space_calendar: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpaceCalendar"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_assign: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketAssign"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_escalate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_hold: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_merge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the duplicate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketMerge"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_resolve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketResolve"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_ticket_triage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketTriage"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_list_for_ticket: {
+        parameters: {
+            query?: {
+                status?: string;
+                kind?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_allocation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_allocation_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the allocation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_allocation_change: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the allocation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransportAllocationChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_complaint_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusResidenceComplaintList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_complaint_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceComplaintCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusResidenceComplaintView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_pass_issue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransportPassIssue"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportPassView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_allocation_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the allocation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportAllocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_pass_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportPassView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_pass_renew: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the pass */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransportPassRenew"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportPassView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_pass_replace: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the pass */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransportPassReplace"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportPassView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_pass_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the pass */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportPassView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_pass_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the pass */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportPassView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_route_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportRouteView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_route_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the route */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportRouteView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_route_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the route */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportRouteView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_driver_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverAssignmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_driver_assign: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DriverAssignmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverAssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_route_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the route */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportRouteView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_route_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the route */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportRouteView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_trip_list: {
+        parameters: {
+            query?: {
+                /** @description Status wire name. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_trip_plan: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TripCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_version_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteVersionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_version_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteVersionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_stop_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the stop */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportStopView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_stop_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the stop */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransportStopView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_trip_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the trip */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TripCancelBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_trip_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the trip */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TripCompleteBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_trip_ready: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the trip */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TripReadyBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_trip_replace_vehicle: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the trip */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TripReplaceVehicleBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_trip_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the trip */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_vehicle_breakdown: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the vehicle */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusResidenceReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_vehicle_status: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the vehicle */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VehicleStatusBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_assign: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the work order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderAssign"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the work order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the work order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderComplete"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_reopen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the work order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the work order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_workorder_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the work order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderVerify"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderDetail"];
+                };
+            };
+            "4XX": {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -76291,6 +93895,4473 @@ export interface operations {
                 };
             };
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_asset_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_asset_assign: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the asset */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetAssign"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_asset_condition: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the asset */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetCondition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_asset_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the asset */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_asset_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the asset */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_asset_return: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the asset */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetReturn"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_receipt_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoodsReceiptDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_receipt_accept: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the receipt */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoodsReceiptAccept"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoodsReceiptDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_receipt_inspect: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the receipt */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoodsReceiptDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_receipt_reject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the receipt */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoodsReceiptDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_asset_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_asset_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssetCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_receipt_list_all: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoodsReceiptList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_item_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryItemList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_item_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryItemCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryItemView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_replenishment_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplenishmentNeedList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_replenishment_run: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplenishmentRun"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourcesBulkResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_requisition_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequisitionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_requisition_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseRequisitionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequisitionDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_sourcing_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcingEventList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_sourcing_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourcingEventCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcingEventDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_adjustment_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_adjustment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockAdjustmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_issue_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockIssueList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_issue_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockIssueCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockIssueView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_movement_list: {
+        parameters: {
+            query?: {
+                itemId?: string;
+                locationId?: string;
+                /** @description ≤ 200, default 50. */
+                limit?: number;
+                /** @description `nextCursor` of the previous page. */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockMovementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_directory_stock_on_hand: {
+        parameters: {
+            query?: {
+                itemId?: string;
+                locationId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockOnHand"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_reservation_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockReservationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_reservation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockReservationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_store_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreLocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_store_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreLocationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreLocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierProfile"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_invoice_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorInvoiceList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_invoice_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VendorInvoiceCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorInvoiceDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_payment_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorPaymentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_payment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VendorPaymentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorPaymentDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_item_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryItemView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_item_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the item */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryItemUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryItemView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_item_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the item */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryItemView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_item_deactivate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the item */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryItemView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_acknowledge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderAcknowledge"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_amend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderAmend"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_close: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_po_issue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the order */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_receipt_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoodsReceiptList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_receipt_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoodsReceiptCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoodsReceiptDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_requisition_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequisitionDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_requisition_amend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requisition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseRequisitionAmend"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequisitionDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_requisition_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requisition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequisitionDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_requisition_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requisition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequisitionDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_requisition_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requisition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequisitionDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_requisition_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the requisition */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequisitionDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_sourcing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcingEventDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_sourcing_award: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the sourcing event */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourcingAward"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcingEventDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_sourcing_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the sourcing event */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcingEventDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_sourcing_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the sourcing event */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcingEventDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_sourcing_evaluate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the sourcing event */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcingEventDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_sourcing_quote: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the sourcing event */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuotationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcingEventDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_adjustment_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the adjustment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_issue_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the issue */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockIssueView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_issue_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the issue */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockIssueView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_issue_issue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the issue */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockIssueView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_issue_return: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the issue */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockReturnCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockIssueView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_reservation_fulfil: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the reservation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockReservationFulfil"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_reservation_release: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the reservation */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockReservationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_store_location_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreLocationList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_store_location_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreLocationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreLocationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierProfile"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_merge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the duplicate */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierMerge"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_register: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierProfile"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_restore: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_suspend: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_invoice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorInvoiceDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_invoice_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the invoice */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorInvoiceDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_invoice_match: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the invoice */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorInvoiceDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_invoice_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the invoice */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorInvoiceDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_payment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorPaymentDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_payment_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the payment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorPaymentDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_assignment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardAssignmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_assignment_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardAssignmentCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardAssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_assignment_revoke: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardAssignmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_rollback: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardRollback"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_version_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardVersionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_version_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardVersionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_render: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardRenderView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["DashboardStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_directory_metrics: {
+        parameters: {
+            query?: {
+                /** @description Only one domain (`student`, `people`, `finance`, `campus`, `resources`). */
+                domain?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricsView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_cycle_institution_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingCycleList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_framework_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ReportingFrameworkStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingFrameworkList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_framework_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportingFrameworkCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_report_infrastructure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationalReportView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_report_library: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationalReportView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_widget_list: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["WidgetStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WidgetList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_widget_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WidgetCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WidgetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_self_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyDashboardList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSnapshotView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_snapshot_reject: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSnapshotView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_snapshot_validate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSnapshotView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_cycle_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingCycleDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_cycle_close: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingCycleDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_cycle_collect: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportingCollect"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSnapshotView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_package_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPackageList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_package_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmissionPackageCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPackageView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_framework_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_framework_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_cycle_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingCycleList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_cycle_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportingCycleCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingCycleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_framework_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_framework_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportingFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_package_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPackageView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_package_acknowledge: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmissionAcknowledge"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPackageView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_package_correct: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPackageView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_package_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPackageView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_regulatory_package_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPackageView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_widget_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WidgetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_dashboard_widget_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WidgetView"];
+                };
+            };
+            "4XX": {
                 headers: {
                     [name: string]: unknown;
                 };

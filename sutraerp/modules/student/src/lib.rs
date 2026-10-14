@@ -21,6 +21,7 @@ pub mod academic_ports; // Batch 4 foundation: ports Domain D calls
 pub mod adapters;
 pub mod directory;
 pub mod finance_ports; // Batch 5 foundation: ports Domain F calls
+pub mod metrics; // Batch 8 foundation: Domain H figures
 pub mod shared;
 
 // ---- slice areas (router mount points are pre-registered in `router`) ----
@@ -46,6 +47,7 @@ use utoipa_axum::router::OpenApiRouter;
 pub use academic_ports::{PgCreditPosting, PgRegistrationReader};
 pub use directory::PgStudentDirectory;
 pub use finance_ports::PgAidDecisionSource;
+pub use metrics::PgStudentMetrics;
 pub use shared::StudentState;
 
 pub const MODULE: ModuleDescriptor = ModuleDescriptor {

@@ -411,6 +411,51 @@ Module `modules/academic/src/{timetable,attendance,monitoring,assessment}` (4B-w
 
 Batch 4 click-through: `pnpm e2e:academic` (fresh migrated DB in `DATABASE_URL`, default `sutra_e2e`) seeds an active institution, two students and an active offering taught by the dev faculty persona, then walks every Academic delivery screen as admin, student and faculty and writes screenshots to `$E2E_SHOTS` (default `/workspace/work/out/b4-shots`).
 
+## Batch 8 — Campus · Services · Resources (Domains G, H, J)
+
+Built in four parallel slices on top of `batch8/foundation`; the shared contracts (ids, states,
+events, permissions, ports, foundation tables, routes, web frames) are fixed in
+[`docs/batch8-contracts.md`](docs/batch8-contracts.md) and the scope / deferrals in
+[`docs/batches.md`](docs/batches.md#batch-8-slices). Three crates: `sutra-campus` (schema `campus`,
+`/api/v1/campus`), `sutra-services` (`services`, `/api/v1/services`, read-only projections through
+`OperationalMetricsPort`) and `sutra-resources` (`resources`, `/api/v1/resources`). Campus charges
+reach Finance only through `CampusChargePort` (students only — staff are recorded but never
+billed); vendor invoices and payments only through `ProcurementPostingPort` (Dr 1410 / 5510 — Cr 2310,
+Dr 2310 — Cr bank).
+
+<!-- batch8:8a:begin (slice 8A edits only inside this region) -->
+### 8A — Infrastructure, rooms, labs, maintenance, service desk
+- *Infrastructure* (`/institutions/{id}/infrastructure-nodes`, `/infrastructure-nodes/{id}[/activate|suspend|restore|decommission|archive|capacity|capabilities|availability]`): site → building → floor → space, classification, capacity (refused below a booking's attendees or a hostel room's beds in service), availability profile + blackout dates.
+- *Reservations* (`/institutions/{id}/reservations`, `/me/reservations`, `/reservations/{id}/…`): capacity / opening hours / overlap checks, reschedule, cancel, `RESERVATION_APPROVAL`.
+- *Service desk + maintenance* (`/institutions/{id}/tickets`, `/me/tickets[/{id}/confirm]`, `/tickets/{id}/triage|assign|start|hold|resolve|close|reopen|cancel|merge|escalate|work-orders`, `/work-orders/{id}/…`, `/institutions/{id}/maintenance-plans`): SLA by priority, escalation, duplicates, requester verification, corrective / preventive work orders. Labs: readiness, practical sessions, batch allocation, equipment status.
+- Web: Admin → Campus tabs *Infrastructure*, *Facilities*, *Labs*. DB tests: `db_b8a`.
+<!-- batch8:8a:end -->
+<!-- batch8:8b:begin (slice 8B edits only inside this region) -->
+### 8B — Hostel and transport
+- *Hostel* (`/institutions/{id}/hostel-policies|hostel-applications|hostel-beds`, `/hostel-rooms/{id}/beds`, `/hostel-applications/{id}/allocate`, `/hostel-allocations/{id}/…`, `/me/hostel[/application|/complaints]`): `HOSTEL_ADMISSION`, waiting list, `HOSTEL-FEE` / `HOSTEL-DAMAGE` charges, leave, transfer, inspection, mess, vacating → clearance.
+- *Transport* (`/institutions/{id}/transport-stops|transport-routes|transport-allocations|vehicles|trips`, `/route-versions/{id}/stops`, `/transport-allocations/{id}/pass`, `/transport-passes/{id}/renew|replace|suspend|restore`, `/me/transport[/request|/complaints]`): route versions + activation, seat capacity, `TRANSPORT-PASS` charges, drivers, trips, breakdowns.
+- Web: Admin → Campus tabs *Hostel*, *Transport*. DB tests: `db_b8b`.
+<!-- batch8:8b:end -->
+<!-- batch8:8c:begin (slice 8C edits only inside this region) -->
+### 8C — Library, dashboards and regulatory reporting
+- *Library* (`/institutions/{id}/library-policies|library-memberships|catalogue|library-loans|library-fines|library-clearances`, `/catalogue-records/{id}/copies|reservations`, `/library-loans/{id}/return|renew`, `/library-loans/overdue-sweep`, `/library-fines/{id}/bill|waiver`, `/me/library[/…]`): issue / return / renewal, reservations, overdue fines billed as `LIB-FINE`, lost copies (`LIB-LOST`), clearance.
+- *Reports* (`/services/institutions/{id}/metrics|widgets|dashboards|reports/library|reports/infrastructure|reporting-frameworks`, `/services/dashboards/{id}/versions|submit|publish|rollback|assignments|view`, `/services/me/dashboards`): governed dashboards over the metrics catalogue and AISHE / NIRF / NAAC style cycles → snapshots → packages → acknowledgement.
+- Web: Student *Library* (`MyLibraryPanel`), Admin → Campus tab *Library*, Admin *Reports* (*Dashboards*, *Regulatory*). DB tests: `db_b8c`.
+<!-- batch8:8c:end -->
+<!-- batch8:8d:begin (slice 8D edits only inside this region) -->
+### 8D — Procurement, inventory, assets, Finance AP
+- *Procurement* (`/institutions/{id}/suppliers|requisitions|sourcing-events|purchase-orders|vendor-invoices|vendor-payments`, `/purchase-orders/{id}/issue|acknowledge|amend|cancel|close|receipts`, `/goods-receipts/{id}/inspect|accept`, `/vendor-invoices/{id}/match|post`, `/vendor-payments/{id}/post`): RFQ or direct sourcing, three-way match (PO / receipt / invoice) before AP posting.
+- *Inventory + assets* (`/institutions/{id}/items|stores|stock-on-hand|stock-issues|stock-adjustments|assets`, `/stock-issues/{id}/decision|issue|return`, `/assets/{id}/assign|return|condition|retire`): append-only stock ledger, reorder level → replenishment need, custody to staff or a space.
+- Web: Admin → Campus tabs *Procurement*, *Inventory*, *Assets*. DB tests: `db_b8d`.
+<!-- batch8:8d:end -->
+
+Batch 8 integration: `db_b8_integration` (booking → hostel fee + complaint → work order → closure →
+transport pass → library fine → the student's Finance dues → PO → receipt → stock → asset → issue → AP
+→ payment → metrics + published dashboard). Click-through: `pnpm e2e:campus` (fresh migrated DB in
+`DATABASE_URL`) seeds the campus through the API and walks Admin Campus (infrastructure, facilities,
+hostel, transport, library, procurement, inventory, assets), Admin Reports and the Student Library,
+writing screenshots to `$E2E_SHOTS` (CI artifact `e2e-shots-campus`).
+
 ## Passkeys (dev mode)
 
 The browser half lives in `apps/web/app/lib/webauthn.ts`: it unwraps the API's `{ publicKey: … }`

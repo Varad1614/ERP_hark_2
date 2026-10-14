@@ -12,8 +12,8 @@ SutraERP is delivered as a modular monolith in ten batches. Each batch ends gree
 | 4 | Academic | D | Courses, sections, timetable, attendance, coursework/assignments, faculty "My classes" | ✅ complete (slices F, 4A–4C integrated, see below) |
 | 5 | Finance | F | Fee structures, demands, concessions, payments & receipts (rust_decimal end to end), reconciliation, student fees screen | planned |
 | 6 | Examinations | I | Exam scheduling, seating, registration & hall tickets, assessments & marks, gradebook, moderation, result computation (SGPA/CGPA), verification, publication, grade cards, revaluation | in progress (6·F foundation, see below) |
-| 7 | People & workforce | E | Staff records, recruitment/onboarding, positions, leave & approvals, attendance & workload, payroll engine (Finance postings), payslips, staff directory | in progress (7·F foundation, see below) |
-| 8 | Campus · Services · Resources | G · H · J | Facilities, hostel, transport, service desk, library & learning resources | planned |
+| 7 | People & workforce | E | Staff records, recruitment/onboarding, positions, leave & approvals, attendance & workload, payroll engine (Finance postings), payslips, staff directory | ✅ complete (slices F, 7A–7C integrated, see below) |
+| 8 | Campus · Services · Resources | G · H · J | Facilities, rooms & labs, maintenance, service desk, hostel, transport, library, dashboards & regulatory reporting, procurement, inventory, assets, Finance AP | ✅ complete (slices F, 8A–8D integrated, see below) |
 | 9 | Production hardening | cross-cutting | OTLP exporter + Prometheus/Loki/Tempo/Grafana, tamper-evident audit chaining (ADR-L5-0012), GHCR push + Cosign signing on trusted runners, K8s manifests/Helm, OpenBao secrets, Flowable OSS 8 adapter + BPMN deployment, OpenSearch projections, performance/capacity gates, DR drills | planned |
 
 Screens in the web app link to their batch (`apps/web/app/lib/roles.ts → SCREEN_BATCH`).
@@ -108,7 +108,50 @@ E-061…063, E-067, E-069…073, E-075).
 
 | Slice | Scope | Status |
 |-------|-------|--------|
-| **7·F** | Foundation: Domain E ids / lifecycle states (shared StaffStatus, EngagementStatus, leave ledger kinds, attendance days) / V1 event contracts / permissions (`people.*`), shared tables (staff records, engagements, append-only leave ledger, attendance days), staff / lifecycle / leave / attendance helpers, `WorkforceDirectory` / `LeaveReader`, real `StaffDirectory` for Domain D (subject-only fallback), Domain D `FacultyWorkloadPort` and Domain F `PayrollPostingPort` (`payroll_run` journal entries), staff-directory API, pre-mounted routers + OpenAPI tags, inbox rule hooks, web route frames (Admin People, Faculty Leave / My HR) | <!-- batch7:7f:status -->in progress |
-| **7A** | Staff records, recruitment & onboarding, positions: profiles + verification, engagements (activation, modification, transfer, suspension, closure, rejoining, duplicates), positions + assignments, reporting managers, faculty establishment / eligibility, onboarding, probation, separation, certificates (25 scenarios) | <!-- batch7:7a:status -->planned |
-| **7B** | Leave, attendance & workload: leave policy, accrual, request → decision (reference approval), reservation / consumption, cancellation, adjustment, carry forward, encashment, exceptions, leave cases, long leave, attendance days, faculty workload plans (12 scenarios) | <!-- batch7:7b:status -->planned |
-| **7C** | Payroll: configuration + statutory rules, salary assignments, runs (calculate → approve → finalise → Finance posting), payslips, adjustments, retro pay, final settlement, off-cycle (6 scenarios) | <!-- batch7:7c:status -->planned |
+| **7·F** | Foundation: Domain E ids / lifecycle states (shared StaffStatus, EngagementStatus, leave ledger kinds, attendance days) / V1 event contracts / permissions (`people.*`), shared tables (staff records, engagements, append-only leave ledger, attendance days), staff / lifecycle / leave / attendance helpers, `WorkforceDirectory` / `LeaveReader`, real `StaffDirectory` for Domain D (subject-only fallback), Domain D `FacultyWorkloadPort` and Domain F `PayrollPostingPort` (`payroll_run` journal entries), staff-directory API, pre-mounted routers + OpenAPI tags, inbox rule hooks, web route frames (Admin People, Faculty Leave / My HR) | <!-- batch7:7f:status -->✅ |
+| **7A** | Staff records, recruitment & onboarding, positions: profiles + verification, engagements (activation, modification, transfer, suspension, closure, rejoining, duplicates), positions + assignments, reporting managers, faculty establishment / eligibility, onboarding, probation, separation, certificates (25 scenarios) | <!-- batch7:7a:status -->✅ |
+| **7B** | Leave, attendance & workload: leave policy, accrual, request → decision (reference approval), reservation / consumption, cancellation, adjustment, carry forward, encashment, exceptions, leave cases, long leave, attendance days, faculty workload plans (12 scenarios) | <!-- batch7:7b:status -->✅ |
+| **7C** | Payroll: configuration + statutory rules, salary assignments, runs (calculate → approve → finalise → Finance posting), payslips, adjustments, retro pay, final settlement, off-cycle (6 scenarios) | <!-- batch7:7c:status -->✅ |
+
+## Batch 8 slices
+
+Contracts, scenario coverage and file ownership: [`batch8-contracts.md`](batch8-contracts.md).
+120 of 505 L3 scenarios in scope (G 30 + 29 + 18 + G-154 / G-320, H 10, J 31) plus the Batch 5
+finance deferrals F-044, F-045, F-076, F-081, F-082; 385 deferred (contract §1 table: G00
+governance, G06 health, G07 security, G08 housekeeping, G09, H01…H06, H09, H10, J09 / J10,
+depth of every in-scope area, asset accounting F-067…072, statements F-073…079, budget F-080).
+
+| Slice | Scope | Status |
+|-------|-------|--------|
+| **8·F** | Foundation: Domain G / H / J ids, states, V1 events, permissions (`campus.*`, `services.*`, `resources.*`), shared tables (infrastructure nodes, service tickets, items + store locations, append-only stock ledger, numbering, status history), `TeachingSpacePort` (real), `CampusChargePort` + `ProcurementPostingPort` (Finance), `OperationalMetricsPort` adapters for every domain, directory APIs, pre-mounted routers, web frames (Admin Campus tabs, Admin Reports, Student Library) | <!-- batch8:8f:status -->✅ |
+| **8A** | Infrastructure (site → building → floor → space, classification, capabilities, capacity, availability, suspension, decommissioning), room reservations, service desk (requests, complaints, duplicates, SLA, escalation, requester verification), work orders, preventive maintenance, labs (readiness, practical sessions, batches, equipment) — 30 scenarios | <!-- batch8:8a:status -->✅ |
+| **8B** | Hostel (policy, beds, applications → waiting list → allocation + hostel fee, leave, transfer, inspection → damage charge, mess, complaints, vacating → clearance) and transport (stops, routes + versions, requests → allocation, passes + fee, renewal / replacement / suspension, vehicles, drivers, trips, breakdowns) — 29 scenarios | <!-- batch8:8b:status -->✅ |
+| **8C** | Library (policy, memberships, catalogue, copies, issue / return / renewal, reservations, overdue fines billed through Finance, waivers, lost copies, clearance, restrictions, `/me/library`) and reports (widgets, governed dashboards with versions / rollback / role assignments, library + infrastructure operational reports, F-076 finance KPIs, regulatory frameworks → cycles → validated snapshots → packages → submission → correction / closure) — 30 scenarios + F-076 | <!-- batch8:8c:status -->✅ |
+| **8D** | Suppliers, requisitions, sourcing (RFQ / direct), purchase orders, goods receipts, item master, stores, stock ledger, issues / returns / reservations / adjustments, reorder, assets (register, custody, condition, retirement), vendor invoices with three-way match → AP posting, vendor payments — 31 scenarios + F-044, F-045, F-081, F-082 | <!-- batch8:8d:status -->✅ |
+
+Integration (`batch8/integrate`): the cross-slice DB test `db_b8_integration` (room booking, hostel
+capacity guard, hostel fee, hostel complaint → 8A ticket → work order → closure, transport pass, library
+fine, the student's Finance dues, PO → receipt → stock → asset → issue → vendor invoice → AP → payment,
+and the metrics catalogue + a published dashboard reading all of it) and the `pnpm e2e:campus`
+click-through (Admin Campus, Admin Reports, Student Library; CI artifact `e2e-shots-campus`).
+
+Integration rules and known inconsistencies:
+
+- **Staff are recorded but never billed.** Staff can reside in the hostel, hold a transport pass and
+  borrow from the library, but `CampusChargePort` charges students only: a staff hostel fee / pass fee /
+  library fine is kept on the campus row (no `chargeId`), staff library fines are waived, not billed.
+- **Hostel capacity.** An 8A capacity change of a `hostel_room` space is refused below the number of
+  its beds in service (`available` or `occupied`); take beds out of service first.
+- **Complaints.** Hostel, transport and library complaints are opened with `shared::tickets::open_ticket`
+  (source `hostel` / `transport` / `library`) and handled in the 8A service desk like any ticket.
+- **Metrics.** `PgCampusMetrics` also reports bookings, open work orders, hostel beds / residents /
+  waiting list and transport routes / passes / vehicles; `PgResourceMetrics` reports suppliers, open
+  purchase orders (count + value), assets (count + acquisition cost) and payables outstanding.
+- **Approval-state wire values differ by slice** (not unified, to keep the slice contracts and their
+  DB tests stable): 8A maintenance plans use `not_requested → pending → approved / rejected` (same in
+  the column); 8C library policies and reporting frameworks show `not_submitted` on the wire while the
+  column stores `none`. Hostel, transport and resources aggregates carry an `approvalPending` flag
+  instead. A later batch should settle on one vocabulary.
+- An asset assigned to a `space` is not checked against Domain G (the resources crate cannot read the
+  campus schema); `TeachingSpacePort`-style validation is a follow-up.
+

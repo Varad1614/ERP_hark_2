@@ -35,7 +35,8 @@ describe("workspace directory", () => {
     for (const k of Object.keys(WORKSPACE_SCREENS)) expect(keys.has(k), k).toBe(true);
     expect(workspaceBatch("W-I05")).toBe(6);
     expect(workspaceBatch("W-E05")).toBe(7);
-    expect(workspaceBatch("W-H08")).toBe(9);
+    expect(workspaceBatch("W-H08")).toBe(8);
+    expect(workspaceBatch("W-H09")).toBe(9);
     expect(workspaceBatch("W-G05")).toBe(8);
     expect(workspaceScreen("W-F01", "student")).toBe("/fees");
     expect(workspaceScreen("W-F05", "student")).toBeNull();

@@ -32,9 +32,9 @@ const NAV = {
 };
 const ACCENT = { administrator: "#e8743b", faculty: "#3b7be8", student: "#7254e6" };
 /** Screens not built yet → "Coming in Batch N" page. */
-const COMING = { administrator: ["/reports"], faculty: [], student: [] };
-/** Batch 6 / 7 screens now live (real exam and people screens, no “Coming in Batch N” page). */
-const LIVE_B6 = { administrator: ["/examinations", "/people"], faculty: ["/assessments", "/leave"], student: ["/results"] };
+const COMING = { administrator: [], faculty: [], student: [] };
+/** Batch 6 / 7 / 8 screens now live (real exam, people and campus / reports screens, no “Coming in Batch N” page). */
+const LIVE_B6 = { administrator: ["/examinations", "/people", "/campus", "/reports"], faculty: ["/assessments", "/leave"], student: ["/results", "/library"] };
 /** Home KPI tiles still pending per role (figures whose backend lands in a later batch). */
 const PENDING_KPIS = { administrator: 1, faculty: 0, student: 0 };
 

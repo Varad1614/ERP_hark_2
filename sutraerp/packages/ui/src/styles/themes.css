@@ -36,6 +36,8 @@
   min-height: var(--touch); border: 1px solid var(--sb-line); border-radius: 16px; padding: 10px 14px; font-size: 14px; background: var(--sb-bg); color: var(--sb-ink); font-weight: 500;
 }
 .sb-tile textarea:not([class]) { min-height: 90px; resize: vertical; }
+/* The search pill is the field: its bare input stays borderless inside a tile too. */
+.sb-tile .sb-search input:not([class]) { min-height: 0; border: 0; border-radius: 0; padding: 0; background: none; }
 
 /* ---------- display settings (avatar menu) ---------- */
 .sb-seg { display: inline-flex; background: var(--sb-bg); border-radius: 30px; padding: 3px; gap: 2px; flex: none; }

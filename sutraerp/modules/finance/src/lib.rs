@@ -17,13 +17,19 @@
 //! | `payments/` (incl. `payments/gateway.rs`), `refunds/`, `receivables/` | 5B |
 //! | `ledger/`, `periods/`, `treasury/` | 5C |
 
+/// Batch 8 foundation: campus service charges for Domain G (`CampusChargePort`).
+pub mod campus_charges;
 pub mod clearance;
 pub mod directory;
 /// Batch 6 foundation: examination fee charges for Domain I (`ExamFeePort`).
 pub mod exam_fees;
 pub mod fees;
+/// Batch 8 foundation: finance figures for Domain H (`OperationalMetricsPort`).
+pub mod metrics;
 /// Batch 7 foundation: payroll liability postings for Domain E (`PayrollPostingPort`).
 pub mod payroll_postings;
+/// Batch 8 foundation: accounts payable postings for Domain J (`ProcurementPostingPort`).
+pub mod procurement_postings;
 pub mod shared;
 
 // ---- foundation area (party accounts + balances)
@@ -50,11 +56,14 @@ use sutra_contracts::student::ports::{AidDecisionSource, StudentDirectory};
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
+pub use campus_charges::PgCampusCharges;
 pub use clearance::PgFinanceClearance;
 pub use directory::{PgChargeDirectory, PgPostingPort, PgReceivableReader};
 pub use exam_fees::PgExamFees;
+pub use metrics::PgFinanceMetrics;
 pub use payments::gateway::MockPaymentGateway;
 pub use payroll_postings::PgPayrollPostings;
+pub use procurement_postings::PgProcurementPostings;
 pub use shared::FinanceState;
 
 pub const MODULE: ModuleDescriptor = ModuleDescriptor {

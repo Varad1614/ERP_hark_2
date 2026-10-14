@@ -38,7 +38,7 @@ export function BentoTile({ span, variant = "default", as, interactive, title, a
       {title !== undefined && (
         <h4>
           {title}
-          {action}
+          {action != null && action !== false && <span className="sb-tile-actions">{action}</span>}
         </h4>
       )}
       {children}

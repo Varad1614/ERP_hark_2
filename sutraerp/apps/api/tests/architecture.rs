@@ -559,3 +559,139 @@ async fn people_operations_follow_the_slice_prefix_and_tag_rules() {
         "the foundation staff-directory endpoints are mounted"
     );
 }
+
+/// Batch 8 (Domains G, H, J): every `/api/v1/campus`, `/api/v1/services` and `/api/v1/resources`
+/// operation carries an explicit `operationId` with its slice's prefix and the matching tag
+/// (`docs/batch8-contracts.md` §5.2); Batch 8 tags are used exactly for those paths, no other
+/// path uses a Batch 8 operation-id prefix (Domain B's `campus_*` campus ids keep their bare
+/// prefix), and the first path parameter after a collection is `{id}`.
+#[tokio::test]
+async fn batch8_operations_follow_the_slice_prefix_and_tag_rules() {
+    const RULES: &[(&str, &str, &[&str])] = &[
+        // foundation
+        (
+            "/api/v1/campus/",
+            "campus-directory",
+            &["campus_directory_"],
+        ),
+        (
+            "/api/v1/services/",
+            "services-directory",
+            &["services_directory_"],
+        ),
+        (
+            "/api/v1/resources/",
+            "resources-directory",
+            &["resources_directory_"],
+        ),
+        // 8A
+        (
+            "/api/v1/campus/",
+            "campus-infrastructure",
+            &["campus_infra_", "campus_space_", "campus_reservation_"],
+        ),
+        (
+            "/api/v1/campus/",
+            "campus-facilities",
+            &[
+                "campus_ticket_",
+                "campus_workorder_",
+                "campus_maintenance_",
+                "campus_lab_",
+            ],
+        ),
+        // 8B
+        ("/api/v1/campus/", "campus-hostel", &["campus_hostel_"]),
+        (
+            "/api/v1/campus/",
+            "campus-transport",
+            &["campus_transport_"],
+        ),
+        // 8C
+        ("/api/v1/campus/", "campus-library", &["campus_library_"]),
+        (
+            "/api/v1/services/",
+            "services-dashboards",
+            &["services_dashboard_"],
+        ),
+        (
+            "/api/v1/services/",
+            "services-regulatory",
+            &["services_regulatory_"],
+        ),
+        // 8D
+        (
+            "/api/v1/resources/",
+            "resources-procurement",
+            &[
+                "resources_supplier_",
+                "resources_requisition_",
+                "resources_sourcing_",
+                "resources_po_",
+                "resources_receipt_",
+                "resources_payable_",
+            ],
+        ),
+        (
+            "/api/v1/resources/",
+            "resources-inventory",
+            &["resources_item_", "resources_store_", "resources_stock_"],
+        ),
+        (
+            "/api/v1/resources/",
+            "resources-assets",
+            &["resources_asset_"],
+        ),
+    ];
+    let spec: serde_json::Value =
+        serde_json::from_str(&sutra_api::openapi::spec_json().unwrap()).unwrap();
+    let all_prefixes: Vec<&str> = RULES
+        .iter()
+        .flat_map(|(_, _, p)| p.iter().copied())
+        .collect();
+    let mut ops = 0;
+    for (path, item) in spec["paths"].as_object().unwrap() {
+        let batch8 = ["/api/v1/campus/", "/api/v1/services/", "/api/v1/resources/"]
+            .iter()
+            .any(|p| path.starts_with(p));
+        for (method, op) in item.as_object().unwrap() {
+            let tags: Vec<&str> = op["tags"]
+                .as_array()
+                .map(|t| t.iter().filter_map(|x| x.as_str()).collect())
+                .unwrap_or_default();
+            let batch8_tag = tags
+                .iter()
+                .any(|t| RULES.iter().any(|(_, tag, _)| tag == t));
+            assert_eq!(
+                batch8, batch8_tag,
+                "{method} {path}: Batch 8 tags are used exactly for campus / services / resources paths"
+            );
+            let id = op["operationId"].as_str().unwrap_or_default();
+            if !batch8 {
+                assert!(
+                    !all_prefixes.iter().any(|p| id.starts_with(p)),
+                    "{method} {path}: operation id `{id}` uses a Batch 8 prefix"
+                );
+                continue;
+            }
+            ops += 1;
+            assert!(!id.is_empty(), "{method} {path} has no operationId");
+            let ok = RULES.iter().any(|(root, tag, prefixes)| {
+                path.starts_with(root)
+                    && tags.contains(tag)
+                    && prefixes.iter().any(|p| id.starts_with(p))
+            });
+            assert!(
+                ok,
+                "{method} {path}: operationId `{id}` does not match the prefixes of its tag {tags:?}"
+            );
+            if let Some(first) = path.split('/').find(|seg| seg.starts_with('{')) {
+                assert_eq!(
+                    first, "{id}",
+                    "{method} {path}: first path parameter must be {{id}}"
+                );
+            }
+        }
+    }
+    assert!(ops >= 4, "the Batch 8 foundation endpoints are mounted");
+}

@@ -16,6 +16,8 @@
 //! | [`flexible_4c`] | 4C | `academic::events::flexible` |
 //! | [`exams_6a`] / [`exams_6b`] / [`exams_6c`] | 6A / 6B / 6C | `exams::events::{setup, marks, results}` |
 //! | [`people_7a`] / [`people_7b`] / [`people_7c`] | 7A / 7B / 7C | `people::events::{workforce, leave, payroll}` |
+//! | [`campus_8a`] / [`campus_8b`] / [`campus_8c`] | 8A / 8B / 8C | `campus::events::{facilities (+ foundation service_ticket.opened), residence, library}` |
+//! | [`services_8c`] / [`resources_8d`] | 8C / 8D | `services::events::reporting`, `resources::events::procurement` |
 //!
 //! Nobody subscribes to `student.status_changed` here (it is for other domains).
 //!
@@ -25,6 +27,9 @@
 //! Build notifications with [`notify`] and to-dos with [`super::todos::SystemTodo`].
 
 pub mod calendar_2c;
+pub mod campus_8a;
+pub mod campus_8b;
+pub mod campus_8c;
 pub mod charges_5a;
 pub mod completion_3c;
 pub mod delivery_4b;
@@ -40,6 +45,8 @@ pub mod people_7a;
 pub mod people_7b;
 pub mod people_7c;
 pub mod registration_3b;
+pub mod resources_8d;
+pub mod services_8c;
 pub mod structure_2b;
 pub mod student_3a;
 
@@ -69,6 +76,11 @@ pub fn event_types() -> Vec<&'static str> {
     v.extend_from_slice(people_7a::EVENT_TYPES);
     v.extend_from_slice(people_7b::EVENT_TYPES);
     v.extend_from_slice(people_7c::EVENT_TYPES);
+    v.extend_from_slice(campus_8a::EVENT_TYPES);
+    v.extend_from_slice(campus_8b::EVENT_TYPES);
+    v.extend_from_slice(campus_8c::EVENT_TYPES);
+    v.extend_from_slice(services_8c::EVENT_TYPES);
+    v.extend_from_slice(resources_8d::EVENT_TYPES);
     v
 }
 
@@ -111,6 +123,16 @@ pub fn plan(env: &EventEnvelope) -> Option<Result<Vec<InboxAction>, String>> {
         Some(people_7b::plan(env))
     } else if people_7c::EVENT_TYPES.contains(&t) {
         Some(people_7c::plan(env))
+    } else if campus_8a::EVENT_TYPES.contains(&t) {
+        Some(campus_8a::plan(env))
+    } else if campus_8b::EVENT_TYPES.contains(&t) {
+        Some(campus_8b::plan(env))
+    } else if campus_8c::EVENT_TYPES.contains(&t) {
+        Some(campus_8c::plan(env))
+    } else if services_8c::EVENT_TYPES.contains(&t) {
+        Some(services_8c::plan(env))
+    } else if resources_8d::EVENT_TYPES.contains(&t) {
+        Some(resources_8d::plan(env))
     } else {
         None
     }
@@ -171,6 +193,9 @@ mod tests {
             .chain(sutra_contracts::finance::events::all_event_types())
             .chain(sutra_contracts::exams::events::all_event_types())
             .chain(sutra_contracts::people::events::all_event_types())
+            .chain(sutra_contracts::campus::events::all_event_types())
+            .chain(sutra_contracts::services::events::all_event_types())
+            .chain(sutra_contracts::resources::events::all_event_types())
             .collect();
         for t in &all {
             assert!(
@@ -227,5 +252,22 @@ mod tests {
         assert!(own(people_7a::EVENT_TYPES, &[pe::workforce::EVENT_TYPES]));
         assert!(own(people_7b::EVENT_TYPES, &[pe::leave::EVENT_TYPES]));
         assert!(own(people_7c::EVENT_TYPES, &[pe::payroll::EVENT_TYPES]));
+        // Batch 8: each slice claims only its own file's types (8A also the foundation
+        // `service_ticket.opened`).
+        use sutra_contracts::campus::events as ce;
+        assert!(own(
+            campus_8a::EVENT_TYPES,
+            &[ce::facilities::EVENT_TYPES, ce::EVENT_TYPES]
+        ));
+        assert!(own(campus_8b::EVENT_TYPES, &[ce::residence::EVENT_TYPES]));
+        assert!(own(campus_8c::EVENT_TYPES, &[ce::library::EVENT_TYPES]));
+        assert!(own(
+            services_8c::EVENT_TYPES,
+            &[sutra_contracts::services::events::reporting::EVENT_TYPES]
+        ));
+        assert!(own(
+            resources_8d::EVENT_TYPES,
+            &[sutra_contracts::resources::events::procurement::EVENT_TYPES]
+        ));
     }
 }

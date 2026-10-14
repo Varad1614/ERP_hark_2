@@ -147,6 +147,8 @@ status_enum!(
         Fine => "fine",
         /// Examination fee raised by Domain I through `ExamFeePort` (Batch 6).
         ExamFee => "exam_fee",
+        /// Campus service charge raised by Domain G through `CampusChargePort` (Batch 8).
+        CampusCharge => "campus_charge",
     }
 );
 

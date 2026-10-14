@@ -1,5 +1,5 @@
 import { BentoGrid, BentoTile, PageHeader, Select } from "@sutra/ui";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { NavLink } from "react-router";
 import { useSession } from "../../lib/auth";
 import { activeTab, type TabDef } from "./index";
@@ -29,6 +29,16 @@ export function AdminScreen({
   const { role } = useSession();
   const current = activeTab(tabs, tab);
   const { list, current: institution, query } = useInstitutions();
+  // Long tab strips scroll sideways: keep the current tab in view.
+  const nav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const strip = nav.current;
+    const on = strip?.querySelector<HTMLElement>(".on");
+    if (strip && on && strip.scrollWidth > strip.clientWidth) {
+      const left = on.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
+      strip.scrollLeft = Math.max(0, left - (strip.clientWidth - on.offsetWidth) / 2);
+    }
+  }, [current.key]);
   if (role !== "administrator") {
     return (
       <BentoGrid data-screen={base.slice(1)}>
@@ -73,7 +83,7 @@ export function AdminScreen({
           )
         }
       >
-        <nav className="sb-tabs" aria-label={`${title} sections`}>
+        <nav ref={nav} className="sb-tabs" aria-label={`${title} sections`}>
           {tabs.map((t) => (
             <NavLink key={t.key} to={`${base}/${t.key}`} className={t.key === current.key ? "on" : ""} aria-current={t.key === current.key ? "page" : undefined} data-tab-link={t.key}>
               {t.label}

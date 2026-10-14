@@ -19,6 +19,7 @@
 //! | `payroll/`, `payslips/` | 7C |
 
 pub mod directory;
+pub mod metrics; // Batch 8 foundation: Domain H figures
 pub mod shared;
 pub mod staff;
 pub mod staff_port;
@@ -47,6 +48,7 @@ use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
 pub use directory::{PgLeaveReader, PgWorkforceDirectory};
+pub use metrics::PgPeopleMetrics;
 pub use shared::PeopleState;
 pub use staff::SubjectOnlyStaff;
 pub use staff_port::PgStaffDirectory;

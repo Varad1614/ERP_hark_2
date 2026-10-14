@@ -299,10 +299,41 @@ pub enum Permission {
     PayrollApprove,
     /// Batch 7: decide governed HR approvals — engagement activation / change, position assignment, onboarding acceptance, probation, separation, leave policy and payroll configuration activation (step-up).
     PeopleApprove,
+    // ---- Batch 8 (Domains G, H, J). Reads use `CampusRead` / `ReportRead` / `ResourcesRead`; everyone acts on their own campus services with `CampusSelfService`. ----
+    /// Batch 8 (Domain G): read infrastructure, reservations, labs, tickets, work orders, hostel, transport and library records of the tenant (campus office: administrators).
+    CampusRead,
+    /// Self-service on campus services for the caller's **own** person (resolved from the session subject): service requests / complaints, room booking requests, hostel application and residency, transport request and pass, library loans, reservations and fines (all roles).
+    CampusSelfService,
+    /// 8A: infrastructure hierarchy, spaces, availability, reservations, labs, service desk tickets, work orders, preventive maintenance.
+    FacilityManage,
+    /// 8B: hostel policy, beds, applications, allocations, resident leave, transfers, inspections, mess.
+    HostelManage,
+    /// 8B: routes, stops, vehicles, drivers, allocations, passes, trips.
+    TransportManage,
+    /// 8C: library policy, memberships, catalogue, copies, circulation, reservations, fines and waivers, clearance.
+    LibraryManage,
+    /// Batch 8: decide governed campus approvals — infrastructure decommissioning, hostel admission, policy activation, fine waivers, library clearance (step-up).
+    CampusApprove,
+    /// Batch 8 (Domain H): read dashboards, operational metrics and regulatory reporting cycles (administrators).
+    ReportRead,
+    /// 8C: dashboards, widgets, assignments, reporting frameworks, cycles and snapshots.
+    ReportManage,
+    /// 8C: publish dashboards, approve and submit regulatory packages (step-up).
+    ReportApprove,
+    /// Batch 8 (Domain J): read suppliers, requisitions, purchase orders, receipts, stock and assets (administrators).
+    ResourcesRead,
+    /// 8D: suppliers, requisitions, sourcing, purchase orders, goods receipts, vendor invoices and payments.
+    ProcurementManage,
+    /// 8D: items, stores and locations, stock movements, issues, reservations, returns, adjustments, replenishment.
+    InventoryManage,
+    /// 8D: asset register, assignment / custody, condition, retirement.
+    AssetManage,
+    /// Batch 8: decide governed resource approvals — supplier approval, requisitions, awards, purchase orders, adjustments, vendor invoice posting, asset retirement (step-up).
+    ResourcesApprove,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 94] = [
+    pub const ALL: [Permission; 109] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -397,6 +428,21 @@ impl Permission {
         Permission::PayrollManage,
         Permission::PayrollApprove,
         Permission::PeopleApprove,
+        Permission::CampusRead,
+        Permission::CampusSelfService,
+        Permission::FacilityManage,
+        Permission::HostelManage,
+        Permission::TransportManage,
+        Permission::LibraryManage,
+        Permission::CampusApprove,
+        Permission::ReportRead,
+        Permission::ReportManage,
+        Permission::ReportApprove,
+        Permission::ResourcesRead,
+        Permission::ProcurementManage,
+        Permission::InventoryManage,
+        Permission::AssetManage,
+        Permission::ResourcesApprove,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -495,6 +541,21 @@ impl Permission {
             Permission::PayrollManage => "people.payroll.manage",
             Permission::PayrollApprove => "people.payroll.approve",
             Permission::PeopleApprove => "people.approve",
+            Permission::CampusRead => "campus.read",
+            Permission::CampusSelfService => "campus.self",
+            Permission::FacilityManage => "campus.facility.manage",
+            Permission::HostelManage => "campus.hostel.manage",
+            Permission::TransportManage => "campus.transport.manage",
+            Permission::LibraryManage => "campus.library.manage",
+            Permission::CampusApprove => "campus.approve",
+            Permission::ReportRead => "services.report.read",
+            Permission::ReportManage => "services.report.manage",
+            Permission::ReportApprove => "services.report.approve",
+            Permission::ResourcesRead => "resources.read",
+            Permission::ProcurementManage => "resources.procurement.manage",
+            Permission::InventoryManage => "resources.inventory.manage",
+            Permission::AssetManage => "resources.asset.manage",
+            Permission::ResourcesApprove => "resources.approve",
         }
     }
 
@@ -524,6 +585,9 @@ impl Permission {
                 | Permission::ExamApprove
                 | Permission::PayrollApprove
                 | Permission::PeopleApprove
+                | Permission::CampusApprove
+                | Permission::ReportApprove
+                | Permission::ResourcesApprove
         )
     }
 }
@@ -629,6 +693,23 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             PayrollManage,
             PayrollApprove,
             PeopleApprove,
+            // Batch 8 (Domains G, H, J): campus, facilities, hostel, transport, library, reports and
+            // procurement offices = administrators; administrators use campus self-service too.
+            CampusRead,
+            CampusSelfService,
+            FacilityManage,
+            HostelManage,
+            TransportManage,
+            LibraryManage,
+            CampusApprove,
+            ReportRead,
+            ReportManage,
+            ReportApprove,
+            ResourcesRead,
+            ProcurementManage,
+            InventoryManage,
+            AssetManage,
+            ResourcesApprove,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -647,6 +728,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             MarksEntry,
             // Batch 7: own staff record, leave (and their reports' leave decisions), payslips, staff directory.
             PeopleSelfService,
+            // Batch 8: own service requests, room bookings, transport pass, library loans.
+            CampusSelfService,
         ],
         Role::Student => &[
             InstitutionRead,
@@ -663,6 +746,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             FinanceSelfService,
             // Batch 6: own registration, hall ticket, results, grade cards, revaluation requests.
             ExamSelfService,
+            // Batch 8: own service requests, hostel residency, transport pass, library loans and fines.
+            CampusSelfService,
         ],
     }
 }
@@ -1070,6 +1155,42 @@ mod tests {
             .iter()
             .filter(|p| p.as_str().starts_with("people."))
             .all(|p| p.as_str().split('.').count() >= 2));
+    }
+
+    #[test]
+    fn batch8_domains_g_h_j_grants() {
+        let admin_only = [
+            Permission::CampusRead,
+            Permission::FacilityManage,
+            Permission::HostelManage,
+            Permission::TransportManage,
+            Permission::LibraryManage,
+            Permission::CampusApprove,
+            Permission::ReportRead,
+            Permission::ReportManage,
+            Permission::ReportApprove,
+            Permission::ResourcesRead,
+            Permission::ProcurementManage,
+            Permission::InventoryManage,
+            Permission::AssetManage,
+            Permission::ResourcesApprove,
+        ];
+        for p in admin_only {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
+        }
+        for r in [Role::Administrator, Role::Faculty, Role::Student] {
+            assert!(is_granted(&[r], Permission::CampusSelfService), "{r:?}");
+        }
+        for p in [
+            Permission::CampusApprove,
+            Permission::ReportApprove,
+            Permission::ResourcesApprove,
+        ] {
+            assert!(p.requires_step_up(), "{p:?}");
+        }
+        assert!(!Permission::CampusSelfService.requires_step_up());
+        assert!(!Permission::LibraryManage.requires_step_up());
     }
 
     #[test]

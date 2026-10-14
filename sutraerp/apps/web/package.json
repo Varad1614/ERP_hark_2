@@ -15,7 +15,8 @@
     "e2e:finance": "node e2e/finance.e2e.mjs",
     "e2e:ui": "node e2e/ui.e2e.mjs",
     "e2e:exams": "node e2e/exams.e2e.mjs",
-    "e2e:people": "node e2e/people.e2e.mjs"
+    "e2e:people": "node e2e/people.e2e.mjs",
+    "e2e:campus": "node e2e/campus.e2e.mjs"
   },
   "dependencies": {
     "@react-router/node": "^8.4.0",

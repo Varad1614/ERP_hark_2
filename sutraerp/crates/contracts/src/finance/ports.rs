@@ -11,6 +11,10 @@
 //! * [`PaymentGatewayPort`] — the payment gateway adapter (Razorpay-shaped). Batch 5 wires the
 //!   deterministic `sutra_finance::payments::gateway::MockPaymentGateway` (5B owns and extends it).
 //!
+//! * Batch 8: [`CampusChargePort`] (Domain G library fines, hostel / transport fees →
+//!   `sutra_finance::PgCampusCharges`) and [`ProcurementPostingPort`] (Domain J vendor invoices /
+//!   payments → `sutra_finance::PgProcurementPostings`).
+//!
 //! Money is `rust_decimal::Decimal` at scale ≤ 2 with an explicit currency (INR), never floats.
 
 use crate::finance::ids::{ChargeId, JournalEntryId, LedgerAccountId, StudentAccountId};
@@ -263,6 +267,9 @@ pub mod source {
     pub const PERIOD_CLOSE: &str = "period_close";
     // Batch 7 (Domain E): payroll liability postings through `PayrollPostingPort`.
     pub const PAYROLL_RUN: &str = "payroll_run";
+    // Batch 8 (Domain J): vendor invoices / payments through `ProcurementPostingPort`.
+    pub const PROCUREMENT_INVOICE: &str = "procurement_invoice";
+    pub const PROCUREMENT_PAYMENT: &str = "procurement_payment";
 }
 
 /// Debit or credit side of a posting line.
@@ -665,6 +672,230 @@ pub trait PayrollPostingPort: Send + Sync + 'static {
         scope: &ExecutionScope,
         request: PayrollPostingRequest,
     ) -> Result<PayrollPostingReceipt, KernelError>;
+}
+
+// ---- Batch 8 (Domain G) block: campus service charges (library fines, hostel, transport) ----
+
+/// Fee category of a campus charge (the Batch 5 fee-head categories campus services use).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CampusChargeCategory {
+    Library,
+    Hostel,
+    Transport,
+    Laboratory,
+    Fine,
+}
+
+impl CampusChargeCategory {
+    /// Stored `finance.fee_head.category`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Library => "library",
+            Self::Hostel => "hostel",
+            Self::Transport => "transport",
+            Self::Laboratory => "laboratory",
+            Self::Fine => "fine",
+        }
+    }
+}
+
+/// A charge Domain G asks Finance to raise on a student (library fine, hostel fee or damage,
+/// transport pass fee). Same shape and rules as [`ExamFeeRequest`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CampusChargeRequest {
+    pub institution_id: InstitutionId,
+    /// Domain C student (must have a live context in the institution).
+    pub student_id: Uuid,
+    /// Fee head code (`^[A-Z0-9][A-Z0-9_-]{1,31}$`), e.g. `LIB-FINE`, `HOSTEL-FEE`,
+    /// `TRANSPORT-PASS`; created on first use with `category` and income account `OtherIncome`.
+    pub fee_code: String,
+    pub category: CampusChargeCategory,
+    pub description: String,
+    /// Positive, ≤ 2 decimals, INR.
+    pub amount: Decimal,
+    pub due_date: Option<NaiveDate>,
+    /// The Domain G aggregate the charge is for (fine, allocation, pass, inspection id):
+    /// **idempotency key** — a second call with the same id returns the charge already raised.
+    pub source_id: Uuid,
+    /// Actor recorded on the charge audit / posting.
+    pub actor: Option<String>,
+}
+
+/// The published charge raised for a [`CampusChargeRequest`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CampusCharge {
+    pub charge_id: ChargeId,
+    pub charge_number: String,
+    pub amount: Decimal,
+    /// `true` when the charge for `source_id` already existed (nothing new raised).
+    pub already_raised: bool,
+}
+
+/// Write port into Domain F for campus service charges (Batch 8). One owner-local transaction in
+/// Finance (party account, fee head, charge `source_type = campus_charge`, validation,
+/// **publication** Dr receivables / Cr other income, `charge.published`). Domain G stores
+/// `charge_id` and reads settlement through [`ChargeDirectory::charge`]. Errors: unknown student
+/// / no live context → `Validation`; invalid amount or fee code → `Validation`.
+/// Implemented by `sutra_finance::PgCampusCharges`.
+#[async_trait::async_trait]
+pub trait CampusChargePort: Send + Sync + 'static {
+    async fn raise_campus_charge(
+        &self,
+        scope: &ExecutionScope,
+        request: CampusChargeRequest,
+    ) -> Result<CampusCharge, KernelError>;
+}
+
+// ---- Batch 8 (Domain J) block: procurement postings (accounts payable) ----
+
+/// What a procurement posting records.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProcurementPostingKind {
+    /// Matched vendor invoice → liability (F-044 / F-082): Dr `1410` inventory (stock lines) +
+    /// Dr `5510` procurement expense (service / non-stock lines) / Cr `2310` accounts payable.
+    VendorInvoice,
+    /// Vendor payment settling invoices (F-045): Dr `2310` accounts payable / Cr `bank_main`.
+    VendorPayment,
+}
+
+impl ProcurementPostingKind {
+    /// Journal `source_type` (see [`source`]).
+    pub fn source_type(self) -> &'static str {
+        match self {
+            Self::VendorInvoice => source::PROCUREMENT_INVOICE,
+            Self::VendorPayment => source::PROCUREMENT_PAYMENT,
+        }
+    }
+}
+
+/// A procurement posting Domain J asks Finance to record. Amounts are **signed** (a credit note
+/// carries negative amounts and flips the sides). For a vendor invoice `inventory_amount +
+/// expense_amount` is the payable; for a payment only `payment_amount` is used.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProcurementPostingRequest {
+    pub institution_id: InstitutionId,
+    pub kind: ProcurementPostingKind,
+    /// The Domain J vendor invoice / payment (journal `source_id`).
+    pub source_id: Uuid,
+    /// `post`, `credit_note:<id>` …; `(source_type, source_id, posting_key)` is the idempotency
+    /// key.
+    pub posting_key: String,
+    /// Business date in the institution timezone (period guard applies).
+    pub posting_date: NaiveDate,
+    pub description: String,
+    /// Supplier label recorded in the description / audit (`SUP-000001 Acme Traders`).
+    pub supplier_label: String,
+    pub inventory_amount: Decimal,
+    pub expense_amount: Decimal,
+    pub payment_amount: Decimal,
+    pub actor: Option<String>,
+}
+
+impl ProcurementPostingRequest {
+    /// Two decimals at most, a posting key, something to post, and only the amounts of the kind.
+    pub fn validate(&self) -> Result<(), String> {
+        let amounts = [
+            self.inventory_amount,
+            self.expense_amount,
+            self.payment_amount,
+        ];
+        if amounts.iter().any(|a| a.normalize().scale() > 2) {
+            return Err("procurement amounts take at most two decimals".into());
+        }
+        if self.posting_key.trim().is_empty() {
+            return Err("a posting key is required".into());
+        }
+        match self.kind {
+            ProcurementPostingKind::VendorInvoice => {
+                if !self.payment_amount.is_zero() {
+                    return Err("a vendor invoice carries no payment amount".into());
+                }
+                if (self.inventory_amount + self.expense_amount).is_zero() {
+                    return Err("nothing to post: the invoice total is zero".into());
+                }
+            }
+            ProcurementPostingKind::VendorPayment => {
+                if !self.inventory_amount.is_zero() || !self.expense_amount.is_zero() {
+                    return Err("a vendor payment carries only a payment amount".into());
+                }
+                if self.payment_amount.is_zero() {
+                    return Err("nothing to post: the payment amount is zero".into());
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// The journal entry recorded for a [`ProcurementPostingRequest`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProcurementPostingReceipt {
+    pub journal_entry_id: JournalEntryId,
+    pub entry_number: String,
+    /// `true` when `(source, posting_key)` had been posted before (no new entry).
+    pub already_posted: bool,
+}
+
+/// Write port into Domain F for procurement liabilities and payments (Batch 8). One owner-local
+/// transaction in Finance: seeds `1410` inventory, `5510` procurement expense and `2310`
+/// accounts payable on first use (outside the Batch 5 default chart), posts one balanced journal
+/// entry through `shared::posting` (period-guarded, idempotent, `journal_entry.posted`).
+/// Errors: invalid request → `Validation`; closed period → `Conflict`.
+/// Implemented by `sutra_finance::PgProcurementPostings`.
+#[async_trait::async_trait]
+pub trait ProcurementPostingPort: Send + Sync + 'static {
+    async fn post_procurement(
+        &self,
+        scope: &ExecutionScope,
+        request: ProcurementPostingRequest,
+    ) -> Result<ProcurementPostingReceipt, KernelError>;
+}
+
+#[cfg(test)]
+mod procurement_posting_tests {
+    use super::*;
+    use std::str::FromStr;
+
+    fn d(s: &str) -> Decimal {
+        Decimal::from_str(s).unwrap_or_default()
+    }
+
+    fn req(
+        kind: ProcurementPostingKind,
+        inv: &str,
+        exp: &str,
+        pay: &str,
+    ) -> ProcurementPostingRequest {
+        ProcurementPostingRequest {
+            institution_id: InstitutionId(Uuid::nil()),
+            kind,
+            source_id: Uuid::nil(),
+            posting_key: "post".into(),
+            posting_date: NaiveDate::default(),
+            description: "Invoice".into(),
+            supplier_label: "SUP-000001".into(),
+            inventory_amount: d(inv),
+            expense_amount: d(exp),
+            payment_amount: d(pay),
+            actor: None,
+        }
+    }
+
+    #[test]
+    fn procurement_requests_validate() {
+        use ProcurementPostingKind::*;
+        assert!(req(VendorInvoice, "1000.00", "250.00", "0")
+            .validate()
+            .is_ok());
+        assert!(req(VendorInvoice, "-100.00", "0", "0").validate().is_ok());
+        assert!(req(VendorInvoice, "0", "0", "0").validate().is_err());
+        assert!(req(VendorInvoice, "10", "0", "5").validate().is_err());
+        assert!(req(VendorPayment, "0", "0", "1250.00").validate().is_ok());
+        assert!(req(VendorPayment, "1", "0", "1").validate().is_err());
+        assert!(req(VendorPayment, "0", "0", "1.005").validate().is_err());
+        assert_eq!(VendorInvoice.source_type(), "procurement_invoice");
+        assert_eq!(CampusChargeCategory::Library.as_str(), "library");
+    }
 }
 
 #[cfg(test)]

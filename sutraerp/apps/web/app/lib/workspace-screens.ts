@@ -8,7 +8,7 @@ import type { Role } from "./roles";
 type Routes = Partial<Record<Role, string>>;
 const all = (to: string): Routes => ({ administrator: to, faculty: to, student: to });
 
-/** Built screens per workspace key and role (Batches 1–7). */
+/** Built screens per workspace key and role (Batches 1–8). */
 export const WORKSPACE_SCREENS: Record<string, Routes> = {
   // A · Platform (Batch 1)
   "W-A02": all("/profile"),
@@ -70,11 +70,28 @@ export const WORKSPACE_SCREENS: Record<string, Routes> = {
   "W-E05": { administrator: "/people/leave", faculty: "/leave" },
   "W-E06": { administrator: "/people/payroll", faculty: "/leave" },
   "W-E07": { administrator: "/people/staff", faculty: "/leave" },
+  // G · H · J Campus · Services · Resources (Batch 8)
+  "W-G01": { administrator: "/campus/facilities" },
+  "W-G02": { administrator: "/campus/labs" },
+  "W-G03": { administrator: "/campus/hostel" },
+  "W-G04": { administrator: "/campus/transport" },
+  "W-G05": { administrator: "/campus/library", student: "/library" },
+  "W-G10": { administrator: "/campus/infrastructure" },
+  "W-H07": { administrator: "/reports/dashboards" },
+  "W-H08": { administrator: "/reports/regulatory" },
+  "W-J01": { administrator: "/campus/procurement" },
+  "W-J02": { administrator: "/campus/procurement" },
+  "W-J03": { administrator: "/campus/procurement" },
+  "W-J04": { administrator: "/campus/procurement" },
+  "W-J05": { administrator: "/campus/procurement" },
+  "W-J06": { administrator: "/campus/inventory" },
+  "W-J07": { administrator: "/campus/inventory" },
+  "W-J08": { administrator: "/campus/assets" },
 };
 
 /** Delivery batch by domain letter of the workspace key (W-<letter>NN). */
 export function workspaceBatch(key: string): number {
-  if (/^W-H0[789]$/.test(key)) return 9;
+  if (key === "W-H09") return 9;
   const letter = key.charAt(2);
   return ({ A: 1, B: 2, C: 3, D: 4, F: 5, I: 6, E: 7, G: 8, H: 8, J: 8 } as Record<string, number>)[letter] ?? 9;
 }

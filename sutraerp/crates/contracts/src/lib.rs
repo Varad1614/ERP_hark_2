@@ -16,6 +16,6 @@ pub mod finance; // F
 pub mod institution; // B
 pub mod people; // E
 pub mod platform; // A
-pub mod resources;
+pub mod resources; // J
 pub mod services; // H
-pub mod student; // C // J
+pub mod student; // C
