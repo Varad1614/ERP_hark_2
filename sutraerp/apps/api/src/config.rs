@@ -1059,7 +1059,7 @@ mod tests {
         assert_eq!(c.cache.namespace, "production");
         assert!(c.mfa_step_up, "step-up is always enforced in production");
         assert!(
-            !format!("{:?}", c.oidc).contains("Kc7tY2mQ9vR4xL8pW1sN6bZ3"),
+            !format!("{:?}", c.oidc).contains("unit-test-only-oidc-client-secret"),
             "secret redacted"
         );
         assert_eq!(c.auth_provider, AuthProvider::Keycloak);

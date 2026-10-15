@@ -505,7 +505,10 @@ fn production(extra: &[(&'static str, &'static str)]) -> HashMap<&'static str, &
             "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI",
             "https://erp.example.edu/sign-in",
         ),
-        ("SUTRA_OIDC_CLIENT_SECRET", "Kc7tY2mQ9vR4xL8pW1sN6bZ3"),
+        (
+            "SUTRA_OIDC_CLIENT_SECRET",
+            "unit-test-only-oidc-client-secret",
+        ),
         ("SUTRA_PUBLIC_URL", "https://erp.example.edu"),
         ("SUTRA_WEBAUTHN_ORIGINS", "https://erp.example.edu"),
         (
@@ -521,7 +524,10 @@ fn production(extra: &[(&'static str, &'static str)]) -> HashMap<&'static str, &
             "8e7d6c5b4a39281706f5e4d3c2b1a0998e7d6c5b4a39281706f5e4d3c2b1a092",
         ),
         ("SUTRA_WORKFLOW", "flowable"),
-        ("SUTRA_FLOWABLE_PASSWORD", "Fw9pL2xR7tQ4mZ8vN3bK"),
+        (
+            "SUTRA_FLOWABLE_PASSWORD",
+            "unit-test-only-flowable-password",
+        ),
     ]);
     m.extend(extra.iter().copied());
     m

@@ -436,7 +436,10 @@ pub(crate) mod tests {
                 "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI",
                 "https://erp.example.edu/sign-in",
             ),
-            ("SUTRA_OIDC_CLIENT_SECRET", "Kc7tY2mQ9vR4xL8pW1sN6bZ3"),
+            (
+                "SUTRA_OIDC_CLIENT_SECRET",
+                "unit-test-only-oidc-client-secret",
+            ),
             ("SUTRA_PUBLIC_URL", "https://erp.example.edu"),
             ("SUTRA_WEBAUTHN_RP_ID", "erp.example.edu"),
             ("SUTRA_WEBAUTHN_ORIGINS", "https://erp.example.edu"),
@@ -444,7 +447,10 @@ pub(crate) mod tests {
             ("SUTRA_MFA_ENCRYPTION_KEY", MFA),
             ("SUTRA_AUDIT_ANCHOR_KEY", ANCHOR),
             ("SUTRA_WORKFLOW", "flowable"),
-            ("SUTRA_FLOWABLE_PASSWORD", "Fw9pL2xR7tQ4mZ8vN3bK"),
+            (
+                "SUTRA_FLOWABLE_PASSWORD",
+                "unit-test-only-flowable-password",
+            ),
         ])
     }
 

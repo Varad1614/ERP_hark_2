@@ -114,7 +114,7 @@ pub struct AppContext {
 /// Part 1 · Stage 3 (S3-config): settings of the transport layers built in [`router`].
 #[derive(Clone, Debug)]
 pub struct HttpLayers {
-    pub headers: Arc<sutra_web::headers::SecurityHeaders>,
+    pub headers: Arc<sutra_web::security_headers::SecurityHeaders>,
     pub cors: Arc<sutra_web::cors::CorsPolicy>,
     pub rate_limiter: Arc<sutra_web::rate_limit::RateLimiter>,
     pub max_body_bytes: usize,
@@ -125,7 +125,7 @@ pub struct HttpLayers {
 impl HttpLayers {
     pub fn from_config(cfg: &Config) -> Self {
         Self {
-            headers: Arc::new(sutra_web::headers::SecurityHeaders {
+            headers: Arc::new(sutra_web::security_headers::SecurityHeaders {
                 hsts_max_age_secs: cfg.http.hsts_max_age_secs,
             }),
             cors: Arc::new(sutra_web::cors::CorsPolicy::new(&cfg.allowed_origins)),
@@ -1084,7 +1084,7 @@ pub fn router(ctx: AppContext) -> Router {
         ))
         .layer(axum::middleware::from_fn_with_state(
             layers.headers,
-            sutra_web::headers::security_headers,
+            sutra_web::security_headers::security_headers,
         ))
 }
 
