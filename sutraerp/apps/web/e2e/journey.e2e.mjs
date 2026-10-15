@@ -64,7 +64,7 @@ const gap = (step, why) => R.gaps.push({ step, why });
 // ---------------------------------------------------------------- step runner + checks
 
 const pages = {};
-let shotNo = R.steps.length;
+let shotNo = PHASE === "persistence" ? 100 : 0;
 async function snap(page, name) {
   if (!page) return;
   shotNo++;
@@ -91,7 +91,7 @@ async function step(phase, name, via, fn, { knownDefect } = {}) {
     console.error(`[journey]   ✗ ${name}: ${msg}`);
     status = knownDefect && KNOWN.has(knownDefect) ? "known" : "fail";
     if (knownDefect) evidence.push(`expected behaviour not met — open defect ${knownDefect}${status === "known" ? " (listed in E2E_KNOWN_DEFECTS: reported, does not fail the run)" : ""}`);
-    for (const [role, p] of Object.entries(pages)) {
+    for (const [role, p] of via.startsWith("browser") ? Object.entries(pages) : []) {
       const f = await snap(p, `fail-${role}-${name.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40)}`);
       if (f) evidence.push(`screenshot ${f}`);
       await p?.keyboard.press("Escape").catch(() => {});
