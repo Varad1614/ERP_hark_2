@@ -130,15 +130,8 @@ async fn posted_manual_journal_is_immutable_in_the_database() {
     let _serial = SERIAL.lock().await;
     let (app, pool) = app(T_JOURNAL).await;
     let admin = login(&app, "admin@sutra.dev").await;
-    let setup = b5::finance_setup(
-        &app,
-        &admin,
-        &pool,
-        T_JOURNAL,
-        "Ledger Guard College",
-        None,
-    )
-    .await;
+    let setup =
+        b5::finance_setup(&app, &admin, &pool, T_JOURNAL, "Ledger Guard College", None).await;
     let inst = setup.institution().as_uuid();
     let chart = read(
         &app,

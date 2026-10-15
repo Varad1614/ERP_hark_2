@@ -209,12 +209,17 @@ pub async fn submit(
         "this certificate is already recorded for the enrolment",
     )?;
     let mut tx = begin(st).await?;
-    let c: CertificateVerification = kit::insert(&mut tx, TABLE, json!({
-        "tenant_id": tenant.as_uuid(), "institution_id": e.institution_id, "enrolment_id": e.id,
-        "provider_id": o.provider_id, "student_id": e.student_id, "certificate_number": number,
-        "certificate_url": certificate_url, "issued_on": cmd.issued_on,
-        "learner_name": kit::opt_text(cmd.learner_name.as_deref()), "submitted_by": actor.id,
-    })).await?;
+    let c: CertificateVerification = kit::insert(
+        &mut tx,
+        TABLE,
+        json!({
+            "tenant_id": tenant.as_uuid(), "institution_id": e.institution_id, "enrolment_id": e.id,
+            "provider_id": o.provider_id, "student_id": e.student_id, "certificate_number": number,
+            "certificate_url": certificate_url, "issued_on": cmd.issued_on,
+            "learner_name": kit::opt_text(cmd.learner_name.as_deref()), "submitted_by": actor.id,
+        }),
+    )
+    .await?;
     history(
         &mut tx,
         tenant,

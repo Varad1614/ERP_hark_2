@@ -238,8 +238,7 @@ mod tests {
         .into_response();
         let v = body_json(res).await.to_string();
         assert!(!v.contains("kc.internal"), "{v}");
-        let res =
-            ApiError(KernelError::Unavailable("database unavailable".into())).into_response();
+        let res = ApiError(KernelError::Unavailable("database unavailable".into())).into_response();
         assert_eq!(body_json(res).await["detail"], "database unavailable");
     }
 

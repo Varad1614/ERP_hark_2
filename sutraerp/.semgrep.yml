@@ -1,0 +1,34 @@
+# SutraERP repository Semgrep rules (Part 1 · Stage 3 appsec; job `SAST (Semgrep)` in
+# .github/workflows/sutraerp-quality.yml). Findings and accepted exceptions:
+# docs/readiness/security/appsec.md.
+rules:
+  - id: sutra-no-raw-html-sink
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Raw HTML sink in the SPA (stored / reflected XSS). Render text through React children; the
+      CSP still allows inline script (SEC-9D-011), so an HTML sink is directly exploitable.
+    pattern-either:
+      - pattern: <$EL dangerouslySetInnerHTML={...} />
+      - pattern: <$EL dangerouslySetInnerHTML={...}>...</$EL>
+      - pattern: $X.innerHTML = $V
+      - pattern: $X.outerHTML = $V
+      - pattern: $X.insertAdjacentHTML(...)
+      - pattern: document.write(...)
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: sutra-no-request-data-in-sql-text
+    languages: [rust]
+    severity: ERROR
+    message: >-
+      SQL text built from a request value. Bind it (`$n`) or map it through a fixed allowlist of
+      column / ORDER BY fragments; identifiers interpolated into SQL must be compile-time constants.
+    patterns:
+      - pattern-either:
+          - pattern: sqlx::query(&format!(..., $Q.$F, ...))
+          - pattern: sqlx::query_as(&format!(..., $Q.$F, ...))
+          - pattern: sqlx::query_scalar(&format!(..., $Q.$F, ...))
+      - metavariable-regex:
+          metavariable: $Q
+          regex: ^(q|query|body|cmd|b|req|params|filter)$
