@@ -66,12 +66,12 @@ pub async fn list_guardians(
     let rows: Vec<serde_json::Value> = sqlx::query_scalar(
         "SELECT to_jsonb(g) FROM student.guardian g WHERE g.tenant_id = $1 AND g.institution_id = $2 \
          AND ($3::text IS NULL OR (g.given_name || ' ' || coalesce(g.family_name, '') || ' ' || \
-              coalesce(g.email, '') || ' ' || coalesce(g.phone, '')) ILIKE '%' || $3 || '%') \
+              coalesce(g.email, '') || ' ' || coalesce(g.phone, '')) ILIKE $3) \
          ORDER BY g.given_name, g.family_name NULLS FIRST, g.id LIMIT 200",
     )
     .bind(tenant.as_uuid())
     .bind(institution_id.as_uuid())
-    .bind(q.map(str::trim).filter(|s| !s.is_empty()))
+    .bind(q.map(str::trim).filter(|s| !s.is_empty()).map(sutra_persistence::like_contains))
     .fetch_all(&state.pool)
     .await
     .map_err(map_db_error)?;

@@ -112,18 +112,8 @@ pub struct MyResources {
 }
 
 fn validate_url(url: &str) -> Result<String, KernelError> {
-    let u = url.trim();
-    if !(u.starts_with("https://") || u.starts_with("http://"))
-        || u.len() > 2000
-        || u.contains(char::is_whitespace)
-    {
-        return Err(invalid(
-            "url",
-            "invalid",
-            "url must be an http(s) link without spaces (≤ 2000 characters)",
-        ));
-    }
-    Ok(u.to_owned())
+    // SEC-P1-APPSEC-004: shared http(s) link rule (host required, no whitespace / control chars).
+    sutra_kernel::weblink::http_link("url", url)
 }
 
 pub async fn get(

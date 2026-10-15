@@ -1754,6 +1754,24 @@ async fn internal_assessment_and_coursework() {
         StatusCode::UNPROCESSABLE_ENTITY,
     )
     .await;
+    // SEC-P1-APPSEC-004: the attachment is shown to the teacher as a link — script / data /
+    // protocol-relative links are refused (stored XSS), nothing is stored.
+    for bad in [
+        "javascript:alert(document.cookie)",
+        "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+        "//evil.example/steal",
+        "java\tscript:alert(1)",
+    ] {
+        post(
+            app,
+            aarav,
+            &format!("/me/assignments/{a1id}/submission"),
+            json!({"attachmentUrl": bad}),
+            None,
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await;
+    }
     let mine = post(
         app,
         aarav,

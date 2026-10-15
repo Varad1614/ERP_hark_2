@@ -885,9 +885,11 @@ pub async fn submit_own(
         })?;
     let c = kit::section_ctx(state, auth, w.section_id).await?;
     require_institution_writable(state, &c.scope, c.section.institution_id).await?;
-    if kit::opt_text(cmd.content.as_deref()).is_none()
-        && kit::opt_text(cmd.attachment_url.as_deref()).is_none()
-    {
+    // SEC-P1-APPSEC-004: the attachment is rendered as a link for the teacher, so only an
+    // absolute http(s) URL is stored (no `javascript:` / `data:` links).
+    let attachment_url =
+        sutra_kernel::weblink::opt_http_link("attachmentUrl", cmd.attachment_url.as_deref())?;
+    if kit::opt_text(cmd.content.as_deref()).is_none() && attachment_url.is_none() {
         return Err(invalid(
             "content",
             "required",
@@ -929,7 +931,7 @@ pub async fn submit_own(
         "tenant_id": tenant.as_uuid(), "institution_id": c.institution_uuid(), "window_id": window_id, "section_id": w.section_id,
         "student_id": me.id.as_uuid(), "student_number": entry.student_number, "display_name": entry.display_name,
         "subject_ref": entry.subject_ref, "status": status.as_str(), "content": kit::opt_text(cmd.content.as_deref()),
-        "attachment_url": kit::opt_text(cmd.attachment_url.as_deref()), "submitted_at": now,
+        "attachment_url": attachment_url, "submitted_at": now,
     }))
     .await
     .map_err(|e| match e {

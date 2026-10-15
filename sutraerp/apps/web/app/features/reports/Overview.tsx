@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { akeys, useAnalyticsApi } from "./analytics/hooks";
 import type { MetricValue } from "./analytics/types";
+import { csvRow } from "../../lib/csv";
 
 interface ReportDef {
   id: string;
@@ -58,8 +59,8 @@ function MiniBars({ figures }: { figures: MetricValue[] }) {
 
 /** CSV of a report's figures (label, key, value, unit). */
 export function reportCsv(title: string, figures: MetricValue[]): string {
-  const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  return [["Report", "Figure", "Key", "Value", "Unit"].join(","), ...figures.map((m) => [title, m.label, m.key, m.value, m.unit ?? ""].map((x) => esc(String(x))).join(","))].join("\n") + "\n";
+  // SEC-P1-APPSEC-006: quoting + spreadsheet formula neutralisation (lib/csv).
+  return [csvRow(["Report", "Figure", "Key", "Value", "Unit"]), ...figures.map((m) => csvRow([title, m.label, m.key, m.value, m.unit ?? ""]))].join("\n") + "\n";
 }
 
 function download(name: string, csv: string) {

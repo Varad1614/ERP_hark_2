@@ -32,6 +32,9 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     }
+    // Subcommand selection only (serve / migrate / openapi …), never an authorisation input; the
+    // rule targets trusting argv[0] (SEC-P1-APPSEC-007, accepted false positive).
+    // nosemgrep: rust.lang.security.args.args
     let cmd = std::env::args().nth(1).unwrap_or_else(|| "serve".into());
     if cmd == "openapi" {
         return match openapi::spec_json() {
