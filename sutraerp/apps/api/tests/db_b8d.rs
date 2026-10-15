@@ -2206,7 +2206,11 @@ async fn governed_decisions_await_a_decision() {
         ver(&r),
     )
     .await;
-    assert_eq!(s_self, StatusCode::FORBIDDEN, "the requester cannot approve");
+    assert_eq!(
+        s_self,
+        StatusCode::FORBIDDEN,
+        "the requester cannot approve"
+    );
     let r = ok(
         &checker,
         &me,

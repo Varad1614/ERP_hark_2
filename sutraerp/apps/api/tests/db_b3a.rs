@@ -1179,7 +1179,11 @@ async fn admission_approval_await_decision_and_finance_evidence() {
         Some(ver(&p2)),
     )
     .await;
-    assert_eq!(s, StatusCode::FORBIDDEN, "the requester cannot decide the admission");
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "the requester cannot decide the admission"
+    );
     let ap2 = ok(
         &registrar,
         &inj,

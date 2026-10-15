@@ -1695,7 +1695,11 @@ async fn approvals_await_a_decision() {
     // Part 1 (DEF-X-002): an independent checker decides (finance approver persona).
     let checker = await_app(
         &pool,
-        auth("dev|finance.approver@sutra.dev", Role::FinanceApprover, tenant),
+        auth(
+            "dev|finance.approver@sutra.dev",
+            Role::FinanceApprover,
+            tenant,
+        ),
     );
 
     direct(&api, "POST", &format!("/student-accounts/{acc}/payments"), json!({"channel": "cash", "amount": "4000.00", "allocations": [{"chargeId": charge.charge_id, "amount": "1000.00"}]}), None, StatusCode::CREATED).await;
