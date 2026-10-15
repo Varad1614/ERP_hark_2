@@ -12,12 +12,13 @@
  * - `MyLeavePanel` — Faculty `/leave` (My HR): balances, apply / cancel, my requests and the
  *   approvals waiting for me as a reporting manager.
  */
-import { AlertTriangle, CalendarCheck, CalendarDays, ClipboardList, Clock, HeartPulse, Hourglass, Palmtree, Plane, Scale, UserCheck } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, FilterChip, Input, Select, StatTile, type Tone } from "@sutra/ui";
+import { CalendarCheck, CalendarDays, Check, ClipboardList, Coffee, HeartPulse, MoreHorizontal, Palmtree, Plane, Scale, Send, UserCheck, X, type LucideIcon } from "lucide-react";
+import { Balance, BentoTile, Button, Checkbox, DataTable, DatePicker, EmptyState, FormGrid, FormSelect, formatDateShort, Initials, MenuButton, RowActions, TextArea, type MenuItem, type Tone } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { Actions, fmtDate, REASON, todayIso, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
-import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { fmtDate, REASON, todayIso, type FieldSpec } from "../../institution/forms";
+import { fieldErrors, problemText, StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
+import { Acts, days, hours, splitActions, useAsk, type RowAction } from "../ui";
 import type { Institution } from "../../institution/types";
 import { lkeys, useLeaveApi } from "./hooks";
 import type { AttendanceGridRow, LeaveBalance, LeavePolicy, LeaveRequest, LeaveType, StaffRow } from "./types";
@@ -53,14 +54,15 @@ const AVAILABILITY = [
 const REQUEST_FILTERS = ["pending_approval", "reserved", "consumed", ""] as const;
 
 const currentYear = () => Number(todayIso().slice(0, 4));
-const typeOptions = (types: LeaveType[]) => types.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }));
-const staffOptions = (staff: StaffRow[]) => staff.map((s) => ({ value: s.id, label: `${s.staffNumber} · ${s.displayName}` }));
-const dates = (r: LeaveRequest) => (r.startDate === r.endDate ? fmtDate(r.startDate) : `${fmtDate(r.startDate)} – ${fmtDate(r.endDate)}`);
+const typeOptions = (types: LeaveType[]) => types.map((t) => ({ value: t.id, label: t.name }));
+const staffOptions = (staff: StaffRow[]) => staff.map((s) => ({ value: s.id, label: s.displayName }));
+/** "18 Sep" / "17 Sep – 21 Sep" (prototype request rows). */
+const dates = (r: LeaveRequest) => (r.startDate === r.endDate ? formatDateShort(r.startDate) : `${formatDateShort(r.startDate)} – ${formatDateShort(r.endDate)}`);
 
 function NoInstitutionTile({ title }: { title: string }) {
   return (
     <BentoTile span={12} title={title} data-slice="7B">
-      <EmptyState icon={CalendarDays} title="No institution selected">
+      <EmptyState icon={CalendarDays} title="No institution selected" compact>
         Register an institution in Campus setup → Institution first.
       </EmptyState>
     </BentoTile>
@@ -83,19 +85,20 @@ function noEntitlement(b: LeaveBalance): boolean {
   return /^0(\.0+)?$/.test(b.entitled) && b.available.startsWith("-");
 }
 
-function BalanceTable({ rows }: { rows: LeaveBalance[] }) {
+function BalanceTable({ rows, types }: { rows: LeaveBalance[]; types: LeaveType[] }) {
+  const name = (b: LeaveBalance) => types.find((t) => t.id === b.leaveTypeId)?.name ?? b.leaveTypeCode;
   return (
     <DataTable<LeaveBalance>
       caption="Leave balances"
       rows={rows}
       rowKey={(b) => `${b.leaveTypeId}:${b.leaveYear}`}
-      empty={<EmptyState icon={Scale} title="No balances yet">Entitlements appear after the accrual run.</EmptyState>}
+      empty={<EmptyState icon={Scale} title="No balances yet" compact>Entitlements appear after the accrual run.</EmptyState>}
       columns={[
-        { key: "type", header: "Leave type", render: (b) => b.leaveTypeCode },
-        { key: "entitled", header: "Entitled", render: (b) => b.entitled },
-        { key: "reserved", header: "Reserved", render: (b) => b.reserved, muted: true },
-        { key: "consumed", header: "Taken", render: (b) => b.consumed, muted: true },
-        { key: "available", header: "Available", render: (b) => (noEntitlement(b) ? "—" : b.available) },
+        { key: "type", header: "Leave type", render: (b) => name(b) },
+        { key: "entitled", header: "Entitled", render: (b) => days(b.entitled) },
+        { key: "reserved", header: "Booked", render: (b) => days(b.reserved), muted: true },
+        { key: "consumed", header: "Taken", render: (b) => days(b.consumed), muted: true },
+        { key: "available", header: "Available", render: (b) => (noEntitlement(b) ? "—" : days(b.available)) },
       ]}
     />
   );
@@ -186,14 +189,14 @@ function PoliciesTile({ institutionId }: { institutionId: string }) {
         caption="Leave policies"
         rows={policies.data ?? []}
         rowKey={(p) => p.id}
-        empty={<EmptyState icon={ClipboardList} title="No leave policy yet">Create a draft, add leave types, submit it for approval and activate it.</EmptyState>}
+        empty={<EmptyState icon={ClipboardList} title="No leave policy yet" compact>Create a draft, add leave types, submit it for approval and activate it.</EmptyState>}
         columns={[
           { key: "name", header: "Policy", render: (p) => `${p.name} · v${p.versionNo}` },
           { key: "from", header: "Effective", render: (p) => fmtDate(p.effectiveFrom), muted: true },
-          { key: "types", header: "Leave types", render: (p) => (p.leaveTypes.length ? p.leaveTypes.map((t) => t.code).join(", ") : "—") },
+          { key: "types", header: "Leave types", render: (p) => (p.leaveTypes.length ? p.leaveTypes.map((t) => t.name).join(", ") : "—") },
           { key: "findings", header: "Findings", render: (p) => (p.validationFindings.length ? p.validationFindings.join("; ") : "—"), muted: true },
           { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
-          { key: "actions", header: "", render: (p) => <Actions actions={actions(p)} disabled={busy} /> },
+          { key: "actions", header: "", render: (p) => <Acts actions={actions(p)} disabled={busy} /> },
         ]}
       />
       {prompt}
@@ -202,74 +205,163 @@ function PoliciesTile({ institutionId }: { institutionId: string }) {
   );
 }
 
+/** One leave request as a prototype approval row: avatar, "Name · Type", dates · days · reason, Approve + Decline (+ kebab). */
+function RequestRow({ r, typeName, acts, busy, check }: { r: LeaveRequest; typeName: string; acts: RowAction[]; busy: boolean; check?: { checked: boolean; onChange: (v: boolean) => void } }) {
+  const approve = acts.find((a) => a.id.endsWith("-approve"));
+  const reject = acts.find((a) => a.id.endsWith("-reject"));
+  const { primary, menu } = splitActions(
+    acts.filter((a) => a !== approve && a !== reject),
+    busy,
+  );
+  return (
+    <div className="sb-approval sb-leave-row" data-approval="" data-request={r.number} data-staff={r.displayName}>
+      {check && (
+        <span className="sb-leave-check">
+          <Checkbox label={<span className="sb-visually-hidden">{`Select ${r.displayName}`}</span>} checked={check.checked} onChange={(e) => check.onChange(e.target.checked)} />
+        </span>
+      )}
+      <Initials name={r.displayName} />
+      <div className="sb-approval-main">
+        <b>
+          {r.displayName} · {typeName}
+        </b>
+        <small>{[dates(r), days(r.days), r.reason].filter(Boolean).join(" · ")}</small>
+      </div>
+      <div className="sb-approval-acts" style={{ alignItems: "center" }}>
+        {!approve && <StatusBadge status={r.status} />}
+        {approve && (
+          <button type="button" className="sb-btn" disabled={busy} onClick={approve.onClick} data-action={approve.id} data-approve="">
+            <Check strokeWidth={2} aria-hidden="true" />
+            Approve
+          </button>
+        )}
+        {reject && (
+          <button type="button" className="sb-btn sb-btn--ghost" disabled={busy} onClick={reject.onClick} data-action={reject.id} data-reject="">
+            <X strokeWidth={2} aria-hidden="true" />
+            Decline
+          </button>
+        )}
+        {(primary || menu.length > 0) && <RowActions primary={primary} menu={menu} label={`More actions for ${r.displayName}`} />}
+      </div>
+    </div>
+  );
+}
+
+/** Muted count next to a tile title ("12 pending"). */
+const NOTE = { fontWeight: 500, fontSize: 13, color: "var(--sb-mute-2)", marginLeft: 10 } as const;
+
+/** Tile heading with a muted note (BentoTile `title` is plain text): same `h4` + actions markup. */
+function TileHead({ title, action }: { title: ReactNode; action?: ReactNode }) {
+  return (
+    <h4>
+      {title}
+      {action != null && <span className="sb-tile-actions">{action}</span>}
+    </h4>
+  );
+}
+
+const FILTER_LABEL: Record<string, string> = { pending_approval: "Pending", reserved: "Reserved", consumed: "Consumed", "": "All" };
+
 function RequestsTile({ institutionId }: { institutionId: string }) {
   const api = useLeaveApi();
   const { run, submit, busy, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  const { ask, prompt } = useAsk("People · Leave");
   const [filter, setFilter] = useState<string>("pending_approval");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const types = useActiveTypes(institutionId);
   const staff = useStaff(institutionId);
   const requests = useQuery({ queryKey: lkeys(institutionId, `requests:${filter}`), queryFn: () => api.requests(institutionId, filter || undefined) });
+  const items = requests.data?.items ?? [];
+  const pending = items.filter((r) => r.status === "pending_approval");
+  const chosen = pending.filter((r) => picked.has(r.id));
+  const allPicked = pending.length > 0 && chosen.length === pending.length;
+  const typeName = (r: LeaveRequest) => types.find((t) => t.id === r.leaveTypeId)?.name ?? r.leaveTypeCode;
   const actions = (r: LeaveRequest): RowAction[] => {
     const a: RowAction[] = [];
     if (r.status === "pending_approval") {
-      a.push({ id: "request-approve", label: "Approve", variant: "primary", onClick: () => void run(() => api.decideRequest(r.id, r.version, true), `${r.number} approved`) });
-      a.push({ id: "request-reject", label: "Reject", onClick: () => ask({ title: `Reject ${r.number}`, name: "request-reject", fields: [REASON], submitLabel: "Reject", onSubmit: (v) => submit(() => api.decideRequest(r.id, r.version, false, v.reason), `${r.number} rejected`) }) });
+      a.push({ id: "request-approve", label: "Approve", variant: "primary", onClick: () => void run(() => api.decideRequest(r.id, r.version, true), `${r.displayName}: ${typeName(r).toLowerCase()} approved`) });
+      a.push({ id: "request-reject", label: "Decline", onClick: () => ask({ title: `Decline · ${r.displayName}`, name: "request-reject", fields: [REASON], submitLabel: "Decline", onSubmit: (v) => submit(() => api.decideRequest(r.id, r.version, false, v.reason), `${r.displayName}: declined`) }) });
     }
-    if (r.status === "reserved") a.push({ id: "request-consume", label: "Consume", onClick: () => void run(() => api.consumeRequest(r.id, r.version), `${r.number} consumed`) });
+    if (r.status === "reserved") a.push({ id: "request-consume", label: "Mark taken", variant: "primary", onClick: () => void run(() => api.consumeRequest(r.id, r.version), `${r.displayName}: leave taken`) });
     if (["pending_approval", "approved", "reserved", "consumed"].includes(r.status))
-      a.push({ id: "request-cancel", label: "Cancel", onClick: () => ask({ title: `Cancel ${r.number}`, name: "request-cancel", fields: [REASON], submitLabel: "Cancel leave", onSubmit: (v) => submit(() => api.cancelRequest(r.id, r.version, v.reason), `${r.number} cancelled`) }) });
+      a.push({ id: "request-cancel", label: "Cancel leave", onClick: () => ask({ title: `Cancel · ${r.displayName}`, name: "request-cancel", fields: [REASON], submitLabel: "Cancel leave", onSubmit: (v) => submit(() => api.cancelRequest(r.id, r.version, v.reason), `${r.displayName}: leave cancelled`) }) });
     return a;
   };
+  const approveChosen = async () => {
+    for (const r of chosen) await run(() => api.decideRequest(r.id, r.version, true), `${r.displayName}: approved`);
+    setPicked(new Set());
+  };
+  const tools: MenuItem[] = [
+    {
+      id: "request-new",
+      label: "Request on behalf of staff",
+      onSelect: () =>
+        ask({
+          title: "Request leave on behalf of a staff member",
+          name: "request-new",
+          fields: [
+            { name: "staffId", label: "Staff member", type: "select", required: true, options: staffOptions(staff), initial: staff[0]?.id ?? "" },
+            { name: "leaveTypeId", label: "Leave type", type: "select", required: true, options: typeOptions(types), initial: types[0]?.id ?? "" },
+            { name: "startDate", label: "From", type: "date", required: true, initial: todayIso() },
+            { name: "endDate", label: "To", type: "date", required: true, initial: todayIso() },
+            { name: "reason", label: "Reason", wide: true },
+          ],
+          submitLabel: "Submit",
+          onSubmit: (v) => submit(() => api.requestLeave(institutionId, { staffId: v.staffId!, leaveTypeId: v.leaveTypeId!, startDate: v.startDate!, endDate: v.endDate!, reason: v.reason || undefined }), (r) => `${r.displayName}: leave ${statusLabel(r.status).toLowerCase()}`),
+        }),
+    },
+    { id: "request-sweep", label: "Mark started leave as taken", onSelect: () => void run(() => api.sweep(institutionId), (s) => `${s.processed} marked taken, ${s.skipped} not started yet`) },
+    ...REQUEST_FILTERS.map((f, i) => ({ id: `request-filter-${f || "all"}`, label: FILTER_LABEL[f] ?? statusLabel(f), active: filter === f, group: i === 0 ? "Show" : undefined, separated: i === 0, onSelect: () => setFilter(f) })),
+  ];
   return (
-    <BentoTile
-      span={12}
-      title="Leave requests"
-      action={
-        <Actions
-          disabled={busy}
-          actions={[
-            {
-              id: "request-new",
-              label: "Request on behalf",
-              onClick: () =>
-                ask({
-                  title: "Request leave on behalf of a staff member",
-                  name: "request-new",
-                  fields: [
-                    { name: "staffId", label: "Staff member", type: "select", required: true, options: staffOptions(staff), initial: staff[0]?.id ?? "" },
-                    { name: "leaveTypeId", label: "Leave type", type: "select", required: true, options: typeOptions(types), initial: types[0]?.id ?? "" },
-                    { name: "startDate", label: "From", type: "date", required: true, initial: todayIso() },
-                    { name: "endDate", label: "To", type: "date", required: true, initial: todayIso() },
-                    { name: "reason", label: "Reason", wide: true },
-                  ],
-                  submitLabel: "Submit",
-                  onSubmit: (v) => submit(() => api.requestLeave(institutionId, { staffId: v.staffId!, leaveTypeId: v.leaveTypeId!, startDate: v.startDate!, endDate: v.endDate!, reason: v.reason || undefined }), (r) => `${r.number} ${statusLabel(r.status).toLowerCase()}`),
-                }),
-            },
-            { id: "request-sweep", label: "Consume started leave", onClick: () => void run(() => api.sweep(institutionId), (s) => `${s.processed} consumed, ${s.skipped} not started yet`) },
-          ]}
-        />
-      }
-    >
-      {REQUEST_FILTERS.map((f) => (
-        <FilterChip key={f || "all"} active={filter === f} label={f ? statusLabel(f) : "All"} onClick={() => setFilter(f)} />
-      ))}
-      <DataTable<LeaveRequest>
-        caption="Leave requests"
-        rows={requests.data?.items ?? []}
-        rowKey={(r) => r.id}
-        empty={<EmptyState icon={CalendarCheck} title="Nothing here">No leave requests with this status.</EmptyState>}
-        columns={[
-          { key: "number", header: "Request", render: (r) => r.number },
-          { key: "staff", header: "Staff", render: (r) => `${r.staffNumber} · ${r.displayName}` },
-          { key: "type", header: "Type", render: (r) => r.leaveTypeCode, muted: true },
-          { key: "dates", header: "Dates", render: dates },
-          { key: "days", header: "Days", render: (r) => r.days },
-          { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-          { key: "actions", header: "", render: (r) => <Actions actions={actions(r)} disabled={busy} /> },
-        ]}
+    <BentoTile span={12} data-slice="7B" data-requests="">
+      <TileHead
+        title={
+        <>
+          {filter === "pending_approval" || filter === "" ? "Leave requests" : `Leave requests · ${FILTER_LABEL[filter]}`}
+          <small style={NOTE} data-requests-count="">
+            {filter === "pending_approval" ? `${pending.length} pending` : `${items.length} shown${pending.length ? ` · ${pending.length} pending` : ""}`}
+          </small>
+        </>
+        }
+        action={
+        <>
+          {chosen.length > 0 && (
+            <Button size="sm" data-action="request-approve-selected" disabled={busy} onClick={() => void approveChosen()}>
+              {`Approve ${chosen.length} selected`}
+            </Button>
+          )}
+          {pending.length > 0 && <Checkbox label="Select all pending" checked={allPicked} onChange={(e) => setPicked(e.target.checked ? new Set(pending.map((r) => r.id)) : new Set())} data-select-all="" />}
+          <MenuButton
+            label="Leave request tools"
+            items={tools}
+            trigger={(p) => (
+              <button type="button" className="sb-kebab" aria-label="Leave request tools" data-row-menu="" data-requests-tools="" {...p}>
+                <MoreHorizontal strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            )}
+          />
+        </>
+        }
       />
+      {items.length === 0 ? (
+        <EmptyState icon={CalendarCheck} title={filter === "pending_approval" ? "No leave requests to review" : "Nothing here"} compact>
+          {filter === "pending_approval" ? "New requests from staff appear here for approval." : "No leave requests with this status."}
+        </EmptyState>
+      ) : (
+        <div className="sb-approvals">
+          {items.map((r) => (
+            <RequestRow
+              key={r.id}
+              r={r}
+              typeName={typeName(r)}
+              acts={actions(r)}
+              busy={busy}
+              check={r.status === "pending_approval" ? { checked: picked.has(r.id), onChange: (v) => setPicked((s0) => { const n = new Set(s0); if (v) n.add(r.id); else n.delete(r.id); return n; }) } : undefined}
+            />
+          ))}
+        </div>
+      )}
       {prompt}
       {dialog}
     </BentoTile>
@@ -292,7 +384,7 @@ function RunsTile({ institutionId }: { institutionId: string }) {
       span={6}
       title="Accrual & year end"
       action={
-        <Actions
+        <Acts
           disabled={busy}
           actions={[
             { id: "accrual-opening", label: `Opening ${year}`, onClick: () => void run(() => api.accrue(institutionId, year), (r) => `Opening entitlements: ${r.processed} posted`) },
@@ -331,7 +423,7 @@ function RunsTile({ institutionId }: { institutionId: string }) {
         caption="Leave runs"
         rows={runs}
         rowKey={(r) => r.id}
-        empty={<EmptyState icon={CalendarDays} title="No runs yet">Run the opening entitlements once the policy is active.</EmptyState>}
+        empty={<EmptyState icon={CalendarDays} title="No runs yet" compact>Run the opening entitlements once the policy is active.</EmptyState>}
         columns={[
           { key: "what", header: "Run", render: (r) => r.what },
           { key: "result", header: "Result", render: (r) => r.result, muted: true },
@@ -349,7 +441,8 @@ function BalancesTile({ institutionId }: { institutionId: string }) {
   const { submit, busy, dialog } = useCommand();
   const { ask, prompt } = useAsk();
   const staff = useStaff(institutionId);
-  const types = useActiveTypes(institutionId).filter((t) => t.requiresBalance);
+  const allTypes = useActiveTypes(institutionId);
+  const types = allTypes.filter((t) => t.requiresBalance);
   const [picked, setPicked] = useState<string>("");
   const staffId = picked || staff[0]?.id || "";
   const balances = useQuery({ queryKey: lkeys(staffId, "balances"), queryFn: () => api.balances(staffId), enabled: !!staffId });
@@ -360,7 +453,7 @@ function BalancesTile({ institutionId }: { institutionId: string }) {
       title="Balances"
       action={
         staffId ? (
-          <Actions
+          <Acts
             disabled={busy}
             actions={[
               {
@@ -399,8 +492,8 @@ function BalancesTile({ institutionId }: { institutionId: string }) {
         ) : undefined
       }
     >
-      {staff.length > 0 && <Select label="Staff member" value={staffId} options={staffOptions(staff)} onChange={(e) => setPicked(e.target.value)} />}
-      <BalanceTable rows={balances.data ?? []} />
+      {staff.length > 0 && <FormSelect label="Staff member" value={staffId} options={staffOptions(staff)} onChange={(e) => setPicked(e.target.value)} />}
+      <BalanceTable rows={balances.data ?? []} types={allTypes} />
       {prompt}
       {dialog}
     </BentoTile>
@@ -445,7 +538,7 @@ function ExceptionsTile({ institutionId }: { institutionId: string }) {
         caption="Leave exceptions"
         rows={exceptions.data ?? []}
         rowKey={(e) => e.id}
-        empty={<EmptyState icon={Scale} title="No exceptions">Balance, policy or attendance conflicts raised for review appear here.</EmptyState>}
+        empty={<EmptyState icon={Scale} title="No exceptions" compact>Balance, policy or attendance conflicts raised for review appear here.</EmptyState>}
         columns={[
           { key: "number", header: "Exception", render: (e) => e.number },
           { key: "category", header: "Category", render: (e) => statusLabel(e.category) },
@@ -456,7 +549,7 @@ function ExceptionsTile({ institutionId }: { institutionId: string }) {
             key: "actions",
             header: "",
             render: (e) => (
-              <Actions
+              <Acts
                 disabled={busy}
                 actions={[
                   ...(e.status === "raised" ? [{ id: "exception-review", label: "Review", onClick: () => void run(() => api.exceptionCommand(e.id, e.version, "review"), `${e.number} under review`) }] : []),
@@ -489,30 +582,12 @@ function ExceptionsTile({ institutionId }: { institutionId: string }) {
   );
 }
 
-function LeaveStats({ institutionId }: { institutionId: string }) {
-  const api = useLeaveApi();
-  const policies = useQuery({ queryKey: lkeys(institutionId, "policies"), queryFn: () => api.policies(institutionId) }).data;
-  const pending = useQuery({ queryKey: lkeys(institutionId, "requests:pending_approval"), queryFn: () => api.requests(institutionId, "pending_approval") }).data;
-  const reserved = useQuery({ queryKey: lkeys(institutionId, "requests:reserved"), queryFn: () => api.requests(institutionId, "reserved") }).data;
-  const exceptions = useQuery({ queryKey: lkeys(institutionId, "exceptions"), queryFn: () => api.exceptions(institutionId) }).data;
-  const active = policies?.find((p) => p.status === "active");
-  return (
-    <>
-      <StatTile icon={ClipboardList} tone="orange" label="Active policy" value={policies ? (active ? `v${active.versionNo}` : "None") : "…"} hint={active ? `${active.name} · ${active.leaveTypes.length} leave types` : "Create and activate a policy"} data-kpi="leave-policy" />
-      <StatTile icon={Hourglass} tone="violet" label="To decide" value={pending ? String(pending.items.length) : "…"} hint="Requests pending approval" data-kpi="leave-pending" />
-      <StatTile icon={CalendarCheck} tone="green" label="Reserved" value={reserved ? String(reserved.items.length) : "…"} hint="Approved, not yet taken" data-kpi="leave-reserved" />
-      <StatTile icon={AlertTriangle} tone="rose" label="Open exceptions" value={exceptions ? String(exceptions.filter((e) => e.status !== "resolved").length) : "…"} hint="Raised or under review" data-kpi="leave-exceptions" />
-    </>
-  );
-}
-
 export function LeaveAdminTab({ institution }: { institution: Institution | null }) {
   if (!institution) return <NoInstitutionTile title="Leave" />;
   return (
     <>
-      <LeaveStats institutionId={institution.id} />
-      <PoliciesTile institutionId={institution.id} />
       <RequestsTile institutionId={institution.id} />
+      <PoliciesTile institutionId={institution.id} />
       <RunsTile institutionId={institution.id} />
       <BalancesTile institutionId={institution.id} />
       <ExceptionsTile institutionId={institution.id} />
@@ -564,18 +639,20 @@ function AttendanceTile({ institutionId }: { institutionId: string }) {
         </Button>
       }
     >
-      <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <FormGrid columns={3}>
+        <DatePicker label="Date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </FormGrid>
       <DataTable<AttendanceGridRow>
         caption="Attendance"
         rows={rows}
         rowKey={(r) => r.staffId}
-        empty={<EmptyState icon={UserCheck} title="No staff on this date">Staff with an engagement covering the date appear here.</EmptyState>}
+        empty={<EmptyState icon={UserCheck} title="No staff on this date" compact>Staff with an engagement covering the date appear here.</EmptyState>}
         columns={[
-          { key: "staff", header: "Staff", render: (r) => `${r.staffNumber} · ${r.displayName}` },
+          { key: "staff", header: "Staff", render: (r) => r.displayName },
           { key: "engagement", header: "Availability", render: (r) => (r.available ? "Available" : statusLabel(r.engagementStatus)), muted: true },
           { key: "status", header: "Day", render: (r) => (r.day ? <StatusBadge status={r.day.status} /> : "—") },
           { key: "source", header: "Source", render: (r) => (r.day ? statusLabel(r.day.source) : "—"), muted: true },
-          { key: "actions", header: "", render: (r) => <Actions actions={actions(r)} disabled={busy} /> },
+          { key: "actions", header: "", render: (r) => <Acts actions={actions(r)} disabled={busy} /> },
         ]}
       />
       {prompt}
@@ -622,12 +699,12 @@ function LongLeaveTile({ institutionId, span = 6 }: { institutionId: string; spa
         ) : undefined
       }
     >
-      {staff.length > 0 && <Select label="Staff member" value={person?.id ?? ""} options={staffOptions(staff)} onChange={(e) => setPicked(e.target.value)} />}
+      {staff.length > 0 && <FormSelect label="Staff member" value={person?.id ?? ""} options={staffOptions(staff)} onChange={(e) => setPicked(e.target.value)} />}
       <DataTable
         caption="Long leave"
         rows={leaves.data ?? []}
         rowKey={(l) => l.id}
-        empty={<EmptyState icon={Plane} title="No long leave">Planned and running long leave of the engagement appear here.</EmptyState>}
+        empty={<EmptyState icon={Plane} title="No long leave" compact>Planned and running long leave of the engagement appear here.</EmptyState>}
         columns={[
           { key: "period", header: "Period", render: (l) => `${fmtDate(l.actualStart ?? l.plannedStart)} – ${fmtDate(l.actualEnd ?? l.plannedEnd)}` },
           { key: "reason", header: "Reason", render: (l) => l.reason, muted: true },
@@ -636,7 +713,7 @@ function LongLeaveTile({ institutionId, span = 6 }: { institutionId: string; spa
             key: "actions",
             header: "",
             render: (l) => (
-              <Actions
+              <Acts
                 disabled={busy}
                 actions={[
                   ...(l.status === "planned" ? [{ id: "long-leave-start", label: "Start", variant: "primary" as const, onClick: () => void run(() => api.longLeaveCommand(l.id, l.version, "start"), "Long leave started") }] : []),
@@ -694,10 +771,10 @@ function WorkloadTile({ institutionId, span = 6 }: { institutionId: string; span
         ) : undefined
       }
     >
-      {faculty.length > 0 && <Select label="Faculty member" value={staffId} options={staffOptions(faculty)} onChange={(e) => setPicked(e.target.value)} />}
+      {faculty.length > 0 && <FormSelect label="Faculty member" value={staffId} options={staffOptions(faculty)} onChange={(e) => setPicked(e.target.value)} />}
       {w && (
         <p data-workload-total>
-          Teaching load {w.totalWeeklyHours} h/week{w.effectiveMaxHours ? ` of ${w.effectiveMaxHours}` : ""}
+          Teaching load {hours(w.totalWeeklyHours)} a week{w.effectiveMaxHours ? ` of ${hours(w.effectiveMaxHours)}` : ""}
           {w.overAllocated ? " · over-allocated" : ""}
         </p>
       )}
@@ -705,17 +782,17 @@ function WorkloadTile({ institutionId, span = 6 }: { institutionId: string; span
         caption="Workload plans"
         rows={plans.data ?? []}
         rowKey={(p) => p.id}
-        empty={<EmptyState icon={ClipboardList} title="No workload plan">Draft a plan with the faculty member’s availability and hours.</EmptyState>}
+        empty={<EmptyState icon={ClipboardList} title="No workload plan" compact>Draft a plan with the faculty member’s availability and hours.</EmptyState>}
         columns={[
           { key: "term", header: "Period", render: (p) => p.termLabel },
           { key: "availability", header: "Availability", render: (p) => statusLabel(p.availability), muted: true },
-          { key: "hours", header: "Hours", render: (p) => `${p.plannedWeeklyHours}${p.maxWeeklyHours ? ` / ${p.maxWeeklyHours}` : ""}` },
+          { key: "hours", header: "Hours", render: (p) => `${hours(p.plannedWeeklyHours)}${p.maxWeeklyHours ? ` of ${hours(p.maxWeeklyHours)}` : ""}` },
           { key: "status", header: "Status", render: (p) => <StatusBadge status={p.overAllocated && p.status === "active" ? "active" : p.status} /> },
           {
             key: "actions",
             header: "",
             render: (p) => (
-              <Actions
+              <Acts
                 disabled={busy}
                 actions={[
                   ...(p.status === "draft"
@@ -772,121 +849,178 @@ export function WorkloadAdminTab({ institution }: { institution: Institution | n
 
 // ================================================================== Faculty → Leave (My HR)
 
-/** My HR (`/leave`): balances, apply / cancel leave, my requests, approvals for my reports. */
-export function MyLeavePanel() {
+/** Leave types with an entitlement get a balance tile (prototype fac-leave.png: Casual / Medical / Earned). */
+const hasEntitlement = (b: LeaveBalance) => Number(b.entitled) > 0;
+
+function balanceLook(name: string): { icon: LucideIcon; tone: Tone } {
+  if (/casual/i.test(name)) return { icon: Coffee, tone: "blue" };
+  if (/medical|sick/i.test(name)) return { icon: HeartPulse, tone: "rose" };
+  if (/earned|privilege|annual/i.test(name)) return { icon: Palmtree, tone: "green" };
+  if (/duty|conference/i.test(name)) return { icon: Plane, tone: "amber" };
+  return { icon: CalendarDays, tone: "violet" };
+}
+
+function useMyTypes() {
   const api = useLeaveApi();
-  const { run, submit, busy, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  return useQuery({ queryKey: lkeys("me", "types"), queryFn: () => api.myTypes(), retry: false });
+}
+
+/** My HR → Leave: one prototype `Balance` tile per leave type with an entitlement (left of entitled, bar). */
+export function MyLeaveStats() {
+  const api = useLeaveApi();
   const balances = useQuery({ queryKey: lkeys("me", "balances"), queryFn: () => api.myBalances(), retry: false });
-  const types = useQuery({ queryKey: lkeys("me", "types"), queryFn: () => api.myTypes(), retry: false });
-  const requests = useQuery({ queryKey: lkeys("me", "requests"), queryFn: () => api.myRequests(), retry: false });
-  const approvals = useQuery({ queryKey: lkeys("me", "approvals"), queryFn: () => api.approvals(), retry: false });
-  const typeList = types.data ?? [];
-  const apply = () =>
-    ask({
-      title: "Apply for leave",
-      name: "leave-apply",
-      fields: [
-        { name: "leaveTypeId", label: "Leave type", type: "select", required: true, options: typeOptions(typeList), initial: typeList[0]?.id ?? "" },
-        { name: "startDate", label: "From", type: "date", required: true, initial: todayIso() },
-        { name: "endDate", label: "To", type: "date", required: true, initial: todayIso() },
-        { name: "halfDayEnd", label: "Half day on the last day", type: "checkbox" },
-        { name: "reason", label: "Reason", wide: true },
-      ],
-      submitLabel: "Apply",
-      onSubmit: (v) =>
-        submit(
-          () => api.apply({ leaveTypeId: v.leaveTypeId!, startDate: v.startDate!, endDate: v.endDate!, halfDayEnd: v.halfDayEnd === "true", reason: v.reason || undefined }),
-          (r) => `${r.number}: ${r.days} days ${statusLabel(r.status).toLowerCase()}`,
-        ),
-    });
-  const mine = (r: LeaveRequest): RowAction[] =>
-    ["pending_approval", "approved", "reserved"].includes(r.status)
-      ? [{ id: "my-cancel", label: "Cancel", onClick: () => ask({ title: `Cancel ${r.number}`, name: "my-cancel", fields: [{ name: "reason", label: "Reason", wide: true }], submitLabel: "Cancel leave", onSubmit: (v) => submit(() => api.cancelMine(r.id, r.version, v.reason || undefined), `${r.number} cancelled`) }) }]
-      : [];
-  const decide = (r: LeaveRequest): RowAction[] => [
-    { id: "approval-approve", label: "Approve", variant: "primary", onClick: () => void run(() => api.decideApproval(r.id, r.version, true), `${r.number} approved`) },
-    { id: "approval-reject", label: "Reject", onClick: () => ask({ title: `Reject ${r.number}`, name: "approval-reject", fields: [REASON], submitLabel: "Reject", onSubmit: (v) => submit(() => api.decideApproval(r.id, r.version, false, v.reason), `${r.number} rejected`) }) },
-  ];
-  const waiting = approvals.data ?? [];
+  const types = useMyTypes().data ?? [];
+  const rows = (balances.data ?? []).filter(hasEntitlement).slice(0, 4);
+  if (balances.isError || rows.length === 0) return null;
+  const span = rows.length >= 4 ? 3 : rows.length === 3 ? 4 : 6;
   return (
-    <BentoTile
-      span={12}
-      title="My leave"
-      data-slice="7B"
-      action={
-        <Button size="sm" data-action="leave-apply" disabled={busy || typeList.length === 0} onClick={apply}>
-          Apply for leave
-        </Button>
-      }
-    >
-      {balances.isError ? (
-        <EmptyState icon={CalendarDays} title="No staff record">
-          Leave becomes available once HR links your login to a staff record.
-        </EmptyState>
-      ) : (
-        <>
-          <BalanceTable rows={balances.data ?? []} />
-          <DataTable<LeaveRequest>
-            caption="My leave requests"
-            rows={requests.data ?? []}
-            rowKey={(r) => r.id}
-            empty={<EmptyState icon={CalendarCheck} title="No leave requests">Apply for leave and follow it here.</EmptyState>}
-            columns={[
-              { key: "number", header: "Request", render: (r) => r.number },
-              { key: "type", header: "Type", render: (r) => r.leaveTypeCode, muted: true },
-              { key: "dates", header: "Dates", render: dates },
-              { key: "days", header: "Days", render: (r) => r.days },
-              { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-              { key: "actions", header: "", render: (r) => <Actions actions={mine(r)} disabled={busy} /> },
-            ]}
-          />
-          {waiting.length > 0 && (
-            <DataTable<LeaveRequest>
-              caption="Approvals waiting for me"
-              rows={waiting}
-              rowKey={(r) => r.id}
-              columns={[
-                { key: "staff", header: "Waiting for you", render: (r) => r.displayName },
-                { key: "type", header: "Type", render: (r) => r.leaveTypeCode, muted: true },
-                { key: "dates", header: "Dates", render: dates },
-                { key: "days", header: "Days", render: (r) => r.days },
-                { key: "actions", header: "", render: (r) => <Actions actions={decide(r)} disabled={busy} /> },
-              ]}
-            />
+    <>
+      {rows.map((b) => {
+        const name = types.find((t) => t.id === b.leaveTypeId)?.name ?? b.leaveTypeCode;
+        const entitled = Number(b.entitled);
+        const left = Number(b.available);
+        const look = balanceLook(name);
+        return (
+          <BentoTile key={b.leaveTypeId} span={span} data-slice="7B" data-kpi={`balance-${b.leaveTypeCode}`} data-balance={name}>
+            <Balance icon={look.icon} tone={look.tone} label={name} used={entitled - left} total={entitled} caption={Number(b.reserved) > 0 ? `${days(b.reserved)} booked, not yet taken` : undefined} />
+          </BentoTile>
+        );
+      })}
+    </>
+  );
+}
+
+/** "21 Aug 2026 – 22 Aug 2026" (prototype history dates). */
+const historyDates = (r: LeaveRequest) => (r.startDate === r.endDate ? fmtDate(r.startDate) : `${fmtDate(r.startDate)} – ${fmtDate(r.endDate)}`);
+
+/** Inline "Apply for leave" form (prototype `.x-form`: Type / From / To, Reason, Submit application). */
+function ApplyTile({ types }: { types: LeaveType[] }) {
+  const api = useLeaveApi();
+  const { submit, busy, dialog } = useCommand();
+  const blank = () => ({ leaveTypeId: types[0]?.id ?? "", startDate: "", endDate: "", reason: "", halfDayEnd: "false" });
+  const [v, setV] = useState<Record<string, string>>(blank);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const set = (k: string, val: string) => setV((s0) => ({ ...s0, [k]: val }));
+  const typeId = v.leaveTypeId || types[0]?.id || "";
+  const halfDay = types.find((t) => t.id === typeId)?.halfDayAllowed ?? false;
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const missing: Record<string, string> = {};
+    if (!typeId) missing.leaveTypeId = "Choose a leave type";
+    if (!v.startDate) missing.startDate = "From is required";
+    if (!v.endDate) missing.endDate = "To is required";
+    setErrors(missing);
+    setError(null);
+    if (Object.keys(missing).length) return;
+    try {
+      await submit(
+        () => api.apply({ leaveTypeId: typeId, startDate: v.startDate ?? "", endDate: v.endDate ?? "", halfDayEnd: halfDay && v.halfDayEnd === "true", reason: v.reason || undefined }),
+        (r) => `${days(r.days)} of ${(types.find((t) => t.id === r.leaveTypeId)?.name ?? "leave").toLowerCase()} ${statusLabel(r.status).toLowerCase()}`,
+      );
+      setV({ ...blank(), leaveTypeId: typeId });
+    } catch (err) {
+      const fe = fieldErrors(err);
+      if (Object.keys(fe).length) setErrors(fe);
+      else setError(problemText(err));
+    }
+  };
+  return (
+    <BentoTile span={12} title="Apply for leave" data-slice="7B" data-apply="">
+      <form onSubmit={onSubmit} noValidate data-form="leave-apply">
+        <FormGrid columns={3}>
+          <FormSelect label="Type" name="leaveTypeId" value={typeId} error={errors.leaveTypeId} options={types.map((t) => ({ value: t.id, label: t.name }))} onChange={(e) => set("leaveTypeId", e.target.value)} />
+          <DatePicker label="From" name="startDate" value={v.startDate} error={errors.startDate} placeholder="Pick a date" onChange={(e) => set("startDate", e.target.value)} />
+          <DatePicker label="To" name="endDate" value={v.endDate} error={errors.endDate} placeholder="Pick a date" onChange={(e) => set("endDate", e.target.value)} />
+          <TextArea label="Reason" name="reason" value={v.reason} error={errors.reason} placeholder="Brief reason, and who covers your classes" wide onChange={(e) => set("reason", e.target.value)} />
+          {halfDay && v.startDate && v.endDate && (
+            <div className="sb-wide">
+              <Checkbox label="Half day on the last day" name="halfDayEnd" checked={v.halfDayEnd === "true"} onChange={(e) => set("halfDayEnd", String(e.target.checked))} />
+            </div>
           )}
-        </>
-      )}
-      {prompt}
+        </FormGrid>
+        {error && (
+          <p className="sb-field-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="sb-actions-row" style={{ marginTop: 22 }}>
+          <button type="submit" className="sb-btn" disabled={busy || types.length === 0} data-action="leave-submit">
+            <Send strokeWidth={1.75} aria-hidden="true" />
+            {busy ? "Submitting…" : "Submit application"}
+          </button>
+        </div>
+      </form>
       {dialog}
     </BentoTile>
   );
 }
 
-// ================================================================== Faculty → Leave (My HR): stats, attendance, workload
-
-const BALANCE_ICONS = [CalendarDays, HeartPulse, Palmtree, Clock] as const;
-const BALANCE_TONES: readonly Tone[] = ["blue", "rose", "green", "violet"];
-
-/** My HR → Leave: one stat tile per leave balance (available of entitled days, decimal strings). */
-export function MyLeaveStats() {
+/** My HR (`/leave`): inline apply form, history (cancel), and approvals waiting for me as a reporting manager. */
+export function MyLeavePanel() {
   const api = useLeaveApi();
+  const { run, submit, busy, dialog } = useCommand();
+  const { ask, prompt } = useAsk("Leave");
   const balances = useQuery({ queryKey: lkeys("me", "balances"), queryFn: () => api.myBalances(), retry: false });
-  const rows = (balances.data ?? []).slice(0, 4);
-  if (balances.isError || rows.length === 0) return null;
-  const span = rows.length >= 4 ? 3 : rows.length === 3 ? 4 : 6;
+  const types = useMyTypes();
+  const requests = useQuery({ queryKey: lkeys("me", "requests"), queryFn: () => api.myRequests(), retry: false });
+  const approvals = useQuery({ queryKey: lkeys("me", "approvals"), queryFn: () => api.approvals(), retry: false });
+  const typeList = types.data ?? [];
+  const typeName = (r: LeaveRequest) => typeList.find((t) => t.id === r.leaveTypeId)?.name ?? r.leaveTypeCode;
+  const mine = (r: LeaveRequest): RowAction[] =>
+    ["pending_approval", "approved", "reserved"].includes(r.status)
+      ? [{ id: "my-cancel", label: "Cancel", onClick: () => ask({ title: `Cancel ${typeName(r).toLowerCase()}`, name: "my-cancel", fields: [{ name: "reason", label: "Reason", wide: true }], submitLabel: "Cancel leave", onSubmit: (v) => submit(() => api.cancelMine(r.id, r.version, v.reason || undefined), `${typeName(r)} cancelled`) }) }]
+      : [];
+  const decide = (r: LeaveRequest): RowAction[] => [
+    { id: "approval-approve", label: "Approve", variant: "primary", onClick: () => void run(() => api.decideApproval(r.id, r.version, true), `${r.displayName}: approved`) },
+    { id: "approval-reject", label: "Decline", onClick: () => ask({ title: `Decline · ${r.displayName}`, name: "approval-reject", fields: [REASON], submitLabel: "Decline", onSubmit: (v) => submit(() => api.decideApproval(r.id, r.version, false, v.reason), `${r.displayName}: declined`) }) },
+  ];
+  const waiting = approvals.data ?? [];
+  if (balances.isError && types.isError) {
+    return (
+      <BentoTile span={12} title="My leave" data-slice="7B">
+        <EmptyState icon={CalendarDays} title="No staff record" compact>
+          Leave becomes available once HR links your login to a staff record.
+        </EmptyState>
+      </BentoTile>
+    );
+  }
   return (
     <>
-      {rows.map((b, i) => (
-        noEntitlement(b) ? (
-          <StatTile key={b.leaveTypeId} icon={BALANCE_ICONS[i] ?? CalendarDays} tone={BALANCE_TONES[i] ?? "blue"} span={span} label={`${b.leaveTypeCode} taken`} value={b.consumed} hint={`${b.reserved} reserved · no entitlement`} data-kpi={`balance-${b.leaveTypeCode}`} />
-        ) : (
-          <StatTile key={b.leaveTypeId} icon={BALANCE_ICONS[i] ?? CalendarDays} tone={BALANCE_TONES[i] ?? "blue"} span={span} label={`${b.leaveTypeCode} available`} value={b.available} hint={`of ${b.entitled} days · ${b.consumed} taken · ${b.reserved} reserved`} data-kpi={`balance-${b.leaveTypeCode}`} />
-        )
-      ))}
+      {waiting.length > 0 && (
+        <BentoTile span={12} data-slice="7B" data-approvals="">
+          <TileHead title={<>Leave approvals <small style={NOTE}>{`${waiting.length} waiting for you`}</small></>} />
+          <div className="sb-approvals">
+            {waiting.map((r) => (
+              <RequestRow key={r.id} r={r} typeName={typeName(r)} acts={decide(r)} busy={busy} />
+            ))}
+          </div>
+        </BentoTile>
+      )}
+      <ApplyTile key={typeList.map((t) => t.id).join()} types={typeList} />
+      <BentoTile span={12} title="History" data-slice="7B" data-history="">
+        <DataTable<LeaveRequest>
+          caption="My leave requests"
+          rows={requests.data ?? []}
+          rowKey={(r) => r.id}
+          empty={<EmptyState icon={CalendarCheck} title="No leave yet" compact>Your applications and their status appear here.</EmptyState>}
+          columns={[
+            { key: "type", header: "Type", render: (r) => <b>{typeName(r)}</b> },
+            { key: "dates", header: "Dates", render: historyDates },
+            { key: "days", header: "Days", render: (r) => days(r.days), muted: true },
+            { key: "reason", header: "Reason", render: (r) => r.reason ?? "—", muted: true },
+            { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
+            { key: "actions", header: "", render: (r) => <Acts actions={mine(r)} disabled={busy} /> },
+          ]}
+        />
+      </BentoTile>
+      {prompt}
+      {dialog}
     </>
   );
 }
+
+// ================================================================== Faculty → Leave (My HR): attendance, workload
 
 const monthStart = () => `${todayIso().slice(0, 8)}01`;
 
@@ -901,13 +1035,15 @@ export function MyAttendancePanel() {
   return (
     <BentoTile span={12} title="My attendance" data-slice="7B" data-my-attendance>
       {days.isError ? (
-        <EmptyState icon={UserCheck} title="No staff record">
+        <EmptyState icon={UserCheck} title="No staff record" compact>
           Attendance appears once HR links your login to a staff record.
         </EmptyState>
       ) : (
         <>
-          <Input label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Input label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <FormGrid columns={3}>
+            <DatePicker label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <DatePicker label="To" value={to} onChange={(e) => setTo(e.target.value)} />
+          </FormGrid>
           <p data-attendance-summary>
             {count("present")} present · {count("absent")} absent · {count("half_day")} half days · {count("on_leave")} on leave
           </p>
@@ -915,7 +1051,7 @@ export function MyAttendancePanel() {
             caption="Attendance days"
             rows={rows}
             rowKey={(d) => d.id}
-            empty={<EmptyState icon={UserCheck} title="No days recorded">HR records staff attendance day by day.</EmptyState>}
+            empty={<EmptyState icon={UserCheck} title="No days recorded" compact>HR records staff attendance day by day.</EmptyState>}
             columns={[
               { key: "date", header: "Date", render: (d) => fmtDate(d.workDate) },
               { key: "status", header: "Day", render: (d) => <StatusBadge status={d.status} /> },
@@ -937,15 +1073,15 @@ export function MyWorkloadPanel() {
   return (
     <BentoTile span={12} title="My workload" data-slice="7B" data-my-workload>
       {w.isError ? (
-        <EmptyState icon={ClipboardList} title="No staff record">
+        <EmptyState icon={ClipboardList} title="No staff record" compact>
           Your workload appears once HR links your login to a staff record.
         </EmptyState>
       ) : (
         <>
           {d && (
             <p data-workload-total>
-              Teaching load {d.totalWeeklyHours} h/week{d.effectiveMaxHours ? ` of ${d.effectiveMaxHours}` : ""}
-              {d.activePlan ? ` · plan ${d.activePlan.termLabel}: ${d.activePlan.plannedWeeklyHours} h` : ""}
+              Teaching load {hours(d.totalWeeklyHours)} a week{d.effectiveMaxHours ? ` of ${hours(d.effectiveMaxHours)}` : ""}
+              {d.activePlan ? ` · plan ${d.activePlan.termLabel}: ${hours(d.activePlan.plannedWeeklyHours)}` : ""}
               {d.overAllocated ? " · over-allocated" : ""}
             </p>
           )}
@@ -953,11 +1089,11 @@ export function MyWorkloadPanel() {
             caption="Teaching assignments"
             rows={d?.items ?? []}
             rowKey={(i) => i.assignmentId}
-            empty={<EmptyState icon={ClipboardList} title="No teaching assignments">Approved faculty assignments appear here.</EmptyState>}
+            empty={<EmptyState icon={ClipboardList} title="No teaching assignments" compact>Approved faculty assignments appear here.</EmptyState>}
             columns={[
               { key: "offering", header: "Offering", render: (i) => `${i.offeringCode} · ${i.title}` },
               { key: "role", header: "Role", render: (i) => statusLabel(i.role), muted: true },
-              { key: "hours", header: "Hours / week", render: (i) => i.weeklyHours ?? "—" },
+              { key: "hours", header: "Hours / week", render: (i) => hours(i.weeklyHours) },
               { key: "status", header: "Status", render: (i) => <StatusBadge status={i.status} /> },
             ]}
           />
@@ -967,10 +1103,13 @@ export function MyWorkloadPanel() {
   );
 }
 
-/** Home shortcut label for faculty: "Apply leave · 6.00 CL left" once a balance exists (else the plain label). */
+/** Home shortcut label for faculty: "Apply leave · 12 days casual leave left" once a balance exists (else the plain label). */
 export function useLeaveShortcutLabel(enabled: boolean, label: string): string {
   const api = useLeaveApi();
   const balances = useQuery({ queryKey: lkeys("me", "balances"), queryFn: () => api.myBalances(), retry: false, enabled });
-  const first = balances.data?.[0];
-  return first ? `${label} · ${first.available} ${first.leaveTypeCode} left` : label;
+  const types = useQuery({ queryKey: lkeys("me", "types"), queryFn: () => api.myTypes(), retry: false, enabled });
+  const first = balances.data?.find(hasEntitlement) ?? balances.data?.[0];
+  if (!first || !types.data) return label;
+  const name = types.data.find((t) => t.id === first.leaveTypeId)?.name ?? first.leaveTypeCode;
+  return `${label} · ${days(first.available)} ${name.toLowerCase()} left`;
 }

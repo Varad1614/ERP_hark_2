@@ -5,6 +5,7 @@ import { Link, NavLink, useParams } from "react-router";
 import { useWorkspaces } from "../lib/api";
 import { useSession } from "../lib/auth";
 import { groupMeta } from "../lib/icons";
+import { rememberWorkspace } from "../features/home/widgets";
 import { ROLE_CONFIG } from "../lib/roles";
 
 const STAGES = ["Draft", "Submitted", "In review", "Approved"];
@@ -54,6 +55,7 @@ export default function WorkspaceRoute() {
   }
 
   const g = groupMeta(ws.group);
+  rememberWorkspace(ws.key);
   const scenarios = ws.workflows.reduce((n, f) => n + f.scenarios, 0);
   const wf = openWf === null ? undefined : ws.workflows[openWf];
   const s = openWf === null ? 0 : (stage[openWf] ?? 0);

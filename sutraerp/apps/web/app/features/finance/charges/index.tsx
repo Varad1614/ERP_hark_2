@@ -7,20 +7,23 @@
  *   instalments, disputes, configuration and rules).
  * - `AdjustmentsAdminTab` — Admin → Finance → Adjustments (credit / debit notes, write-offs, waivers).
  * - `AidAdminTab` — Admin → Finance → Financial aid (handed-off scholarship decisions → allocations).
- * - `StudentChargesPanel` — student `/fees`: charges, instalments, concessions / aid.
+ * - The student `/fees` screen lives in `../fees.tsx` (charges, instalments, disputes, aid).
  *
- * Money is always a decimal string from the API, shown with `formatInr` (never parsed to a float).
+ * Money is always a decimal string from the API, shown with the R0 `formatINR` (`money`, never parsed
+ * to a float). Re-skin v2: one primary pill + kebab per row, charge details in a `SidePanel`,
+ * prototype dialogs (`useFinanceAsk`), students picked from the directory (never typed ids).
  */
-import { BadgeIndianRupee, FileText, GraduationCap, Plus, Receipt, Scale, Settings2 } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState } from "@sutra/ui";
+import { BadgeIndianRupee, CalendarClock, FileText, GraduationCap, MessageSquareWarning, Plus, Receipt, Scale, Settings2 } from "lucide-react";
+import { BentoTile, Button, DataTable, EmptyState, FormSelect, KeyValue, ListRow, NameCell, SidePanel, formatDate, humanize } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, REASON, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { NoInstitution, REASON, type FieldSpec, type RowAction } from "../../institution/forms";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
-import { formatInr } from "../index";
+import { rkeys, useRecordApi } from "../../student/record/hooks";
+import { money, rowActions, useFinanceAsk } from "../ui";
 import { FINAL_CHARGE, fkeys, useChargesApi } from "./hooks";
-import type { AdjustmentKind, ChargeCommand, ChargeDetail, ChargeListItem, FeeCategory, PolicyKind } from "./types";
+import type { AdjustmentKind, ChargeCommand, ChargeListItem, FeeCategory, PolicyKind } from "./types";
 
 export { ChargesApiProvider } from "./hooks";
 
@@ -65,7 +68,7 @@ function chargeActions(c: ChargeListItem): ChargeCommand[] {
 export function ChargesAdminTab({ institution }: { institution: Institution | null }) {
   const api = useChargesApi();
   const { run, submit, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  const { ask, prompt } = useFinanceAsk();
   const [selected, setSelected] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const iid = institution?.id;
@@ -74,7 +77,11 @@ export function ChargesAdminTab({ institution }: { institution: Institution | nu
   const charges = useQuery({ queryKey: fkeys.scoped(`${iid}:${status}`, "charges"), queryFn: () => api.charges(iid!, { status: status || undefined }), enabled: !!iid });
   const detail = useQuery({ queryKey: fkeys.scoped(selected ?? "-", "charge"), queryFn: () => api.charge(selected!), enabled: !!selected });
   const disputes = useQuery({ queryKey: fkeys.scoped(selected ?? "-", "disputes"), queryFn: () => api.disputes(selected!), enabled: !!selected });
+  const records = useRecordApi();
+  const directory = useQuery({ queryKey: rkeys.scoped(iid ?? "-", "finance-directory"), queryFn: () => records.directory(iid!), enabled: !!iid });
   if (!institution) return <NoInstitutionTile />;
+  const studentOptions = (directory.data ?? []).map((st) => ({ value: st.id, label: `${st.displayName} · ${st.studentNumber}` }));
+  const studentChecks = (directory.data ?? []).map((st) => ({ value: st.id, label: st.displayName, description: st.studentNumber }));
   const headOptions = (heads.data ?? []).filter((h) => h.status === "active").map((h) => ({ value: h.id, label: `${h.code} · ${h.name}` }));
   const lineFields: FieldSpec[] = [
     { name: "feeHeadId", label: "Fee head", type: "select", options: headOptions, required: true, initial: headOptions[0]?.value },
@@ -120,7 +127,7 @@ export function ChargesAdminTab({ institution }: { institution: Institution | nu
           empty={<EmptyState icon={FileText} title="No fee structures">Draft a structure, send it for approval, publish it and generate charges.</EmptyState>}
           columns={[
             { key: "c", header: "Structure", render: (s) => <span data-fee-structure={`${s.code}-v${s.versionNo}`}>{`${s.code} v${s.versionNo}`}</span> },
-            { key: "t", header: "Total", render: (s) => formatInr(s.totalAmount) },
+            { key: "t", header: "Total", render: (s) => money(s.totalAmount) },
             { key: "g", header: "Charges", render: (s) => s.chargesGenerated },
             { key: "s", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
             {
@@ -131,20 +138,20 @@ export function ChargesAdminTab({ institution }: { institution: Institution | nu
                 if (s.status === "draft") a.push({ id: "submit-structure", label: "Submit", onClick: () => run(() => api.structureCommand(s.id, s.version, "submit"), "Sent for approval") });
                 if (s.status === "approved") a.push({ id: "publish-structure", label: "Publish", variant: "primary", onClick: () => run(() => api.structureCommand(s.id, s.version, "publish"), "Fee structure published") });
                 if (s.status === "published")
-                  a.push({ id: "generate-charges", label: "Generate", variant: "primary", onClick: () => ask({ title: `Generate charges · ${s.code}`, name: "generate", submitLabel: "Generate and publish", fields: [{ name: "studentIds", label: "Student ids (comma separated)", required: true, wide: true }], onSubmit: (v) => submit(() => api.generate(s.id, v.studentIds!.split(",").map((x) => x.trim()).filter(Boolean)), (r) => `${r.created.length} charge(s) published, ${r.skipped.length} skipped`) }) });
-                return <Actions actions={a} />;
+                  a.push({ id: "generate-charges", label: "Generate", variant: "primary", onClick: () => ask({ title: `Generate charges · ${s.code}`, name: "generate", submitLabel: "Generate and publish", eyebrow: "Fees & charges", fields: [{ name: "studentIds", label: "Students", type: "checks", options: studentChecks, required: true, wide: true }], onSubmit: (v) => submit(() => api.generate(s.id, v.studentIds!.split(",").map((x) => x.trim()).filter(Boolean)), (r) => `${r.created.length} charge(s) published, ${r.skipped.length} skipped`) }) });
+                return rowActions(a);
               },
             },
           ]} />
       </BentoTile>
-      <BentoTile span={selected ? 7 : 12} title="Student charges" data-charges action={
+      <BentoTile span={12} title="Student charges" data-charges action={
         <div className="sb-row-actions">
-          <select aria-label="Status filter" value={status} onChange={(e) => setStatus(e.target.value)} data-charge-filter>
-            <option value="">All statuses</option>
-            {["draft", "validated", "published", "active", "suspended", "disputed", "closed", "cancelled", "written_off", "archived"].map((s) => <option key={s} value={s}>{words(s)}</option>)}
-          </select>
-          <Button size="sm" variant="ghost" data-action="new-charge" onClick={() => ask({ title: "Raise a charge", name: "charge", submitLabel: "Raise and publish", fields: [
-            { name: "studentId", label: "Student id", required: true, wide: true },
+          <div style={{ minWidth: 180 }} data-charge-filter-wrap>
+            <FormSelect label="Status filter" hideLabel value={status} onChange={(e) => setStatus(e.target.value)} data-charge-filter
+              options={[{ value: "", label: "All statuses" }, ...["draft", "validated", "published", "active", "suspended", "disputed", "closed", "cancelled", "written_off", "archived"].map((s) => ({ value: s, label: words(s) }))]} />
+          </div>
+          <Button size="sm" variant="ghost" data-action="new-charge" onClick={() => ask({ title: "Raise a charge", eyebrow: "Fees & charges", name: "charge", submitLabel: "Raise and publish", fields: [
+            { name: "studentId", label: "Student", type: "select", options: [{ value: "", label: "Choose a student" }, ...studentOptions], required: true, wide: true },
             { name: "description", label: "Description", required: true, wide: true },
             { name: "dueDate", label: "Due date", type: "date" },
             ...lineFields,
@@ -156,60 +163,82 @@ export function ChargesAdminTab({ institution }: { institution: Institution | nu
         <DataTable caption="Student charges" rows={charges.data?.items ?? []} rowKey={(x) => x.id}
           empty={<EmptyState icon={BadgeIndianRupee} title="No charges">Generate charges from a published fee structure or raise one.</EmptyState>}
           columns={[
-            { key: "n", header: "Charge", render: (x) => <button type="button" className="sb-link" data-charge={x.chargeNumber} onClick={() => setSelected(x.id)}>{x.chargeNumber}</button> },
-            { key: "p", header: "Student", render: (x) => `${x.displayName}${x.studentNumber ? ` · ${x.studentNumber}` : ""}` },
-            { key: "t", header: "Total", render: (x) => formatInr(x.totalAmount) },
-            { key: "o", header: "Outstanding", render: (x) => <span data-outstanding={x.chargeNumber}>{formatInr(x.outstandingAmount)}</span> },
-            { key: "d", header: "Due", render: (x) => fmtDate(x.dueDate) },
+            { key: "n", header: "Charge", render: (x) => <button type="button" className="sb-link" style={{ fontWeight: 700 }} data-charge={x.chargeNumber} onClick={() => setSelected(x.id)}>{x.chargeNumber}</button> },
+            { key: "p", header: "Student", render: (x) => <NameCell name={x.displayName} sub={x.studentNumber ?? undefined} /> },
+            { key: "t", header: "Total", render: (x) => <b>{money(x.totalAmount)}</b> },
+            { key: "o", header: "Outstanding", render: (x) => <span data-outstanding={x.chargeNumber}>{money(x.outstandingAmount)}</span> },
+            { key: "d", header: "Due", render: (x) => formatDate(x.dueDate) },
             { key: "s", header: "Status", render: (x) => <StatusBadge status={x.status} /> },
-            { key: "a", header: "", render: (x) => <Actions actions={chargeActions(x).map((cmd) => ({ id: `charge-${cmd}`, label: words(cmd), variant: cmd === "publish" ? "primary" : "ghost", onClick: () => command(x, cmd) }))} /> },
+            { key: "a", header: "", render: (x) => rowActions(chargeActions(x).map((cmd) => ({ id: `charge-${cmd}`, label: words(cmd), variant: cmd === "publish" || cmd === "resume" || cmd === "close" ? "primary" : "ghost", onClick: () => command(x, cmd) }))) },
           ]} />
       </BentoTile>
-      {selected && c && (
-        <BentoTile span={5} title={`${c.chargeNumber} · ${statusLabel(c.status)}`} data-charge-detail={c.chargeNumber} action={<Button size="sm" variant="ghost" onClick={() => setSelected(null)}>Close</Button>}>
-          <p>{c.description}</p>
-          <dl className="sb-facts">
-            <dt>Total</dt><dd>{formatInr(c.totalAmount)}</dd>
-            <dt>Adjustments</dt><dd>{formatInr(c.adjustmentAmount)}</dd>
-            <dt>Settled</dt><dd>{formatInr(c.settledAmount)}</dd>
-            <dt>Outstanding</dt><dd data-detail-outstanding>{formatInr(c.outstandingAmount)}</dd>
-            <dt>Ledger entry</dt><dd>{c.journalEntryId ? "Posted" : "—"}</dd>
-          </dl>
-          <h3>Lines</h3>
-          <ul>{c.lines.map((l) => <li key={l.lineNo}>{`${l.feeHeadCode} · ${l.description}: ${formatInr(l.amount)}`}</li>)}</ul>
-          <h3>Instalments</h3>
-          {c.instalments.length === 0 ? <p>No due schedule.</p> : (
-            <ul data-instalments>{c.instalments.map((i) => <li key={i.id}>{`#${i.sequence} ${fmtDate(i.dueDate)} — ${formatInr(i.amount)} `}<StatusBadge status={i.status} /></li>)}</ul>
-          )}
-          <h3>Disputes</h3>
-          {(disputes.data ?? []).length === 0 ? <p>None.</p> : (
-            <ul>{(disputes.data ?? []).map((d) => (
-              <li key={d.id} data-dispute={d.status}>
-                {`${d.reason} `}<StatusBadge status={d.status} />
-                {(d.status === "raised" || d.status === "under_review") && (
-                  <Actions actions={[
-                    { id: "uphold-dispute", label: "Uphold + waive", onClick: () => run(() => api.decideDispute(d.id, d.version, { decision: "approve", resolution: "waive", reason: "Upheld" }), "Dispute upheld") },
-                    { id: "reject-dispute", label: "Reject", onClick: () => ask({ title: "Reject dispute", name: "reject-dispute", submitLabel: "Reject", fields: [REASON], onSubmit: (v) => submit(() => api.decideDispute(d.id, d.version, { decision: "reject", reason: v.reason }), "Dispute rejected") }) },
-                  ]} />
-                )}
-              </li>
-            ))}</ul>
-          )}
-          {!FINAL_CHARGE.includes(c.status) && c.status !== "closed" && (
-            <Actions actions={[
-              { id: "set-instalments", label: "Instalments", onClick: () => ask({ title: `Due schedule · ${c.chargeNumber}`, name: "instalments", submitLabel: "Set schedule", fields: [
-                { name: "count", label: "Instalments", type: "number", required: true, initial: "2" },
-                { name: "firstDueDate", label: "First due date", type: "date", required: true, initial: c.dueDate ?? "" },
-              ], onSubmit: (v) => submit(() => api.setInstalments(c.id, { count: Number(v.count), firstDueDate: v.firstDueDate! }), "Due schedule set") }) },
-              ...(["published", "active", "disputed"].includes(c.status) ? [{ id: "revise-charge", label: "Revise", onClick: () => ask({ title: `Revise ${c.chargeNumber}`, name: "revise", submitLabel: "Revise", fields: [
+      <SidePanel
+        open={!!selected && !!c}
+        onClose={() => setSelected(null)}
+        title={c ? c.description : "Charge"}
+        eyebrow={c ? `Fees & charges · ${c.chargeNumber}` : undefined}
+        chip={c ? { label: statusLabel(c.status), kind: c.status === "closed" ? "done" : c.status === "disputed" || c.status === "suspended" ? "attention" : "review" } : undefined}
+        facts={c ? [
+          { label: "Student", value: `${c.displayName}${c.studentNumber ? ` · ${c.studentNumber}` : ""}` },
+          { label: "Total", value: money(c.totalAmount) },
+          { label: "Adjustments", value: money(c.adjustmentAmount) },
+          { label: "Settled", value: money(c.settledAmount) },
+          { label: "Outstanding", value: <span data-detail-outstanding>{money(c.outstandingAmount)}</span> },
+          { label: "Due", value: formatDate(c.dueDate) },
+          { label: "Ledger entry", value: c.journalEntryId ? "Posted" : "—" },
+        ] : undefined}
+        actions={c && !FINAL_CHARGE.includes(c.status) && c.status !== "closed" ? (
+          <>
+            <Button data-action="set-instalments" icon={<CalendarClock strokeWidth={1.75} />} iconPosition="start" onClick={() => ask({ title: `Due schedule · ${c.chargeNumber}`, eyebrow: "Fees & charges", name: "instalments", submitLabel: "Set schedule", fields: [
+              { name: "count", label: "Instalments", type: "number", required: true, initial: "2" },
+              { name: "firstDueDate", label: "First due date", type: "date", required: true, initial: c.dueDate ?? "" },
+            ], onSubmit: (v) => submit(() => api.setInstalments(c.id, { count: Number(v.count), firstDueDate: v.firstDueDate! }), "Due schedule set") })}>
+              Instalments
+            </Button>
+            {["published", "active", "disputed"].includes(c.status) && (
+              <Button variant="ghost" data-action="revise-charge" onClick={() => ask({ title: `Revise ${c.chargeNumber}`, eyebrow: "Fees & charges", name: "revise", submitLabel: "Revise", fields: [
                 { name: "newAmount", label: "New net amount (₹)", placeholder: "120000.00" },
                 { name: "dueDate", label: "New due date", type: "date" },
                 REASON,
-              ], onSubmit: (v) => submit(() => api.revise(c.id, c.version, { reason: v.reason!, newAmount: v.newAmount || undefined, dueDate: v.dueDate || undefined }), "Charge revised") }) }] : []),
-            ]} />
-          )}
-        </BentoTile>
-      )}
+              ], onSubmit: (v) => submit(() => api.revise(c.id, c.version, { reason: v.reason!, newAmount: v.newAmount || undefined, dueDate: v.dueDate || undefined }), "Charge revised") })}>
+                Revise
+              </Button>
+            )}
+          </>
+        ) : undefined}
+      >
+        {c && (
+          <div data-charge-detail={c.chargeNumber} style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 18 }}>
+            <section>
+              <h3 style={{ fontSize: 15, marginBottom: 8 }}>Lines</h3>
+              {c.lines.map((l) => <KeyValue key={l.lineNo} label={`${l.feeHeadCode} · ${l.description}`} value={money(l.amount)} />)}
+            </section>
+            <section>
+              <h3 style={{ fontSize: 15, marginBottom: 8 }}>Instalments</h3>
+              {c.instalments.length === 0 ? <p style={{ color: "var(--sb-mute)", fontSize: 14 }}>No due schedule.</p> : (
+                <ul data-instalments style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                  {c.instalments.map((i) => (
+                    <li key={i.id}>
+                      <ListRow icon={CalendarClock} tone="blue" title={`Instalment ${i.sequence} · ${money(i.amount)}`} meta={`Due ${formatDate(i.dueDate)}`} badge={{ label: statusLabel(i.status), kind: i.status === "paid" ? "done" : i.status === "overdue" ? "attention" : "neutral" }} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section>
+              <h3 style={{ fontSize: 15, marginBottom: 8 }}>Disputes</h3>
+              {(disputes.data ?? []).length === 0 ? <p style={{ color: "var(--sb-mute)", fontSize: 14 }}>None.</p> : (disputes.data ?? []).map((d) => {
+                const open = d.status === "raised" || d.status === "under_review";
+                return (
+                  <ListRow key={d.id} data-dispute={d.status} icon={MessageSquareWarning} tone="orange" title={d.reason} badge={{ label: statusLabel(d.status), kind: open ? "review" : "neutral" }}
+                    primary={open ? { label: "Uphold + waive", "data-action": "uphold-dispute", onClick: () => void run(() => api.decideDispute(d.id, d.version, { decision: "approve", resolution: "waive", reason: "Upheld" }), "Dispute upheld") } : undefined}
+                    menu={open ? [{ id: "reject-dispute", label: "Reject", danger: true, onSelect: () => ask({ title: "Reject dispute", eyebrow: c.chargeNumber, name: "reject-dispute", submitLabel: "Reject", fields: [REASON], onSubmit: (v) => submit(() => api.decideDispute(d.id, d.version, { decision: "reject", reason: v.reason }), "Dispute rejected") }) }] : undefined} />
+                );
+              })}
+            </section>
+          </div>
+        )}
+      </SidePanel>
       <PolicyTile institution={institution} kind="config" />
       <PolicyTile institution={institution} kind="rule" />
       {prompt}
@@ -222,7 +251,7 @@ export function ChargesAdminTab({ institution }: { institution: Institution | nu
 function PolicyTile({ institution, kind }: { institution: Institution; kind: PolicyKind }) {
   const api = useChargesApi();
   const { run, submit, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  const { ask, prompt } = useFinanceAsk();
   const list = useQuery({ queryKey: fkeys.scoped(institution.id, `policy-${kind}`), queryFn: () => api.policies(institution.id, kind) });
   const title = kind === "config" ? "Finance configuration" : "Financial rules";
   return (
@@ -244,7 +273,7 @@ function PolicyTile({ institution, kind }: { institution: Institution; kind: Pol
         empty={<EmptyState icon={Settings2} title="No versions yet">Draft a version, approve and activate it.</EmptyState>}
         columns={[
           { key: "v", header: "Version", render: (p) => <span data-policy-version={`${kind}-${p.versionNo}`}>{`${p.ruleKey ? `${p.ruleKey} ` : ""}v${p.versionNo}${p.basedOnId ? " (rollback)" : ""}`}</span> },
-          { key: "x", header: "Values", render: (p) => Object.entries(p.values).map(([k, val]) => `${k}: ${String(val)}`).join(", ") },
+          { key: "x", header: "Values", render: (p) => Object.entries(p.values).map(([k, val]) => `${humanize(k.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase())}: ${typeof val === "boolean" ? (val ? "Yes" : "No") : String(val)}`).join(" · ") },
           { key: "s", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
           {
             key: "a",
@@ -255,7 +284,7 @@ function PolicyTile({ institution, kind }: { institution: Institution; kind: Pol
               if (p.status === "in_review" && p.approvedAt) a.push({ id: `activate-${kind}`, label: "Activate", variant: "primary", onClick: () => run(() => api.policyCommand(kind, p.id, p.version, "activate"), "Version effective") });
               if ((p.status === "superseded" || p.status === "rolled_back") && p.approvedAt)
                 a.push({ id: `rollback-${kind}`, label: "Roll back to", onClick: () => ask({ title: `Roll back to v${p.versionNo}`, name: "rollback", submitLabel: "Create rollback draft", fields: [REASON], onSubmit: (v) => submit(() => api.rollback(kind, p.id, v.reason!), "Rollback version drafted") }) });
-              return <Actions actions={a} />;
+              return rowActions(a);
             },
           },
         ]} />
@@ -270,12 +299,12 @@ function PolicyTile({ institution, kind }: { institution: Institution; kind: Pol
 export function AdjustmentsAdminTab({ institution }: { institution: Institution | null }) {
   const api = useChargesApi();
   const { run, submit, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  const { ask, prompt } = useFinanceAsk();
   const iid = institution?.id;
   const list = useQuery({ queryKey: fkeys.scoped(iid ?? "-", "adjustments"), queryFn: () => api.adjustments(iid!), enabled: !!iid });
   const charges = useQuery({ queryKey: fkeys.scoped(`${iid}:`, "charges"), queryFn: () => api.charges(iid!), enabled: !!iid });
   if (!institution) return <NoInstitutionTile />;
-  const chargeOptions = (charges.data?.items ?? []).filter((c) => ["published", "active", "disputed"].includes(c.status)).map((c) => ({ value: c.id, label: `${c.chargeNumber} · ${c.displayName} · ${formatInr(c.outstandingAmount)}` }));
+  const chargeOptions = (charges.data?.items ?? []).filter((c) => ["published", "active", "disputed"].includes(c.status)).map((c) => ({ value: c.id, label: `${c.chargeNumber} · ${c.displayName} · ${money(c.outstandingAmount)}` }));
   return (
     <>
       <BentoTile span={12} title="Adjustments" data-slice="5A" data-adjustments action={
@@ -294,7 +323,7 @@ export function AdjustmentsAdminTab({ institution }: { institution: Institution 
             { key: "n", header: "Number", render: (a) => <span data-adjustment={a.adjustmentNumber}>{a.adjustmentNumber}</span> },
             { key: "c", header: "Charge", render: (a) => a.chargeNumber },
             { key: "k", header: "Kind", render: (a) => words(a.kind) },
-            { key: "e", header: "Effect", render: (a) => formatInr(a.effect) },
+            { key: "e", header: "Effect", render: (a) => money(a.effect) },
             { key: "r", header: "Reason", render: (a) => a.reason },
             { key: "s", header: "Status", render: (a) => <span data-adjustment-status={a.adjustmentNumber}><StatusBadge status={a.status} /></span> },
             {
@@ -311,7 +340,7 @@ export function AdjustmentsAdminTab({ institution }: { institution: Institution 
                   acts.push({ id: "reverse-adjustment", label: "Reverse", onClick: () => ask({ title: `Reverse ${a.adjustmentNumber}`, name: "reverse-adjustment", submitLabel: "Reverse", fields: [REASON], onSubmit: (v) => submit(() => api.reverseAdjustment(a.id, a.version, v.reason!), "Adjustment reversed") }) });
                   acts.push({ id: "correct-adjustment", label: "Correct", onClick: () => ask({ title: `Correct ${a.adjustmentNumber}`, name: "correct-adjustment", submitLabel: "Create successor", fields: [{ name: "amount", label: "Correct amount (₹)", required: true, initial: a.amount }, REASON], onSubmit: (v) => submit(() => api.correctAdjustment(a.id, a.version, { amount: v.amount!, reason: v.reason! }), (r) => `${r.adjustmentNumber} drafted as the corrected successor`) }) });
                 }
-                return <Actions actions={acts} />;
+                return rowActions(acts);
               },
             },
           ]} />
@@ -327,7 +356,7 @@ export function AdjustmentsAdminTab({ institution }: { institution: Institution 
 export function AidAdminTab({ institution }: { institution: Institution | null }) {
   const api = useChargesApi();
   const { run, submit, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  const { ask, prompt } = useFinanceAsk();
   const iid = institution?.id;
   const decisions = useQuery({ queryKey: fkeys.scoped(iid ?? "-", "aid-decisions"), queryFn: () => api.aidDecisions(iid!), enabled: !!iid });
   const allocations = useQuery({ queryKey: fkeys.scoped(iid ?? "-", "aid-allocations"), queryFn: () => api.aidAllocations(iid!), enabled: !!iid });
@@ -341,10 +370,10 @@ export function AidAdminTab({ institution }: { institution: Institution | null }
           empty={<EmptyState icon={GraduationCap} title="No decisions handed off">Student records hands approved scholarship decisions to Financial Aid.</EmptyState>}
           columns={[
             { key: "s", header: "Scholarship", render: (d) => <span data-aid-decision={d.scholarshipCode}>{`${d.scholarshipCode} · ${d.scholarshipName}`}</span> },
-            { key: "b", header: "Benefit", render: (d) => `${words(d.benefitType)}${d.benefitValue ? ` · ${d.benefitType === "fee_percentage" ? `${d.benefitValue}%` : formatInr(d.benefitValue)}` : ""}` },
-            { key: "v", header: "Valid until", render: (d) => fmtDate(d.validUntil) },
+            { key: "b", header: "Benefit", render: (d) => `${words(d.benefitType)}${d.benefitValue ? ` · ${d.benefitType === "fee_percentage" ? `${d.benefitValue}%` : money(d.benefitValue)}` : ""}` },
+            { key: "v", header: "Valid until", render: (d) => formatDate(d.validUntil) },
             { key: "st", header: "Decision", render: (d) => <StatusBadge status={d.status} /> },
-            { key: "a", header: "Allocation", render: (d) => d.allocationStatus ? <StatusBadge status={d.allocationStatus} /> : d.live ? <Actions actions={[{ id: "allocate-aid", label: "Allocate", variant: "primary", onClick: () => run(() => api.allocate(institution.id, d.eligibilityId), (a) => `${a.allocationNumber}: ${statusLabel(a.status)}`) }]} /> : "—" },
+            { key: "a", header: "Allocation", render: (d) => d.allocationStatus ? <StatusBadge status={d.allocationStatus} /> : d.live ? rowActions([{ id: "allocate-aid", label: "Allocate", variant: "primary", onClick: () => run(() => api.allocate(institution.id, d.eligibilityId), (a) => `${a.allocationNumber}: ${statusLabel(a.status)}`) }]) : "—" },
           ]} />
       </BentoTile>
       <BentoTile span={8} title="Aid allocations" data-aid-allocations>
@@ -353,8 +382,8 @@ export function AidAdminTab({ institution }: { institution: Institution | null }
           columns={[
             { key: "n", header: "Allocation", render: (a) => <span data-aid-allocation={a.allocationNumber}>{`${a.allocationNumber} · ${a.scholarshipCode}`}</span> },
             { key: "p", header: "Student", render: (a) => a.displayName },
-            { key: "c", header: "Ceiling", render: (a) => (a.allocatedAmount ? formatInr(a.allocatedAmount) : words(a.benefitType)) },
-            { key: "u", header: "Applied / paid", render: (a) => `${formatInr(a.appliedAmount)} / ${formatInr(a.disbursedAmount)}` },
+            { key: "c", header: "Ceiling", render: (a) => (a.allocatedAmount ? money(a.allocatedAmount) : words(a.benefitType)) },
+            { key: "u", header: "Applied / paid", render: (a) => `${money(a.appliedAmount)} / ${money(a.disbursedAmount)}` },
             { key: "s", header: "Status", render: (a) => <span data-aid-status={a.allocationNumber}><StatusBadge status={a.status} /></span> },
             {
               key: "x",
@@ -363,74 +392,28 @@ export function AidAdminTab({ institution }: { institution: Institution | null }
                 const acts: RowAction[] = [];
                 if (a.status === "proposed") acts.push({ id: "approve-aid", label: "Approve", variant: "primary", onClick: () => run(() => api.approveAid(a.id, a.version, "approve"), "Aid allocated") });
                 if (a.status === "allocated" || a.status === "disbursed") {
-                  const options = (charges.data?.items ?? []).filter((c) => c.studentAccountId === a.studentAccountId && ["published", "active", "disputed"].includes(c.status)).map((c) => ({ value: c.id, label: `${c.chargeNumber} · ${formatInr(c.outstandingAmount)}` }));
+                  const options = (charges.data?.items ?? []).filter((c) => c.studentAccountId === a.studentAccountId && ["published", "active", "disputed"].includes(c.status)).map((c) => ({ value: c.id, label: `${c.chargeNumber} · ${money(c.outstandingAmount)}` }));
                   acts.push({ id: "apply-aid", label: "Apply to charge", variant: "primary", onClick: () => ask({ title: `Apply ${a.allocationNumber}`, name: "apply-aid", submitLabel: "Apply", fields: [{ name: "chargeId", label: "Charge", type: "select", options, required: true, initial: options[0]?.value, wide: true }, { name: "amount", label: "Amount (₹, blank = computed)" }], onSubmit: (v) => submit(() => api.disburse(a.id, a.version, { mode: "charge_adjustment", chargeId: v.chargeId, amount: v.amount || undefined }), "Aid applied") }) });
                   acts.push({ id: "renew-aid", label: "Renew", onClick: () => run(() => api.renewAid(a.id, a.version), "Aid renewed") });
                   acts.push({ id: "revoke-aid", label: "Revoke", onClick: () => ask({ title: `Revoke ${a.allocationNumber}`, name: "revoke-aid", submitLabel: "Revoke and recover", fields: [REASON], onSubmit: (v) => submit(() => api.revokeAid(a.id, a.version, { reason: v.reason!, recover: true }), "Aid revoked") }) });
                 }
-                return <Actions actions={acts} />;
+                return rowActions(acts);
               },
             },
           ]} />
       </BentoTile>
       <BentoTile span={4} title="Programme reconciliation" data-aid-reconciliation action={<Button size="sm" variant="ghost" data-action="reconcile-aid" onClick={() => run(() => api.reconcile(institution.id), (r) => `Reconciliation: ${statusLabel(r.status)}`)}>Run</Button>}>
-        {(recs.data ?? []).length === 0 ? <p>No reconciliation run yet.</p> : (
-          <ul>{(recs.data ?? []).slice(0, 5).map((r) => (
-            <li key={r.id} data-reconciliation={r.status}>
-              <StatusBadge status={r.status} />{` utilised ${formatInr(r.utilisedTotal)} · ledger ${formatInr(r.ledgerTotal)}`}
-              {r.exceptions.length > 0 && <small>{` — ${r.exceptions.map((e) => words(e.issue)).join(", ")}`}</small>}
-            </li>
-          ))}</ul>
+        {(recs.data ?? []).length === 0 ? <EmptyState icon={Scale} title="Not reconciled yet" compact>Compare allocations with the aid expense account.</EmptyState> : (
+          (recs.data ?? []).slice(0, 5).map((r) => (
+            <ListRow key={r.id} data-reconciliation={r.status} icon={Scale} tone={r.status === "matched" ? "green" : "orange"}
+              title={`Utilised ${money(r.utilisedTotal)} · ledger ${money(r.ledgerTotal)}`}
+              meta={r.exceptions.length > 0 ? r.exceptions.map((e) => words(e.issue)).join(", ") : undefined}
+              badge={{ label: statusLabel(r.status), kind: r.status === "matched" ? "done" : "attention" }} />
+          ))
         )}
       </BentoTile>
       {prompt}
       {dialog}
     </>
-  );
-}
-
-// ================================================================ Student Fees
-
-export function StudentChargesPanel() {
-  const api = useChargesApi();
-  const { submit, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
-  const mine = useQuery({ queryKey: fkeys.scoped("me", "charges"), queryFn: () => api.myCharges() });
-  const aid = useQuery({ queryKey: fkeys.scoped("me", "aid"), queryFn: () => api.myAid() });
-  const items: ChargeDetail[] = mine.data ?? [];
-  return (
-    <BentoTile span={8} title="My fees" data-slice="5A" data-my-fees>
-      {items.length === 0 ? (
-        <EmptyState icon={BadgeIndianRupee} title="No fee charges">Charges appear here once the finance office publishes them.</EmptyState>
-      ) : (
-        items.map((c) => (
-          <article key={c.id} className="sb-card" data-my-charge={c.chargeNumber} style={{ padding: "0.75rem", borderRadius: "0.75rem", border: "1px solid var(--sb-border, #ddd)", marginBottom: "0.75rem" }}>
-            <header style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
-              <strong>{`${c.chargeNumber} · ${c.description}`}</strong>
-              <StatusBadge status={c.status} />
-            </header>
-            <p>
-              {`Total ${formatInr(c.totalAmount)}`}
-              {c.adjustmentAmount !== "0.00" && ` · concessions / adjustments ${formatInr(c.adjustmentAmount)}`}
-              {` · paid ${formatInr(c.settledAmount)} · `}
-              <strong data-my-outstanding={c.chargeNumber}>{`due ${formatInr(c.outstandingAmount)}`}</strong>
-              {c.dueDate && ` by ${fmtDate(c.dueDate)}`}
-            </p>
-            {c.instalments.length > 0 && (
-              <ul data-my-instalments>{c.instalments.map((i) => <li key={i.id}>{`Instalment ${i.sequence}: ${formatInr(i.amount)} due ${fmtDate(i.dueDate)} `}<StatusBadge status={i.status} /></li>)}</ul>
-            )}
-            {(c.status === "published" || c.status === "active") && (
-              <Actions actions={[{ id: "dispute-charge", label: "Dispute", onClick: () => ask({ title: `Dispute ${c.chargeNumber}`, name: "dispute", submitLabel: "Raise dispute", fields: [REASON], onSubmit: (v) => submit(() => api.raiseDispute(c.id, v.reason!), "Dispute raised — the finance office will review it") }) }]} />
-            )}
-          </article>
-        ))
-      )}
-      <h3>Scholarships and aid</h3>
-      {(aid.data ?? []).length === 0 ? <p data-my-aid="none">No financial aid allocated.</p> : (
-        <ul data-my-aid="list">{(aid.data ?? []).map((a) => <li key={a.id}>{`${a.scholarshipName}: applied ${formatInr(a.appliedAmount)}${a.disbursedAmount !== "0.00" ? `, paid ${formatInr(a.disbursedAmount)}` : ""} `}<StatusBadge status={a.status} /></li>)}</ul>
-      )}
-      {prompt}
-      {dialog}
-    </BentoTile>
   );
 }

@@ -1,21 +1,28 @@
 import { useParams } from "react-router";
-import { ACADEMICS_TABS } from "../../features/institution";
-import { AcademicsSwitch } from "../../features/institution/AcademicsSwitch";
-import { AdminScreen } from "../../features/institution/AdminScreen";
+import { AcademicsOverview, academicsLine, useAcademicsData } from "../../features/academic/admin/overview";
+import { ACADEMICS_AREA_TABS, tabKey } from "../../features/academic/admin/tabs";
+import { AcademicFrame } from "../../features/academic/kit";
 import { CalendarTab } from "../../features/institution/CalendarTab";
 import { CurriculumTab, ProgrammesTab, SchoolModelTab, StructureTab } from "../../features/institution/CurriculumTabs";
+import { useInstitutions } from "../../features/institution/hooks";
 
 export function meta() {
   return [{ title: "Academics · SutraERP" }];
 }
 
-/** Admin → Academics (`/academics/:tab?`): structure, programmes, curriculum, school model, calendar. Slice 2C. */
+/**
+ * Admin → Academics (`/academics/:tab?`), re-skin v2 (R3): overview (programme cards + courses),
+ * curriculum, calendar, delivery (→ /academic-delivery) + More: structure, programmes, school model.
+ */
 export default function Academics() {
   const { tab } = useParams();
+  const current = tabKey(ACADEMICS_AREA_TABS, tab);
+  const { current: inst } = useInstitutions();
+  const data = useAcademicsData(inst?.id);
   return (
-    <AdminScreen title="Academics" base="/academics" tabs={ACADEMICS_TABS} tab={tab} actions={<AcademicsSwitch current="setup" />}>
-      {(institution, current) => {
-        switch (current.key) {
+    <AcademicFrame title="Academics" base="/academics" tabs={ACADEMICS_AREA_TABS} current={current} summary={() => academicsLine(data)}>
+      {(institution) => {
+        switch (current) {
           case "programmes":
             return <ProgrammesTab institution={institution} />;
           case "curriculum":
@@ -24,10 +31,12 @@ export default function Academics() {
             return <SchoolModelTab institution={institution} />;
           case "calendar":
             return <CalendarTab institution={institution} />;
-          default:
+          case "structure":
             return <StructureTab institution={institution} />;
+          default:
+            return <AcademicsOverview institution={institution} />;
         }
       }}
-    </AdminScreen>
+    </AcademicFrame>
   );
 }

@@ -3,7 +3,8 @@ import { BentoTile, Button, EmptyState, IconChip, Modal } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { OrgUnitCommand } from "./api";
-import { Actions, NoInstitution, QuickForm, todayIso } from "./forms";
+import { NoInstitution, QuickForm, todayIso } from "./forms";
+import { Actions } from "../campus/ui";
 import { keys, StatusBadge, useCommand, useInstitutionApi } from "./hooks";
 import type { Institution, OrgUnit, UnitType } from "./types";
 
@@ -109,7 +110,7 @@ export function OrganisationTab({ institution }: { institution: Institution | nu
         }
       >
         {tree.length === 0 ? (
-          <EmptyState icon={Network} title="No organisation units yet">
+          <EmptyState icon={Network} title="No organisation units yet" compact>
             Start with the root unit (the institution itself), then add faculties and departments under it.
           </EmptyState>
         ) : (

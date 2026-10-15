@@ -1,10 +1,11 @@
-import { ShieldCheck, User } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { ApiProblem, type CategoryPreference, type Profile, type UpdateProfile } from "@sutra/api-client";
-import { BentoGrid, BentoTile, Button, IconChip, Input, Select, useToast } from "@sutra/ui";
+import { Badge, BentoGrid, BentoTile, Button, Checkbox, FormGrid, FormSelect, Initials, TextField, useToast } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
-import { useSession } from "../lib/auth";
+import { useAuth, useSession } from "../lib/auth";
+import "../components/shell.css";
 import { inboxKeys, useInbox, useInboxRefresh } from "../lib/inbox";
 import { ROLE_CONFIG } from "../lib/roles";
 import { CATEGORY_META } from "../components/NotificationRow";
@@ -71,6 +72,8 @@ export default function ProfilePage() {
   const [prefs, setPrefs] = useState<CategoryPreference[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const { signOut } = useAuth();
 
   useEffect(() => {
     if (q.data) {
@@ -106,6 +109,7 @@ export default function ProfilePage() {
     try {
       await inbox.updateProfile(profile.version, patch);
       await refresh();
+      setEditing(false);
       toast("Profile saved");
     } catch (err) {
       if (err instanceof ApiProblem && err.problem.validationErrors?.length) {
@@ -119,71 +123,141 @@ export default function ProfilePage() {
     }
   };
 
+  const savePrefs = async () => {
+    const patch = profilePatch(profile, draftOf(profile), prefs);
+    if (!patch.notificationPreferences) {
+      toast("Nothing to save");
+      return;
+    }
+    setBusy(true);
+    try {
+      await inbox.updateProfile(profile.version, { notificationPreferences: patch.notificationPreferences });
+      await refresh();
+      toast("Preferences saved");
+    } catch (err) {
+      if (err instanceof ApiProblem && err.problem.status === 412) {
+        toast("Your profile changed in another tab — reloaded the latest version.");
+        await refresh();
+      } else toast(err instanceof Error ? err.message : "Could not save");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const roleTitles = profile.roles.map((r) => ROLE_CONFIG[r].title).join(", ");
+  const localeLabel = LOCALES.find((l) => l.value === profile.locale)?.label ?? profile.locale;
+
   return (
     <BentoGrid data-screen="profile">
-      <BentoTile span={4} variant="accent" className="sb-soon">
-        <IconChip icon={User} tone="orange" size="md" />
-        <h1>{profile.displayName}</h1>
-        <p>
-          {profile.loginId}
-          <br />
-          {profile.roles.map((r) => ROLE_CONFIG[r].title).join(", ")}
-        </p>
-        <div className="sb-actions-row">
-          <Button variant="ghost" icon={<ShieldCheck strokeWidth={1.75} />} iconPosition="start" onClick={() => navigate("/account/security")}>
+      <BentoTile span={12} className="pf-head" data-area-head="">
+        <Initials name={profile.displayName} size="xl" tone="accent" />
+        <div className="pf-who">
+          <Badge kind="neutral">{roleTitles || ROLE_CONFIG[role].title}</Badge>
+          <h1>{profile.displayName}</h1>
+          <p data-area-summary="">
+            {profile.loginId} · Sutra Institute of Technology
+          </p>
+        </div>
+        <div className="sb-area-side">
+          <Button variant="ghost" icon={<ShieldCheck strokeWidth={1.75} />} iconPosition="start" onClick={() => navigate("/account/security")} data-profile-security>
             Security & sign-in
+          </Button>
+          <Button
+            variant="ghost"
+            icon={<LogOut strokeWidth={1.75} />}
+            iconPosition="start"
+            onClick={async () => {
+              await signOut();
+              navigate("/sign-in", { replace: true });
+            }}
+            data-profile-sign-out
+          >
+            Sign out
           </Button>
         </div>
       </BentoTile>
-      <BentoTile span={8} title="Details">
-        <form onSubmit={save} noValidate data-profile-form>
-          <div className="sb-form">
-            <Input label="Display name" name="displayName" value={draft.displayName} maxLength={120} error={errors.displayName} onChange={set("displayName")} />
-            <Select label="Language" name="locale" options={LOCALES.some((l) => l.value === draft.locale) ? LOCALES : [...LOCALES, { value: draft.locale, label: draft.locale }]} value={draft.locale} error={errors.locale} onChange={set("locale")} />
-            <Select label="Time zone" name="timeZone" options={ZONES.some((z) => z.value === draft.timeZone) ? ZONES : [...ZONES, { value: draft.timeZone, label: draft.timeZone }]} value={draft.timeZone} error={errors.timeZone} onChange={set("timeZone")} />
-            <Input label="Contact e-mail" name="contactEmail" type="email" value={draft.contactEmail} error={errors.contactEmail} onChange={set("contactEmail")} />
-            <Input label="Mobile" name="contactPhone" type="tel" placeholder="+919876543210" value={draft.contactPhone} error={errors.contactPhone} onChange={set("contactPhone")} />
-          </div>
-          <table className="sb-pref-table" data-prefs>
-            <thead>
-              <tr>
-                <th>Notify me about</th>
-                <th>In app</th>
-                <th>E-mail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prefs.map((p) => (
-                <tr key={p.category}>
-                  <td>{CATEGORY_META[p.category].label}</td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      aria-label={`${CATEGORY_META[p.category].label} in app`}
-                      checked={p.inApp}
-                      disabled={p.category === "security"}
-                      onChange={(e) => setPrefs((xs) => xs.map((x) => (x.category === p.category ? { ...x, inApp: e.target.checked } : x)))}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      aria-label={`${CATEGORY_META[p.category].label} by e-mail`}
-                      checked={p.email}
-                      onChange={(e) => setPrefs((xs) => xs.map((x) => (x.category === p.category ? { ...x, email: e.target.checked } : x)))}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {errors.notificationPreferences && <p className="sb-field-error">{errors.notificationPreferences}</p>}
-          <div className="sb-actions-row">
-            <Button type="submit" disabled={busy} data-save-profile>
-              {busy ? "Saving…" : "Save changes"}
-            </Button>
-          </div>
-        </form>
+      <BentoTile
+        span={8}
+        title="Details"
+        action={
+          !editing && (
+            <button type="button" onClick={() => setEditing(true)} data-edit-profile>
+              Edit
+            </button>
+          )
+        }
+      >
+        {editing ? (
+          <form onSubmit={save} noValidate data-profile-form>
+            <FormGrid columns={2}>
+              <TextField label="Display name" name="displayName" value={draft.displayName} maxLength={120} error={errors.displayName} onChange={set("displayName")} />
+              <FormSelect label="Language" name="locale" options={LOCALES.some((l) => l.value === draft.locale) ? LOCALES : [...LOCALES, { value: draft.locale, label: draft.locale }]} value={draft.locale} error={errors.locale} onChange={set("locale")} />
+              <FormSelect label="Time zone" name="timeZone" options={ZONES.some((z) => z.value === draft.timeZone) ? ZONES : [...ZONES, { value: draft.timeZone, label: draft.timeZone }]} value={draft.timeZone} error={errors.timeZone} onChange={set("timeZone")} />
+              <TextField label="Contact e-mail" name="contactEmail" type="email" value={draft.contactEmail} error={errors.contactEmail} onChange={set("contactEmail")} />
+              <TextField label="Mobile" name="contactPhone" type="tel" placeholder="+919876543210" value={draft.contactPhone} error={errors.contactPhone} onChange={set("contactPhone")} />
+            </FormGrid>
+            <div className="sb-actions-row">
+              <Button type="submit" disabled={busy} data-save-profile>
+                {busy ? "Saving…" : "Save changes"}
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={() => {
+                  setDraft(draftOf(profile));
+                  setErrors({});
+                  setEditing(false);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <dl className="sb-dl pf-facts" data-profile-facts>
+            <dt>Login</dt>
+            <dd>{profile.loginId}</dd>
+            <dt>Display name</dt>
+            <dd>{profile.displayName}</dd>
+            <dt>Email</dt>
+            <dd>{profile.contactEmail || "—"}</dd>
+            <dt>Mobile</dt>
+            <dd>{profile.contactPhone || "—"}</dd>
+            <dt>Language</dt>
+            <dd>{localeLabel}</dd>
+            <dt>Time zone</dt>
+            <dd>{profile.timeZone}</dd>
+            <dt>Roles</dt>
+            <dd>{roleTitles || "—"}</dd>
+          </dl>
+        )}
+      </BentoTile>
+      <BentoTile span={4} title="Preferences" className="pf-prefs">
+        <div data-prefs>
+          {prefs.map((p) => (
+            <div key={p.category} className="pf-pref">
+              <b>{CATEGORY_META[p.category].label}</b>
+              <Checkbox
+                label="In app"
+                aria-label={`${CATEGORY_META[p.category].label} in app`}
+                checked={p.inApp}
+                disabled={p.category === "security"}
+                onChange={(e) => setPrefs((xs) => xs.map((x) => (x.category === p.category ? { ...x, inApp: e.target.checked } : x)))}
+              />
+              <Checkbox
+                label="E-mail"
+                aria-label={`${CATEGORY_META[p.category].label} by e-mail`}
+                checked={p.email}
+                onChange={(e) => setPrefs((xs) => xs.map((x) => (x.category === p.category ? { ...x, email: e.target.checked } : x)))}
+              />
+            </div>
+          ))}
+        </div>
+        {errors.notificationPreferences && <p className="sb-field-error">{errors.notificationPreferences}</p>}
+        <div className="sb-actions-row">
+          <Button size="sm" disabled={busy} onClick={savePrefs} data-save-prefs>
+            Save preferences
+          </Button>
+        </div>
       </BentoTile>
     </BentoGrid>
   );

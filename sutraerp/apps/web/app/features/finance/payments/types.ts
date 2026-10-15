@@ -1,6 +1,6 @@
 /**
  * Slice-5B wire types (payments, receipts, refunds, receivables). Amounts are decimal strings
- * (contract §3.1) — format them with `formatInr`, never parse them to floats.
+ * (contract §3.1) — format them with `formatINR` (`../ui` money / ledger), never parse them to floats.
  */
 export type PaymentStatus = "initiated" | "pending" | "completed" | "failed" | "expired" | "cancelled" | "reversed" | "charged_back";
 export type PaymentChannel = "gateway" | "cash" | "cheque" | "bank_transfer" | "demand_draft" | "sponsor";

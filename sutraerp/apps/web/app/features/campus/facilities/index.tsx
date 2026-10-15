@@ -14,17 +14,21 @@
  * - `LabsAdminTab` — Admin → Campus → Laboratories: lab profiles, readiness checklist,
  *   equipment status and practical sessions.
  */
-import { AlertTriangle, Building2, CalendarCheck, ClipboardList, DoorOpen, FlaskConical, Timer, Wrench } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, Drawer, EmptyState, FilterChip, StatTile } from "@sutra/ui";
+import { AlertTriangle, Building2, CalendarCheck, ClipboardList, DoorOpen, FlaskConical, Layers, LayoutGrid, MapPin, Timer, Wrench, type LucideIcon } from "lucide-react";
+import { Badge, BentoTile, Button, DataTable, Drawer, EmptyState, FilterChip, formatNumber, IconChip, KpiTile } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, REASON, todayIso, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { fmtDate, REASON, todayIso, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { ApprovalBadge, Actions, CodeName, nameCode } from "../ui";
 import { StatusBadge, useCommand, useInstitutionApi } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { fkeys, useFacilitiesApi } from "./hooks";
 import type { Equipment, InfraNode, Lab, Plan, Reservation, Session, Ticket, WorkOrder } from "./types";
 
 export { FacilitiesApiProvider } from "./hooks";
+
+/** Icon chip of an infrastructure node by type (the tree is drawn with indentation + chips, not dots). */
+const NODE_ICON: Record<string, LucideIcon> = { site: MapPin, building: Building2, floor: Layers, space: DoorOpen, zone: LayoutGrid };
 
 const SPACE_TYPES = ["classroom", "lab", "seminar_room", "auditorium", "office", "hostel_room", "library", "reading_room", "store", "workshop", "sports", "other"];
 const NODE_TYPES = ["site", "building", "floor", "space", "zone"];
@@ -45,7 +49,7 @@ const isoPlus = (days: number) => {
 function NoInstitutionTile({ title }: { title: string }) {
   return (
     <BentoTile span={12} title={title} data-slice="8A">
-      <EmptyState icon={Building2} title="No institution selected">
+      <EmptyState icon={Building2} title="No institution selected" compact>
         Register an institution in Campus setup → Institution first.
       </EmptyState>
     </BentoTile>
@@ -58,7 +62,7 @@ function useTree(institutionId: string) {
 }
 
 const spaceOptions = (nodes: InfraNode[], filter: (n: InfraNode) => boolean = () => true) =>
-  nodes.filter((n) => n.nodeType === "space" && filter(n)).map((n) => ({ value: n.id, label: `${n.code} · ${n.name}` }));
+  nodes.filter((n) => n.nodeType === "space" && filter(n)).map((n) => ({ value: n.id, label: nameCode(n.name, n.code) }));
 
 /** Depth of a node in the hierarchy (for the indented code column). */
 function depthOf(n: InfraNode, byId: Map<string, InfraNode>): number {
@@ -103,7 +107,7 @@ function NodeDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => void }
   });
   const d = detail.data;
   return (
-    <Drawer open onClose={onClose} title={d ? `${d.node.code} · ${d.node.name}` : "Infrastructure node"} eyebrow={d ? <StatusBadge status={d.node.status} /> : undefined}>
+    <Drawer open onClose={onClose} title={d ? d.node.name : "Infrastructure node"} eyebrow={d ? <>{d.node.code} · <StatusBadge status={d.node.status} /></> : undefined}>
       {d && (
         <>
           <p>
@@ -131,7 +135,7 @@ function NodeDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => void }
               caption="Free / busy this week"
               rows={week.data?.days ?? []}
               rowKey={(x) => x.date}
-              empty={<EmptyState icon={CalendarCheck} title="No calendar" />}
+              empty={<EmptyState icon={CalendarCheck} title="No calendar" compact />}
               columns={[
                 { key: "date", header: "Day", render: (x) => fmtDate(x.date) },
                 { key: "busy", header: "Busy", render: (x) => (x.busy.length ? x.busy.map((b) => `${b.startTime}–${b.endTime} ${b.number}`).join(", ") : "—") },
@@ -179,7 +183,7 @@ function InfrastructureScreen({ institutionId }: { institutionId: string }) {
     });
 
   const nodeActions = (n: InfraNode): RowAction[] => {
-    const a: RowAction[] = [{ id: "node-open", label: "Details", onClick: () => setOpen(n.id) }];
+    const a: RowAction[] = [];
     const reasonCmd = (cmd: "suspend" | "decommission", title: string) => () =>
       ask({ title: `${title} ${n.code}`, name: `node-${cmd}`, fields: [REASON], submitLabel: title, onSubmit: (v) => submit(() => api.nodeCommand(n.id, n.version, cmd, v.reason), `${n.code}: ${cmd} requested`) });
     if (n.status === "planned") a.push({ id: "node-activate", label: "Activate", variant: "primary", onClick: () => void run(() => api.nodeCommand(n.id, n.version, "activate"), `${n.code} active`) });
@@ -214,7 +218,7 @@ function InfrastructureScreen({ institutionId }: { institutionId: string }) {
       name: "node",
       fields: [
         { name: "nodeType", label: "Level", type: "select", required: true, options: options(NODE_TYPES), initial: nodes.length ? "space" : "site" },
-        { name: "parentId", label: "Under", type: "select", options: [{ value: "", label: "— (a site)" }, ...nodes.filter((n) => n.nodeType !== "space").map((n) => ({ value: n.id, label: `${n.code} · ${n.name}` }))] },
+        { name: "parentId", label: "Under", type: "select", options: [{ value: "", label: "— (a site)" }, ...nodes.filter((n) => n.nodeType !== "space").map((n) => ({ value: n.id, label: nameCode(n.name, n.code) }))] },
         { name: "campusId", label: "Campus (sites)", type: "select", options: [{ value: "", label: "Parent's campus" }, ...campuses.map((c) => ({ value: c.id, label: c.name }))] },
         { name: "code", label: "Code", required: true, placeholder: "MAIN-B1-101" },
         { name: "name", label: "Name", required: true },
@@ -254,10 +258,10 @@ function InfrastructureScreen({ institutionId }: { institutionId: string }) {
 
   return (
     <>
-      <StatTile span={3} icon={Building2} tone="blue" label="Buildings" value={String(nodes.filter((n) => n.nodeType === "building").length)} data-slice="8A" />
-      <StatTile span={3} icon={DoorOpen} tone="green" label="Active spaces" value={String(spaces.filter((n) => n.status === "active").length)} />
-      <StatTile span={3} icon={ClipboardList} tone="violet" label="Seats" value={String(spaces.filter((n) => n.status === "active").reduce((s, n) => s + (n.capacity ?? 0), 0))} />
-      <StatTile span={3} icon={CalendarCheck} tone="orange" label="Upcoming bookings" value={String(upcoming.length)} />
+      <KpiTile span={3} icon={Building2} tone="blue" label="Buildings" value={String(nodes.filter((n) => n.nodeType === "building").length)} data-slice="8A" />
+      <KpiTile span={3} icon={DoorOpen} tone="green" label="Active spaces" value={String(spaces.filter((n) => n.status === "active").length)} />
+      <KpiTile span={3} icon={ClipboardList} tone="violet" label="Seats" value={String(spaces.filter((n) => n.status === "active").reduce((s, n) => s + (n.capacity ?? 0), 0))} />
+      <KpiTile span={3} icon={CalendarCheck} tone="orange" label="Upcoming bookings" value={String(upcoming.length)} />
       <BentoTile
         span={12}
         title="Campus infrastructure"
@@ -272,12 +276,22 @@ function InfrastructureScreen({ institutionId }: { institutionId: string }) {
           caption="Infrastructure nodes"
           rows={nodes}
           rowKey={(n) => n.id}
-          empty={<EmptyState icon={Building2} title="No infrastructure yet">Register a site, then its buildings, floors and spaces.</EmptyState>}
+          empty={<EmptyState icon={Building2} title="No infrastructure yet" compact>Register a site, then its buildings, floors and spaces.</EmptyState>}
           columns={[
-            { key: "code", header: "Code", render: (n) => `${"· ".repeat(depthOf(n, byId))}${n.code}` },
-            { key: "name", header: "Name", render: (n) => n.name },
+            {
+              key: "name",
+              header: "Building / space",
+              render: (n) => (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 10, paddingLeft: depthOf(n, byId) * 24 }} data-depth={depthOf(n, byId)}>
+                  <IconChip icon={NODE_ICON[n.nodeType] ?? DoorOpen} tone={n.nodeType === "space" ? "teal" : n.nodeType === "building" ? "orange" : "grey"} size="sm" />
+                  <button type="button" className="sb-link-btn" onClick={() => setOpen(n.id)} data-action="node-open" style={{ background: "none", border: 0, padding: 0, cursor: "pointer", textAlign: "left" }}>
+                    <CodeName name={n.name} code={n.code} />
+                  </button>
+                </span>
+              ),
+            },
             { key: "type", header: "Type", render: (n) => (n.spaceType ? label(n.spaceType) : label(n.nodeType)), muted: true },
-            { key: "capacity", header: "Capacity", render: (n) => (n.capacity != null ? String(n.capacity) : "—"), muted: true },
+            { key: "capacity", header: "Capacity", render: (n) => (n.capacity != null ? formatNumber(n.capacity) : "—"), muted: true },
             { key: "status", header: "Status", render: (n) => <StatusBadge status={n.status} /> },
             { key: "actions", header: "", render: (n) => <Actions actions={nodeActions(n)} disabled={busy} /> },
           ]}
@@ -297,13 +311,12 @@ function InfrastructureScreen({ institutionId }: { institutionId: string }) {
           caption="Reservations"
           rows={bookings}
           rowKey={(r) => r.id}
-          empty={<EmptyState icon={CalendarCheck} title="No bookings yet">Book a room, lab or hall for a date and time window.</EmptyState>}
+          empty={<EmptyState icon={CalendarCheck} title="No bookings yet" compact>Book a room, lab or hall for a date and time window.</EmptyState>}
           columns={[
-            { key: "number", header: "Booking", render: (r) => r.number },
-            { key: "space", header: "Space", render: (r) => r.nodeCode },
+            { key: "purpose", header: "Booking", render: (r) => <CodeName name={r.purpose} code={r.number} /> },
+            { key: "space", header: "Space", render: (r) => <CodeName name={r.nodeName} code={r.nodeCode} /> },
             { key: "when", header: "When", render: (r) => `${fmtDate(r.date)} ${r.startTime}–${r.endTime}` },
-            { key: "attendees", header: "Attendees", render: (r) => String(r.attendees), muted: true },
-            { key: "purpose", header: "Purpose", render: (r) => r.purpose, muted: true },
+            { key: "attendees", header: "Attendees", render: (r) => formatNumber(r.attendees), muted: true },
             { key: "status", header: "Status", render: (r) => (r.flagged ? <Badge kind="attention">Space suspended</Badge> : <StatusBadge status={r.status} />) },
             { key: "actions", header: "", render: (r) => <Actions actions={bookingActions(r)} disabled={busy} /> },
           ]}
@@ -424,7 +437,7 @@ function FacilitiesScreen({ institutionId }: { institutionId: string }) {
       fields: [
         { name: "category", label: "Category", type: "select", required: true, options: options(CATEGORIES), initial: "facility" },
         { name: "priority", label: "Priority", type: "select", options: options(PRIORITIES), initial: "medium" },
-        { name: "nodeId", label: "Where", type: "select", options: [{ value: "", label: "—" }, ...nodes.map((n) => ({ value: n.id, label: `${n.code} · ${n.name}` }))] },
+        { name: "nodeId", label: "Where", type: "select", options: [{ value: "", label: "—" }, ...nodes.map((n) => ({ value: n.id, label: nameCode(n.name, n.code) }))] },
         { name: "title", label: "Title", required: true, wide: true },
         { name: "isComplaint", label: "Complaint", type: "checkbox", initial: "false" },
       ],
@@ -448,7 +461,7 @@ function FacilitiesScreen({ institutionId }: { institutionId: string }) {
       title: "New preventive plan",
       name: "plan",
       fields: [
-        { name: "nodeId", label: "Asset / space", type: "select", required: true, options: nodes.map((n) => ({ value: n.id, label: `${n.code} · ${n.name}` })) },
+        { name: "nodeId", label: "Asset / space", type: "select", required: true, options: nodes.map((n) => ({ value: n.id, label: nameCode(n.name, n.code) })) },
         { name: "title", label: "Title", required: true, placeholder: "Fire extinguisher check" },
         { name: "frequency", label: "Frequency", type: "select", options: options(FREQUENCIES), initial: "monthly" },
         { name: "startDate", label: "Starts", type: "date", required: true, initial: todayIso() },
@@ -472,17 +485,17 @@ function FacilitiesScreen({ institutionId }: { institutionId: string }) {
   const openTickets = tickets.filter((t) => !["closed", "cancelled", "merged"].includes(t.status));
   return (
     <>
-      <StatTile span={3} icon={ClipboardList} tone="blue" label="Tickets shown" value={String(tickets.length)} data-slice="8A" />
-      <StatTile span={3} icon={AlertTriangle} tone="rose" label="Past SLA" value={String(tickets.filter((t) => t.slaBreached).length)} />
-      <StatTile span={3} icon={Wrench} tone="orange" label="Open work orders" value={String(workOrders.filter((w) => !["completed", "verified", "cancelled"].includes(w.status)).length)} />
-      <StatTile span={3} icon={Timer} tone="green" label="Active plans" value={String(plans.filter((p) => p.status === "active").length)} />
+      <KpiTile span={3} icon={ClipboardList} tone="blue" label="Tickets shown" value={String(tickets.length)} data-slice="8A" />
+      <KpiTile span={3} icon={AlertTriangle} tone="rose" label="Past SLA" value={String(tickets.filter((t) => t.slaBreached).length)} />
+      <KpiTile span={3} icon={Wrench} tone="orange" label="Open work orders" value={String(workOrders.filter((w) => !["completed", "verified", "cancelled"].includes(w.status)).length)} />
+      <KpiTile span={3} icon={Timer} tone="green" label="Active plans" value={String(plans.filter((p) => p.status === "active").length)} />
       <BentoTile
         span={12}
         title="Service desk"
         data-slice="8A"
         action={
           <>
-            <Button size="sm" data-action="sla-check" onClick={() => void run(() => api.slaCheck(institutionId), (r) => `SLA check: ${r.processed} escalated`)}>
+            <Button size="sm" variant="ghost" data-action="sla-check" onClick={() => void run(() => api.slaCheck(institutionId), (r) => `SLA check: ${r.processed} escalated`)}>
               Run SLA check
             </Button>
             <Button size="sm" data-action="ticket-new" onClick={newTicket}>
@@ -498,11 +511,10 @@ function FacilitiesScreen({ institutionId }: { institutionId: string }) {
           caption="Service tickets"
           rows={tickets}
           rowKey={(t) => t.id}
-          empty={<EmptyState icon={ClipboardList} title="No tickets">Service requests and complaints from students, staff and the office land here.</EmptyState>}
+          empty={<EmptyState icon={ClipboardList} title="No tickets" compact>Service requests and complaints from students, staff and the office land here.</EmptyState>}
           columns={[
-            { key: "number", header: "Ticket", render: (t) => t.number },
-            { key: "title", header: "Title", render: (t) => (t.isComplaint ? `${t.title} (complaint)` : t.title) },
-            { key: "category", header: "Category", render: (t) => label(t.category), muted: true },
+            { key: "title", header: "Request", render: (t) => <CodeName name={t.isComplaint ? `${t.title} (complaint)` : t.title} code={t.number} /> },
+            { key: "category", header: "Category", render: (t) => (t.category === "it" ? "IT" : label(t.category)), muted: true },
             { key: "priority", header: "Priority", render: (t) => label(t.priority), muted: true },
             { key: "sla", header: "SLA", render: (t) => <SlaBadge t={t} /> },
             { key: "assignee", header: "Assignee", render: (t) => t.assignee ?? "—", muted: true },
@@ -511,17 +523,14 @@ function FacilitiesScreen({ institutionId }: { institutionId: string }) {
           ]}
         />
       </BentoTile>
-      <BentoTile span={12} title="Work orders" data-slice="8A">
+      <BentoTile span={workOrders.length || plans.length ? 12 : 6} title="Work orders" data-slice="8A">
         <DataTable<WorkOrder>
           caption="Work orders"
           rows={workOrders}
           rowKey={(w) => w.id}
-          empty={<EmptyState icon={Wrench} title="No work orders">Raise one from a ticket or generate preventive work from a plan.</EmptyState>}
+          empty={<EmptyState icon={Wrench} title="No work orders" compact>Raise one from a ticket or generate preventive work from a plan.</EmptyState>}
           columns={[
-            { key: "number", header: "Work order", render: (w) => w.number },
-            { key: "kind", header: "Kind", render: (w) => label(w.kind), muted: true },
-            { key: "ticket", header: "Ticket / space", render: (w) => w.ticketNumber ?? w.nodeCode ?? "—", muted: true },
-            { key: "title", header: "Title", render: (w) => w.title },
+            { key: "title", header: "Work order", render: (w) => <CodeName name={w.title} code={w.number} sub={[label(w.kind), w.ticketNumber ?? w.nodeCode].filter(Boolean).join(" · ")} /> },
             { key: "assignee", header: "Technician", render: (w) => w.assignee ?? "—", muted: true },
             { key: "due", header: "Scheduled", render: (w) => (w.scheduledFor ? fmtDate(w.scheduledFor) : "—"), muted: true },
             { key: "status", header: "Status", render: (w) => <StatusBadge status={w.status} /> },
@@ -530,7 +539,7 @@ function FacilitiesScreen({ institutionId }: { institutionId: string }) {
         />
       </BentoTile>
       <BentoTile
-        span={12}
+        span={workOrders.length || plans.length ? 12 : 6}
         title="Preventive maintenance"
         data-slice="8A"
         action={
@@ -543,13 +552,13 @@ function FacilitiesScreen({ institutionId }: { institutionId: string }) {
           caption="Preventive plans"
           rows={plans}
           rowKey={(p) => p.id}
-          empty={<EmptyState icon={Timer} title="No preventive plans">Plan recurring checks for a building or space; each period becomes a work order.</EmptyState>}
+          empty={<EmptyState icon={Timer} title="No preventive plans" compact>Plan recurring checks for a building or space; each period becomes a work order.</EmptyState>}
           columns={[
             { key: "title", header: "Plan", render: (p) => p.title },
             { key: "node", header: "Where", render: (p) => p.nodeCode, muted: true },
             { key: "frequency", header: "Every", render: (p) => label(p.frequency), muted: true },
             { key: "start", header: "From", render: (p) => fmtDate(p.startDate), muted: true },
-            { key: "approval", header: "Approval", render: (p) => <StatusBadge status={p.approvalState} /> },
+            { key: "approval", header: "Approval", render: (p) => <ApprovalBadge state={p.approvalState} /> },
             { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
             { key: "actions", header: "", render: (p) => <Actions actions={planActions(p)} disabled={busy} /> },
           ]}
@@ -633,7 +642,7 @@ function LabSessions({ lab }: { lab: Lab }) {
           caption="Lab equipment"
           rows={equipment}
           rowKey={(e) => e.id}
-          empty={<EmptyState icon={FlaskConical} title="No equipment registered" />}
+          empty={<EmptyState icon={FlaskConical} title="No equipment registered" compact />}
           columns={[
             { key: "code", header: "Code", render: (e) => e.code },
             { key: "name", header: "Name", render: (e) => e.name, muted: true },
@@ -687,7 +696,7 @@ function LabSessions({ lab }: { lab: Lab }) {
           caption="Practical sessions"
           rows={sessions}
           rowKey={(s) => s.id}
-          empty={<EmptyState icon={CalendarCheck} title="No sessions planned" />}
+          empty={<EmptyState icon={CalendarCheck} title="No sessions planned" compact />}
           columns={[
             { key: "title", header: "Session", render: (s) => (s.courseCode ? `${s.courseCode} · ${s.title}` : s.title) },
             { key: "when", header: "When", render: (s) => `${fmtDate(s.sessionDate)} ${s.startTime}–${s.endTime}`, muted: true },
@@ -733,9 +742,9 @@ function LabsScreen({ institutionId }: { institutionId: string }) {
   const withProfile = new Set(labs.map((l) => l.nodeId));
   return (
     <>
-      <StatTile span={4} icon={FlaskConical} tone="green" label="Labs ready" value={String(labs.filter((l) => l.status === "ready").length)} data-slice="8A" />
-      <StatTile span={4} icon={AlertTriangle} tone="amber" label="Restricted" value={String(labs.filter((l) => l.status === "restricted").length)} />
-      <StatTile span={4} icon={ClipboardList} tone="grey" label="Not ready" value={String(labs.filter((l) => l.status === "not_ready" || l.status === "unavailable").length)} />
+      <KpiTile span={4} icon={FlaskConical} tone="green" label="Labs ready" value={String(labs.filter((l) => l.status === "ready").length)} data-slice="8A" />
+      <KpiTile span={4} icon={AlertTriangle} tone="amber" label="Restricted" value={String(labs.filter((l) => l.status === "restricted").length)} />
+      <KpiTile span={4} icon={ClipboardList} tone="grey" label="Not ready" value={String(labs.filter((l) => l.status === "not_ready" || l.status === "unavailable").length)} />
       <BentoTile
         span={12}
         title="Laboratories"
@@ -765,7 +774,7 @@ function LabsScreen({ institutionId }: { institutionId: string }) {
           caption="Laboratories"
           rows={labs}
           rowKey={(l) => l.id}
-          empty={<EmptyState icon={FlaskConical} title="No laboratories yet">Register a `lab` space under Infrastructure, then create its lab profile.</EmptyState>}
+          empty={<EmptyState icon={FlaskConical} title="No laboratories yet" compact>Register a `lab` space under Infrastructure, then create its lab profile.</EmptyState>}
           columns={[
             { key: "name", header: "Lab", render: (l) => l.name },
             { key: "space", header: "Space", render: (l) => l.nodeCode, muted: true },

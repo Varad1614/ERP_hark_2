@@ -8,15 +8,19 @@
  */
 export { activeTab, type TabDef } from "../institution";
 
-/** Tabs of Admin → People (`/people/:tab?`, first = default) with their owning slice. */
+/**
+ * Tabs of Admin → People (`/people/:tab?`, first = default) with their owning slice. Re-skin v2:
+ * the header shows Directory · n / Leave requests · n / Payroll / Recruitment and folds the rest
+ * into "More" (≤5 header tabs, docs/reskin2-contracts.md §2.1).
+ */
 export const PEOPLE_TABS = [
-  { key: "staff", label: "Staff records", slice: "7A" },
+  { key: "staff", label: "Directory", slice: "7A" },
+  { key: "leave", label: "Leave requests", slice: "7B" },
+  { key: "payroll", label: "Payroll", slice: "7C" },
   { key: "recruitment", label: "Recruitment & onboarding", slice: "7A" },
   { key: "positions", label: "Positions & reporting", slice: "7A" },
-  { key: "leave", label: "Leave", slice: "7B" },
   { key: "attendance", label: "Attendance", slice: "7B" },
   { key: "workload", label: "Workload", slice: "7B" },
-  { key: "payroll", label: "Payroll", slice: "7C" },
 ] as const;
 
 /** Tabs of Faculty Leave = My HR (`/leave/:tab?`, first = default) with their owning slice. */
@@ -41,5 +45,5 @@ export const PEOPLE_SCREENS = {
 
 /** Path of an Admin → People tab. */
 export function peoplePath(tab?: string): string {
-  return `/people${tab ? `/${tab}` : ""}`;
+  return `/people${tab && tab !== "staff" ? `/${tab}` : ""}`;
 }

@@ -85,7 +85,7 @@ describe("7C screens (mock API)", () => {
     expect(document.querySelector("[data-slice='7C']")).toBeTruthy();
     expect(await screen.findByText(/v1 · Payroll 2026/)).toBeTruthy();
     expect((await screen.findAllByText(/PR-000001/)).length).toBeGreaterThan(0);
-    expect((await screen.findAllByText("₹41800.00")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("₹41,800")).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/EMP-000001 · Meera Shah/)).length).toBeGreaterThan(0);
     const validate = await waitFor(() => {
       const b = document.querySelector<HTMLButtonElement>("[data-action='run-validate']");
@@ -109,7 +109,7 @@ describe("7C screens (mock API)", () => {
     await renderScreen(<MyPayslipsPanel />, { path: "/", role: "faculty" });
     expect(document.querySelector("[data-slice='7C']")).toBeTruthy();
     expect(await screen.findByText("PS-000001")).toBeTruthy();
-    expect(screen.getAllByText("₹40200.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("₹40,200").length).toBeGreaterThan(0);
   });
 
   it("shows an empty state when there are no payslips", async () => {

@@ -1,7 +1,6 @@
 import { useParams } from "react-router";
-import { AdminScreen } from "../../features/institution/AdminScreen";
-import { EXAM_TABS } from "../../features/exams";
 import { MalpracticeAdminTab, MarksAdminTab } from "../../features/exams/marks";
+import { ExamsFrame, ExamsOverview } from "../../features/exams/overview";
 import { ResultsAdminTab, RevaluationAdminTab } from "../../features/exams/results";
 import { RegistrationsAdminTab, ScheduleAdminTab, SessionsAdminTab } from "../../features/exams/setup";
 
@@ -10,15 +9,17 @@ export function meta() {
 }
 
 /**
- * Admin → Examinations (`/examinations/:tab?`). Foundation frame: every tab is already wired to
- * its slice's component (docs/batch6-contracts.md §10), so slices never edit this file.
+ * Admin → Examinations (`/examinations/:tab?`). Re-skin v2 (R4): AreaHeader with Overview ·
+ * Schedule · Marks · Results and the rest behind "More"; every former tab keeps its URL.
  */
 export default function Examinations() {
   const { tab } = useParams();
   return (
-    <AdminScreen title="Examinations" base="/examinations" tabs={EXAM_TABS} tab={tab}>
+    <ExamsFrame tab={tab}>
       {(institution, current) => {
         switch (current.key) {
+          case "sessions":
+            return <SessionsAdminTab institution={institution} />;
           case "schedule":
             return <ScheduleAdminTab institution={institution} />;
           case "registrations":
@@ -32,9 +33,9 @@ export default function Examinations() {
           case "revaluation":
             return <RevaluationAdminTab institution={institution} />;
           default:
-            return <SessionsAdminTab institution={institution} />;
+            return <ExamsOverview institution={institution} />;
         }
       }}
-    </AdminScreen>
+    </ExamsFrame>
   );
 }

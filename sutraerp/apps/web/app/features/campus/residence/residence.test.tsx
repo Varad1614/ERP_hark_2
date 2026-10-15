@@ -72,7 +72,7 @@ describe("8B admin tabs", () => {
     const renderScreen = (await import("../../../test/harness")).renderScreen;
     const { TransportAdminTab } = await import("./index");
     await renderScreen(<TransportAdminTab institution={institution} />);
-    expect((await screen.findAllByText("R-01 · City loop")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("City loop")).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Plan trip" })).toBeTruthy();
   });
 

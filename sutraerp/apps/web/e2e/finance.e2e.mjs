@@ -118,6 +118,24 @@ function seedFinance(setup, studentId, studentNumber) {
   return { feeHeadId, studentAccountId, chargeId };
 }
 
+/**
+ * Re-skin v2: a row shows ONE primary pill (`[data-action]`) and puts every other action in its
+ * kebab (`[data-row-menu]` → `[data-menu-item]`). Clicks action `id` in the row containing `text`
+ * either way, then waits for the network.
+ */
+async function act(page, text, id, scope) {
+  const { row, settle } = await import("./lib/harness.mjs");
+  const r = row(page, text, scope);
+  await r.waitFor({ state: "visible", timeout: 10000 });
+  const pill = r.locator(`[data-action="${id}"]`).first();
+  if (await pill.count()) await pill.click();
+  else {
+    await r.locator("[data-row-menu]").first().click();
+    await r.locator(`[data-menu-item="${id}"]`).first().click();
+  }
+  await settle(page);
+}
+
 /** Opens `route` and checks its frame and the owning slice's placeholder or real screen. */
 async function expectFrame(page, route, screenKey, slice) {
   await go(page, route);
@@ -154,7 +172,7 @@ try {
 
   await waitFor(`${BASE}/sign-in`, web);
   browser = await chromium.launch({ headless: !process.env.E2E_HEADED, executablePath: process.env.CHROMIUM_PATH || undefined, args: ["--no-sandbox", ...(process.env.E2E_CHROMIUM_ARGS ?? "").split(" ").filter(Boolean)] });
-  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   watch(page);
@@ -183,12 +201,18 @@ try {
     await go(page, "/");
     check((await page.locator('a[href="/finance"]').count()) > 0, "admin navigation links Finance");
     await go(page, "/finance");
+    await page.locator('[data-kpi="collected"]').waitFor();
+    check((await page.locator("[data-area-head] nav.sb-tabs a").allInnerTexts()).join("|") === "Overview|Collections|Receivables|Ledger", "header shows Overview · Collections · Receivables · Ledger");
+    await page.locator("[data-tab-more]").click();
+    check((await page.locator(".sb-menu a").count()) === 6, "More lists the six other Finance sections");
+    await page.keyboard.press("Escape");
     await shot(page, "foundation-admin-finance");
   });
 
   // ==== 5A begin (admin: fee heads, fee structures, charges, instalments, disputes, adjustments, aid, configuration)
   {
-    const { fillForm: fillDialogForm, row, rowAction, tile } = await import("./lib/harness.mjs");
+    const { fillForm: fillDialogForm, row, tile } = await import("./lib/harness.mjs");
+    const rowAction = act;
     // Every 5A form is a `useAsk` dialog: wait until it has closed before the next action, so the next
     // dialog mounts fresh instead of racing the previous one's close (flaky on fast runners).
     const fillForm = async (p, name, values) => {
@@ -207,15 +231,18 @@ try {
       await rowAction(page, "BTECH-Y1 v1", "submit-structure", tile(page, "Fee structures"));
       await rowAction(page, "BTECH-Y1 v1", "publish-structure", tile(page, "Fee structures"));
       await rowAction(page, "BTECH-Y1 v1", "generate-charges", tile(page, "Fee structures"));
-      await fillForm(page, "generate", { studentIds: ids.aarav });
+      await fillForm(page, "generate", { [`studentIds:${ids.aarav}`]: true });
       await page.locator('[data-charge="CHG-000002"]').waitFor();
-      check((await page.locator('[data-outstanding="CHG-000002"]').innerText()).includes("₹90,000.00"), "CHG-000002 published for ₹90,000.00");
+      check((await page.locator('[data-outstanding="CHG-000002"]').innerText()).includes("₹90,000"), "CHG-000002 published for ₹90,000");
       await page.click('[data-charge="CHG-000002"]');
       await page.locator('[data-charge-detail="CHG-000002"]').waitFor();
       await page.click('[data-action="set-instalments"]');
       await fillForm(page, "instalments", { count: "3", firstDueDate: "2026-08-15" });
       await page.locator("[data-instalments] li").nth(2).waitFor();
-      check((await page.locator("[data-instalments]").innerText()).includes("₹30,000.00"), "three instalments of ₹30,000.00");
+      check((await page.locator("[data-instalments]").innerText()).includes("₹30,000"), "three instalments of ₹30,000");
+      await shot(page, "5a-admin-charge-panel");
+      await page.keyboard.press("Escape");
+      await page.locator('[data-charge-detail="CHG-000002"]').waitFor({ state: "detached" });
       await shot(page, "5a-admin-fees-and-charges");
     });
     await step(page, "5A: finance configuration version → approval → effective", async () => {
@@ -272,7 +299,7 @@ try {
       await page.locator('[data-payment="PAY-000001"]').waitFor();
       check((await h5b.row(page, "PAY-000001").textContent()).includes("RCT-000001"), "receipt RCT-000001 issued");
       await shot(page, "5b-collections-payment");
-      await h5b.rowAction(page, "PAY-000001", "payment-receipt");
+      await act(page, "PAY-000001", "payment-receipt");
       await page.locator('[data-receipt="RCT-000001"]').waitFor();
       check((await page.locator("[data-receipt-amount]").textContent()) === "₹30,000.00", "receipt shows ₹30,000.00");
       await shot(page, "5b-receipt");
@@ -281,7 +308,7 @@ try {
     await step(page, "5b: unidentified receipt identified (credit kept unapplied)", async () => {
       await page.locator("[data-record-unidentified]").click();
       await h5b.fillForm(page, "record-unidentified", { channel: "bank_transfer", amount: "5000.00", externalRef: "UTR-5B-777" });
-      await h5b.rowAction(page, "UTR-5B-777", "unidentified-identify");
+      await act(page, "UTR-5B-777", "unidentified-identify");
       await h5b.fillForm(page, "identify", { accountId: "Aarav" });
       await h5b.row(page, "UTR-5B-777").getByText("Identified").waitFor();
       await shot(page, "5b-unidentified-identified");
@@ -292,7 +319,7 @@ try {
       await h5b.settle(page);
       await page.locator('[data-receivable="CHG-000001"]').waitFor();
       check((await h5b.row(page, "CHG-000001").textContent()).includes("Overdue"), "CHG-000001 is overdue");
-      await h5b.rowAction(page, "CHG-000001", "receivable-dunning");
+      await act(page, "CHG-000001", "receivable-dunning");
       await h5b.row(page, "CHG-000001").getByText("1 · Notice sent").waitFor();
       await shot(page, "5b-receivables-dunning");
     });
@@ -302,8 +329,8 @@ try {
       await h5b.fillForm(page, "request-refund", { accountId: "Aarav", amount: "2000.00", reason: "Overpaid by bank transfer" });
       await page.locator('[data-refund="RFD-000001"]').waitFor();
       check((await h5b.row(page, "RFD-000001").textContent()).includes("Approved"), "RFD-000001 auto-approved");
-      await h5b.rowAction(page, "RFD-000001", "refund-process");
-      await h5b.rowAction(page, "RFD-000001", "refund-complete");
+      await act(page, "RFD-000001", "refund-process");
+      await act(page, "RFD-000001", "refund-complete");
       await h5b.row(page, "RFD-000001").getByText("Completed").waitFor();
       await shot(page, "5b-refunds");
     });
@@ -325,7 +352,7 @@ try {
         memo: "BANK-CHG-JUL",
       });
       await page.locator('[data-journal="MJ-000001"]').waitFor();
-      await h5c.rowAction(page, "MJ-000001", "journal-submit");
+      await act(page, "MJ-000001", "journal-submit");
       await h5c.expectRowStatus(page, "MJ-000001", "Posted");
       await shot(page, "5c-ledger-manual-journal");
     });
@@ -355,22 +382,39 @@ try {
         content: '{"valueDate":"2026-07-20","direction":"debit","amount":"250.00","reference":"BANK-CHG-JUL"}',
       });
       await page.locator('[data-statement="JUL-2026"]').waitFor();
-      await h5c.rowAction(page, "JUL-2026", "statement-reconcile");
+      await act(page, "JUL-2026", "statement-reconcile");
       await h5c.expectRowStatus(page, "JUL-2026", "Reconciled");
-      await h5c.rowAction(page, "JUL-2026", "statement-view");
+      await act(page, "JUL-2026", "statement-view");
       await page.locator('[data-line-match="matched"]').first().waitFor();
       // Merged flow: bank 1200 holds the identified ₹5,000 − the ₹2,000 refund paid out − the ₹250 bank charge;
       // 1100 cash on hand holds 5B's ₹30,000 counter payment. Available is bank + cash.
-      const cashRows = await page.locator("[data-cash-position] li").allInnerTexts();
-      const bankRow = cashRows.find((r) => r.startsWith("1200 ")) ?? "";
-      check(bankRow.endsWith("₹2,750.00"), `cash position shows the bank charge on 1200 (${bankRow})`);
+      const cashRows = await page.locator("[data-cash-position] [data-cash-row]").evaluateAll((ls) => ls.map((l) => ({ code: l.getAttribute("data-cash-row"), bal: l.querySelector("[data-cash-balance]")?.textContent ?? "" })));
+      const bankRow = cashRows.find((r) => r.code === "1200");
+      check(bankRow?.bal === "₹2,750.00", `cash position shows the bank charge on 1200 (${bankRow?.bal})`);
       const avail = await page.locator("[data-cash-available]").textContent();
-      const banksAndCash = cashRows.filter((r) => /^(1200|1100) /.test(r)).reduce((t, r) => t + inr(r.slice(r.lastIndexOf(":") + 1)), 0);
+      const banksAndCash = cashRows.filter((r) => r.code === "1200" || r.code === "1100").reduce((t, r) => t + inr(r.bal), 0);
       check(inr(avail) === banksAndCash, `available ${avail} = bank + cash on hand`);
       await shot(page, "5c-treasury-reconciled");
     });
   }
   // ==== 5C end
+  // ==== R5 overview begin (re-skin v2: the prototype Finance overview with real figures)
+  await step(page, "r5: Finance overview — money KPIs, monthly collections, invoices by status", async () => {
+    await go(page, "/finance");
+    await page.locator('[data-kpi="collected"]').waitFor();
+    check(/₹/.test((await page.locator('[data-kpi="collected"] b').textContent()) ?? ""), "Collected is in rupees");
+    await page.locator("[data-collections-chart] .sb-bars").waitFor();
+    await page.locator("[data-invoices] [data-invoice]").first().waitFor();
+    const all = await page.locator("[data-invoices] [data-invoice]").count();
+    await page.locator('[data-invoices] [data-chip="overdue"]').click();
+    await page.locator('[data-invoices] [data-invoice="CHG-000001"]').waitFor();
+    const overdue = await page.locator("[data-invoices] [data-invoice]").count();
+    check(overdue >= 1 && overdue <= all, `overdue chip filters the invoices (${overdue} of ${all})`);
+    await page.locator('[data-invoices] [data-chip="all"]').click();
+    check(!/\d\.00\b/.test(await page.locator("[data-invoices]").innerText()), "invoice amounts have no needless .00");
+    await shot(page, "r5-admin-finance-overview");
+  });
+  // ==== R5 overview end
 
   // ------------------------------------------------------------ student
   await signOut(page);
@@ -388,8 +432,13 @@ try {
     await go(page, "/fees");
     await page.locator('[data-my-charge="CHG-000002"]').waitFor();
     const due = await page.locator('[data-my-outstanding="CHG-000002"]').innerText();
-    check(due.includes("₹65,000.00"), `CHG-000002 due ₹65,000.00 after the credit note and aid (${due})`);
-    check((await page.locator('[data-my-charge="CHG-000002"] [data-my-instalments] li').count()) === 3, "three instalments listed");
+    check(due.includes("₹65,000"), `CHG-000002 due ₹65,000 after the credit note and aid (${due})`);
+    await act(page, "CHG-000002", "my-charge-details");
+    await page.locator("[data-my-instalments] li").nth(2).waitFor();
+    check((await page.locator("[data-my-instalments] li").count()) === 3, "three instalments listed");
+    await shot(page, "5a-student-invoice-panel");
+    await page.keyboard.press("Escape");
+    await page.locator("[data-my-instalments]").waitFor({ state: "detached" });
     check((await page.locator('[data-my-aid="list"]').innerText()).includes("Merit scholarship"), "aid listed");
     await shot(page, "5a-student-fees");
   });
@@ -399,19 +448,27 @@ try {
     const h5b = await import("./lib/harness.mjs");
     await step(page, "5b student: pay with the mock gateway, receipt, refund request", async () => {
       await go(page, "/fees");
-      await page.locator("[data-student-payments] [data-outstanding]").waitFor();
+      await page.locator("[data-outstanding]").waitFor();
       // Integrated flow: CHG-000001 ₹1,25,000 − counter ₹30,000 = ₹95,000, plus 5A's CHG-000002 ₹90,000 − credit
       // note − aid = ₹65,000 (the identified ₹5,000 stays as unapplied credit, ₹2,000 of it refunded).
-      check((await page.locator("[data-outstanding]").textContent()) === "₹1,60,000.00", "outstanding ₹1,60,000.00 after the counter payment");
+      check((await page.locator("[data-outstanding]").textContent()) === "₹1,60,000", "outstanding ₹1,60,000 after the counter payment");
+      await page.locator('[data-pay="CHG-000001"]').click();
+      await page.locator('[data-form="pay"]').waitFor();
+      await shot(page, "5b-student-pay-dialog");
+      await page.locator('[data-action="pay-partial"]').click();
       await page.locator('[data-form="pay"] input[name="amount"]').fill("10000.00");
+      await shot(page, "5b-student-pay-part");
       await page.locator('[data-action="pay-now"]').click();
       await h5b.settle(page);
       await page.locator("[data-checkout]").waitFor();
       await shot(page, "5b-student-checkout");
       await page.locator('[data-action="checkout-pay"]').click();
       await h5b.settle(page);
+      await page.locator("[data-receipt-number]").getByText("RCT-000003").waitFor();
+      await shot(page, "5b-student-paid");
+      await page.locator('[data-action="pay-done"]').click();
       await page.locator("[data-my-receipts]").getByText("RCT-000003").waitFor();
-      check((await page.locator("[data-outstanding]").textContent()) === "₹1,50,000.00", "outstanding ₹1,50,000.00 after paying online");
+      check((await page.locator("[data-outstanding]").textContent()) === "₹1,50,000", "outstanding ₹1,50,000 after paying online");
       await page.locator("[data-my-receipts]").getByText("RCT-000003").click();
       await page.locator('[data-receipt="RCT-000003"]').waitFor();
       await shot(page, "5b-student-receipt");
@@ -447,15 +504,15 @@ try {
       await page.locator("[data-new-year]").click();
       await h5c.fillForm(page, "financial-year", { code: "FY2026-27", name: "Financial year 2026-27", startDate: "2026-04-01", endDate: "2027-03-31" });
       await page.locator('[data-year="FY2026-27"]').waitFor();
-      await h5c.rowAction(page, "FY2026-27", "year-open");
+      await act(page, "FY2026-27", "year-open");
       await h5c.expectRowStatus(page, "FY2026-27", "Open");
-      await h5c.rowAction(page, "Jul 2026", "period-open");
+      await act(page, "Jul 2026", "period-open");
       await h5c.expectRowStatus(page, "Jul 2026", "Accepted");
       await shot(page, "5c-periods-open");
     });
     await step(page, "5c closing: July closed — postings refused, trial balance still balances", async () => {
       await go(page, "/finance/periods");
-      await h5c.rowAction(page, "Jul 2026", "period-close");
+      await act(page, "Jul 2026", "period-close");
       await h5c.expectRowStatus(page, "Jul 2026", "Closed");
       await h5c.expectRowStatus(page, "Jul 2026", "Refused");
       await shot(page, "5c-periods-july-closed");

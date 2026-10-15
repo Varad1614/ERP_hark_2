@@ -3,7 +3,8 @@ import { BentoTile, Button, DataTable, EmptyState, Modal } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { PositionCommand } from "./api";
-import { Actions, fmtDate, NoInstitution, QuickForm } from "./forms";
+import { fmtDate, NoInstitution, QuickForm } from "./forms";
+import { Actions } from "../campus/ui";
 import { keys, StatusBadge, useCommand, useInstitutionApi } from "./hooks";
 import type { Institution, Position } from "./types";
 
@@ -34,7 +35,7 @@ export function PositionsTab({ institution }: { institution: Institution | null 
           caption="Positions"
           rows={positions.data ?? []}
           rowKey={(p) => p.id}
-          empty={<EmptyState title="No positions yet">{(units.data ?? []).length === 0 ? "Add an organisation unit first." : "Define the first position."}</EmptyState>}
+          empty={<EmptyState title="No positions yet" compact>{(units.data ?? []).length === 0 ? "Add an organisation unit first." : "Define the first position."}</EmptyState>}
           columns={[
             { key: "code", header: "Code", render: (p) => p.code },
             { key: "title", header: "Title", render: (p) => <span data-position={p.code}>{p.title}</span> },

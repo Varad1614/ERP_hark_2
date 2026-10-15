@@ -8,10 +8,10 @@
  * - `FacultyResourcesScreen` — faculty `/resources`.
  */
 import { Award, BookOpen, ExternalLink, GraduationCap, Library, Plus, Scale } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, Select } from "@sutra/ui";
+import { BentoTile, Button, DataTable, EmptyState } from "@sutra/ui";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, REASON, todayIso, useAsk, type RowAction } from "../../institution/forms";
+import { Actions, fmtDate, NoInstitution, REASON, todayIso, useAsk, type RowAction } from "../kit";
 import { StatusBadge, useCommand, useInstitutionApi } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { parseProviderRecords } from "./api";
@@ -651,11 +651,13 @@ export function StudentLibraryScreen() {
   const mine = flex.data?.enrolments ?? [];
   const groups = new Map<string, NonNullable<typeof lib.data>>();
   for (const i of lib.data ?? []) groups.set(i.offeringCode, [...(groups.get(i.offeringCode) ?? []), i]);
+  // R7: both tiles empty → sit side by side with compact empty states instead of two stacked empty tiles.
+  const quiet = groups.size === 0 && !(flex.data?.opportunities ?? []).length && mine.length === 0;
   return (
     <>
-      <BentoTile span={12} title="Course resources and library links" data-slice="4C" data-library>
+      <BentoTile span={quiet ? 6 : 12} title="Course resources and library links" data-slice="4C" data-library>
         {groups.size === 0 ? (
-          <EmptyState icon={Library} title="Nothing published yet">
+          <EmptyState icon={Library} title="Nothing published yet" compact={quiet}>
             Your teachers’ reading lists and links appear here once they publish them.
           </EmptyState>
         ) : (
@@ -682,12 +684,12 @@ export function StudentLibraryScreen() {
           ))
         )}
       </BentoTile>
-      <BentoTile span={12} title="Flexible & external learning" data-flexible-self>
+      <BentoTile span={quiet ? 6 : 12} title="Flexible & external learning" data-flexible-self>
         <DataTable
           caption="Open opportunities"
           rows={flex.data?.opportunities ?? []}
           rowKey={(o) => o.id}
-          empty={<EmptyState icon={GraduationCap} title="No open opportunities">Open electives, MOOCs and internships appear here when enrolment opens.</EmptyState>}
+          empty={<EmptyState icon={GraduationCap} title="No open opportunities" compact={quiet}>Open electives, MOOCs and internships appear here when enrolment opens.</EmptyState>}
           columns={[
             { key: "t", header: "Opportunity", render: (o) => <span data-open-opportunity={o.code}>{o.title.includes(`(${modeLabel(o.mode)})`) ? o.title : `${o.title} (${modeLabel(o.mode)})`}</span> },
             { key: "c", header: "Credits", render: (o) => String(o.credits), muted: true },
@@ -723,90 +725,4 @@ export function StudentLibraryScreen() {
 
 // ================================================================== faculty: resources
 
-export function FacultyResourcesScreen() {
-  const api = useFlexibleApi();
-  const { run, submit, busy, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
-  const data = useQuery({ queryKey: fkeys.scoped("my", "resources"), queryFn: () => api.myResources() });
-  const [section, setSection] = useState("");
-  const sections = data.data?.sections ?? [];
-  const chosen = section || sections[0]?.sectionId || "";
-  const rows = (data.data?.items ?? []).filter((r) => r.sectionId === chosen);
-  return (
-    <>
-      <BentoTile
-        span={12}
-        title="Course resources"
-        data-slice="4C"
-        action={
-          chosen ? (
-            <Button
-              size="sm"
-              icon={<Plus strokeWidth={1.75} />}
-              data-new-resource
-              onClick={() =>
-                ask({
-                  title: "Add a resource",
-                  name: "resource",
-                  submitLabel: "Add",
-                  fields: [
-                    { name: "title", label: "Title", required: true, wide: true },
-                    { name: "kind", label: "Kind", type: "select", required: true, initial: "reading", options: KINDS },
-                    { name: "url", label: "Link", required: true, placeholder: "https://…", wide: true },
-                    { name: "description", label: "Note for students", wide: true },
-                    { name: "publish", label: "Publish now", type: "checkbox", initial: "true" },
-                  ],
-                  onSubmit: (v) => submit(() => api.createResource(chosen, { title: v.title!, kind: v.kind as ResourceKind, url: v.url!, description: v.description || undefined, publish: v.publish === "true" }), "Resource added"),
-                })
-              }
-            >
-              Add resource
-            </Button>
-          ) : null
-        }
-      >
-        {sections.length === 0 ? (
-          <EmptyState icon={BookOpen} title="No classes assigned">
-            Resources are added to the sections you actively teach.
-          </EmptyState>
-        ) : (
-          <>
-            <Select
-              label="Section"
-              value={chosen}
-              onChange={(e) => setSection(e.target.value)}
-              options={sections.map((s) => ({ value: s.sectionId, label: `${s.offeringCode} · ${s.sectionCode} — ${s.title}` }))}
-              data-resource-section
-            />
-            <DataTable
-              caption="Resources of the section"
-              rows={rows}
-              rowKey={(r) => r.id}
-              empty={<EmptyState icon={Library} title="No resources yet">Add reading lists, documents, videos or library links.</EmptyState>}
-              columns={[
-                { key: "t", header: "Resource", render: (r) => <a href={r.url} target="_blank" rel="noreferrer noopener" data-resource={r.title}>{r.title}</a> },
-                { key: "k", header: "Kind", render: (r) => KINDS.find((k) => k.value === r.kind)?.label ?? r.kind, muted: true },
-                { key: "s", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-                {
-                  key: "a",
-                  header: "",
-                  render: (r) => (
-                    <Actions
-                      disabled={busy}
-                      actions={[
-                        ...(r.status !== "published" ? [{ id: "publish-resource", label: "Publish", variant: "primary" as const, onClick: () => run(() => api.resourceCommand(r.id, r.version, "publish"), "Published") }] : []),
-                        ...(r.status === "published" ? [{ id: "withdraw-resource", label: "Withdraw", onClick: () => run(() => api.resourceCommand(r.id, r.version, "withdraw"), "Withdrawn") }] : []),
-                      ]}
-                    />
-                  ),
-                },
-              ]}
-            />
-          </>
-        )}
-      </BentoTile>
-      {prompt}
-      {dialog}
-    </>
-  );
-}
+export { FacultyResourcesScreen } from "../teaching/resources";

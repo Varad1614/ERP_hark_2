@@ -1,24 +1,27 @@
 import { useParams } from "react-router";
-import { AdminScreen } from "../../features/institution/AdminScreen";
-import { FINANCE_TABS } from "../../features/finance";
 import { AdjustmentsAdminTab, AidAdminTab, ChargesAdminTab } from "../../features/finance/charges";
 import { LedgerAdminTab, PeriodsAdminTab, TreasuryAdminTab } from "../../features/finance/ledger";
+import { FinanceOverview } from "../../features/finance/overview";
 import { CollectionsAdminTab, ReceivablesAdminTab, RefundsAdminTab } from "../../features/finance/payments";
+import { FinanceFrame } from "../../features/finance/ui";
 
 export function meta() {
   return [{ title: "Finance · SutraERP" }];
 }
 
 /**
- * Admin → Finance (`/finance/:tab?`). Foundation frame: every tab is already wired to its slice's
- * component (docs/batch5-contracts.md §10), so slices never edit this file.
+ * Admin → Finance (`/finance/:tab?`). Re-skin v2 (R5): one area header (Overview / Collections /
+ * Receivables / Ledger + More: Fees & charges, Adjustments, Financial aid, Refunds, Periods,
+ * Bank & treasury); `/finance` is the prototype overview. Every Batch 5 tab keeps its route.
  */
 export default function Finance() {
   const { tab } = useParams();
   return (
-    <AdminScreen title="Finance" base="/finance" tabs={FINANCE_TABS} tab={tab}>
+    <FinanceFrame tab={tab}>
       {(institution, current) => {
-        switch (current.key) {
+        switch (current) {
+          case "charges":
+            return <ChargesAdminTab institution={institution} />;
           case "adjustments":
             return <AdjustmentsAdminTab institution={institution} />;
           case "aid":
@@ -36,9 +39,9 @@ export default function Finance() {
           case "treasury":
             return <TreasuryAdminTab institution={institution} />;
           default:
-            return <ChargesAdminTab institution={institution} />;
+            return <FinanceOverview institution={institution} />;
         }
       }}
-    </AdminScreen>
+    </FinanceFrame>
   );
 }

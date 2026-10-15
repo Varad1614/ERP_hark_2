@@ -17,7 +17,7 @@ describe("slice 3B screens", () => {
     const renderScreen = await harness();
     const { StudentRegistrationScreen } = await import("./index");
     await renderScreen(<StudentRegistrationScreen />, { path: "/registration", role: "student" });
-    expect(await screen.findByRole("heading", { name: "My registration" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Registration", level: 1 })).toBeTruthy();
     const cs = await waitFor(() => {
       const el = document.querySelector<HTMLInputElement>("[data-component='CS101']");
       expect(el).toBeTruthy();
@@ -25,7 +25,7 @@ describe("slice 3B screens", () => {
     });
     fireEvent.click(cs);
     fireEvent.click(document.querySelector<HTMLInputElement>("[data-component='MD101']")!);
-    expect(screen.getByText("20 cr selected")).toBeTruthy();
+    expect(screen.getByText("20 credits selected")).toBeTruthy();
     fireEvent.click(document.querySelector("[data-action='registration-create']")!);
     await waitFor(() => expect(document.querySelector("[data-registration]")).toBeTruthy());
     fireEvent.click(document.querySelector("[data-action='registration-submit']")!);

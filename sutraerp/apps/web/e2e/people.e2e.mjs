@@ -39,15 +39,12 @@ import {
   BASE,
   check,
   children,
-  expectRowStatus,
   failed,
   fillForm as fillDialogForm,
   go,
   log,
   newProblems,
   psql,
-  row,
-  rowAction,
   seedInstitution,
   settle,
   shot,
@@ -74,27 +71,82 @@ async function fillForm(page, name, values) {
   await settle(page);
 }
 
-/** Clicks a page-level action button (`[data-action=id]`) and waits for the network. */
-async function action(page, id, scope) {
-  const b = (scope ?? page).locator(`[data-action="${id}"]`).first();
-  await b.waitFor({ state: "visible", timeout: 15000 });
-  await b.click();
-  await settle(page);
+/** A list item containing `text`: a table row, a leave approval row or a list row (re-skin v2). */
+function row(page, text, scope) {
+  return (scope ?? page).locator("tr, [data-approval], .sb-lrow", { hasText: text }).first();
 }
 
-/** Clicks `[data-action=id]` in the row containing `text` when it is offered (auto-approval may skip a step). */
+/** Opens each visible kebab under `root` until one offers `[data-menu-item=id]`, then clicks it. */
+async function viaMenu(page, root, id, { optional = false } = {}) {
+  const kebabs = root.locator("[data-row-menu]");
+  const n = await kebabs.count();
+  for (let i = 0; i < n; i++) {
+    const k = kebabs.nth(i);
+    if (!(await k.isVisible().catch(() => false))) continue;
+    await k.click();
+    const it = page.locator(`.sb-menu [data-menu-item="${id}"]`).first();
+    if (await it.isVisible().catch(() => false)) {
+      await it.click();
+      await settle(page);
+      return true;
+    }
+    await k.click(); // toggle closed (Escape would also close a side panel)
+  }
+  if (optional) return false;
+  throw new Error(`action “${id}” is neither a button nor a menu item here`);
+}
+
+/** Clicks `[data-action=id]` (the row / tile primary pill) or the kebab menu item `id`, then waits for the network. */
+async function action(page, id, scope) {
+  const root = scope ?? page;
+  const b = root.locator(`[data-action="${id}"]`).first();
+  await b.waitFor({ state: "visible", timeout: 4000 }).catch(() => {});
+  if (await b.isVisible().catch(() => false)) {
+    await b.click();
+    await settle(page);
+    return;
+  }
+  await viaMenu(page, root, id);
+}
+
+/** Same as `action`, inside the row containing `text`. */
+async function rowAction(page, text, id, scope) {
+  const r = row(page, text, scope);
+  await r.waitFor({ state: "visible", timeout: 10000 });
+  await action(page, id, r);
+}
+
+/** Clicks `id` in the row containing `text` when it is offered (auto-approval may skip a step). */
 async function maybeRowAction(page, text, id, scope) {
-  const btn = row(page, text, scope).locator(`[data-action="${id}"]`).first();
+  const r = row(page, text, scope);
+  const btn = r.locator(`[data-action="${id}"]`).first();
   if (await btn.isVisible().catch(() => false)) {
     await btn.click();
     await settle(page);
     return true;
   }
-  return false;
+  return viaMenu(page, r, id, { optional: true });
+}
+
+async function expectRowStatus(page, text, status, scope) {
+  const r = row(page, text, scope);
+  await r.filter({ hasText: status }).waitFor({ timeout: 10000 }).catch(() => {});
+  const content = ((await r.textContent().catch(() => "")) ?? "").replace(/\s+/g, " ").trim();
+  check(content.includes(status), `row “${text}” shows “${status}” (row: ${content.slice(0, 160)})`);
+}
+
+/** Clicks `id` in the open staff side panel (footer pill or its kebab). */
+async function panelAction(page, id) {
+  const panel = page.locator(".sb-drawer, [role=dialog]").filter({ has: page.locator("[data-staff-drawer]") }).last();
+  await panel.waitFor();
+  await action(page, id, panel);
 }
 
 async function display(page, setting) {
   await page.click('[aria-label="Account menu"]');
+  // Re-skin v2 (R1): display settings live in the Theme drawer (avatar menu → Personalization → Theme).
+  if (!(await page.locator("[data-pz-group]").count())) await page.click("[data-pz-toggle]");
+  await page.click('[data-pz="theme"]');
   await page.locator(`[data-display="${setting}"]`).click();
   await page.keyboard.press("Escape");
   await page.mouse.click(4, 700);
@@ -142,7 +194,7 @@ try {
 
   await waitFor(`${BASE}/sign-in`, web);
   browser = await chromium.launch({ headless: !process.env.E2E_HEADED, executablePath: process.env.CHROMIUM_PATH || undefined, args: ["--no-sandbox", ...(process.env.E2E_CHROMIUM_ARGS ?? "").split(" ").filter(Boolean)] });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   watch(page);
@@ -155,26 +207,33 @@ try {
   page.setDefaultNavigationTimeout(30000);
   newProblems();
 
-  await step(page, "admin: People is live in the new UI (page header, seven tabs, stat tiles)", async () => {
+  await step(page, "admin: People is live in the re-skinned UI (area header, ≤5 tabs + More, directory)", async () => {
     await go(page, "/");
     await page.click('nav.sb-pills a[href="/people"]');
     await settle(page);
     await page.locator('[data-screen="people"]').waitFor();
     check((await page.locator("[data-coming]").count()) === 0, "no “Coming in Batch 7” page");
-    const tabs = await page.locator("[data-tab-link]").evaluateAll((as) => as.map((a) => a.getAttribute("data-tab-link")));
-    check(JSON.stringify(tabs) === JSON.stringify(["staff", "recruitment", "positions", "leave", "attendance", "workload", "payroll"]), `seven tabs (${tabs.join(", ")})`);
-    check((await page.locator('[data-kpi="staff-total"]').count()) === 1, "staff stat tiles");
+    const head = page.locator('[data-page-head="people"]');
+    const tabs = (await head.locator("nav.sb-tabs > a").allTextContents()).map((t) => t.replace(/ · .*$/, "").trim());
+    check(JSON.stringify(tabs) === JSON.stringify(["Directory", "Leave requests", "Payroll", "Recruitment & onboarding"]), `four header tabs (${tabs.join(", ")})`);
+    check((await head.locator("[data-tab-more]").count()) === 1, "More menu for positions, attendance and workload");
+    check(((await head.locator("[data-area-summary]").textContent()) ?? "").includes("faculty on roll"), "live summary line");
+    check((await page.locator("[data-staff-filter]").count()) === 1, "department chips + search");
     await shot(page, "7-admin-people-staff-empty");
   });
 
   await step(page, "admin: staff record created (linked to the faculty login) → verified → active", async () => {
     await action(page, "staff-new");
     await fillForm(page, "staff-create", { givenName: "Meera", familyName: "Shah", workEmail: "meera.shah@sit.edu.in", staffCategory: "teaching", subjectRef: FACULTY_SUBJECT });
-    await row(page, "Meera Shah").waitFor();
-    await rowAction(page, "Meera Shah", "staff-submit-verification");
-    await rowAction(page, "Meera Shah", "staff-verify");
-    await rowAction(page, "Meera Shah", "staff-activate");
-    await expectRowStatus(page, "Meera Shah", "Active");
+    const card = page.locator('[data-person="Meera Shah"]');
+    await card.waitFor();
+    await card.click();
+    await page.locator("[data-staff-drawer]").waitFor();
+    await panelAction(page, "staff-submit-verification");
+    await panelAction(page, "staff-verify");
+    await panelAction(page, "staff-activate");
+    await page.locator('[data-staff-drawer][data-staff-status="active"]').waitFor({ timeout: 10000 }).catch(() => {});
+    check((await page.locator('[data-staff-drawer][data-staff-status="active"]').count()) === 1, "staff panel shows the record active");
     const s = await admin.get(`${P}/institutions/${setup.id}/staff`);
     ids.meera = s.items.find((x) => x.displayName === "Meera Shah");
     check(ids.meera?.status === "active", `staff record active (${ids.meera?.status})`);
@@ -182,10 +241,9 @@ try {
   });
 
   await step(page, "admin: engagement created → submitted (approved) → activated", async () => {
-    await rowAction(page, "Meera Shah", "staff-open");
     const drawer = page.locator("[data-staff-drawer]");
     await drawer.waitFor();
-    await action(page, "engagement-new", drawer);
+    await panelAction(page, "engagement-new");
     await fillForm(page, "engagement-create", { employmentType: "permanent", designation: "Assistant Professor", grade: "AP-1", startDate: ENG_START });
     await row(page, "Assistant Professor", drawer).waitFor();
     await rowAction(page, "Assistant Professor", "engagement-submit", drawer);
@@ -195,6 +253,7 @@ try {
     await shot(page, "7-admin-engagement-active");
     await page.keyboard.press("Escape");
     await settle(page);
+    check(((await page.locator('[data-person="Meera Shah"]').textContent()) ?? "").includes("Assistant Professor"), "person card shows the designation");
     const engs = await admin.get(`${P}/staff/${ids.meera.id}/engagements`);
     ids.engagement = engs.items.find((e) => e.status === "active");
     check(!!ids.engagement, "engagement active");
@@ -253,11 +312,11 @@ try {
     await sc.waitFor();
     await page.waitForFunction(() => document.querySelector('[data-shortcut="leave"]')?.textContent?.includes("left"), null, { timeout: 15000 }).catch(() => {});
     const text = ((await sc.textContent()) ?? "").trim();
-    check(/12\.00 CL left/.test(text), `shortcut shows the balance (${text})`);
+    check(/12 days casual leave left/.test(text), `shortcut shows the balance in whole days (${text})`);
     await shot(page, "7-faculty-home");
   });
 
-  await step(page, "faculty: My HR → Leave balance tiles; one day of unpaid leave applied (reserved)", async () => {
+  await step(page, "faculty: Leave = balance tiles + inline apply form; one day of unpaid leave applied (reserved)", async () => {
     await page.click('nav.sb-pills a[href="/leave"]');
     await settle(page);
     await page.locator('[data-page-head="leave"]').waitFor();
@@ -265,13 +324,15 @@ try {
     check(JSON.stringify(tabs) === JSON.stringify(["Leave", "My record", "Attendance", "Workload", "Payslips"]), `My HR tabs (${tabs.join(", ")})`);
     const kpi = page.locator('[data-kpi="balance-CL"]');
     await kpi.waitFor();
-    check(((await kpi.locator("b").textContent()) ?? "").trim() === "12.00", "CL available 12.00");
-    await action(page, "leave-apply");
-    await fillForm(page, "leave-apply", { leaveTypeId: "LWP", startDate: LEAVE_ISO, endDate: LEAVE_ISO, reason: "Family function" });
-    const mine = tile(page, "My leave");
-    // The request row (`LV-…`), not the LWP balance row above it.
-    await row(page, "LV-", mine).waitFor();
-    await expectRowStatus(page, "LV-", "Reserved", mine);
+    const bal = ((await kpi.locator("b").textContent()) ?? "").replace(/\s+/g, " ").trim();
+    check(/^12 \/ 12 days$/.test(bal), `casual leave 12 of 12 days (${bal})`);
+    check(((await kpi.textContent()) ?? "").includes("Casual leave"), "balance tile names the leave type");
+    await fillDialogForm(page, "leave-apply", { leaveTypeId: "Leave without pay", startDate: LEAVE_ISO, endDate: LEAVE_ISO, reason: "Family function" });
+    await settle(page);
+    const history = tile(page, "History");
+    await row(page, "Leave without pay", history).waitFor();
+    await expectRowStatus(page, "Leave without pay", "Reserved", history);
+    check(!((await history.textContent()) ?? "").includes(".00"), "history shows whole days (no 1.00)");
     await shot(page, "7-faculty-leave-applied");
   });
 
@@ -288,12 +349,10 @@ try {
   await step(page, "admin: Leave — the reserved request is consumed (unpaid ledger entry)", async () => {
     await go(page, "/people/leave");
     const requests = tile(page, "Leave requests");
-    await requests.getByRole("button", { name: "Reserved" }).click();
-    await settle(page);
+    await action(page, "request-filter-reserved", requests);
     await row(page, "Meera Shah", requests).waitFor();
     await rowAction(page, "Meera Shah", "request-consume", requests);
-    await requests.getByRole("button", { name: "Consumed" }).click();
-    await settle(page);
+    await action(page, "request-filter-consumed", requests);
     await expectRowStatus(page, "Meera Shah", "Consumed", requests);
     const ledger = await admin.get(`${P}/staff/${ids.meera.id}/leave-ledger`);
     const entry = ledger.items.find((e) => e.kind === "consumption");
@@ -359,7 +418,7 @@ try {
     const results = tile(page, "Results");
     await row(page, "Meera Shah", results).waitFor();
     const text = ((await row(page, "Meera Shah", results).textContent()) ?? "").replace(/\s+/g, " ");
-    check(text.includes("1.00"), `result shows 1.00 LOP day (${text.slice(0, 160)})`);
+    check(text.includes("1 day"), `result shows 1 day of loss of pay (${text.slice(0, 160)})`);
     await shot(page, "7-admin-payroll-calculated");
   });
 
@@ -403,7 +462,7 @@ try {
   await step(page, "faculty: My HR → Leave shows the balances and the consumed request", async () => {
     await go(page, "/leave");
     await page.locator('[data-kpi="balance-CL"]').waitFor();
-    await expectRowStatus(page, "LV-", "Consumed", tile(page, "My leave"));
+    await expectRowStatus(page, "Leave without pay", "Consumed", tile(page, "History"));
     await shot(page, "7-faculty-leave-balance");
   });
 

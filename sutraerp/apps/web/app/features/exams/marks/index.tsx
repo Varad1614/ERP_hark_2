@@ -12,10 +12,11 @@
  *   marks entry grid, submission, gradebook).
  */
 import { CheckCircle2, ClipboardCheck, FileWarning, Gavel, Inbox, NotebookPen } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, EmptyState, Input, Select, StatTile } from "@sutra/ui";
+import { AreaHeader, Badge, BentoTile, Button, DataTable, EmptyState, FormSelect, KpiTile, ListRow, NameCell, TextField, formatNumber, plural } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, REASON, useAsk, type RowAction } from "../../institution/forms";
+import { REASON, type RowAction } from "../../institution/forms";
+import { ExamActions as Actions, useExamAsk as useAsk } from "../ui";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { mkeys, useMarksApi } from "./hooks";
@@ -138,20 +139,20 @@ function MarksGrid({ paperId, staff }: { paperId: string; staff: boolean }) {
         action={
           <>
             {sheet ? <StatusBadge status={sheet.status} /> : <Badge kind="info">No sheet yet</Badge>}
-            <Button size="sm" variant="ghost" onClick={() => setShowGradebook((s) => !s)} data-action="gradebook-toggle">
+            <Button variant="ghost" onClick={() => setShowGradebook((s) => !s)} data-action="gradebook-toggle">
               {showGradebook ? "Hide gradebook" : "Gradebook"}
             </Button>
+            <Actions actions={sheetActions} disabled={busy} label="Mark sheet actions" />
           </>
         }
       >
-        <Actions actions={sheetActions} disabled={busy} />
         <DataTable<MarkRow>
           caption="Candidates and marks"
           rows={data?.items ?? []}
           rowKey={(r) => r.id}
           empty={<EmptyState icon={NotebookPen} title="No candidates">Registrations for this paper appear here.</EmptyState>}
           columns={[
-            { key: "student", header: "Candidate", render: (r) => `${r.displayName} · ${r.studentNumber}` },
+            { key: "student", header: "Candidate", render: (r) => <NameCell name={r.displayName} sub={r.studentNumber} /> },
             { key: "attempt", header: "Attempt", render: (r) => statusLabel(r.attemptKind), muted: true },
             { key: "internal", header: "Internal", render: (r) => (r.internalMarks ? `${r.internalMarks} / ${r.internalMax ?? "—"}` : "—") },
             {
@@ -159,13 +160,16 @@ function MarksGrid({ paperId, staff }: { paperId: string; staff: boolean }) {
               header: `External (/${data?.items[0]?.externalMax ?? "100.00"})`,
               render: (r) =>
                 editable(r) ? (
-                  <Input
+                  <TextField
                     label={`External marks of ${r.studentNumber}`}
                     hideLabel
                     value={draft[r.id] ?? (r.absent ? "AB" : (r.externalMarks ?? ""))}
-                    placeholder="e.g. 61.50 or AB"
+                    placeholder="—"
+                    title="Marks such as 61.50, or AB for absent"
                     inputMode="decimal"
                     data-mark-input={r.studentNumber}
+                    aria-invalid={markInvalid(draft[r.id], r.externalMax) || undefined}
+                    style={markStyle(markInvalid(draft[r.id], r.externalMax))}
                     onChange={(e) => setDraft((d) => ({ ...d, [r.id]: e.target.value.trim() }))}
                   />
                 ) : r.absent ? (
@@ -175,28 +179,30 @@ function MarksGrid({ paperId, staff }: { paperId: string; staff: boolean }) {
                 ),
             },
             { key: "grace", header: "Grace", render: (r) => r.graceMarks, muted: true },
-            { key: "preview", header: "Preview", render: (r) => (r.preview ? `${r.preview.percent ?? "—"} % · ${r.preview.grade ?? "—"}` : "—") },
+            { key: "preview", header: "Preview", render: (r) => (r.preview ? `${r.preview.percent ?? "—"}% · ${r.preview.grade ?? "—"}` : "—") },
             { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
             { key: "actions", header: "", render: (r) => <Actions actions={rowActions(r)} disabled={busy} /> },
           ]}
         />
         {changed.length > 0 && (
-          <Button size="sm" onClick={() => void save()} disabled={busy} data-action="marks-save">
-            Save {changed.length} row(s)
-          </Button>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+            <Button onClick={() => void save()} disabled={busy} data-action="marks-save">
+              Save {plural(changed.length, "mark")}
+            </Button>
+          </div>
         )}
       </BentoTile>
       {showGradebook && gradebook.data && (
         <BentoTile span={12} title={`Gradebook · ${gradebook.data.paperCode}`} data-gradebook>
-          <p>
-            {gradebook.data.graded} graded · {gradebook.data.passed} passed · {gradebook.data.failed} failed · {gradebook.data.absent} absent · average {gradebook.data.averagePercent ?? "—"} %
+          <p style={{ margin: "0 0 8px", color: "var(--sb-mute)", fontSize: 14 }}>
+            {formatNumber(gradebook.data.graded)} graded · {formatNumber(gradebook.data.passed)} passed · {formatNumber(gradebook.data.failed)} failed · {formatNumber(gradebook.data.absent)} absent · average {gradebook.data.averagePercent ? `${gradebook.data.averagePercent}%` : "—"}
           </p>
           <DataTable
             caption="Gradebook"
             rows={gradebook.data.lines}
             rowKey={(l) => l.paperMarkId}
             columns={[
-              { key: "student", header: "Candidate", render: (l) => `${l.displayName} · ${l.studentNumber}` },
+              { key: "student", header: "Candidate", render: (l) => <NameCell name={l.displayName} sub={l.studentNumber} /> },
               { key: "percent", header: "%", render: (l) => l.percent ?? "—" },
               { key: "grade", header: "Grade", render: (l) => l.grade ?? "—" },
               { key: "gp", header: "Grade point", render: (l) => l.gradePoint ?? "—" },
@@ -227,41 +233,59 @@ function MarksGrid({ paperId, staff }: { paperId: string; staff: boolean }) {
   );
 }
 
-function PaperTable({ rows, onOpen, selected, staff }: { rows: Assessment[]; onOpen: (a: Assessment) => void; selected: string | null; staff: boolean }) {
+/** Valid external marks: a decimal within the maximum, or AB (absent). Empty = unchanged. */
+export function markInvalid(v: string | undefined, max: string | null | undefined): boolean {
+  if (v === undefined || v === "" || v.toUpperCase() === "AB") return false;
+  if (!/^\d+(\.\d{1,2})?$/.test(v)) return true;
+  const m = Number(max ?? "100");
+  return Number(v) > (Number.isFinite(m) ? m : 100);
+}
+
+/** Prototype `.x-mk` mark cell (84 px, centred, red when invalid) — local until R0 ships it (NEEDS-R0). */
+function markStyle(invalid: boolean) {
+  return { width: 84, textAlign: "center" as const, fontWeight: 600, ...(invalid ? { borderColor: "var(--sb-danger, #d92d20)", color: "var(--sb-danger, #d92d20)" } : {}) };
+}
+
+/** Papers as prototype `.rc` rows: icon chip, title + meta, status badge, one action, chevron. */
+function PaperList({ rows, onOpen, selected, staff }: { rows: Assessment[]; onOpen: (a: Assessment) => void; selected: string | null; staff: boolean }) {
   const api = useMarksApi();
   const { run, busy, dialog } = useCommand();
+  if (rows.length === 0)
+    return (
+      <EmptyState icon={NotebookPen} title="No papers yet" compact>
+        Papers of examination sessions appear here once scheduled.
+      </EmptyState>
+    );
   return (
-    <>
-      <DataTable<Assessment>
-        caption="Papers"
-        rows={rows}
-        rowKey={(a) => a.paperId}
-        empty={<EmptyState icon={NotebookPen} title="No papers yet">Papers of examination sessions appear here once scheduled.</EmptyState>}
-        columns={[
-          { key: "paper", header: "Paper", render: (a) => `${a.paperCode} · ${a.title}` },
-          { key: "session", header: "Session", render: (a) => a.sessionCode, muted: true },
-          { key: "sections", header: "Sections", render: (a) => (a.sections.length ? a.sections.join(", ") : "—"), muted: true },
-          { key: "progress", header: "Entered", render: (a) => `${a.entered} / ${a.candidates}` },
-          { key: "paperStatus", header: "Paper status", render: (a) => <StatusBadge status={a.paperStatus} /> },
-          { key: "sheet", header: "Mark sheet", render: (a) => (a.sheetStatus ? <StatusBadge status={a.sheetStatus} /> : "—") },
-          {
-            key: "actions",
-            header: "",
-            render: (a) => (
-              <Actions
-                disabled={busy}
-                actions={[
-                  ...(staff && !a.sheetId && a.acceptsMarks ? [{ id: "sheet-open", label: "Open sheet", onClick: () => void run(() => api.openSheet(a.paperId), "Mark sheet opened") }] : []),
-                  { id: "paper-open", label: selected === a.paperId ? "Selected" : "Marks", variant: selected === a.paperId ? ("primary" as const) : ("ghost" as const), onClick: () => onOpen(a) },
-                ]}
-              />
-            ),
-          },
-        ]}
-      />
+    <div data-paper-list="">
+      {rows.map((a) => {
+        const pending = a.acceptsMarks ? Math.max(0, a.candidates - a.entered) : 0;
+        const badge = pending > 0 ? { label: `${formatNumber(pending)} to review`, kind: "attention" as const } : a.sheetStatus ? { label: statusLabel(a.sheetStatus), kind: sheetKind(a.sheetStatus) } : { label: statusLabel(a.paperStatus), kind: "neutral" as const };
+        return (
+          <ListRow
+            key={a.paperId}
+            data-paper={a.paperCode}
+            icon={a.sheetStatus === "finalised" ? CheckCircle2 : NotebookPen}
+            tone={a.sheetStatus === "finalised" ? "green" : a.acceptsMarks ? "blue" : "violet"}
+            title={a.title}
+            meta={[a.paperCode, a.sessionName, a.sections.length ? `Section ${a.sections.join(", ")}` : null, `${formatNumber(a.entered)} / ${formatNumber(a.candidates)} marks entered`].filter(Boolean).join(" · ")}
+            badge={badge}
+            selected={selected === a.paperId}
+            onOpen={() => onOpen(a)}
+            primary={staff && !a.sheetId && a.acceptsMarks ? { label: "Open sheet", ghost: true, disabled: busy, "data-action": "sheet-open", onClick: () => void run(() => api.openSheet(a.paperId), "Mark sheet opened") } : undefined}
+          />
+        );
+      })}
       {dialog}
-    </>
+    </div>
   );
+}
+
+function sheetKind(status: string): "done" | "review" | "info" | "neutral" {
+  if (["finalised", "approved"].includes(status)) return "done";
+  if (["evaluated", "validated", "submitted"].includes(status)) return "review";
+  if (["in_evaluation", "assigned", "planned"].includes(status)) return "info";
+  return "neutral";
 }
 
 // ------------------------------------------------------------------ Admin → Marks
@@ -275,7 +299,7 @@ export function MarksAdminTab({ institution }: { institution: Institution | null
   return (
     <>
       <BentoTile span={12} title="Mark sheets" data-slice="6B">
-        <PaperTable rows={papers.data ?? []} selected={selected} staff onOpen={(a) => setSelected(a.paperId)} />
+        <PaperList rows={papers.data ?? []} selected={selected} staff onOpen={(a) => setSelected(a.paperId)} />
       </BentoTile>
       {selected && <MarksGrid paperId={selected} staff />}
     </>
@@ -299,13 +323,18 @@ export function FacultyAssessmentsPanel() {
   const toReview = toReviewCount(list);
   const done = list.filter((a) => a.sheetStatus && ["evaluated", "verified", "validated", "approved", "finalised"].includes(a.sheetStatus)).length;
   const loading = !mine.data;
+  const sessions = [...new Set(list.map((a) => a.sessionName))];
+  const sections = list.map((a) => `${a.paperCode}${a.sections.length ? ` Section ${a.sections.join(", ")}` : ""}`);
+  const summary = loading ? "Loading your papers…" : list.length ? [sessions.join(", "), sections.join(" and ")].filter(Boolean).join(" · ") : "Examination marks for the sections you teach";
+  const firstOpen = open.find((a) => a.candidates > a.entered) ?? open[0];
   return (
     <>
-      <StatTile span={4} icon={Inbox} tone="violet" label="To review" value={loading ? "…" : String(toReview)} hint={open[0] ? `${open.length} paper${open.length === 1 ? "" : "s"} open for marks` : "No marks pending"} data-kpi="to-review" />
-      <StatTile span={4} icon={CheckCircle2} tone="green" label="Submitted" value={loading ? "…" : String(done)} hint="Mark sheets sent to the exam cell" data-kpi="submitted" />
-      <StatTile span={4} icon={NotebookPen} tone="orange" label="Papers" value={loading ? "…" : String(list.length)} hint={list[0] ? `${list[0].sessionCode} · ${list[0].paperCode}` : "Of the sections you teach"} data-kpi="papers" />
-      <BentoTile span={12} title="My assessments" data-slice="6B">
-        <PaperTable rows={mine.data ?? []} selected={selected} staff={false} onOpen={(a) => setSelected(a.paperId)} />
+      <AreaHeader title="Assessments" summary={summary} data-page-head="assessments" />
+      <KpiTile span={4} icon={Inbox} tone="violet" label="To review" value={formatNumber(toReview)} loading={loading} sub={firstOpen ? `${firstOpen.title} · ${plural(open.length, "paper")} open` : "No marks pending"} data-kpi="to-review" />
+      <KpiTile span={4} icon={CheckCircle2} tone="green" label="Submitted" value={formatNumber(done)} loading={loading} sub="Mark sheets sent to the exam cell" data-kpi="submitted" />
+      <KpiTile span={4} icon={NotebookPen} tone="orange" label="Papers" value={formatNumber(list.length)} loading={loading} sub={list[0] ? `${list[0].paperCode} · ${list[0].sessionName}` : "Of the sections you teach"} data-kpi="papers" />
+      <BentoTile span={12} title="All assessments" data-slice="6B" data-my-assessments="">
+        <PaperList rows={mine.data ?? []} selected={selected} staff={false} onOpen={(a) => setSelected(a.paperId)} />
       </BentoTile>
       {selected && <MarksGrid paperId={selected} staff={false} />}
     </>
@@ -384,12 +413,12 @@ export function MalpracticeAdminTab({ institution }: { institution: Institution 
         title="Malpractice cases"
         data-slice="6B"
         action={
-          sessions.length > 0 ? (
-            <Select label="Examination session" value={current} options={sessions.map(([id, code]) => ({ value: id, label: code }))} onChange={(e) => setSession(e.target.value)} />
+          sessions.length > 1 ? (
+            <FormSelect label="Examination session" hideLabel value={current} options={sessions.map(([id, code]) => ({ value: id, label: code }))} onChange={(e) => setSession(e.target.value)} data-session-picker="" />
           ) : undefined
         }
       >
-        <p>Cases are reported from a candidate's row in Marks. Decisions and review outcomes follow the governed approval (auto-approved in this release).</p>
+        <p style={{ margin: "0 0 8px", color: "var(--sb-mute)", fontSize: 14 }}>Cases are reported from a candidate's row in Marks. Decisions and review outcomes follow the governed approval (auto-approved in this release).</p>
         <DataTable<MalpracticeCase>
           caption="Malpractice cases"
           rows={cases.data ?? []}
@@ -404,23 +433,24 @@ export function MalpracticeAdminTab({ institution }: { institution: Institution 
           ]}
         />
       </BentoTile>
+      {(cases.data ?? []).some((c) => c.decisions.length > 0) && (
       <BentoTile span={12} title="Decision trail">
-        {(cases.data ?? []).some((c) => c.decisions.length > 0) ? (
-          <ul>
+          <div>
             {(cases.data ?? []).flatMap((c) =>
               c.decisions.map((d) => (
-                <li key={d.id}>
-                  <Gavel size={14} /> {c.caseNumber}: {statusLabel(d.kind)} — {statusLabel(d.outcome)}
-                  {d.penalty ? ` · ${statusLabel(d.penalty)}` : ""}
-                  {d.reason ? ` · ${d.reason}` : ""}
-                </li>
+                <ListRow
+                  key={d.id}
+                  icon={Gavel}
+                  tone="amber"
+                  title={`${c.caseNumber} · ${statusLabel(d.kind)}`}
+                  meta={[d.penalty ? statusLabel(d.penalty) : null, d.reason].filter(Boolean).join(" · ") || undefined}
+                  badge={{ label: statusLabel(d.outcome), kind: "neutral" }}
+                />
               )),
             )}
-          </ul>
-        ) : (
-          <EmptyState icon={Gavel} title="No decisions yet" />
-        )}
+          </div>
       </BentoTile>
+      )}
       {prompt}
       {dialog}
     </>

@@ -172,7 +172,7 @@ describe("Admin → Campus setup", () => {
 
   it("registers an institution from the screen and walks its lifecycle", async () => {
     const api = createMockInstitutionApi();
-    await renderScreen(wrap(api, <CampusSetup />), { path: "/campus/:tab?", entry: "/campus" });
+    await renderScreen(wrap(api, <CampusSetup />), { path: "/campus/:tab?", entry: "/campus/institution" });
     expect(await screen.findByText("No institution yet")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Register institution" }));
     // Client-side required check first, then the API's 422 inline.
@@ -209,8 +209,8 @@ describe("Admin → Campus setup", () => {
     const reg = await api.registerInstitution({ code: "RDY", name: "Ready College" });
     const inst = await api.reviseProfile(reg.id, reg.version, { shortName: "RC", institutionType: "college", registrationNumber: "R1", address: "Pune", contactPhone: "1", officialEmail: "o@rc.edu", administratorEmail: "a@rc.edu", academicPattern: "semester", workingDays: ["mon"] });
     selectInstitution(inst.id);
-    await renderScreen(wrap(api, <CampusSetup />), { path: "/campus/:tab?", entry: "/campus" });
-    fireEvent.click(await screen.findByText("Activation readiness"));
+    await renderScreen(wrap(api, <CampusSetup />), { path: "/campus/:tab?", entry: "/campus/institution" });
+    fireEvent.click(await screen.findByText("Readiness"));
     const box = await waitFor(() => {
       const el = document.querySelector("[data-readiness]");
       if (!el) throw new Error("no checklist");
@@ -230,7 +230,7 @@ describe("Admin → Campus setup", () => {
     const api = createMockInstitutionApi();
     const inst = await api.registerInstitution({ code: "CMP", name: "Campus College" });
     selectInstitution(inst.id);
-    await renderScreen(wrap(api, <CampusSetup />), { path: "/campus/:tab?", entry: "/campus" });
+    await renderScreen(wrap(api, <CampusSetup />), { path: "/campus/:tab?", entry: "/campus/institution" });
     fireEvent.click(await screen.findByText("Campuses"));
     fireEvent.click(await screen.findByRole("button", { name: "Register campus" }));
     fillForm("new-campus", { code: "main", name: "Main campus", line1: "1 University Road", city: "Pune", state: "Maharashtra", postalCode: "411007" });
@@ -253,13 +253,28 @@ describe("Admin → Campus setup", () => {
   });
 });
 
+/** Re-skin v2 (R3): a row action is a pill (`data-action`) or an item of the row's kebab menu (`data-menu-item`). */
+async function act(action: string, within_: ParentNode = document) {
+  const target = await waitFor(() => {
+    const pill = within_.querySelector<HTMLElement>(`[data-action="${action}"]`);
+    if (pill) return pill;
+    for (const k of within_.querySelectorAll<HTMLElement>("[data-row-menu]")) {
+      fireEvent.click(k);
+      const item = document.querySelector<HTMLElement>(`[data-menu-item="${action}"]`);
+      if (item) return item;
+      fireEvent.click(k);
+    }
+    throw new Error(`action ${action} not rendered`);
+  });
+  fireEvent.click(target);
+}
+
 describe("Admin → Academics → Academic calendar", () => {
   it("establishes a calendar, publishes a version, opens the year, assigns it and simulates a change", async () => {
     const api = createMockInstitutionApi();
     const inst = await api.registerInstitution({ code: "CAL", name: "Calendar College" });
     selectInstitution(inst.id);
-    await renderScreen(wrap(api, <Academics />), { path: "/academics/:tab?", entry: "/academics" });
-    fireEvent.click(await screen.findByText("Academic calendar"));
+    await renderScreen(wrap(api, <Academics />), { path: "/academics/:tab?", entry: "/academics/calendar" });
     expect(await screen.findByText("No academic calendar yet")).toBeTruthy();
     fillForm("new-calendar", { code: "main", name: "Main academic calendar" });
     await waitFor(() => expect(document.querySelector('[data-calendar="MAIN"]')).toBeTruthy());
@@ -273,21 +288,21 @@ describe("Admin → Academics → Academic calendar", () => {
     fillForm("new-version", {});
     await waitFor(() => expect(document.querySelector('[data-version-panel="1"]')?.getAttribute("data-version-status")).toBe("draft"));
     // Publishing without terms is refused by validation.
-    await click("version-publish");
+    await act("version-publish");
     expect(await screen.findByText("add at least one term")).toBeTruthy();
     fillForm("new-term", { code: "t1", name: "Semester 1", sequence: "1", startsOn: "2026-06-15", endsOn: "2026-11-30" });
     await waitFor(() => expect(document.querySelector('[data-term="T1"]')).toBeTruthy());
     fillForm("new-key-date", { kind: "holiday", name: "Independence Day", startsOn: "2026-08-15" });
     await waitFor(() => expect(document.querySelector('[data-key-date="Independence Day"]')).toBeTruthy());
-    await click("version-publish");
+    await act("version-publish");
     await waitFor(() => expect(document.querySelector('[data-version-panel="1"]')?.getAttribute("data-version-status")).toBe("published"));
     expect(document.querySelector('[data-form="new-term"]')).toBeNull();
 
-    await click("year-open");
+    await act("year-open");
     await waitFor(async () => expect((await api.listYears(inst.id))[0]?.status).toBe("open"));
 
     fillForm("new-assignment", { effectiveFrom: "2026-06-01" });
-    await click("assignment-activate");
+    await act("assignment-activate");
     await waitFor(async () => expect((await api.readiness(inst.id)).items.filter((i) => i.area === "calendar").every((i) => i.status === "met")).toBe(true));
 
     fillForm("simulate", { endsOn: "2026-10-31" });
@@ -300,11 +315,11 @@ describe("Admin → Academics → Academic calendar", () => {
     expect(sim.querySelector('[data-impact="terms.outside_version"]')).toBeTruthy();
     // The preview changed nothing.
     expect((await api.listVersions((await api.listCalendars(inst.id))[0]!.id))[0]?.endsOn).toBe("2027-05-31");
-    await click("simulation-accept", sim);
+    await act("simulation-accept", sim);
     await waitFor(() => expect(screen.getByText("Decision recorded")).toBeTruthy());
 
     // Revise → successor draft (version 2) under the same calendar.
-    await click("version-revise");
+    await act("version-revise");
     await waitFor(() => expect(document.querySelector('[data-version-panel="2"]')?.getAttribute("data-version-status")).toBe("draft"));
   });
 
@@ -312,26 +327,29 @@ describe("Admin → Academics → Academic calendar", () => {
     const api = createMockInstitutionApi();
     const inst = await api.registerInstitution({ code: "PRG", name: "Programme College" });
     selectInstitution(inst.id);
-    await renderScreen(wrap(api, <Academics />), { path: "/academics/:tab?", entry: "/academics" });
+    await renderScreen(wrap(api, <Academics />), { path: "/academics/:tab?", entry: "/academics/structure" });
     await waitFor(() => form("new-structure"));
     fillForm("new-structure", {});
-    await click("structure-publish");
+    await act("structure-publish");
     await waitFor(async () => expect((await api.listStructures(inst.id))[0]?.status).toBe("published"));
-    fireEvent.click(await screen.findByText("Programmes"));
+    // Programmes sits under the header's "More" menu (≤5 tabs).
+    fireEvent.click(document.querySelector("[data-tab-more]")!);
+    fireEvent.click(await screen.findByRole("link", { name: "Programmes" }));
     fireEvent.click(await screen.findByRole("button", { name: "Register programme" }));
     fillForm("new-programme", { code: "btech", name: "B.Tech CSE", level: "ug", durationTerms: "2" });
     await waitFor(() => expect(document.querySelector('[data-programme="BTECH"]')).toBeTruthy());
-    await click("programme-publish");
+    await act("programme-publish");
     await waitFor(async () => expect((await api.listProgrammes(inst.id))[0]?.status).toBe("published"));
 
     // Curriculum with course slots → publish version 1 → revise into a successor draft.
     fireEvent.click(document.querySelector('[data-tab-link="curriculum"]')!);
     await waitFor(() => form("new-curriculum"));
-    fillForm("new-curriculum", { code: "cse-2026", title: "CSE 2026", effectiveFrom: "2026-07-01", slots: "1:CS101:20, 2:CS201:20" });
+    fireEvent.click(document.querySelector("[data-add-slot]")!);
+    fillForm("new-curriculum", { code: "cse-2026", title: "CSE 2026", effectiveFrom: "2026-07-01", slotCode0: "cs101", slotCredits0: "20", slotTerm1: "2", slotCode1: "cs201", slotCredits1: "20" });
     await waitFor(() => expect(document.querySelector('[data-curriculum-version="1"]')).toBeTruthy());
-    await click("curriculum-publish");
+    await act("curriculum-publish");
     await waitFor(async () => expect((await api.listCurriculumVersions((await api.listCurricula((await api.listProgrammes(inst.id))[0]!.id))[0]!.id))[0]?.status).toBe("published"));
-    await click("curriculum-revise");
+    await act("curriculum-revise");
     fillForm("curriculum-revise", { changeSummary: "BoS 2027", effectiveFrom: "2027-07-01" });
     await waitFor(() => expect(document.querySelector('[data-curriculum-version="2"]')).toBeTruthy());
   });

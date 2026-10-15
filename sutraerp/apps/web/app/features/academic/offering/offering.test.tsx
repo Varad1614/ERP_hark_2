@@ -12,6 +12,17 @@ async function harness() {
   return (await import("../../../test/harness")).renderScreen;
 }
 
+/** Clicks a row action: the pill (`data-action`) or the kebab item (`data-menu-item`). */
+async function act(row: () => Element, id: string) {
+  const pill = row().querySelector(`[data-action='${id}']`);
+  if (pill) {
+    fireEvent.click(pill);
+    return;
+  }
+  fireEvent.click(row().querySelector("[data-row-menu]")!);
+  fireEvent.click(await waitFor(() => row().querySelector(`[data-menu-item='${id}']`)!));
+}
+
 const inst = { id: "i1", code: "SU", name: "Sutra University", status: "active", timezone: "Asia/Kolkata" } as never;
 
 describe("slice 4A screens", () => {
@@ -26,7 +37,7 @@ describe("slice 4A screens", () => {
     await waitFor(() => expect(row().querySelector("[data-offering-status='approved']")).toBeTruthy());
     fireEvent.click(row().querySelector("[data-action='offering-publish']")!);
     await waitFor(() => expect(row().querySelector("[data-offering-status='published']")).toBeTruthy());
-    fireEvent.click(row().querySelector("[data-action='offering-manage']")!);
+    await act(row, "offering-manage");
     expect(await screen.findByText("MD101-T1 · sections")).toBeTruthy();
   });
 
@@ -36,7 +47,7 @@ describe("slice 4A screens", () => {
     await renderScreen(<OfferingsAdminTab institution={inst} />, { path: "/academic-delivery/offerings" });
     await screen.findByText("CS101-T1");
     const row = () => document.querySelector("[data-offering='CS101-T1']")!.closest("tr")!;
-    fireEvent.click(row().querySelector("[data-action='offering-suspend']")!);
+    await act(row, "offering-suspend");
     const form = await waitFor(() => {
       const f = document.querySelector<HTMLFormElement>("[data-form='offering-suspend']");
       expect(f).toBeTruthy();
@@ -63,10 +74,11 @@ describe("slice 4A screens", () => {
     const renderScreen = await harness();
     const { StudentCoursesScreen } = await import("./index");
     await renderScreen(<StudentCoursesScreen />, { path: "/courses", role: "student" });
-    expect(await screen.findByRole("heading", { name: "My courses" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Courses" })).toBeTruthy();
     await waitFor(() => expect(document.querySelector("[data-my-course='CS101-T1']")).toBeTruthy());
-    expect(screen.getByText("Dr. Meera Shah")).toBeTruthy();
-    expect(screen.getByText("Nothing open right now")).toBeTruthy();
+    expect(screen.getByText(/Dr\. Meera Shah/)).toBeTruthy();
+    // Nothing open for enrolment → no empty "Open for enrolment" tile (re-skin v2).
+    expect(document.querySelector("[data-open-courses]")).toBeNull();
   });
 
   it("shows the faculty member's classes and students", async () => {
@@ -82,7 +94,7 @@ describe("slice 4A screens", () => {
     await waitFor(() => expect(document.querySelector("[data-my-class='CS101-T1/A']")).toBeTruthy());
     await waitFor(() => expect(document.querySelector("[data-my-student='S2026001']")).toBeTruthy());
     expect(document.querySelector("[data-my-student='S2026001']")?.getAttribute("href")).toMatch(/^\/students\/record\//);
-    expect(screen.getByText("Primary instructor")).toBeTruthy();
+    expect(screen.getAllByText(/Primary instructor/).length).toBeGreaterThan(0);
   });
 
   it("asks for an institution first", async () => {

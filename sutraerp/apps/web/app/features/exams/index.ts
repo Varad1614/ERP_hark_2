@@ -9,15 +9,20 @@
  */
 export { activeTab, type TabDef } from "../institution";
 
-/** Tabs of Admin → Examinations (`/examinations/:tab?`, first = default) with their owning slice. */
+/**
+ * Tabs of Admin → Examinations (`/examinations/:tab?`, first = default) with their owning slice.
+ * Re-skin v2 (R4): Overview + Schedule + Marks + Results in the header, the rest behind
+ * "More" (AreaHeader folds tabs 5+ into the menu). Every former tab key keeps its URL.
+ */
 export const EXAM_TABS = [
-  { key: "sessions", label: "Sessions & policy", slice: "6A" },
-  { key: "schedule", label: "Timetable & seating", slice: "6A" },
+  { key: "overview", label: "Overview", slice: "R4" },
+  { key: "schedule", label: "Schedule", slice: "6A" },
+  { key: "marks", label: "Marks", slice: "6B" },
+  { key: "results", label: "Results", slice: "6C" },
   { key: "registrations", label: "Registrations & hall tickets", slice: "6A" },
-  { key: "marks", label: "Marks & moderation", slice: "6B" },
   { key: "malpractice", label: "Malpractice", slice: "6B" },
-  { key: "results", label: "Results & publication", slice: "6C" },
   { key: "revaluation", label: "Revaluation", slice: "6C" },
+  { key: "sessions", label: "Sessions & policy", slice: "6A" },
 ] as const;
 
 /** Role-facing Batch 6 screens: route path → the slices that render panels on it and the roles that may open it. */
@@ -29,5 +34,5 @@ export const EXAM_SCREENS = {
 
 /** Path of an Admin → Examinations tab. */
 export function examinationsPath(tab?: string): string {
-  return `/examinations${tab ? `/${tab}` : ""}`;
+  return `/examinations${tab && tab !== "overview" ? `/${tab}` : ""}`;
 }

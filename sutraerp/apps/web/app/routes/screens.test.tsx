@@ -44,12 +44,10 @@ describe("to-dos screen", () => {
     await renderScreen(<Todos />, { path: "/todos", role: "faculty" });
     const title = ROLE_CONFIG.faculty.todos[0]?.title ?? "";
     const row = (await screen.findByText(title)).closest("[data-todo]") as HTMLElement;
-    fireEvent.click(within(row).getByRole("button", { name: "Done" }));
-    await waitFor(() => expect(screen.queryByText(title)).toBeNull());
-    const doneFilter = [...document.querySelectorAll<HTMLButtonElement>("button.sb-filter")].find((b) => b.textContent?.startsWith("Done"));
-    if (!doneFilter) throw new Error("no Done filter");
-    fireEvent.click(doneFilter);
-    expect(await screen.findByText(title)).toBeTruthy();
+    fireEvent.click(within(row).getByRole("checkbox", { name: `Mark “${title}” done` }));
+    const section = (id: string) => document.querySelector(`[data-todo-section="${id}"]`) as HTMLElement;
+    await waitFor(() => expect(within(section("done")).getByText(title)).toBeTruthy());
+    expect(within(section("open")).queryByText(title)).toBeNull();
   });
 
   it("validates and adds a personal to-do", async () => {
@@ -103,11 +101,13 @@ describe("profile", () => {
     const renderScreen = await harness();
     const { default: ProfilePage } = await import("./profile");
     await renderScreen(<ProfilePage />, { path: "/profile", role: "student" });
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const name = (await screen.findByLabelText("Display name")) as HTMLInputElement;
     expect(name.value).toBe(ROLE_CONFIG.student.name);
     fireEvent.change(name, { target: { value: "Aarav Kulkarni" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-    await waitFor(() => expect((screen.getByLabelText("Display name") as HTMLInputElement).value).toBe("Aarav Kulkarni"));
+    await waitFor(() => expect(screen.queryByLabelText("Display name")).toBeNull());
+    expect(screen.getAllByText("Aarav Kulkarni").length).toBeGreaterThan(0);
   });
 });
 
@@ -133,7 +133,7 @@ describe("security", () => {
 });
 
 describe("app shell", () => {
-  it("bell shows the unread count and real notifications; menu links Security and To-dos", async () => {
+  it("bell shows the unread count and real notifications; avatar menu has Personalization and links the profile", async () => {
     const renderScreen = await harness();
     const { default: AppShell } = await import("./app-shell");
     const { router } = await renderScreen(<AppShell />, { path: "/" });
@@ -146,8 +146,11 @@ describe("app shell", () => {
     expect(await screen.findByRole("button", { name: "Notifications, 0 unread" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    expect(document.querySelector("[data-todos-menu]")).toBeTruthy();
-    fireEvent.click(document.querySelector("[data-security-menu]") as HTMLElement);
-    await waitFor(() => expect(router.state.location.pathname).toBe("/account/security"));
+    expect(document.querySelector("[data-pz-group]")).toBeNull();
+    fireEvent.click(document.querySelector("[data-pz-toggle]") as HTMLElement);
+    for (const k of ["customize", "theme", "layouts", "focus", "print"]) expect(document.querySelector(`[data-pz="${k}"]`)).toBeTruthy();
+    expect(document.querySelector("[data-branding-menu]")).toBeTruthy();
+    fireEvent.click(document.querySelector("[data-profile-menu]") as HTMLElement);
+    await waitFor(() => expect(router.state.location.pathname).toBe("/profile"));
   });
 });

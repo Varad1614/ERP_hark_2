@@ -1,7 +1,8 @@
 /**
  * Slice **5C** web components (general ledger, journals, periods, treasury). The export names are
  * imported by the route frame (docs/batch5-contracts.md §10); real screens carry
- * `data-slice="5C"`. Money is always a decimal string formatted with `formatInr`.
+ * `data-slice="5C"`. Money is always a decimal string; ledger screens keep the paise
+ * (`formatINR(v, { paise: "always" })` → `ledger`).
  *
  * - `LedgerAdminTab` — Admin → Finance → Ledger (chart of accounts, manual journals with
  *   approval, journal entries and reversal, trial balance, receivables reconciliation).
@@ -11,13 +12,13 @@
  *   statement import and reconciliation, bank transactions).
  */
 import { BookOpen, CalendarRange, Inbox, Landmark, Scale } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, EmptyState, Select } from "@sutra/ui";
+import { Badge, BentoTile, Button, DataTable, EmptyState, FormSelect, KeyTag, KeyValue, formatDate } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, REASON, todayIso, useAsk, type RowAction } from "../../institution/forms";
+import { REASON, todayIso, type RowAction } from "../../institution/forms";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
-import { formatInr } from "../index";
+import { ledger, rowActions, useFinanceAsk } from "../ui";
 import { lkeys, useLedgerApi } from "./hooks";
 import type { FinancialYear, ManualJournal, Period } from "./types";
 
@@ -40,7 +41,7 @@ function NoInstitutionTile({ title }: { title: string }) {
 export function LedgerAdminTab({ institution }: { institution: Institution | null }) {
   const api = useLedgerApi();
   const { run, submit, busy, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  const { ask, prompt } = useFinanceAsk();
   const inst = institution?.id ?? "-";
   const accounts = useQuery({ queryKey: lkeys.scoped(inst, "accounts"), queryFn: () => api.accounts(inst), enabled: !!institution });
   const journals = useQuery({ queryKey: lkeys.scoped(inst, "journals"), queryFn: () => api.journals(inst), enabled: !!institution });
@@ -115,54 +116,11 @@ export function LedgerAdminTab({ institution }: { institution: Institution | nul
           empty={<EmptyState icon={BookOpen} title="No manual journals">Corrections, accruals and reclassifications are posted here after approval.</EmptyState>}
           columns={[
             { key: "n", header: "Journal", render: (j) => <span data-journal={j.journalNumber}>{j.journalNumber}</span> },
-            { key: "d", header: "Date", render: (j) => fmtDate(j.postingDate) },
+            { key: "d", header: "Date", render: (j) => formatDate(j.postingDate) },
             { key: "t", header: "Description", render: (j) => j.description },
-            { key: "a", header: "Amount", render: (j) => formatInr(j.totalAmount) },
+            { key: "a", header: "Amount", render: (j) => ledger(j.totalAmount) },
             { key: "s", header: "Status", render: (j) => <StatusBadge status={j.status} /> },
-            { key: "x", header: "", render: (j) => <Actions actions={journalActions(j)} disabled={busy} /> },
-          ]}
-        />
-      </BentoTile>
-      <BentoTile
-        span={5}
-        title="Trial balance"
-        data-trial-balance
-        action={tb.data ? <Badge kind={tb.data.balanced ? "done" : "attention"}>{tb.data.balanced ? "Balanced" : "Out of balance"}</Badge> : undefined}
-      >
-        {tb.data && tb.data.rows.length > 0 ? (
-          <>
-            <p>
-              As of {fmtDate(tb.data.asOf)} · debits <b data-tb-debit>{formatInr(tb.data.totalDebit)}</b> · credits <b data-tb-credit>{formatInr(tb.data.totalCredit)}</b>
-            </p>
-            <DataTable
-              caption="Trial balance"
-              rows={tb.data.rows}
-              rowKey={(r) => r.ledgerAccountId}
-              columns={[
-                { key: "c", header: "Account", render: (r) => `${r.code} ${r.name}` },
-                { key: "d", header: "Debit", render: (r) => formatInr(r.debit) },
-                { key: "k", header: "Credit", render: (r) => formatInr(r.credit) },
-                { key: "b", header: "Balance", render: (r) => formatInr(r.balance) },
-              ]}
-            />
-          </>
-        ) : (
-          <EmptyState icon={Scale} title="Nothing posted yet">Postings from charges, payments and journals appear here.</EmptyState>
-        )}
-      </BentoTile>
-      <BentoTile span={7} title="Journal entries" data-journal-entries>
-        <DataTable
-          caption="Journal entries"
-          rows={entries.data?.items ?? []}
-          rowKey={(e) => e.id}
-          empty={<EmptyState icon={BookOpen} title="The ledger is empty">Every posting — charge publication, payment, refund, journal — lands here.</EmptyState>}
-          columns={[
-            { key: "n", header: "Entry", render: (e) => <span data-entry={e.entryNumber}>{e.entryNumber}</span> },
-            { key: "d", header: "Date", render: (e) => fmtDate(e.postingDate) },
-            { key: "s", header: "Source", render: (e) => statusLabel(e.sourceType) },
-            { key: "t", header: "Description", render: (e) => e.description },
-            { key: "a", header: "Amount", render: (e) => formatInr(e.totalDebit) },
-            { key: "k", header: "Kind", render: (e) => (e.reversedByEntryId ? <Badge kind="neutral">Reversed</Badge> : statusLabel(e.kind)) },
+            { key: "x", header: "", render: (j) => rowActions(journalActions(j), busy) },
           ]}
         />
       </BentoTile>
@@ -178,12 +136,55 @@ export function LedgerAdminTab({ institution }: { institution: Institution | nul
       >
         {last ? (
           <p data-reconciliation-status={last.status}>
-            <StatusBadge status={last.status} /> Charges {formatInr(last.sourceTotal)} · ledger {formatInr(last.ledgerTotal)} · difference {formatInr(last.difference)}
+            <StatusBadge status={last.status} /> Charges {ledger(last.sourceTotal)} · ledger {ledger(last.ledgerTotal)} · difference {ledger(last.difference)}
             {last.exceptions.length > 0 ? ` · ${last.exceptions.length} charge(s) to investigate` : ""}
           </p>
         ) : (
           <EmptyState icon={Scale} title="Not reconciled yet">Compare charge balances with the receivable control account.</EmptyState>
         )}
+      </BentoTile>
+      <BentoTile
+        span={12}
+        title="Trial balance"
+        data-trial-balance
+        action={tb.data ? <Badge kind={tb.data.balanced ? "done" : "attention"}>{tb.data.balanced ? "Balanced" : "Out of balance"}</Badge> : undefined}
+      >
+        {tb.data && tb.data.rows.length > 0 ? (
+          <>
+            <p>
+              As of {formatDate(tb.data.asOf)} · debits <b data-tb-debit>{ledger(tb.data.totalDebit)}</b> · credits <b data-tb-credit>{ledger(tb.data.totalCredit)}</b>
+            </p>
+            <DataTable
+              caption="Trial balance"
+              rows={tb.data.rows}
+              rowKey={(r) => r.ledgerAccountId}
+              columns={[
+                { key: "c", header: "Account", render: (r) => <>{r.name} <KeyTag>{r.code}</KeyTag></> },
+                { key: "d", header: "Debit", render: (r) => ledger(r.debit) },
+                { key: "k", header: "Credit", render: (r) => ledger(r.credit) },
+                { key: "b", header: "Balance", render: (r) => ledger(r.balance) },
+              ]}
+            />
+          </>
+        ) : (
+          <EmptyState icon={Scale} title="Nothing posted yet">Postings from charges, payments and journals appear here.</EmptyState>
+        )}
+      </BentoTile>
+      <BentoTile span={12} title="Journal entries" data-journal-entries>
+        <DataTable
+          caption="Journal entries"
+          rows={entries.data?.items ?? []}
+          rowKey={(e) => e.id}
+          empty={<EmptyState icon={BookOpen} title="The ledger is empty">Every posting — charge publication, payment, refund, journal — lands here.</EmptyState>}
+          columns={[
+            { key: "n", header: "Entry", render: (e) => <span data-entry={e.entryNumber}>{e.entryNumber}</span> },
+            { key: "d", header: "Date", render: (e) => formatDate(e.postingDate) },
+            { key: "s", header: "Source", render: (e) => statusLabel(e.sourceType) },
+            { key: "t", header: "Description", render: (e) => e.description },
+            { key: "a", header: "Amount", render: (e) => ledger(e.totalDebit) },
+            { key: "k", header: "Kind", render: (e) => (e.reversedByEntryId ? <Badge kind="neutral">Reversed</Badge> : statusLabel(e.kind)) },
+          ]}
+        />
       </BentoTile>
       <BentoTile
         span={12}
@@ -220,7 +221,7 @@ export function LedgerAdminTab({ institution }: { institution: Institution | nul
             { key: "c", header: "Code", render: (a) => <span data-account={a.code}>{a.code}</span> },
             { key: "n", header: "Name", render: (a) => a.name },
             { key: "t", header: "Type", render: (a) => statusLabel(a.accountType) },
-            { key: "b", header: "Balance", render: (a) => formatInr(a.balance) },
+            { key: "b", header: "Balance", render: (a) => ledger(a.balance) },
             { key: "s", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
           ]}
         />
@@ -247,7 +248,7 @@ function periodActions(p: Period, year: FinancialYear, cmd: (p: Period, c: "open
 export function PeriodsAdminTab({ institution }: { institution: Institution | null }) {
   const api = useLedgerApi();
   const { run, submit, busy, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  const { ask, prompt } = useFinanceAsk();
   const inst = institution?.id ?? "-";
   const years = useQuery({ queryKey: lkeys.scoped(inst, "years"), queryFn: () => api.years(inst), enabled: !!institution });
   if (!institution) return <NoInstitutionTile title="Financial periods" />;
@@ -296,21 +297,20 @@ export function PeriodsAdminTab({ institution }: { institution: Institution | nu
             columns={[
               { key: "c", header: "Year", render: (y) => <span data-year={y.code}>{y.code}</span> },
               { key: "n", header: "Name", render: (y) => y.name },
-              { key: "d", header: "Dates", render: (y) => `${fmtDate(y.startDate)} – ${fmtDate(y.endDate)}` },
+              { key: "d", header: "Dates", render: (y) => `${formatDate(y.startDate)} – ${formatDate(y.endDate)}` },
               { key: "s", header: "Status", render: (y) => <StatusBadge status={y.status} /> },
               {
                 key: "x",
                 header: "",
-                render: (y) => (
-                  <Actions
-                    disabled={busy}
-                    actions={[
+                render: (y) =>
+                  rowActions(
+                    [
                       ...(y.status === "draft" ? [{ id: "year-open", label: "Open year", onClick: () => void run(() => api.yearCommand(y.id, y.version, "open"), `${y.code} opened`) }] : []),
                       ...(y.status === "open" ? [{ id: "year-close", label: "Close year", onClick: () => void run(() => api.yearCommand(y.id, y.version, "close"), `${y.code} closed`) }] : []),
                       ...(y.status === "closed" ? [{ id: "year-archive", label: "Archive", onClick: () => void run(() => api.yearCommand(y.id, y.version, "archive"), `${y.code} archived`) }] : []),
-                    ]}
-                  />
-                ),
+                    ],
+                    busy,
+                  ),
               },
             ]}
           />
@@ -324,11 +324,11 @@ export function PeriodsAdminTab({ institution }: { institution: Institution | nu
             rowKey={(p) => p.id}
             columns={[
               { key: "n", header: "Period", render: (p) => <span data-period={p.name}>{p.name}</span> },
-              { key: "d", header: "Dates", render: (p) => `${fmtDate(p.startDate)} – ${fmtDate(p.endDate)}` },
+              { key: "d", header: "Dates", render: (p) => `${formatDate(p.startDate)} – ${formatDate(p.endDate)}` },
               { key: "e", header: "Entries", render: (p) => String(p.entryCount) },
               { key: "s", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
               { key: "p", header: "Postings", render: (p) => (p.acceptsPostings ? "Accepted" : "Refused") },
-              { key: "x", header: "", render: (p) => <Actions actions={periodActions(p, y, cmd, askReason)} disabled={busy} /> },
+              { key: "x", header: "", render: (p) => rowActions(periodActions(p, y, cmd, askReason), busy) },
             ]}
           />
         </BentoTile>
@@ -344,7 +344,7 @@ export function PeriodsAdminTab({ institution }: { institution: Institution | nu
 export function TreasuryAdminTab({ institution }: { institution: Institution | null }) {
   const api = useLedgerApi();
   const { run, submit, busy, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
+  const { ask, prompt } = useFinanceAsk();
   const inst = institution?.id ?? "-";
   const [bankId, setBankId] = useState("");
   const [statementId, setStatementId] = useState("");
@@ -394,10 +394,10 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
           empty={<EmptyState icon={Landmark} title="No bank accounts">Add the collection account the gateway settles into.</EmptyState>}
           columns={[
             { key: "n", header: "Account", render: (b) => <span data-bank={b.name}>{b.name}</span> },
-            { key: "b", header: "Bank", render: (b) => `${b.bankName} ··${b.accountNumberLast4} · ${b.ifsc}` },
-            { key: "l", header: "Ledger", render: (b) => b.ledgerAccountCode },
-            { key: "a", header: "Balance", render: (b) => formatInr(b.ledgerBalance) },
-            { key: "u", header: "Unreconciled", render: (b) => String(b.unreconciledLines) },
+            { key: "b", header: "Bank", render: (b) => `${b.bankName} ··${b.accountNumberLast4}` },
+            { key: "l", header: "Ledger", render: (b) => <KeyTag>{b.ledgerAccountCode}</KeyTag> },
+            { key: "a", header: "Balance", render: (b) => ledger(b.ledgerBalance) },
+            { key: "u", header: "Unreconciled", render: (b) => b.unreconciledLines.toLocaleString("en-IN") },
             { key: "s", header: "Status", render: (b) => <StatusBadge status={b.status} /> },
           ]}
         />
@@ -406,12 +406,12 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
         {cash.data ? (
           <>
             <p>
-              Available <b data-cash-available>{formatInr(cash.data.available)}</b> · in transit {formatInr(cash.data.inTransit)}
+              Available <b data-cash-available>{ledger(cash.data.available)}</b> · in transit {ledger(cash.data.inTransit)}
             </p>
-            <ul>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {cash.data.rows.map((r) => (
-                <li key={`${r.kind}-${r.ledgerAccountCode}`}>
-                  {r.ledgerAccountCode} {r.name}: {formatInr(r.balance)}
+                <li key={`${r.kind}-${r.ledgerAccountCode}`} data-cash-row={r.ledgerAccountCode}>
+                  <KeyValue label={<>{r.name} <KeyTag>{r.ledgerAccountCode}</KeyTag></>} value={<span data-cash-balance>{ledger(r.balance)}</span>} />
                 </li>
               ))}
             </ul>
@@ -426,15 +426,18 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
         data-statements
         action={
           <div className="sb-row-actions">
-            <Select
-              label="Bank account"
-              value={bank}
-              onChange={(e) => {
-                setBankId(e.target.value);
-                setStatementId("");
-              }}
-              options={[{ value: "", label: "Choose an account" }, ...(banks.data ?? []).map((b) => ({ value: b.id, label: b.name }))]}
-            />
+            <div style={{ minWidth: 200 }}>
+              <FormSelect
+                label="Bank account"
+                hideLabel
+                value={bank}
+                onChange={(e) => {
+                  setBankId(e.target.value);
+                  setStatementId("");
+                }}
+                options={[{ value: "", label: "Choose an account" }, ...(banks.data ?? []).map((b) => ({ value: b.id, label: b.name }))]}
+              />
+            </div>
             <Button
               size="sm"
               data-import-statement
@@ -471,22 +474,21 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
           empty={<EmptyState icon={Inbox} title="No statements">Import the bank's statement to reconcile it with the ledger.</EmptyState>}
           columns={[
             { key: "r", header: "Statement", render: (s) => <span data-statement={s.statementRef}>{s.statementRef}</span> },
-            { key: "p", header: "Period", render: (s) => `${fmtDate(s.periodFrom)} – ${fmtDate(s.periodTo)}` },
-            { key: "c", header: "Credits", render: (s) => formatInr(s.totalCredits) },
-            { key: "d", header: "Debits", render: (s) => formatInr(s.totalDebits) },
+            { key: "p", header: "Period", render: (s) => `${formatDate(s.periodFrom)} – ${formatDate(s.periodTo)}` },
+            { key: "c", header: "Credits", render: (s) => ledger(s.totalCredits) },
+            { key: "d", header: "Debits", render: (s) => ledger(s.totalDebits) },
             { key: "s", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
             {
               key: "x",
               header: "",
-              render: (s) => (
-                <Actions
-                  disabled={busy}
-                  actions={[
+              render: (s) =>
+                rowActions(
+                  [
                     { id: "statement-view", label: "Lines", onClick: () => setStatementId(s.id) },
                     ...(s.status !== "reconciled" ? [{ id: "statement-reconcile", label: "Reconcile", variant: "primary" as const, onClick: () => void run(() => api.reconcileStatement(s.id, s.version), (r) => `${r.statementRef} ${statusLabel(r.status).toLowerCase()}`) }] : []),
-                  ]}
-                />
-              ),
+                  ],
+                  busy,
+                ),
             },
           ]}
         />
@@ -497,9 +499,9 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
             rowKey={(l) => l.id}
             columns={[
               { key: "n", header: "#", render: (l) => String(l.lineNo) },
-              { key: "d", header: "Date", render: (l) => fmtDate(l.valueDate) },
+              { key: "d", header: "Date", render: (l) => formatDate(l.valueDate) },
               { key: "r", header: "Reference", render: (l) => l.reference ?? l.description ?? "—" },
-              { key: "a", header: "Amount", render: (l) => `${l.direction === "debit" ? "-" : ""}${formatInr(l.amount)}` },
+              { key: "a", header: "Amount", render: (l) => ledger(l.direction === "debit" ? `-${l.amount}` : l.amount) },
               { key: "m", header: "Match", render: (l) => <span data-line-match={l.matchStatus}>{l.matchedEntryNumber ?? (l.matchedTransactionId ? "Settlement" : statusLabel(l.matchStatus))}</span> },
             ]}
           />
@@ -513,9 +515,9 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
           empty={<EmptyState icon={Landmark} title="No bank transactions">Gateway settlements to the bank appear here.</EmptyState>}
           columns={[
             { key: "r", header: "Reference", render: (t) => t.reference },
-            { key: "d", header: "Value date", render: (t) => fmtDate(t.valueDate) },
-            { key: "a", header: "Net", render: (t) => formatInr(t.amount) },
-            { key: "f", header: "Fees", render: (t) => formatInr(t.feeAmount) },
+            { key: "d", header: "Value date", render: (t) => formatDate(t.valueDate) },
+            { key: "a", header: "Net", render: (t) => ledger(t.amount) },
+            { key: "f", header: "Fees", render: (t) => ledger(t.feeAmount) },
             { key: "n", header: "Payments", render: (t) => String(t.items.length) },
             { key: "s", header: "Status", render: (t) => <StatusBadge status={t.status} /> },
           ]}

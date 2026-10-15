@@ -76,6 +76,9 @@ const rgb = (hex) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 1
 
 async function display(page, setting) {
   await page.click('[aria-label="Account menu"]');
+  // Re-skin v2 (R1): display settings live in the Theme drawer (avatar menu → Personalization → Theme).
+  if (!(await page.locator("[data-pz-group]").count())) await page.click("[data-pz-toggle]");
+  await page.click('[data-pz="theme"]');
   await page.locator(`[data-display="${setting}"]`).click();
   await page.keyboard.press("Escape");
   await page.mouse.click(4, 700);
@@ -132,12 +135,87 @@ async function roleTour(page, role) {
     await settle(page);
     check(!page.url().includes("/workspaces/"), `a live card opens its screen (${new URL(page.url()).pathname})`);
   });
+  await step(page, `${role}: personalization — customize Home, layouts, theme, focus, palette`, async () => {
+    await go(page, "/");
+    await page.locator(`[data-home="${role}"]`).waitFor();
+    await page.click('[aria-label="Account menu"]');
+    if (!(await page.locator("[data-pz-group]").count())) await page.click("[data-pz-toggle]");
+    await page.click('[data-pz="customize"]');
+    await page.locator("[data-home-customize]").waitFor();
+    check((await page.locator("[data-tile-remove]").count()) >= 9, "every tile has a remove control in customize mode");
+    await page.waitForTimeout(300);
+    await shot(page, `${r}-pz-edit`);
+    await page.click("[data-home-add]");
+    await page.locator("[data-library]").waitFor();
+    await page.click('[data-add-widget="note"]');
+    await page.keyboard.press("Escape");
+    await page.locator('[data-type="note"]').waitFor({ timeout: 5000 }).catch(() => {});
+    check((await page.locator('[data-type="note"]').count()) === 1, "sticky note added");
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.click("[data-home-layouts]");
+    await page.locator("[data-preset]").first().waitFor();
+    await page.waitForTimeout(300);
+    await shot(page, `${r}-pz-layouts`);
+    await page.keyboard.press("Escape");
+    await page.click("[data-home-theme]");
+    await page.locator("[data-theme-drawer]").waitFor();
+    await page.waitForTimeout(300);
+    await shot(page, `${r}-pz-theme`);
+    await page.keyboard.press("Escape");
+    await page.click("[data-home-done]");
+    await page.reload();
+    await settle(page);
+    await page.locator(`[data-home="${role}"]`).waitFor();
+    check((await page.locator('[data-type="note"]').count()) === 1, "the customized layout survives a reload (localStorage)");
+    await page.keyboard.press("e");
+    await page.locator("[data-home-reset]").click();
+    await page.click("[data-home-done]");
+    await page.waitForFunction(() => !document.querySelector('[data-type="note"]'), null, { timeout: 5000 }).catch(() => {});
+    check((await page.locator('[data-type="note"]').count()) === 0, "Reset brings back the standard Home");
+    await page.mouse.click(4, 700);
+    await page.keyboard.press("f");
+    await page.locator("[data-focus-bar]").waitFor();
+    await page.waitForTimeout(200);
+    check((await page.locator("[data-tile]").count()) === 2, "focus mode keeps Right now + To-dos");
+    await page.waitForTimeout(300);
+    await shot(page, `${r}-pz-focus`);
+    await page.keyboard.press("Escape");
+    check((await page.locator("[data-focus-bar]").count()) === 0, "Esc leaves focus mode");
+    if (role === "administrator") {
+      // Phone width (prototype adm-mobile-home): pills become the bottom tab bar with More.
+      await page.setViewportSize({ width: 390, height: 844 });
+      await go(page, "/");
+      await page.locator("[data-mobile-tabs]").waitFor();
+      check(await page.locator("[data-mobile-tabs]").isVisible(), "bottom tab bar on a phone");
+      check(!(await page.locator("nav.sb-pills").isVisible()), "pills hidden on a phone");
+      await page.waitForTimeout(300);
+      await shot(page, `${r}-mobile-home`);
+      await page.click("[data-mobile-more]");
+      await page.waitForTimeout(300);
+      await shot(page, `${r}-mobile-more`);
+      await page.keyboard.press("Escape");
+      await page.setViewportSize({ width: 1440, height: 960 });
+      await go(page, "/");
+    }
+    await page.keyboard.press("Control+k");
+    await page.locator("[data-palette-input]").fill("dark");
+    await page.locator('[data-palette-item="cmd:dark"]').waitFor();
+    await page.waitForTimeout(200);
+    await shot(page, `${r}-palette`);
+    await page.keyboard.press("Escape");
+  });
   await step(page, `${role}: account menu, dark mode, high contrast`, async () => {
     await go(page, "/");
     await page.click('[aria-label="Account menu"]');
-    await page.locator('[data-display="theme:dark"]').waitFor();
+    await page.locator("[data-pz-toggle]").waitFor();
+    if (await page.locator("[data-pz-group]").count()) await page.click("[data-pz-toggle]");
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(SHOTS, `${r}-menu.png`) });
+    await page.click("[data-pz-toggle]");
+    for (const k of ["customize", "theme", "layouts", "focus", "print"]) check((await page.locator(`[data-pz="${k}"]`).count()) === 1, `Personalization has ${k}`);
+    check((await page.locator("[data-branding-menu]").count()) === (role === "administrator" ? 1 : 0), "Institution branding only for administrators");
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SHOTS, `${r}-menu-personalization.png`) });
     await page.keyboard.press("Escape");
     await page.mouse.click(4, 700);
     await display(page, "theme:dark");

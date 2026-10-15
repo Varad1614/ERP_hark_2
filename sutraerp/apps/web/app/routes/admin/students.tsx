@@ -1,6 +1,5 @@
 import { useParams } from "react-router";
-import { AdminScreen } from "../../features/institution/AdminScreen";
-import { STUDENTS_TABS } from "../../features/student";
+import { StudentsArea } from "../../features/student/StudentsArea";
 import { ExitsAdminTab, GuardiansAdminTab, ScholarshipsAdminTab } from "../../features/student/completion";
 import { AdmissionsTab, StudentsDirectoryTab } from "../../features/student/record";
 import { ProgressionAdminTab, RegistrationAdminTab } from "../../features/student/registration";
@@ -10,15 +9,15 @@ export function meta() {
 }
 
 /**
- * Admin → Students (`/students/:tab?`). Frame owned by 3A; every tab is already wired to its
- * slice's component (docs/batch3-contracts.md §10), so 3B/3C never edit this file.
+ * Admin → Students (`/students/:tab?`). Re-skin v2 (R2): `StudentsArea` renders the prototype
+ * area header (live summary, ≤5 tabs + More, search, New admission); each tab is its slice's component.
  */
 export default function Students() {
   const { tab } = useParams();
   return (
-    <AdminScreen title="Students" base="/students" tabs={STUDENTS_TABS} tab={tab}>
-      {(institution, current) => {
-        switch (current.key) {
+    <StudentsArea tab={tab}>
+      {(institution, key, q) => {
+        switch (key) {
           case "admissions":
             return <AdmissionsTab institution={institution} />;
           case "registration":
@@ -32,9 +31,9 @@ export default function Students() {
           case "scholarships":
             return <ScholarshipsAdminTab institution={institution} />;
           default:
-            return <StudentsDirectoryTab institution={institution} />;
+            return <StudentsDirectoryTab institution={institution} q={q} />;
         }
       }}
-    </AdminScreen>
+    </StudentsArea>
   );
 }

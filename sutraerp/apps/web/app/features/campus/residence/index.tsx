@@ -11,16 +11,16 @@
  *   stops, vehicles, drivers, passenger allocations, passes and trips.
  */
 import { BedDouble, Bus, CalendarDays, ClipboardList, DoorOpen, Hourglass, MapPin, Route, Ticket, Truck, Users, Utensils, Wrench } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, FilterChip, StatTile } from "@sutra/ui";
+import { BentoTile, Button, DataTable, EmptyState, FilterChip, KpiTile, NameCell } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, REASON, todayIso, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { fmtDate, REASON, todayIso, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { Actions, CodeName, inr, inr as formatInr } from "../ui";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { rkeys, useResidenceApi } from "./hooks";
 import { kindOf, personField, usePeople, type PersonOption } from "../PersonPicker"; // 9E
 import type { HostelAllocation, HostelApplication, HostelBed, HostelPolicy, Mess, ResidentLeave, RoomInspection, RouteVersion, TransportAllocation, TransportPass, TransportRoute, TransportStop, Trip, Vehicle } from "./types";
-import { formatInr } from "../../finance";
 
 export { ResidenceApiProvider } from "./hooks";
 
@@ -53,7 +53,7 @@ const OPTIONAL_REASON: FieldSpec = { name: "reason", label: "Reason", wide: true
 function NoInstitutionTile({ title }: { title: string }) {
   return (
     <BentoTile span={12} title={title} data-slice="8B">
-      <EmptyState icon={CalendarDays} title="No institution selected">
+      <EmptyState icon={CalendarDays} title="No institution selected" compact>
         Register an institution in Campus setup → Institution first.
       </EmptyState>
     </BentoTile>
@@ -84,10 +84,10 @@ function HostelStats({ inst }: { inst: string }) {
   const occupied = beds?.filter((b) => b.status === "occupied").length;
   return (
     <>
-      <StatTile icon={ClipboardList} tone="orange" label="Active policy" value={policies ? (active ? formatInr(active.feePerTerm) : "None") : "…"} hint={active ? `${active.name} · fee per term` : "Create and activate a policy"} data-kpi="hostel-policy" />
-      <StatTile icon={BedDouble} tone="blue" label="Beds occupied" value={beds ? `${occupied ?? 0} / ${beds.length}` : "…"} hint="Across active hostel rooms" data-kpi="hostel-occupancy" />
-      <StatTile icon={Hourglass} tone="violet" label="Applications to decide" value={count(review)} hint={`${waiting?.length ?? 0} on the waiting list`} data-kpi="hostel-review" />
-      <StatTile icon={Users} tone="green" label="Residents" value={residents ? String(residents.filter((r) => r.status !== "closed").length) : "…"} hint="Live residencies" data-kpi="hostel-residents" />
+      <KpiTile icon={ClipboardList} tone="orange" label="Active policy" value={policies ? (active ? formatInr(active.feePerTerm) : "None") : "…"} sub={active ? `${active.name} · fee per term` : "Create and activate a policy"} data-kpi="hostel-policy" />
+      <KpiTile icon={BedDouble} tone="blue" label="Beds occupied" value={beds ? `${occupied ?? 0} / ${beds.length}` : "…"} sub="Across active hostel rooms" data-kpi="hostel-occupancy" />
+      <KpiTile icon={Hourglass} tone="violet" label="Applications to decide" value={count(review)} sub={`${waiting?.length ?? 0} on the waiting list`} data-kpi="hostel-review" />
+      <KpiTile icon={Users} tone="green" label="Residents" value={residents ? String(residents.filter((r) => r.status !== "closed").length) : "…"} sub="Live residencies" data-kpi="hostel-residents" />
     </>
   );
 }
@@ -156,7 +156,7 @@ function PoliciesTile({ inst }: { inst: string }) {
         caption="Hostel policy versions"
         rows={policies ?? []}
         rowKey={(p) => p.id}
-        empty={<EmptyState icon={ClipboardList} title="No hostel policy yet">Draft a policy with the fee per term, submit it for approval and activate it — admissions need an active policy.</EmptyState>}
+        empty={<EmptyState icon={ClipboardList} title="No hostel policy yet" compact>Draft a policy with the fee per term, submit it for approval and activate it — admissions need an active policy.</EmptyState>}
         columns={[
           { key: "name", header: "Policy", render: (p) => p.name },
           { key: "fee", header: "Fee / term", render: (p) => formatInr(p.feePerTerm) },
@@ -210,11 +210,11 @@ function BedsTile({ inst }: { inst: string }) {
         caption="Beds and occupancy"
         rows={beds ?? []}
         rowKey={(b) => b.id}
-        empty={<EmptyState icon={BedDouble} title="No beds yet">Hostel rooms are `hostel_room` spaces of the infrastructure tree; add beds up to each room's capacity.</EmptyState>}
+        empty={<EmptyState icon={BedDouble} title="No beds yet" compact>Hostel rooms are `hostel_room` spaces of the infrastructure tree; add beds up to each room's capacity.</EmptyState>}
         columns={[
-          { key: "room", header: "Room", render: (b) => `${b.roomCode} · ${b.roomName}` },
-          { key: "bed", header: "Bed", render: (b) => b.bedCode },
-          { key: "occupant", header: "Occupant", render: (b) => (b.occupantNumber ? `${b.occupantNumber} · ${b.occupantName ?? ""}` : "—"), muted: true },
+          { key: "room", header: "Room", render: (b) => <CodeName name={b.roomName} code={b.roomCode} /> },
+          { key: "bed", header: "Bed", render: (b) => `Bed ${b.bedCode}` },
+          { key: "occupant", header: "Occupant", render: (b) => (b.occupantNumber ? <NameCell name={b.occupantName ?? b.occupantNumber} sub={b.occupantNumber} /> : "—"), muted: true },
           { key: "status", header: "Status", render: (b) => <StatusBadge status={b.status} /> },
         ]}
       />
@@ -289,10 +289,10 @@ function ApplicationsTile({ inst }: { inst: string }) {
         caption="Hostel applications"
         rows={apps ?? []}
         rowKey={(a) => a.id}
-        empty={<EmptyState icon={ClipboardList} title="No applications">Students and staff apply from self-service; the office can apply on their behalf.</EmptyState>}
+        empty={<EmptyState icon={ClipboardList} title="No applications" compact>Students and staff apply from self-service; the office can apply on their behalf.</EmptyState>}
         columns={[
           { key: "number", header: "Application", render: (a) => a.number },
-          { key: "person", header: "Applicant", render: (a) => `${a.personNumber} · ${a.personName}` },
+          { key: "person", header: "Applicant", render: (a) => <NameCell name={a.personName} sub={a.personNumber} /> },
           { key: "kind", header: "Kind", render: (a) => statusLabel(a.personKind), muted: true },
           { key: "channel", header: "Channel", render: (a) => statusLabel(a.channel), muted: true },
           { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
@@ -382,12 +382,12 @@ function ResidentsTile({ inst }: { inst: string }) {
         caption="Residencies"
         rows={(residents ?? []).filter((r) => r.status !== "closed")}
         rowKey={(r) => r.id}
-        empty={<EmptyState icon={Users} title="No residents">Allocate a bed to an approved application.</EmptyState>}
+        empty={<EmptyState icon={Users} title="No residents" compact>Allocate a bed to an approved application.</EmptyState>}
         columns={[
-          { key: "person", header: "Resident", render: (r) => `${r.personNumber} · ${r.personName}` },
-          { key: "bed", header: "Room / bed", render: (r) => `${r.roomCode} · ${r.bedCode}` },
+          { key: "person", header: "Resident", render: (r) => <NameCell name={r.personName} sub={r.personNumber} /> },
+          { key: "bed", header: "Room / bed", render: (r) => <CodeName name={`Bed ${r.bedCode}`} code={r.roomCode} /> },
           { key: "since", header: "Since", render: (r) => fmtDate(r.startDate), muted: true },
-          { key: "fee", header: "Hostel fee", render: (r) => (r.chargeNumber ? `${formatInr(r.feeAmount)} · ${r.chargeNumber}` : formatInr(r.feeAmount)), muted: true },
+          { key: "fee", header: "Hostel fee", render: (r) => <CodeName name={inr(r.feeAmount)} code={r.chargeNumber} />, muted: true },
           { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
           { key: "actions", header: "", render: (r) => <Actions actions={actions(r)} disabled={busy} /> },
         ]}
@@ -415,7 +415,7 @@ function LeaveTile({ inst }: { inst: string }) {
   };
   return (
     <BentoTile
-      span={12}
+      span={leaves?.length ? 12 : 4}
       title="Resident leave"
       data-slice="8B"
       action={
@@ -428,9 +428,9 @@ function LeaveTile({ inst }: { inst: string }) {
         caption="Resident leave"
         rows={leaves ?? []}
         rowKey={(l) => l.id}
-        empty={<EmptyState icon={DoorOpen} title="No leave requests">Residents request leave from self-service; the office can request it for them.</EmptyState>}
+        empty={<EmptyState icon={DoorOpen} title="No leave requests" compact>Residents request leave from self-service; the office can request it for them.</EmptyState>}
         columns={[
-          { key: "person", header: "Resident", render: (l) => `${l.personNumber} · ${l.personName}` },
+          { key: "person", header: "Resident", render: (l) => <NameCell name={l.personName} sub={l.personNumber} /> },
           { key: "dates", header: "Dates", render: (l) => `${fmtDate(l.fromDate)} – ${fmtDate(l.toDate)}` },
           { key: "dest", header: "Destination", render: (l) => l.destination ?? "—", muted: true },
           { key: "late", header: "Return", render: (l) => (l.status === "returned" ? (l.returnedLate ? "Late" : "On time") : "—"), muted: true },
@@ -473,17 +473,17 @@ function InspectionsTile({ inst }: { inst: string }) {
     return out;
   };
   return (
-    <BentoTile span={12} title="Room inspections" data-slice="8B">
+    <BentoTile span={rows?.length ? 12 : 4} title="Room inspections" data-slice="8B">
       <DataTable<RoomInspection>
         caption="Room inspections"
         rows={rows ?? []}
         rowKey={(x) => x.id}
-        empty={<EmptyState icon={Wrench} title="No inspections">Schedule one from a resident's row.</EmptyState>}
+        empty={<EmptyState icon={Wrench} title="No inspections" compact>Schedule one from a resident's row.</EmptyState>}
         columns={[
           { key: "room", header: "Room", render: (x) => x.roomCode },
           { key: "resident", header: "Resident", render: (x) => x.personNumber ?? "—", muted: true },
           { key: "on", header: "Scheduled", render: (x) => fmtDate(x.scheduledOn), muted: true },
-          { key: "damage", header: "Damage", render: (x) => (x.damageAmount ? `${formatInr(x.damageAmount)}${x.chargeNumber ? ` · ${x.chargeNumber}` : ""}` : "—") },
+          { key: "damage", header: "Damage", render: (x) => (x.damageAmount ? <CodeName name={inr(x.damageAmount)} code={x.chargeNumber} /> : "—") },
           { key: "status", header: "Status", render: (x) => <StatusBadge status={x.status} /> },
           { key: "actions", header: "", render: (x) => <Actions actions={actions(x)} disabled={busy} /> },
         ]}
@@ -524,7 +524,7 @@ function MessTile({ inst }: { inst: string }) {
   ];
   return (
     <BentoTile
-      span={12}
+      span={messes?.length ? 12 : 4}
       title="Mess"
       data-slice="8B"
       action={
@@ -554,9 +554,9 @@ function MessTile({ inst }: { inst: string }) {
         caption="Messes"
         rows={messes ?? []}
         rowKey={(m) => m.id}
-        empty={<EmptyState icon={Utensils} title="No mess yet">Define a mess, then assign residents to it.</EmptyState>}
+        empty={<EmptyState icon={Utensils} title="No mess yet" compact>Define a mess, then assign residents to it.</EmptyState>}
         columns={[
-          { key: "code", header: "Mess", render: (m) => `${m.code} · ${m.name}` },
+          { key: "code", header: "Mess", render: (m) => <CodeName name={m.name} code={m.code} /> },
           { key: "menu", header: "Menu", render: (m) => statusLabel(m.menuType), muted: true },
           { key: "load", header: "Assigned", render: (m) => `${m.assigned} / ${m.capacity}` },
           { key: "status", header: "Status", render: (m) => <StatusBadge status={m.status} /> },
@@ -568,9 +568,9 @@ function MessTile({ inst }: { inst: string }) {
           caption={`Dining assignments · ${mess.code}`}
           rows={assignments ?? []}
           rowKey={(a) => a.id}
-          empty={<EmptyState icon={Utensils} title="Nobody assigned">Assign residents from the mess row.</EmptyState>}
+          empty={<EmptyState icon={Utensils} title="Nobody assigned" compact>Assign residents from the mess row.</EmptyState>}
           columns={[
-            { key: "person", header: "Resident", render: (a) => `${a.personNumber} · ${a.personName}` },
+            { key: "person", header: "Resident", render: (a) => <NameCell name={a.personName} sub={a.personNumber} /> },
             { key: "from", header: "From", render: (a) => fmtDate(a.startDate), muted: true },
             { key: "to", header: "To", render: (a) => fmtDate(a.endDate), muted: true },
             { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
@@ -647,10 +647,10 @@ function TransportStats({ inst }: { inst: string }) {
   const open = trips?.filter((t) => ["planned", "ready", "in_progress"].includes(t.status)).length;
   return (
     <>
-      <StatTile icon={Route} tone="orange" label="Active routes" value={routes ? String(routes.filter((r) => r.status === "active").length) : "…"} hint={`${routes?.length ?? 0} in total`} data-kpi="transport-routes" />
-      <StatTile icon={Users} tone="green" label="Passengers" value={passengers ? String(passengers.filter((p) => p.status === "active").length) : "…"} hint={`${passengers?.filter((p) => p.flagged && p.status === "active").length ?? 0} need adjustment`} data-kpi="transport-passengers" />
-      <StatTile icon={Bus} tone="blue" label="Vehicles available" value={vehicles ? String(vehicles.filter((v) => v.status === "available").length) : "…"} hint={`${vehicles?.filter((v) => v.status === "broken_down").length ?? 0} broken down`} data-kpi="transport-vehicles" />
-      <StatTile icon={CalendarDays} tone="violet" label="Open trips" value={open === undefined ? "…" : String(open)} hint="Planned, ready or running" data-kpi="transport-trips" />
+      <KpiTile icon={Route} tone="orange" label="Active routes" value={routes ? String(routes.filter((r) => r.status === "active").length) : "…"} sub={`${routes?.length ?? 0} in total`} data-kpi="transport-routes" />
+      <KpiTile icon={Users} tone="green" label="Passengers" value={passengers ? String(passengers.filter((p) => p.status === "active").length) : "…"} sub={`${passengers?.filter((p) => p.flagged && p.status === "active").length ?? 0} need adjustment`} data-kpi="transport-passengers" />
+      <KpiTile icon={Bus} tone="blue" label="Vehicles available" value={vehicles ? String(vehicles.filter((v) => v.status === "available").length) : "…"} sub={`${vehicles?.filter((v) => v.status === "broken_down").length ?? 0} broken down`} data-kpi="transport-vehicles" />
+      <KpiTile icon={CalendarDays} tone="violet" label="Open trips" value={open === undefined ? "…" : String(open)} sub="Planned, ready or running" data-kpi="transport-trips" />
     </>
   );
 }
@@ -758,9 +758,9 @@ function RoutesTile({ inst }: { inst: string }) {
         caption="Transport routes"
         rows={routes ?? []}
         rowKey={(r) => r.id}
-        empty={<EmptyState icon={Route} title="No routes yet">Create a route, give its draft version at least two stops and activate it.</EmptyState>}
+        empty={<EmptyState icon={Route} title="No routes yet" compact>Create a route, give its draft version at least two stops and activate it.</EmptyState>}
         columns={[
-          { key: "route", header: "Route", render: (r) => `${r.code} · ${r.name}` },
+          { key: "route", header: "Route", render: (r) => <CodeName name={r.name} code={r.code} /> },
           { key: "version", header: "Version", render: (r) => (r.currentVersionNo ? `v${r.currentVersionNo}${r.hasDraft ? " (+ draft)" : ""}` : r.hasDraft ? "Draft" : "—"), muted: true },
           { key: "seats", header: "Passengers", render: (r) => `${r.passengers} / ${r.capacity ?? "—"}` },
           { key: "fare", header: "Pass fee", render: (r) => (r.fare ? formatInr(r.fare) : "—"), muted: true },
@@ -773,7 +773,7 @@ function RoutesTile({ inst }: { inst: string }) {
           caption={`Versions · ${route.code}`}
           rows={versions ?? []}
           rowKey={(v) => v.id}
-          empty={<EmptyState icon={Route} title="No versions">Every route starts with a draft version.</EmptyState>}
+          empty={<EmptyState icon={Route} title="No versions" compact>Every route starts with a draft version.</EmptyState>}
           columns={[
             { key: "no", header: "Version", render: (v) => `v${v.versionNo}` },
             { key: "eff", header: "Effective", render: (v) => `${fmtDate(v.effectiveFrom)}${v.effectiveTo ? ` – ${fmtDate(v.effectiveTo)}` : ""}`, muted: true },
@@ -831,9 +831,9 @@ function StopsTile({ inst }: { inst: string }) {
         caption="Stops"
         rows={stops ?? []}
         rowKey={(s) => s.id}
-        empty={<EmptyState icon={MapPin} title="No stops yet">Create the pickup and drop points first.</EmptyState>}
+        empty={<EmptyState icon={MapPin} title="No stops yet" compact>Create the pickup and drop points first.</EmptyState>}
         columns={[
-          { key: "stop", header: "Stop", render: (s) => `${s.code} · ${s.name}` },
+          { key: "stop", header: "Stop", render: (s) => <CodeName name={s.name} code={s.code} /> },
           { key: "pax", header: "Boarding", render: (s) => String(s.passengers), muted: true },
           { key: "status", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
           { key: "actions", header: "", render: (s) => <Actions actions={actions(s)} disabled={busy} /> },
@@ -900,7 +900,7 @@ function VehiclesTile({ inst }: { inst: string }) {
         caption="Vehicles"
         rows={vehicles ?? []}
         rowKey={(v) => v.id}
-        empty={<EmptyState icon={Truck} title="No vehicles yet">Register the fleet; trips need an available vehicle.</EmptyState>}
+        empty={<EmptyState icon={Truck} title="No vehicles yet" compact>Register the fleet; trips need an available vehicle.</EmptyState>}
         columns={[
           { key: "reg", header: "Vehicle", render: (v) => `${v.registrationNo} · ${v.label}` },
           { key: "seats", header: "Seats", render: (v) => String(v.capacity), muted: true },
@@ -961,9 +961,9 @@ function DriversTile({ inst }: { inst: string }) {
         caption={route ? `Drivers · ${route.code}` : "Drivers"}
         rows={drivers ?? []}
         rowKey={(d) => d.id}
-        empty={<EmptyState icon={Users} title="No drivers">Assign staff members with a valid licence to the route.</EmptyState>}
+        empty={<EmptyState icon={Users} title="No drivers" compact>Assign staff members with a valid licence to the route.</EmptyState>}
         columns={[
-          { key: "driver", header: "Driver", render: (d) => `${d.staffNumber} · ${d.driverName}` },
+          { key: "driver", header: "Driver", render: (d) => <NameCell name={d.driverName} sub={d.staffNumber} /> },
           { key: "licence", header: "Licence", render: (d) => d.licenceNo, muted: true },
           { key: "valid", header: "Valid", render: (d) => `${fmtDate(d.validFrom)}${d.validTo ? ` – ${fmtDate(d.validTo)}` : ""}`, muted: true },
           { key: "status", header: "Status", render: (d) => <StatusBadge status={d.status} /> },
@@ -1057,10 +1057,10 @@ function PassengersTile({ inst }: { inst: string }) {
         caption="Passenger allocations"
         rows={(passengers ?? []).filter((p) => p.status === "requested" || p.status === "active")}
         rowKey={(p) => p.id}
-        empty={<EmptyState icon={Users} title="No passengers">Students and staff request a seat from self-service; the office can allocate them here.</EmptyState>}
+        empty={<EmptyState icon={Users} title="No passengers" compact>Students and staff request a seat from self-service; the office can allocate them here.</EmptyState>}
         columns={[
-          { key: "person", header: "Passenger", render: (p) => `${p.personNumber} · ${p.personName}` },
-          { key: "route", header: "Route / stop", render: (p) => `${p.routeCode} · ${p.stopCode}` },
+          { key: "person", header: "Passenger", render: (p) => <NameCell name={p.personName} sub={p.personNumber} /> },
+          { key: "route", header: "Route / stop", render: (p) => <CodeName name={p.stopName} code={p.routeCode} /> },
           { key: "pass", header: "Pass", render: (p) => p.passNumber ?? "—", muted: true },
           { key: "flag", header: "Adjustment", render: (p) => (p.flagged ? statusLabel(p.flagReason ?? "flagged") : "—"), muted: true },
           { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
@@ -1101,17 +1101,17 @@ function PassesTile({ inst }: { inst: string }) {
     return out;
   };
   return (
-    <BentoTile span={12} title="Transport passes" data-slice="8B">
+    <BentoTile span={passes?.length ? 12 : 6} title="Transport passes" data-slice="8B">
       <DataTable<TransportPass>
         caption="Transport passes"
         rows={passes ?? []}
         rowKey={(x) => x.id}
-        empty={<EmptyState icon={Ticket} title="No passes">Issue a pass from an active passenger allocation; students are charged the route's pass fee.</EmptyState>}
+        empty={<EmptyState icon={Ticket} title="No passes" compact>Issue a pass from an active passenger allocation; students are charged the route's pass fee.</EmptyState>}
         columns={[
-          { key: "number", header: "Pass", render: (x) => `${x.number} · ${statusLabel(x.kind)}` },
-          { key: "person", header: "Passenger", render: (x) => `${x.personNumber} · ${x.personName}` },
+          { key: "number", header: "Pass", render: (x) => <CodeName name={`${statusLabel(x.kind)} pass`} code={x.number} /> },
+          { key: "person", header: "Passenger", render: (x) => <NameCell name={x.personName} sub={x.personNumber} /> },
           { key: "valid", header: "Valid", render: (x) => `${fmtDate(x.validFrom)} – ${fmtDate(x.validTo)}`, muted: true },
-          { key: "fee", header: "Fee", render: (x) => (x.chargeNumber ? `${formatInr(x.feeAmount)} · ${x.chargeNumber}` : formatInr(x.feeAmount)), muted: true },
+          { key: "fee", header: "Fee", render: (x) => <CodeName name={inr(x.feeAmount)} code={x.chargeNumber} />, muted: true },
           { key: "status", header: "Status", render: (x) => <StatusBadge status={x.status} /> },
           { key: "actions", header: "", render: (x) => <Actions actions={actions(x)} disabled={busy} /> },
         ]}
@@ -1159,7 +1159,7 @@ function TripsTile({ inst }: { inst: string }) {
   };
   return (
     <BentoTile
-      span={12}
+      span={trips?.length ? 12 : 6}
       title="Trips"
       data-slice="8B"
       action={
@@ -1189,7 +1189,7 @@ function TripsTile({ inst }: { inst: string }) {
         caption="Trips"
         rows={trips ?? []}
         rowKey={(t) => t.id}
-        empty={<EmptyState icon={Bus} title="No trips">Plan trips of active routes; a trip is ready once it has a vehicle, a driver and a complete checklist.</EmptyState>}
+        empty={<EmptyState icon={Bus} title="No trips" compact>Plan trips of active routes; a trip is ready once it has a vehicle, a driver and a complete checklist.</EmptyState>}
         columns={[
           { key: "route", header: "Trip", render: (t) => `${t.routeCode} · ${fmtDate(t.tripDate)} · ${statusLabel(t.direction)}` },
           { key: "vehicle", header: "Vehicle", render: (t) => (t.needsVehicle ? `${t.vehicleRegistration ?? "—"} (broken down)` : (t.vehicleRegistration ?? "—")) },

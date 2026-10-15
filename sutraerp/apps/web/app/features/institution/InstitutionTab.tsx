@@ -3,8 +3,9 @@ import { BentoTile, Button, EmptyState, Modal } from "@sutra/ui";
 import { useState } from "react";
 import { Link } from "react-router";
 import type { ActivationDecision, InstitutionCommand } from "./api";
-import { Actions, QuickForm, REASON, useAsk, type FieldSpec, type RowAction } from "./forms";
-import { selectInstitution, StatusBadge, useCommand, useInstitutionApi } from "./hooks";
+import { QuickForm, REASON, useAsk, type FieldSpec, type RowAction } from "./forms";
+import { Actions, CodeName } from "../campus/ui";
+import { selectInstitution, StatusBadge, statusLabel, useCommand, useInstitutionApi } from "./hooks";
 import type { AcademicPattern, Institution, InstitutionType } from "./types";
 
 const TIMEZONES = ["Asia/Kolkata", "Asia/Dubai", "Asia/Singapore", "Europe/London", "America/New_York", "UTC"];
@@ -148,9 +149,9 @@ export function InstitutionTab({ institution }: { institution: Institution | nul
           <div data-institution-profile={institution.id}>
             <dl className="sb-dl">
               <dt>Name</dt>
-              <dd>{institution.name}</dd>
-              <dt>Code</dt>
-              <dd>{institution.code}</dd>
+              <dd>
+                <CodeName name={institution.name} code={institution.code} />
+              </dd>
               <dt>Business timezone</dt>
               <dd>{institution.timezone}</dd>
               <dt>Status</dt>
@@ -158,18 +159,26 @@ export function InstitutionTab({ institution }: { institution: Institution | nul
                 <StatusBadge status={institution.status} />
               </dd>
               <dt>Profile</dt>
-              <dd data-profile-revision={institution.profile.revision}>{institution.profile.revision > 0 ? `${institution.profile.shortName ?? ""} · ${institution.profile.institutionType ?? ""} · revision ${institution.profile.revision}` : "Not filled in yet"}</dd>
-              <dt>Version</dt>
-              <dd>{institution.version}</dd>
+              <dd data-profile-revision={institution.profile.revision}>
+                {institution.profile.revision > 0 ? [institution.profile.shortName, institution.profile.institutionType ? statusLabel(institution.profile.institutionType) : null, `revision ${institution.profile.revision}`].filter(Boolean).join(" · ") : "Not filled in yet"}
+              </dd>
             </dl>
-            <Actions
-              disabled={busy}
-              actions={[
-                ...lifecycleActions(institution.status).map((a): RowAction => ({ id: a, label: LABELS[a] ?? a, onClick: () => act(institution, a), variant: a === "submit" || a === "decide:approve" ? "primary" : "ghost" })),
-                ...(institution.status !== "archived" ? [{ id: "profile", label: "Edit profile", onClick: () => editProfile(institution) }] : []),
-                ...(institution.status !== "archived" ? [{ id: "rename", label: "Rename", onClick: () => setRenaming(true) }] : []),
-              ]}
-            />
+            {/* One primary (the next lifecycle step), Edit profile as the ghost companion, the rest in the kebab. */}
+            <div className="sb-actions-row" data-institution-actions="">
+              {institution.status !== "archived" && (
+                <Button size="sm" variant="ghost" onClick={() => editProfile(institution)} disabled={busy} data-action="profile">
+                  Edit profile
+                </Button>
+              )}
+              <Actions
+                disabled={busy}
+                fallbackPrimary={false}
+                actions={[
+                  ...lifecycleActions(institution.status).map((a): RowAction => ({ id: a, label: LABELS[a] ?? a, onClick: () => act(institution, a), variant: a === "submit" || a === "decide:approve" || a === "configure" || a === "reactivate" ? "primary" : "ghost" })),
+                  ...(institution.status !== "archived" ? [{ id: "rename", label: "Rename", onClick: () => setRenaming(true) }] : []),
+                ]}
+              />
+            </div>
             {institution.status === "draft" && (
               <p>
                 <small>Fill in the profile, then mark the institution configured.</small>

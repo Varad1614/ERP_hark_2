@@ -17,13 +17,16 @@ async function harness() {
 const sliceMarker = (slice: string) => document.querySelector(`[data-placeholder='${slice}'], [data-slice='${slice}']`);
 
 describe("Batch 6 tabs and screens", () => {
-  it("defaults to sessions, resolves known keys and keeps keys unique", () => {
-    expect(activeTab(EXAM_TABS, undefined).key).toBe("sessions");
+  it("defaults to the overview, resolves known keys and keeps keys unique", () => {
+    expect(activeTab(EXAM_TABS, undefined).key).toBe("overview");
     expect(activeTab(EXAM_TABS, "revaluation").key).toBe("revaluation");
-    expect(activeTab(EXAM_TABS, "bogus").key).toBe("sessions");
+    expect(activeTab(EXAM_TABS, "bogus").key).toBe("overview");
     expect(new Set(EXAM_TABS.map((t) => t.key)).size).toBe(EXAM_TABS.length);
+    // Re-skin v2: the former seven tabs keep their URLs; four show in the header, the rest under More.
+    for (const key of ["sessions", "schedule", "registrations", "marks", "malpractice", "results", "revaluation"]) expect(EXAM_TABS.some((t) => t.key === key), key).toBe(true);
     expect(examinationsPath("marks")).toBe("/examinations/marks");
     expect(examinationsPath()).toBe("/examinations");
+    expect(examinationsPath("overview")).toBe("/examinations");
     for (const key of Object.keys(EXAM_SCREENS)) expect(SCREEN_BATCH[key]?.batch, key).toBe(6);
   });
 
@@ -36,6 +39,7 @@ describe("Batch 6 tabs and screens", () => {
 
 describe("Batch 6 route frames (foundation placeholders)", () => {
   it.each([
+    ["overview", "R4"],
     ["sessions", "6A"],
     ["registrations", "6A"],
     ["marks", "6B"],
@@ -46,7 +50,9 @@ describe("Batch 6 route frames (foundation placeholders)", () => {
     const renderScreen = await harness();
     const { default: Examinations } = await import("../../routes/admin/examinations");
     await renderScreen(<Examinations />, { path: "/examinations/:tab?", entry: `/examinations/${tab}` });
-    await screen.findByRole("link", { name: "Revaluation" });
+    await screen.findByRole("link", { name: "Schedule" });
+    expect(document.querySelectorAll(".sb-area-head nav.sb-tabs a").length).toBeLessThanOrEqual(5);
+    expect(document.querySelector("[data-tab-more]")).toBeTruthy();
     expect(sliceMarker(slice)).toBeTruthy();
   });
 

@@ -4,6 +4,7 @@
  * (HTTP) / `./mock` (mock mode), React glue in `./hooks`.
  */
 export { AdmissionsTab, StudentsDirectoryTab } from "./AdminTabs";
-export { Student360Documents, Student360Enrolment, Student360Overview } from "./Student360Tabs";
+export { Student360Academics, Student360Attendance, Student360Documents, Student360Enrolment, Student360Fees, Student360Overview, useStudent, useStudentFigures, useStudentRecordActions } from "./Student360Tabs";
+export { FeeBadge, NewAdmissionDialog } from "./AdminTabs";
 export { StudentDocumentsScreen } from "./StudentDocuments";
 export { RecordApiProvider, useRecordApi } from "./hooks";

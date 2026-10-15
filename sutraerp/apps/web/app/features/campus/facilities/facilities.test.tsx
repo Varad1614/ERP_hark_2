@@ -68,7 +68,7 @@ describe("Admin → Campus 8A tabs", () => {
     const { InfrastructureAdminTab } = await import("./index");
     await renderScreen(<InfrastructureAdminTab institution={INST} />, { path: "/" });
     expect(document.querySelector("[data-slice='8A']")).toBeTruthy();
-    expect(await screen.findByText("Room 101")).toBeTruthy();
+    expect((await screen.findAllByText("Room 101")).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Book a space" })).toBeTruthy();
   });
 
@@ -76,7 +76,7 @@ describe("Admin → Campus 8A tabs", () => {
     const renderScreen = (await import("../../../test/harness")).renderScreen;
     const { FacilitiesAdminTab } = await import("./index");
     await renderScreen(<FacilitiesAdminTab institution={INST} />, { path: "/" });
-    expect(await screen.findByText("SR-000001")).toBeTruthy();
+    expect((await screen.findAllByText("SR-000001")).length).toBeGreaterThan(0);
     expect(screen.getByText("Breached · L1")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Run SLA check" })).toBeTruthy();
   });

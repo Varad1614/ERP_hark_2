@@ -3,7 +3,8 @@ import { BentoTile, Button, DataTable, EmptyState, Modal } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { CampusCommand } from "./api";
-import { Actions, NoInstitution, QuickForm, REASON, useAsk } from "./forms";
+import { NoInstitution, QuickForm, REASON, useAsk } from "./forms";
+import { Actions, CodeName } from "../campus/ui";
 import { keys, StatusBadge, useCommand, useInstitutionApi } from "./hooks";
 import type { Campus, Institution } from "./types";
 
@@ -60,10 +61,9 @@ export function CampusesTab({ institution }: { institution: Institution | null }
           caption="Campuses"
           rows={q.data ?? []}
           rowKey={(c) => c.id}
-          empty={<EmptyState title="No campuses yet">Register the main campus to continue.</EmptyState>}
+          empty={<EmptyState title="No campuses yet" compact>Register the main campus to continue.</EmptyState>}
           columns={[
-            { key: "code", header: "Code", render: (c) => c.code },
-            { key: "name", header: "Name", render: (c) => <span data-campus={c.code}>{c.name}{c.isMain ? " · main" : ""}</span> },
+            { key: "name", header: "Campus", render: (c) => <span data-campus={c.code}><CodeName name={`${c.name}${c.isMain ? " · main" : ""}`} code={c.code} /></span> },
             { key: "tz", header: "Timezone", render: (c) => c.timezone ?? `${institution.timezone} (institution)`, muted: true },
             { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
             {

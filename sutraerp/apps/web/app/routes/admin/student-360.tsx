@@ -1,30 +1,44 @@
-import { BentoGrid, BentoTile } from "@sutra/ui";
-import { useQuery } from "@tanstack/react-query";
-import { GraduationCap } from "lucide-react";
-import { Link, NavLink, useParams } from "react-router";
+import { AreaHeader, BentoGrid, BentoTile, MenuButton, StatusBadge, type MenuItem } from "@sutra/ui";
+import { ChevronDown } from "lucide-react";
+import { Link, useParams } from "react-router";
 import { useSession } from "../../lib/auth";
-import { StatusBadge } from "../../features/institution/hooks";
-import { rkeys, useRecordApi } from "../../features/student/record/hooks";
 import { activeTab, STUDENT_360_TABS, student360Path } from "../../features/student";
+import { TabLink } from "../../features/student/StudentsArea";
 import { Student360Completion, Student360Guardians, Student360Scholarships } from "../../features/student/completion";
-import { Student360Documents, Student360Enrolment, Student360Overview } from "../../features/student/record";
+import {
+  FeeBadge,
+  Student360Academics,
+  Student360Attendance,
+  Student360Documents,
+  Student360Enrolment,
+  Student360Fees,
+  Student360Overview,
+  useStudent,
+  useStudentFigures,
+  useStudentRecordActions,
+} from "../../features/student/record";
+import { useProgrammeNames } from "../../features/student/record/AdminTabs";
 import { Student360Progression, Student360Registration } from "../../features/student/registration";
+import { toMenu } from "../../features/student/ui";
 
 export function meta() {
   return [{ title: "Student 360 · SutraERP" }];
 }
 
 /**
- * Student 360 (`/students/record/:studentId/:tab?`). Frame owned by 3A; each tab renders its
- * slice's component (docs/batch3-contracts.md §10). Staff only (faculty read-only, admin write).
+ * Student 360 (`/students/record/:studentId/:tab?`), re-skin v2 (R2): back link "Students", the
+ * student's name, a live meta line (roll no. · programme · semester · fee / status badge), the five
+ * prototype tabs right-aligned and a "More" menu with the lifecycle sections and the record
+ * actions. Staff only (faculty read-only, administrators get the actions).
  */
 export default function Student360() {
   const { studentId = "", tab } = useParams();
   const { role } = useSession();
   const current = activeTab(STUDENT_360_TABS, tab);
-  const api = useRecordApi();
-  // Same query key as the Overview tab, so the header and the tab share one request.
-  const student = useQuery({ queryKey: rkeys.scoped("student", studentId), queryFn: () => api.getStudent(studentId), enabled: !!studentId && role !== "student" });
+  const student = useStudent(role === "student" ? "" : studentId);
+  const fig = useStudentFigures(student.data);
+  const { name: progName } = useProgrammeNames(fig.inst);
+  const rec = useStudentRecordActions(student.data);
   if (role === "student") {
     return (
       <BentoGrid data-screen="student-360">
@@ -37,6 +51,12 @@ export default function Student360() {
   }
   const body = () => {
     switch (current.key) {
+      case "academics":
+        return <Student360Academics studentId={studentId} />;
+      case "attendance":
+        return <Student360Attendance studentId={studentId} />;
+      case "fees":
+        return <Student360Fees studentId={studentId} />;
       case "enrolment":
         return <Student360Enrolment studentId={studentId} />;
       case "documents":
@@ -55,43 +75,61 @@ export default function Student360() {
         return <Student360Overview studentId={studentId} />;
     }
   };
+  const s = student.data;
+  const c = s?.currentContext;
+  const main = STUDENT_360_TABS.filter((t) => t.group === "main");
+  const record = STUDENT_360_TABS.filter((t) => t.group === "record");
+  const inRecord = record.find((t) => t.key === current.key);
+  const sections: MenuItem[] = record.map((t, i) => ({
+    id: `section-${t.key}`,
+    label: t.label,
+    group: i === 0 ? "Record" : undefined,
+    active: t.key === current.key,
+    render: ({ className, close }) => (
+      <Link key={t.key} to={student360Path(studentId, t.key)} className={className || undefined} onClick={close} data-tab-link={t.key}>
+        {t.label}
+      </Link>
+    ),
+  }));
+  const actions = toMenu(rec.actions, rec.busy).map((m, i) => ({ ...m, group: i === 0 ? "Actions" : undefined, separated: i === 0 }));
+  const badge =
+    s && s.status !== "active" ? <StatusBadge status={s.status} /> : c && c.status !== "active" ? <StatusBadge status={c.status} /> : fig.fee ? <FeeBadge status={fig.fee} /> : null;
+  const summary = s ? (
+    <span className="st-meta-inline" data-student-meta="">
+      {[c?.rollNumber ?? s.studentNumber, c?.programmeId ? progName(c.programmeId) : null, c?.currentTermNo ? `Semester ${c.currentTermNo}` : null].filter(Boolean).join(" · ")}
+      {badge && <span aria-hidden="true">·</span>}
+      {badge}
+    </span>
+  ) : student.isLoading ? (
+    "Loading student…"
+  ) : (
+    "Student not found"
+  );
   return (
     <BentoGrid data-screen="student-360" data-tab={current.key}>
-      <BentoTile span={12} variant="accent">
-        <div className="sb-page-head">
-          <div>
-            <span className="sb-chip">
-              <GraduationCap strokeWidth={1.75} /> Student 360
-            </span>
-            <h1 data-student-name>{student.data?.displayName ?? (student.isLoading ? "Loading student…" : "Student")}</h1>
-            {student.data && (
-              <p>
-                {student.data.studentNumber}
-                {student.data.currentContext?.enrolmentNumber ? ` · ${student.data.currentContext.enrolmentNumber}` : ""} <StatusBadge status={student.data.status} />
-              </p>
+      <AreaHeader
+        title={<span data-student-name="">{s?.displayName ?? (student.isLoading ? "Loading student…" : "Student")}</span>}
+        summary={summary}
+        back={role === "administrator" ? { label: "Students", to: "/students" } : { label: "My students", to: "/my-students" }}
+        tabs={main.map((t) => ({ id: t.key, label: t.label, to: student360Path(studentId, t.key === "overview" ? undefined : t.key) }))}
+        activeTab={current.key}
+        linkComponent={TabLink}
+        tabsLabel="Student 360 sections"
+        actions={
+          <MenuButton
+            label="More student sections"
+            items={[...sections, ...actions]}
+            trigger={(p) => (
+              <button type="button" className={`sb-tab-more${inRecord ? " on" : ""}`} data-tab-more="" data-student-more="" {...p}>
+                {inRecord ? `More · ${inRecord.label}` : "More"}
+                <ChevronDown strokeWidth={2} aria-hidden="true" />
+              </button>
             )}
-          </div>
-          {role === "administrator" && (
-            <Link to="/students" className="sb-chip" style={{ marginLeft: "auto" }}>
-              All students
-            </Link>
-          )}
-        </div>
-        <nav className="sb-tabs" aria-label="Student 360 sections">
-          {STUDENT_360_TABS.map((t) => (
-            <NavLink
-              key={t.key}
-              to={student360Path(studentId, t.key)}
-              className={t.key === current.key ? "on" : ""}
-              aria-current={t.key === current.key ? "page" : undefined}
-              data-tab-link={t.key}
-            >
-              {t.label}
-            </NavLink>
-          ))}
-        </nav>
-      </BentoTile>
+          />
+        }
+      />
       {body()}
+      {rec.ui}
     </BentoGrid>
   );
 }

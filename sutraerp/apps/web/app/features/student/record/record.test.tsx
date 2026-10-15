@@ -18,6 +18,7 @@ import type { InstitutionApi } from "../../institution/api";
 import { admissionActions, createHttpRecordApi, fill, PATHS, type RecordApi } from "./api";
 import { RecordApiProvider } from "./hooks";
 import { createMockRecordApi, seededMockRecordApi } from "./mock";
+import { clickAction } from "../test-utils";
 
 beforeEach(() => {
   window.sessionStorage.clear();
@@ -51,12 +52,7 @@ function fillForm(name: string, values: Record<string, string>) {
 }
 
 async function click(action: string) {
-  const b = await waitFor(() => {
-    const el = document.querySelector(`[data-action="${action}"]`);
-    if (!el) throw new Error(`action ${action} not rendered`);
-    return el as HTMLButtonElement;
-  });
-  fireEvent.click(b);
+  await clickAction(action);
 }
 
 async function institution() {
@@ -208,8 +204,8 @@ describe("Student-facing Documents", () => {
     const { api: inst, inst: i } = await institution();
     const { api } = await seededMockRecordApi(i.id);
     await renderScreen(wrap(inst, api, <Documents />), { path: "/documents", role: "student" });
-    expect(await screen.findByText("My documents")).toBeTruthy();
-    fireEvent.click(await screen.findByRole("button", { name: "Request a document" }));
+    expect(await screen.findByRole("heading", { name: "Documents", level: 1 })).toBeTruthy();
+    await waitFor(() => form("my-request"));
     fillForm("my-request", { documentType: "transcript_copy", purpose: "visa" });
     await waitFor(() => expect(document.querySelector('[data-my-request="transcript_copy"]')).toBeTruthy());
     await click("my-request-cancel");

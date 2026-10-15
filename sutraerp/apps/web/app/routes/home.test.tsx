@@ -94,7 +94,7 @@ describe("home to-dos card", () => {
     expect(card.querySelectorAll("[data-home-todo]")).toHaveLength(4);
     expect(within(card).queryByText("Fifth item")).toBeNull();
     expect(within(card).getByText("+2 more open")).toBeTruthy();
-    expect(screen.getByText("Your to-dos · 6")).toBeTruthy();
+    expect(document.querySelector("[data-ring]")?.getAttribute("data-ring")).toBe("0/6");
     const row = (id: number) => card.querySelector(`[data-home-todo="${todo(id).id}"]`) as HTMLElement;
     expect(within(row(1)).getByText("Overdue")).toBeTruthy();
     expect(within(row(2)).getByText(/Due (tomorrow|\d)/)).toBeTruthy();
@@ -117,15 +117,16 @@ describe("home to-dos card", () => {
 
   it("shows the empty state", async () => {
     await mountApi(() => Response.json({ items: [], openCount: 0 }));
-    expect(await screen.findByText("Nothing to do — enjoy the calm")).toBeTruthy();
+    expect(await screen.findByText("All clear for today")).toBeTruthy();
     expect(document.querySelector('[data-home-todos="empty"]')).toBeTruthy();
   });
 
   it("shows a loading state until the to-dos arrive", async () => {
-    let release: (r: Response) => void = () => {};
-    await mountApi(() => new Promise<Response>((r) => (release = r)));
+    // Several tiles read /todos (open, completed, the week): hold every request, then answer them all.
+    const releases: ((r: Response) => void)[] = [];
+    await mountApi(() => new Promise<Response>((r) => releases.push(r)));
     expect(document.querySelector('[data-home-todos="loading"]')).toBeTruthy();
-    release(Response.json({ items: [todo(1)], openCount: 1 }));
+    releases.forEach((r) => r(Response.json({ items: [todo(1)], openCount: 1 })));
     expect(await screen.findByText("Task 1")).toBeTruthy();
   });
 

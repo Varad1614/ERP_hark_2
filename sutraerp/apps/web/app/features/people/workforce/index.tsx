@@ -9,12 +9,14 @@
  * - `PositionsAdminTab` — positions and their assignments.
  * - `MyProfilePanel` — My HR (span 4): own record, engagement, qualifications, certificates.
  */
-import { Award, BadgeCheck, Briefcase, ClipboardList, GraduationCap, IdCard, ShieldCheck, UserPlus, Users } from "lucide-react";
-import { BentoTile, Button, DataTable, Drawer, EmptyState, Select, StatTile } from "@sutra/ui";
+import { Award, BadgeCheck, Briefcase, ClipboardList, IdCard, MoreHorizontal, UserPlus, Users } from "lucide-react";
+import { BentoTile, Button, CardGrid, DataTable, EmptyState, FilterChipRows, FilterChips, FormSelect, KeyTag, ListRow, MenuButton, PersonCard, SidePanel, statusKind } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, REASON, todayIso, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
-import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
+import { fmtDate, NoInstitution, REASON, todayIso, type FieldSpec } from "../../institution/forms";
+import { keys, StatusBadge, statusLabel, useCommand, useInstitutionApi } from "../../institution/hooks";
+import { lkeys, useLeaveApi } from "../leave/hooks";
+import { Acts, splitActions, useAsk, type RowAction } from "../ui";
 import type { Institution } from "../../institution/types";
 import { useWorkforceApi, wkeys } from "./hooks";
 import type { Candidate, Engagement, EngagementCommand, OnboardingCase, Position, Requisition, Staff, StaffCommand } from "./types";
@@ -86,7 +88,10 @@ export function engagementActions(e: Pick<Engagement, "status" | "pendingChange"
 
 // ================================================================================= staff
 
-/** Admin → People → Staff records. */
+/** Wide person cards for every 7th card (prototype adm-people.png: 2 + 1 + 1 / 1 × 4 rows). */
+const isWide = (i: number) => i % 7 === 0;
+
+/** Admin → People → Directory (staff records as person cards, prototype adm-people.png). */
 export function StaffAdminTab({ institution }: { institution: Institution | null }) {
   if (!institution) return <NoInstitutionTile />;
   return <StaffAdmin institution={institution} />;
@@ -94,11 +99,30 @@ export function StaffAdminTab({ institution }: { institution: Institution | null
 
 function StaffAdmin({ institution }: { institution: Institution }) {
   const api = useWorkforceApi();
-  const { run, submit, busy, dialog } = useCommand();
+  const iapi = useInstitutionApi();
+  const lapi = useLeaveApi();
+  const { submit, busy, dialog } = useCommand();
   const { ask, prompt } = useAsk();
   const [status, setStatus] = useState("");
+  const [dept, setDept] = useState("all");
+  const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const list = useQuery({ queryKey: wkeys.scoped(institution.id, `staff:${status}`), queryFn: () => api.staff(institution.id, status || undefined) });
+  const units = useQuery({ queryKey: keys.scoped(institution.id, "org-units"), queryFn: () => iapi.listOrgUnits(institution.id) }).data ?? [];
+  const pending = useQuery({ queryKey: lkeys(institution.id, "requests:pending_approval"), queryFn: () => lapi.requests(institution.id, "pending_approval") }).data?.items ?? [];
+  const onLeave = new Set(pending.map((r) => r.staffId));
+  const unitName = (id?: string | null) => (id ? units.find((u) => u.id === id)?.name : undefined);
+  const deptOf = (s: Staff) => s.engagement?.orgUnitId ?? "";
+  const rows = list.data ?? [];
+  const byDept = new Map<string, number>();
+  for (const s of rows) byDept.set(deptOf(s), (byDept.get(deptOf(s)) ?? 0) + 1);
+  const chips = [
+    { id: "all", label: "All", count: rows.length },
+    ...[...byDept.entries()].filter(([id]) => id && unitName(id)).map(([id, n]) => ({ id, label: unitName(id) ?? "", count: n })),
+    ...(byDept.get("") ? [{ id: "none", label: "No department", count: byDept.get("") }] : []),
+  ];
+  const needle = q.trim().toLowerCase();
+  const shown = rows.filter((s) => (dept === "all" ? true : dept === "none" ? !deptOf(s) : deptOf(s) === dept) && (!needle || [s.displayName, s.engagement?.designation, s.staffNumber, s.workEmail].some((v) => v?.toLowerCase().includes(needle))));
 
   const create = () =>
     ask({
@@ -115,71 +139,73 @@ function StaffAdmin({ institution }: { institution: Institution }) {
       onSubmit: (v) =>
         submit(
           () => api.createStaff(institution.id, { givenName: v.givenName!, familyName: v.familyName || undefined, workEmail: v.workEmail || undefined, staffCategory: v.staffCategory!, subjectRef: v.subjectRef?.trim() || undefined }),
-          (s) => `${s.staffNumber} created (draft)`,
+          (s) => `${s.displayName} created (draft)`,
         ),
     });
 
-  const onStaff = (s: Staff, cmd: StaffCommand) => {
-    if (cmd === "suspend" || cmd === "archive")
-      return ask({ title: `${statusLabel(cmd)} · ${s.staffNumber}`, name: `staff-${cmd}`, submitLabel: statusLabel(cmd), fields: [REASON], onSubmit: (v) => submit(() => api.staffCommand(s.id, s.version, cmd, v.reason), `${s.staffNumber}: ${statusLabel(cmd)}`) });
-    return run(() => api.staffCommand(s.id, s.version, cmd), `${s.staffNumber}: ${statusLabel(cmd)}`);
-  };
+  const role = (s: Staff) => s.engagement?.designation ?? `${statusLabel(s.staffCategory)} · no engagement yet`;
+  const tags = (s: Staff) =>
+    [
+      unitName(deptOf(s)) ? { label: unitName(deptOf(s))! } : null,
+      s.status !== "active" ? { label: statusLabel(s.status), kind: statusKind(s.status) } : null,
+      s.engagement && s.engagement.status !== "active" ? { label: `Engagement ${statusLabel(s.engagement.status).toLowerCase()}`, kind: statusKind(s.engagement.status) } : null,
+      onLeave.has(s.id) ? { label: "Leave pending", kind: "review" as const } : null,
+    ].filter((t): t is { label: string; kind?: ReturnType<typeof statusKind> } => t !== null);
 
-  const all = useQuery({ queryKey: wkeys.scoped(institution.id, "staff:"), queryFn: () => api.staff(institution.id) }).data;
-  const count = (f: (s: Staff) => boolean) => (all ? String(all.filter(f).length) : "…");
   return (
     <>
-      <StatTile icon={Users} tone="orange" label="Staff records" value={all ? String(all.length) : "…"} hint="All categories" data-kpi="staff-total" />
-      <StatTile icon={GraduationCap} tone="green" label="Faculty on roll" value={count((s) => s.staffCategory === "teaching" && s.engagement?.status === "active")} hint="Teaching, engagement active" data-kpi="staff-faculty" />
-      <StatTile icon={ShieldCheck} tone="violet" label="To verify" value={count((s) => s.status === "pending_verification")} hint="Records awaiting verification" data-kpi="staff-verify" />
-      <StatTile icon={Briefcase} tone="blue" label="Engagements pending" value={count((s) => s.engagement?.status === "pending")} hint="Awaiting activation" data-kpi="staff-pending" />
-      <BentoTile
-        span={12}
-        title="Staff records"
-        data-slice="7A"
-        data-staff
-        action={
-          <Button size="sm" variant="ghost" data-action="staff-new" disabled={busy} onClick={create}>
-            New staff
-          </Button>
-        }
-      >
-        <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value)} options={STAFF_STATUS.map((s) => ({ value: s, label: s ? statusLabel(s) : "All" }))} data-field="staff-status" />
-        <DataTable
-          caption="Staff"
-          rows={list.data ?? []}
-          rowKey={(s) => s.id}
-          empty={<EmptyState icon={Users} title="No staff records">Create a record or onboard a candidate from Recruitment.</EmptyState>}
-          columns={[
-            { key: "number", header: "Staff no.", render: (s) => s.staffNumber },
-            { key: "name", header: "Name", render: (s) => s.displayName },
-            { key: "category", header: "Category", render: (s) => statusLabel(s.staffCategory), muted: true },
-            { key: "engagement", header: "Engagement", render: (s) => (s.engagement ? `${s.engagement.designation} · ${statusLabel(s.engagement.status)}` : "—") },
-            { key: "status", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
-            {
-              key: "actions",
-              header: "",
-              render: (s) => (
-                <Actions
-                  disabled={busy}
-                  actions={[
-                    ...staffActions(s).map((c): RowAction => ({ id: `staff-${c}`, label: statusLabel(c), variant: c === "verify" || c === "activate" ? "primary" : "ghost", onClick: () => void onStaff(s, c) })),
-                    { id: "staff-open", label: "Open", onClick: () => setOpen(s.id) },
-                  ]}
-                />
-              ),
-            },
-          ]}
-        />
-      </BentoTile>
-      {open ? <StaffDrawer staffId={open} onClose={() => setOpen(null)} /> : null}
+      <FilterChipRows>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <FilterChips options={chips} value={dept} onChange={setDept} search={{ label: "Search name or role", value: q, onChange: setQ }} data-staff-filter="" />
+          </div>
+          <MenuButton
+            label="Directory actions"
+            items={[
+              { id: "staff-new", label: "New staff record", onSelect: create, disabled: busy },
+              ...STAFF_STATUS.map((st, i) => ({ id: `staff-status-${st || "all"}`, label: st ? statusLabel(st) : "All statuses", active: status === st, onSelect: () => setStatus(st), group: i === 0 ? "Show" : undefined, separated: i === 0 })),
+            ]}
+            trigger={(p) => (
+              <button type="button" className="sb-kebab" aria-label="Directory actions" data-row-menu="" data-staff-tools="" {...p}>
+                <MoreHorizontal strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            )}
+          />
+        </div>
+      </FilterChipRows>
+      {shown.length === 0 ? (
+        <BentoTile span={12} data-slice="7A" data-staff>
+          <EmptyState icon={Users} title={rows.length === 0 ? "No staff records" : "No one matches"} compact>
+            {rows.length === 0 ? "Create a record or onboard a candidate from Recruitment." : "Try another department or search."}
+          </EmptyState>
+        </BentoTile>
+      ) : (
+        <CardGrid>
+          {shown.map((s, i) => (
+            <PersonCard
+              key={s.id}
+              name={s.displayName}
+              role={role(s)}
+              detail={[s.workEmail, s.staffNumber].filter(Boolean).join(" · ")}
+              tags={tags(s)}
+              wide={isWide(i)}
+              onClick={() => setOpen(s.id)}
+              data-slice="7A"
+              data-staff=""
+              data-person={s.displayName}
+              data-status={s.status}
+            />
+          ))}
+        </CardGrid>
+      )}
+      {open ? <StaffPanel staffId={open} unitName={unitName} onClose={() => setOpen(null)} /> : null}
       {prompt}
       {dialog}
     </>
   );
 }
 
-function StaffDrawer({ staffId, onClose }: { staffId: string; onClose: () => void }) {
+function StaffPanel({ staffId, onClose, unitName }: { staffId: string; onClose: () => void; unitName: (id?: string | null) => string | undefined }) {
   const api = useWorkforceApi();
   const { run, submit, busy, dialog } = useCommand();
   const { ask, prompt } = useAsk();
@@ -189,16 +215,24 @@ function StaffDrawer({ staffId, onClose }: { staffId: string; onClose: () => voi
   const colleagues = useQuery({ queryKey: wkeys.scoped(s?.institutionId ?? "-", "staff:"), queryFn: () => api.staff(s!.institutionId), enabled: !!s }).data ?? [];
   const managers = colleagues.filter((c) => c.id !== staffId && c.engagement && !["closed", "cancelled"].includes(c.engagement.status));
   const nameOf = (id?: string | null) => (id ? (colleagues.find((c) => c.id === id)?.displayName ?? "—") : "—");
+  const working = busy;
+
+  const onStaff = (st: Staff, cmd: StaffCommand) => {
+    if (cmd === "suspend" || cmd === "archive")
+      return ask({ title: `${statusLabel(cmd)} · ${st.displayName}`, name: `staff-${cmd}`, submitLabel: statusLabel(cmd), fields: [REASON], onSubmit: (v) => submit(() => api.staffCommand(st.id, st.version, cmd, v.reason), `${st.displayName}: ${statusLabel(cmd)}`) });
+    return run(() => api.staffCommand(st.id, st.version, cmd), `${st.displayName}: ${statusLabel(cmd)}`);
+  };
+
   const reporting = (e: Engagement) =>
     ask({
-      title: `Reporting manager · ${e.engagementNumber}`,
+      title: `Reporting manager · ${e.designation}`,
       name: "engagement-reporting",
       submitLabel: "Save",
       fields: [
-        { name: "manager", label: "Reports to", type: "select", options: [{ value: "", label: "No reporting manager" }, ...managers.map((m) => ({ value: m.id, label: `${m.staffNumber} · ${m.displayName}` }))], initial: e.reportsToStaffId ?? managers[0]?.id ?? "" },
+        { name: "manager", label: "Reports to", type: "select", options: [{ value: "", label: "No reporting manager" }, ...managers.map((m) => ({ value: m.id, label: m.displayName }))], initial: e.reportsToStaffId ?? managers[0]?.id ?? "" },
         { name: "reason", label: "Reason", wide: true },
       ],
-      onSubmit: (v) => submit(() => api.setReporting(e.id, e.version, v.manager || null, v.reason || undefined), (r) => `${r.engagementNumber} reports to ${nameOf(r.reportsToStaffId)}`),
+      onSubmit: (v) => submit(() => api.setReporting(e.id, e.version, v.manager || null, v.reason || undefined), (r) => `${r.designation} reports to ${nameOf(r.reportsToStaffId)}`),
     });
 
   const newEngagement = () =>
@@ -216,87 +250,88 @@ function StaffDrawer({ staffId, onClose }: { staffId: string; onClose: () => voi
       onSubmit: (v) =>
         submit(
           () => api.createEngagement(staffId, { employmentType: v.employmentType!, designation: v.designation!, grade: v.grade || undefined, startDate: v.startDate!, probationEndDate: v.probationEndDate || undefined }),
-          (e) => `${e.engagementNumber} created (pending)`,
+          (e) => `${e.designation} created (pending)`,
         ),
     });
 
   const onEngagement = (e: Engagement, a: ReturnType<typeof engagementActions>[number]) => {
-    if (a === "approve") return run(() => api.decideEngagement(e.id, e.version, "approve"), `${e.engagementNumber} approved`);
-    if (a === "reject") return ask({ title: `Reject · ${e.engagementNumber}`, name: "engagement-reject", submitLabel: "Reject", fields: [REASON], onSubmit: (v) => submit(() => api.decideEngagement(e.id, e.version, "reject", v.reason), `${e.engagementNumber} sent back`) });
+    if (a === "approve") return run(() => api.decideEngagement(e.id, e.version, "approve"), `${e.designation} approved`);
+    if (a === "reject") return ask({ title: `Reject · ${e.designation}`, name: "engagement-reject", submitLabel: "Reject", fields: [REASON], onSubmit: (v) => submit(() => api.decideEngagement(e.id, e.version, "reject", v.reason), `${e.designation} sent back`) });
     if (a === "close")
       return ask({
-        title: `Close · ${e.engagementNumber}`,
+        title: `Close · ${e.designation}`,
         name: "engagement-close",
         submitLabel: "Close engagement",
         fields: [{ name: "lastWorkingDate", label: "Last working date", type: "date", required: true, initial: todayIso() }, REASON],
-        onSubmit: (v) => submit(() => api.closeEngagement(e.id, e.version, v.lastWorkingDate!, v.reason!), `${e.engagementNumber} closed`),
+        onSubmit: (v) => submit(() => api.closeEngagement(e.id, e.version, v.lastWorkingDate!, v.reason!), `${e.designation} closed`),
       });
     const cmd = a;
     if (cmd === "suspend" || cmd === "cancel")
-      return ask({ title: `${statusLabel(cmd)} · ${e.engagementNumber}`, name: `engagement-${cmd}`, submitLabel: statusLabel(cmd), fields: [REASON], onSubmit: (v) => submit(() => api.engagementCommand(e.id, e.version, cmd, v.reason), `${e.engagementNumber}: ${statusLabel(cmd)}`) });
-    return run(() => api.engagementCommand(e.id, e.version, cmd), `${e.engagementNumber}: ${statusLabel(cmd)}`);
+      return ask({ title: `${statusLabel(cmd)} · ${e.designation}`, name: `engagement-${cmd}`, submitLabel: statusLabel(cmd), fields: [REASON], onSubmit: (v) => submit(() => api.engagementCommand(e.id, e.version, cmd, v.reason), `${e.designation}: ${statusLabel(cmd)}`) });
+    return run(() => api.engagementCommand(e.id, e.version, cmd), `${e.designation}: ${statusLabel(cmd)}`);
   };
 
+  const engagementActs = (e: Engagement): RowAction[] => [
+    ...engagementActions(e).map((a): RowAction => ({ id: `engagement-${a}`, label: statusLabel(a), variant: a === "submit" || a === "approve" || a === "activate" ? "primary" : "ghost", onClick: () => void onEngagement(e, a) })),
+    ...(["pending", "active", "suspended", "long_leave", "deputed"].includes(e.status) ? [{ id: "engagement-reporting", label: "Reporting manager", onClick: () => reporting(e) }] : []),
+  ];
+  const staffActs: RowAction[] = s
+    ? [
+        ...staffActions(s).map((c): RowAction => ({ id: `staff-${c}`, label: statusLabel(c), variant: c === "suspend" || c === "archive" ? "ghost" : "primary", onClick: () => void onStaff(s, c) })),
+        { id: "engagement-new", label: "New engagement", onClick: newEngagement },
+      ]
+    : [];
+  const live = s?.engagement;
+
   return (
-    <Drawer open onClose={onClose} title={s ? s.displayName : "Staff record"} eyebrow={s?.staffNumber}>
-      <div data-slice="7A" data-staff-drawer>
-        {s ? (
-          <dl className="sb-dl">
-            <dt>Status</dt>
-            <dd>
-              <StatusBadge status={s.status} />
-            </dd>
-            <dt>Category</dt>
-            <dd>{statusLabel(s.staffCategory)}</dd>
-            <dt>Work e-mail</dt>
-            <dd>{dash(s.workEmail)}</dd>
-            <dt>Login</dt>
-            <dd>{dash(s.subjectRef)}</dd>
-          </dl>
-        ) : null}
-        <Button size="sm" variant="ghost" data-action="engagement-new" disabled={busy} onClick={newEngagement}>
-          New engagement
-        </Button>
-        <DataTable
-          caption="Engagements"
-          rows={engs.data ?? []}
-          rowKey={(e) => e.id}
-          empty={<EmptyState icon={Briefcase} title="No engagements">Create one, then submit it for activation.</EmptyState>}
-          columns={[
-            {
-              key: "engagement",
-              header: "Engagement",
-              render: (e) => (
-                <>
-                  <b>{`${e.designation}${e.grade ? ` (${e.grade})` : ""}`}</b>
-                  <br />
-                  {`${e.engagementNumber} · ${statusLabel(e.employmentType)}`}
-                  <br />
-                  {(e.lastWorkingDate ?? e.endDate) ? `${fmtDate(e.startDate)} – ${fmtDate(e.lastWorkingDate ?? e.endDate)}` : `Since ${fmtDate(e.startDate)}`}
-                  {e.reportsToStaffId ? ` · reports to ${nameOf(e.reportsToStaffId)}` : ""}
-                </>
-              ),
-            },
-            { key: "status", header: "Status", render: (e) => <StatusBadge status={e.pendingChange ? e.pendingChange.status : e.status} /> },
-            {
-              key: "actions",
-              header: "",
-              render: (e) => (
-                <Actions
-                  disabled={busy}
-                  actions={[
-                    ...engagementActions(e).map((a): RowAction => ({ id: `engagement-${a}`, label: statusLabel(a), variant: a === "submit" || a === "approve" ? "primary" : "ghost", onClick: () => void onEngagement(e, a) })),
-                    ...(["pending", "active", "suspended", "long_leave", "deputed"].includes(e.status) ? [{ id: "engagement-reporting", label: "Reporting", onClick: () => reporting(e) }] : []),
-                  ]}
-                />
-              ),
-            },
-          ]}
-        />
+    <SidePanel
+      open
+      onClose={onClose}
+      title={s ? s.displayName : "Staff record"}
+      eyebrow={s ? `People · ${s.staffNumber}` : "People"}
+      chip={s ? { label: statusLabel(s.status), kind: statusKind(s.status) } : undefined}
+      facts={
+        s
+          ? [
+              { label: "Role", value: live?.designation ?? "No engagement yet" },
+              { label: "Department", value: unitName(live?.orgUnitId) ?? "—" },
+              { label: "Category", value: statusLabel(s.staffCategory) },
+              { label: "Work e-mail", value: dash(s.workEmail) },
+              { label: "Sign-in", value: s.subjectRef ? "Linked" : "Not linked" },
+            ]
+          : undefined
+      }
+      actions={<Acts actions={staffActs} disabled={working} label="Staff record actions" />}
+    >
+      <div data-slice="7A" data-staff-drawer="" data-staff-status={s?.status}>
+        <h4 className="sb-panel-h">Engagements</h4>
+        {(engs.data ?? []).length === 0 ? (
+          <EmptyState icon={Briefcase} title="No engagements" compact>
+            Create one, then submit it for activation.
+          </EmptyState>
+        ) : (
+          (engs.data ?? []).map((e) => {
+            const acts = engagementActs(e);
+            const { primary, menu } = splitActions(acts, working, true);
+            return (
+              <ListRow
+                key={e.id}
+                icon={Briefcase}
+                tone="blue"
+                title={`${e.designation}${e.grade ? ` · ${e.grade}` : ""}`}
+                meta={[statusLabel(e.employmentType), (e.lastWorkingDate ?? e.endDate) ? `${fmtDate(e.startDate)} – ${fmtDate(e.lastWorkingDate ?? e.endDate)}` : `Since ${fmtDate(e.startDate)}`, e.reportsToStaffId ? `reports to ${nameOf(e.reportsToStaffId)}` : null].filter(Boolean).join(" · ")}
+                badge={{ label: statusLabel(e.pendingChange ? e.pendingChange.status : e.status), kind: statusKind(e.pendingChange ? e.pendingChange.status : e.status) }}
+                primary={primary}
+                menu={menu}
+                data-engagement={e.designation}
+              />
+            );
+          })
+        )}
       </div>
       {prompt}
       {dialog}
-    </Drawer>
+    </SidePanel>
   );
 }
 
@@ -440,30 +475,30 @@ function RecruitmentAdmin({ institution }: { institution: Institution }) {
           caption="Requisitions"
           rows={reqList}
           rowKey={(r) => r.id}
-          empty={<EmptyState icon={ClipboardList} title="No requisitions">Raise one to start hiring.</EmptyState>}
+          empty={<EmptyState icon={ClipboardList} title="No requisitions" compact>Raise one to start hiring.</EmptyState>}
           columns={[
             { key: "number", header: "No.", render: (r) => r.number },
             { key: "title", header: "Title", render: (r) => r.title },
             { key: "openings", header: "Filled", render: (r) => `${r.filled} / ${r.openings}` },
             { key: "type", header: "Hire as", render: (r) => `${statusLabel(r.staffCategory)} · ${statusLabel(r.employmentType)}`, muted: true },
             { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-            { key: "actions", header: "", render: (r) => <Actions disabled={busy} actions={requisitionActions(r).map((a) => ({ id: `requisition-${a}`, label: statusLabel(a), variant: a === "submit" || a === "approve" ? "primary" : "ghost", onClick: () => void onRequisition(r, a) }))} /> },
+            { key: "actions", header: "", render: (r) => <Acts disabled={busy} actions={requisitionActions(r).map((a) => ({ id: `requisition-${a}`, label: statusLabel(a), variant: a === "submit" || a === "approve" ? "primary" : "ghost", onClick: () => void onRequisition(r, a) }))} /> },
           ]}
         />
       </BentoTile>
       <BentoTile span={12} title="Candidates" data-slice="7A" data-candidates action={reqId ? <Button size="sm" variant="ghost" data-action="candidate-new" disabled={busy} onClick={addCandidate}>Add candidate</Button> : undefined}>
-        <Select label="Requisition" value={reqId} onChange={(e) => setPicked(e.target.value)} options={reqList.map((r) => ({ value: r.id, label: `${r.number} · ${r.title}` }))} data-field="requisition" />
+        <FormSelect label="Requisition" value={reqId} onChange={(e) => setPicked(e.target.value)} options={reqList.map((r) => ({ value: r.id, label: `${r.number} · ${r.title}` }))} data-field="requisition" />
         <DataTable
           caption="Candidates"
           rows={cands.data ?? []}
           rowKey={(c) => c.id}
-          empty={<EmptyState icon={UserPlus} title="No candidates">Add applicants to an open requisition.</EmptyState>}
+          empty={<EmptyState icon={UserPlus} title="No candidates" compact>Add applicants to an open requisition.</EmptyState>}
           columns={[
             { key: "name", header: "Candidate", render: (c) => [c.givenName, c.familyName].filter(Boolean).join(" ") },
             { key: "email", header: "E-mail", render: (c) => c.email, muted: true },
             { key: "offer", header: "Offer", render: (c) => (c.proposedJoiningDate ? `${dash(c.offeredDesignation)} · joins ${fmtDate(c.proposedJoiningDate)}` : "—") },
             { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
-            { key: "actions", header: "", render: (c) => <Actions disabled={busy} actions={candidateActions(c).map((a) => ({ id: `candidate-${a}`, label: a === "onboard" ? "Start onboarding" : statusLabel(a), variant: a === "accept" || a === "onboard" ? "primary" : "ghost", onClick: () => void onCandidate(c, a) }))} /> },
+            { key: "actions", header: "", render: (c) => <Acts disabled={busy} actions={candidateActions(c).map((a) => ({ id: `candidate-${a}`, label: a === "onboard" ? "Start onboarding" : statusLabel(a), variant: a === "accept" || a === "onboard" ? "primary" : "ghost", onClick: () => void onCandidate(c, a) }))} /> },
           ]}
         />
       </BentoTile>
@@ -472,14 +507,14 @@ function RecruitmentAdmin({ institution }: { institution: Institution }) {
           caption="Onboarding cases"
           rows={cases.data ?? []}
           rowKey={(o) => o.id}
-          empty={<EmptyState icon={IdCard} title="No onboarding cases">Start one from a candidate who accepted an offer.</EmptyState>}
+          empty={<EmptyState icon={IdCard} title="No onboarding cases" compact>Start one from a candidate who accepted an offer.</EmptyState>}
           columns={[
             { key: "number", header: "Case", render: (o) => o.number },
             { key: "name", header: "Joiner", render: (o) => o.candidateName },
             { key: "joining", header: "Joining", render: (o) => fmtDate(o.joiningDate) },
             { key: "docs", header: "Documents", render: (o) => `${o.documents.length}${o.documentsVerified ? " · verified" : ""}`, muted: true },
             { key: "status", header: "Status", render: (o) => <StatusBadge status={o.processInstanceId && o.status === "ready_for_joining" ? "pending_approval" : o.status} /> },
-            { key: "actions", header: "", render: (o) => <Actions disabled={busy} actions={onboardingActions(o).map((a) => ({ id: `onboarding-${a}`, label: statusLabel(a), variant: a === "join" ? "primary" : "ghost", onClick: () => void onCase(o, a) }))} /> },
+            { key: "actions", header: "", render: (o) => <Acts disabled={busy} actions={onboardingActions(o).map((a) => ({ id: `onboarding-${a}`, label: statusLabel(a), variant: a === "join" ? "primary" : "ghost", onClick: () => void onCase(o, a) }))} /> },
           ]}
         />
       </BentoTile>
@@ -547,7 +582,7 @@ function PositionsAdmin({ institution }: { institution: Institution }) {
       name: "position-assign",
       submitLabel: "Assign",
       fields: [
-        { name: "engagementId", label: "Staff member", type: "select", required: true, options: engaged.map((s) => ({ value: s.engagement?.id ?? "", label: `${s.staffNumber} · ${s.displayName}` })), initial: engaged[0]?.engagement?.id },
+        { name: "engagementId", label: "Staff member", type: "select", required: true, options: engaged.map((s) => ({ value: s.engagement?.id ?? "", label: s.displayName })), initial: engaged[0]?.engagement?.id },
         { name: "startDate", label: "From", type: "date", required: true, initial: todayIso() },
       ],
       onSubmit: (v) => submit(() => api.assign(posId, { engagementId: v.engagementId!, startDate: v.startDate! }), (a) => (a.status === "active" ? "Assigned" : "Assignment awaits approval")),
@@ -560,25 +595,28 @@ function PositionsAdmin({ institution }: { institution: Institution }) {
           caption="Positions"
           rows={list}
           rowKey={(p) => p.id}
-          empty={<EmptyState icon={Award} title="No positions">Define the institution's positions, then assign staff.</EmptyState>}
+          empty={<EmptyState icon={Award} title="No positions" compact>Define the institution's positions, then assign staff.</EmptyState>}
           columns={[
-            { key: "code", header: "Code", render: (p) => p.code },
-            { key: "title", header: "Title", render: (p) => p.title },
+            { key: "title", header: "Position", render: (p) => (
+                <>
+                  {p.title} <KeyTag>{p.code}</KeyTag>
+                </>
+              ) },
             { key: "occupants", header: "Occupants", render: (p) => `${p.occupants}${p.allowsMultiple ? "" : " / 1"}`, muted: true },
             { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
-            { key: "actions", header: "", render: (p) => <Actions disabled={busy} actions={positionActions(p).map((a) => ({ id: `position-${a}`, label: statusLabel(a), onClick: () => void onPosition(p, a) }))} /> },
+            { key: "actions", header: "", render: (p) => <Acts disabled={busy} actions={positionActions(p).map((a) => ({ id: `position-${a}`, label: statusLabel(a), onClick: () => void onPosition(p, a) }))} /> },
           ]}
         />
       </BentoTile>
       <BentoTile span={12} title="Assignments" data-slice="7A" data-assignments action={posId ? <Button size="sm" variant="ghost" data-action="assignment-new" disabled={busy || engaged.length === 0} onClick={assign}>Assign</Button> : undefined}>
-        <Select label="Position" value={posId} onChange={(e) => setPicked(e.target.value)} options={list.map((p) => ({ value: p.id, label: `${p.code} · ${p.title}` }))} data-field="position" />
+        <FormSelect label="Position" value={posId} onChange={(e) => setPicked(e.target.value)} options={list.map((p) => ({ value: p.id, label: p.title }))} data-field="position" />
         <DataTable
           caption="Assignments"
           rows={assignments.data ?? []}
           rowKey={(a) => a.id}
-          empty={<EmptyState icon={Briefcase} title="No assignments">Assign an active engagement to this position.</EmptyState>}
+          empty={<EmptyState icon={Briefcase} title="No assignments" compact>Assign an active engagement to this position.</EmptyState>}
           columns={[
-            { key: "staff", header: "Staff", render: (a) => `${a.staffNumber} · ${a.displayName}` },
+            { key: "staff", header: "Staff", render: (a) => a.displayName },
             { key: "period", header: "Period", render: (a) => `${fmtDate(a.startDate)} – ${fmtDate(a.endDate)}`, muted: true },
             { key: "outcome", header: "Ended", render: (a) => (a.endOutcome ? statusLabel(a.endOutcome) : "—"), muted: true },
             { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
@@ -597,7 +635,7 @@ function PositionsAdmin({ institution }: { institution: Institution }) {
                     label: "End",
                     onClick: () =>
                       ask({
-                        title: `End · ${a.staffNumber}`,
+                        title: `End · ${a.displayName}`,
                         name: "assignment-end",
                         submitLabel: "End assignment",
                         fields: [
@@ -608,7 +646,7 @@ function PositionsAdmin({ institution }: { institution: Institution }) {
                         onSubmit: (v) => submit(() => api.endAssignment(a.id, a.version, { endDate: v.endDate!, outcome: v.outcome === "terminated" ? "terminated" : "completed", reason: v.reason! }), "Assignment ended"),
                       }),
                   });
-                return <Actions disabled={busy} actions={acts} />;
+                return <Acts disabled={busy} actions={acts} />;
               },
             },
           ]}
@@ -675,7 +713,7 @@ export function MyProfilePanel() {
             caption="Qualifications"
             rows={p.qualifications}
             rowKey={(q) => q.id}
-            empty={<EmptyState icon={BadgeCheck} title="No qualifications">HR records them on your profile.</EmptyState>}
+            empty={<EmptyState icon={BadgeCheck} title="No qualifications" compact>HR records them on your profile.</EmptyState>}
             columns={[
               { key: "title", header: "Qualification", render: (q) => `${q.title}${q.yearOfCompletion ? ` (${q.yearOfCompletion})` : ""}` },
               { key: "status", header: "", render: (q) => <StatusBadge status={q.status} /> },
@@ -685,7 +723,7 @@ export function MyProfilePanel() {
             caption="Certificate requests"
             rows={p.certificateRequests}
             rowKey={(c) => c.id}
-            empty={<EmptyState icon={Award} title="No certificate requests">Ask for a service or experience certificate.</EmptyState>}
+            empty={<EmptyState icon={Award} title="No certificate requests" compact>Ask for a service or experience certificate.</EmptyState>}
             columns={[
               { key: "kind", header: "Certificate", render: (c) => `${statusLabel(c.kind)} · ${c.purpose}` },
               { key: "status", header: "", render: (c) => (c.certificateNumber ? c.certificateNumber : <StatusBadge status={c.status} />) },
@@ -693,7 +731,7 @@ export function MyProfilePanel() {
           />
         </>
       ) : (
-        <EmptyState icon={IdCard} title="No staff record">{me.isLoading ? "Loading…" : "Your login is not linked to a staff record yet."}</EmptyState>
+        <EmptyState icon={IdCard} title="No staff record" compact>{me.isLoading ? "Loading…" : "Your login is not linked to a staff record yet."}</EmptyState>
       )}
       {prompt}
       {dialog}

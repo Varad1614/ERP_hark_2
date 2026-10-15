@@ -14,10 +14,11 @@
  *   packages (approval → submitted → acknowledged → correction) up to closing the cycle.
  */
 import { BarChart3, CheckCircle2, ClipboardList, FileCheck2, FileText, Gauge, LayoutDashboard, ListChecks, Send, ShieldCheck, Users } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, FilterChip, StatTile } from "@sutra/ui";
+import { BentoTile, Button, DataTable, EmptyState, FilterChip, KpiTile } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, REASON, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { fmtDate, NoInstitution, REASON, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { ApprovalBadge, Actions } from "../../campus/ui";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { akeys, useAnalyticsApi } from "./hooks";
@@ -279,10 +280,10 @@ function DashboardsScreen({ institutionId }: { institutionId: string }) {
 
   return (
     <>
-      <StatTile span={3} icon={BarChart3} tone="blue" label="Figures" value={String(metrics.length)} hint={`${domains.length - 1} domain(s) reporting`} data-slice="8C" data-kpi="report-figures" />
-      <StatTile span={3} icon={Gauge} tone="violet" label="Active widgets" value={String(active.length)} data-kpi="report-widgets" />
-      <StatTile span={3} icon={LayoutDashboard} tone="green" label="Published dashboards" value={String(published.length)} hint={`${dashboards.length} in total`} data-kpi="report-dashboards" />
-      <StatTile span={3} icon={Users} tone="amber" label="Role assignments" value={String(assignments.length)} data-kpi="report-assignments" />
+      <KpiTile span={3} icon={BarChart3} tone="blue" label="Figures" value={String(metrics.length)} sub={`${domains.length - 1} domain(s) reporting`} data-slice="8C" data-kpi="report-figures" />
+      <KpiTile span={3} icon={Gauge} tone="violet" label="Active widgets" value={String(active.length)} data-kpi="report-widgets" />
+      <KpiTile span={3} icon={LayoutDashboard} tone="green" label="Published dashboards" value={String(published.length)} sub={`${dashboards.length} in total`} data-kpi="report-dashboards" />
+      <KpiTile span={3} icon={Users} tone="amber" label="Role assignments" value={String(assignments.length)} data-kpi="report-assignments" />
       <BentoTile span={12} title={view ? `Live view · ${view.name} · v${view.versionNo}` : "Live view"} data-slice="8C" data-dashboard-view>
         {published.map((d) => (
           <FilterChip key={d.id} active={d.id === currentId} label={d.name} onClick={() => setSelected(d.id)} />
@@ -300,7 +301,7 @@ function DashboardsScreen({ institutionId }: { institutionId: string }) {
             ]}
           />
         ) : (
-          <EmptyState icon={LayoutDashboard} title={current ? `${current.name} is not published yet` : "No dashboards yet"}>
+          <EmptyState icon={LayoutDashboard} title={current ? `${current.name} is not published yet` : "No dashboards yet"} compact>
             Define widgets over the figures below, lay them out in a dashboard version, submit it for review and publish it.
           </EmptyState>
         )}
@@ -320,7 +321,7 @@ function DashboardsScreen({ institutionId }: { institutionId: string }) {
           caption="Dashboards"
           rows={dashboards}
           rowKey={(d) => d.id}
-          empty={<EmptyState icon={LayoutDashboard} title="No dashboards yet">Record a dashboard requirement: what it must answer and for whom.</EmptyState>}
+          empty={<EmptyState icon={LayoutDashboard} title="No dashboards yet" compact>Record a dashboard requirement: what it must answer and for whom.</EmptyState>}
           columns={[
             { key: "name", header: "Dashboard", render: (d) => `${d.code} · ${d.name}` },
             { key: "category", header: "Category", render: (d) => statusLabel(d.category), muted: true },
@@ -338,7 +339,7 @@ function DashboardsScreen({ institutionId }: { institutionId: string }) {
               caption="Dashboard versions"
               rows={current.versions}
               rowKey={(v) => v.id}
-              empty={<EmptyState icon={ListChecks} title="No versions yet">Lay out a first version from the active widgets.</EmptyState>}
+              empty={<EmptyState icon={ListChecks} title="No versions yet" compact>Lay out a first version from the active widgets.</EmptyState>}
               columns={[
                 { key: "no", header: "Version", render: (v) => `v${v.versionNo}` },
                 { key: "widgets", header: "Widgets", render: (v) => v.widgets.map((w) => w.title).join(", ") || "—", muted: true },
@@ -353,7 +354,7 @@ function DashboardsScreen({ institutionId }: { institutionId: string }) {
               caption="Dashboard assignments"
               rows={current.assignments}
               rowKey={(a) => a.id}
-              empty={<EmptyState icon={Users} title="Not assigned">Assign the dashboard to a role; it shows on their home once published.</EmptyState>}
+              empty={<EmptyState icon={Users} title="Not assigned" compact>Assign the dashboard to a role; it shows on their home once published.</EmptyState>}
               columns={[
                 { key: "role", header: "Role", render: (a) => statusLabel(a.role) },
                 { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
@@ -377,7 +378,7 @@ function DashboardsScreen({ institutionId }: { institutionId: string }) {
           caption="Widgets"
           rows={widgets}
           rowKey={(w) => w.id}
-          empty={<EmptyState icon={Gauge} title="No widgets yet">A widget binds one figure of the catalogue to a display.</EmptyState>}
+          empty={<EmptyState icon={Gauge} title="No widgets yet" compact>A widget binds one figure of the catalogue to a display.</EmptyState>}
           columns={[
             { key: "code", header: "Widget", render: (w) => `${w.code} · ${w.title}` },
             { key: "metric", header: "Figure", render: (w) => byKey(w.metricKey)?.label ?? w.metricKey, muted: true },
@@ -396,7 +397,7 @@ function DashboardsScreen({ institutionId }: { institutionId: string }) {
           caption="Operational figures"
           rows={shown}
           rowKey={(m) => m.key}
-          empty={<EmptyState icon={BarChart3} title="No figures reported">Every domain reports its operational figures here.</EmptyState>}
+          empty={<EmptyState icon={BarChart3} title="No figures reported" compact>Every domain reports its operational figures here.</EmptyState>}
           columns={[
             { key: "label", header: "Figure", render: (m) => m.label },
             { key: "value", header: "Value", render: (m) => figure(m) },
@@ -412,7 +413,7 @@ function DashboardsScreen({ institutionId }: { institutionId: string }) {
           caption={`${reportKind} report`}
           rows={report?.items ?? []}
           rowKey={(m) => m.key}
-          empty={<EmptyState icon={FileText} title="Nothing to report yet">The figures appear once the area records activity.</EmptyState>}
+          empty={<EmptyState icon={FileText} title="Nothing to report yet" compact>The figures appear once the area records activity.</EmptyState>}
           columns={[
             { key: "label", header: "Figure", render: (m) => m.label },
             { key: "value", header: "Value", render: (m) => figure(m) },
@@ -639,10 +640,10 @@ function RegulatoryScreen({ institutionId }: { institutionId: string }) {
 
   return (
     <>
-      <StatTile span={3} icon={ShieldCheck} tone="blue" label="Active frameworks" value={String(activeFrameworks.length)} hint={activeFrameworks.map((f) => f.code).join(", ") || undefined} data-slice="8C" data-kpi="regulatory-frameworks" />
-      <StatTile span={3} icon={ClipboardList} tone="violet" label="Open cycles" value={String(open.length)} data-kpi="regulatory-open" />
-      <StatTile span={3} icon={Send} tone="green" label="Submitted" value={String(submitted.length)} data-kpi="regulatory-submitted" />
-      <StatTile span={3} icon={CheckCircle2} tone="amber" label="Next due" value={nextDue ? fmtDate(nextDue) : "—"} data-kpi="regulatory-due" />
+      <KpiTile span={3} icon={ShieldCheck} tone="blue" label="Active frameworks" value={String(activeFrameworks.length)} sub={activeFrameworks.map((f) => f.code).join(", ") || undefined} data-slice="8C" data-kpi="regulatory-frameworks" />
+      <KpiTile span={3} icon={ClipboardList} tone="violet" label="Open cycles" value={String(open.length)} data-kpi="regulatory-open" />
+      <KpiTile span={3} icon={Send} tone="green" label="Submitted" value={String(submitted.length)} data-kpi="regulatory-submitted" />
+      <KpiTile span={3} icon={CheckCircle2} tone="amber" label="Next due" value={nextDue ? fmtDate(nextDue) : "—"} data-kpi="regulatory-due" />
       <BentoTile
         span={12}
         title="Reporting frameworks"
@@ -657,12 +658,12 @@ function RegulatoryScreen({ institutionId }: { institutionId: string }) {
           caption="Reporting frameworks"
           rows={frameworks}
           rowKey={(f) => f.id}
-          empty={<EmptyState icon={ShieldCheck} title="No reporting frameworks yet">Define what AISHE, NIRF or NAAC ask for: figures from every domain plus manual fields.</EmptyState>}
+          empty={<EmptyState icon={ShieldCheck} title="No reporting frameworks yet" compact>Define what AISHE, NIRF or NAAC ask for: figures from every domain plus manual fields.</EmptyState>}
           columns={[
             { key: "code", header: "Framework", render: (f) => `${f.code} v${f.versionNo} · ${f.name}` },
             { key: "regulator", header: "Regulator", render: (f) => f.regulator, muted: true },
             { key: "plan", header: "Collects", render: (f) => `${f.metricKeys.length} figure(s) · ${f.manualFields.length} manual`, muted: true },
-            { key: "approval", header: "Approval", render: (f) => <StatusBadge status={f.approvalState} /> },
+            { key: "approval", header: "Approval", render: (f) => <ApprovalBadge state={f.approvalState} /> },
             { key: "status", header: "Status", render: (f) => <StatusBadge status={f.status} /> },
             { key: "actions", header: "", render: (f) => <Actions actions={frameworkRowActions(f)} disabled={busy} /> },
           ]}
@@ -673,7 +674,7 @@ function RegulatoryScreen({ institutionId }: { institutionId: string }) {
           caption="Reporting cycles"
           rows={cycles}
           rowKey={(c) => c.id}
-          empty={<EmptyState icon={ClipboardList} title="No cycles yet">Open a cycle on an active framework for the reporting period.</EmptyState>}
+          empty={<EmptyState icon={ClipboardList} title="No cycles yet" compact>Open a cycle on an active framework for the reporting period.</EmptyState>}
           columns={[
             { key: "number", header: "Cycle", render: (c) => `${c.number} · ${c.frameworkCode} v${c.frameworkVersionNo}` },
             { key: "period", header: "Period", render: (c) => c.periodLabel },
@@ -708,7 +709,7 @@ function RegulatoryScreen({ institutionId }: { institutionId: string }) {
               caption="Collection plan"
               rows={planRows}
               rowKey={(r) => r.key}
-              empty={<EmptyState icon={ListChecks} title="Empty plan">The framework defines no figures or fields.</EmptyState>}
+              empty={<EmptyState icon={ListChecks} title="Empty plan" compact>The framework defines no figures or fields.</EmptyState>}
               columns={[
                 { key: "label", header: "Item", render: (r) => r.label },
                 { key: "source", header: "Source", render: (r) => r.source, muted: true },
@@ -721,7 +722,7 @@ function RegulatoryScreen({ institutionId }: { institutionId: string }) {
               caption="Snapshots"
               rows={snapshots}
               rowKey={(s) => s.id}
-              empty={<EmptyState icon={FileCheck2} title="Nothing collected yet">Collect the figures of the plan; they are frozen in a snapshot and checked.</EmptyState>}
+              empty={<EmptyState icon={FileCheck2} title="Nothing collected yet" compact>Collect the figures of the plan; they are frozen in a snapshot and checked.</EmptyState>}
               columns={[
                 { key: "seq", header: "Snapshot", render: (s) => `#${s.seq}` },
                 { key: "when", header: "Collected", render: (s) => when(s.createdAt), muted: true },
@@ -737,7 +738,7 @@ function RegulatoryScreen({ institutionId }: { institutionId: string }) {
                 caption="Snapshot values"
                 rows={values?.values ?? []}
                 rowKey={(x) => x.key}
-                empty={<EmptyState icon={FileCheck2} title="No values">Loading the frozen values…</EmptyState>}
+                empty={<EmptyState icon={FileCheck2} title="No values" compact>Loading the frozen values…</EmptyState>}
                 columns={[
                   { key: "label", header: "Item", render: (x) => x.label },
                   { key: "value", header: "Value", render: (x) => (x.value !== null && x.value !== undefined ? figure({ value: x.value, unit: x.unit ?? "count" }) : (x.valueText ?? "—")) },
@@ -762,7 +763,7 @@ function RegulatoryScreen({ institutionId }: { institutionId: string }) {
               caption="Submission packages"
               rows={packages}
               rowKey={(p) => p.id}
-              empty={<EmptyState icon={Send} title="No packages yet">Assemble a package from a validated snapshot; it is approved, then submitted to the regulator.</EmptyState>}
+              empty={<EmptyState icon={Send} title="No packages yet" compact>Assemble a package from a validated snapshot; it is approved, then submitted to the regulator.</EmptyState>}
               columns={[
                 { key: "number", header: "Package", render: (p) => p.number },
                 { key: "snapshot", header: "Snapshot", render: (p) => `#${seqOf(p.snapshotId) ?? "—"}`, muted: true },

@@ -24,6 +24,9 @@ const TENANT_A: &str = "0192f5a0-7c3e-7000-8000-0000000b9a00";
 const TENANT_B: &str = "0192f5a0-7c3e-7000-8000-0000000b9a01";
 /// Concurrency + canonical-hash tenant (kept apart so the other tests' counts stay exact).
 const TENANT_C: &str = "0192f5a0-7c3e-7000-8000-0000000b9a02";
+/// Tampering tenant: its seq-5 chain entry is deleted, so it must not share a chain with the
+/// sealer test (which asserts TENANT_B is gap-free) while tests run in parallel.
+const TENANT_D: &str = "0192f5a0-7c3e-7000-8000-0000000b9a03";
 const ANCHOR_KEY_HEX: &str = "9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a";
 const CHAIN: &str = "/api/v1/platform/audit/chain";
 
@@ -331,17 +334,17 @@ async fn sealer_two_tenants_in_batches_api_and_anchors() {
 #[tokio::test]
 async fn tampering_is_detected_and_evidence_is_append_only() {
     let pool = owner_pool().await;
-    let ids = insert_rows(&pool, TENANT_B, 8, "b1").await;
+    let ids = insert_rows(&pool, TENANT_D, 8, "b1").await;
     assert_eq!(ids.len(), 8);
-    seal_all(&pool, TENANT_B, 500).await;
-    let ok = audit_chain::verify(&pool, uuid(TENANT_B), None, None, None)
+    seal_all(&pool, TENANT_D, 500).await;
+    let ok = audit_chain::verify(&pool, uuid(TENANT_D), None, None, None)
         .await
         .unwrap();
     assert!(ok.ok, "{ok:?}");
     assert!(ok.head_seq >= 8);
 
     // ---- edit the details of the row sealed at seq 3 (owner pool, trigger disabled).
-    let victim = audit_id_at(&pool, TENANT_B, 3).await;
+    let victim = audit_id_at(&pool, TENANT_D, 3).await;
     let original: serde_json::Value =
         sqlx::query_scalar("SELECT details FROM platform.audit_log WHERE id = $1")
             .bind(victim)
@@ -374,7 +377,7 @@ async fn tampering_is_detected_and_evidence_is_append_only() {
     let mut tampered = original.clone();
     tampered["i"] = serde_json::json!(999);
     set_details(tampered).await;
-    let r = audit_chain::verify(&pool, uuid(TENANT_B), None, None, None)
+    let r = audit_chain::verify(&pool, uuid(TENANT_D), None, None, None)
         .await
         .unwrap();
     assert!(!r.ok);
@@ -383,7 +386,7 @@ async fn tampering_is_detected_and_evidence_is_append_only() {
     assert_eq!(r.reason.unwrap().as_str(), "hash_mismatch");
     // A range before the tampered entry still verifies.
     assert!(
-        audit_chain::verify(&pool, uuid(TENANT_B), Some(1), Some(2), None)
+        audit_chain::verify(&pool, uuid(TENANT_D), Some(1), Some(2), None)
             .await
             .unwrap()
             .ok
@@ -391,7 +394,7 @@ async fn tampering_is_detected_and_evidence_is_append_only() {
     // Restoring the exact value restores the chain.
     set_details(original).await;
     assert!(
-        audit_chain::verify(&pool, uuid(TENANT_B), None, None, None)
+        audit_chain::verify(&pool, uuid(TENANT_D), None, None, None)
             .await
             .unwrap()
             .ok
@@ -407,7 +410,7 @@ async fn tampering_is_detected_and_evidence_is_append_only() {
     .unwrap();
     let deleted =
         sqlx::query("DELETE FROM platform.audit_chain_entry WHERE tenant_id = $1 AND seq = 5")
-            .bind(uuid(TENANT_B))
+            .bind(uuid(TENANT_D))
             .execute(&mut *tx)
             .await
             .unwrap()
@@ -420,7 +423,7 @@ async fn tampering_is_detected_and_evidence_is_append_only() {
     .unwrap();
     tx.commit().await.unwrap();
     assert_eq!(deleted, 1);
-    let r = audit_chain::verify(&pool, uuid(TENANT_B), None, None, None)
+    let r = audit_chain::verify(&pool, uuid(TENANT_D), None, None, None)
         .await
         .unwrap();
     assert!(!r.ok);
@@ -438,7 +441,7 @@ async fn tampering_is_detected_and_evidence_is_append_only() {
         "DELETE FROM platform.audit_chain_head WHERE tenant_id = $1",
     ] {
         let err = sqlx::query(sql)
-            .bind(uuid(TENANT_B))
+            .bind(uuid(TENANT_D))
             .execute(&runtime)
             .await
             .expect_err(sql);
@@ -450,7 +453,7 @@ async fn tampering_is_detected_and_evidence_is_append_only() {
     }
     let err =
         sqlx::query("UPDATE platform.audit_chain_entry SET sealed_at = now() WHERE tenant_id = $1")
-            .bind(uuid(TENANT_B))
+            .bind(uuid(TENANT_D))
             .execute(&pool)
             .await
             .expect_err("append-only trigger");

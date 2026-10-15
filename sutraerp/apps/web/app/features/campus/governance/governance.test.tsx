@@ -102,13 +102,14 @@ describe("9E governance HTTP API", () => {
   });
 });
 
-describe("9E Admin → Campus → Governance tab", () => {
+describe("9E Admin → Reports → Governance tab", () => {
   it("renders cases, configuration and evidence", async () => {
     const renderScreen = (await import("../../../test/harness")).renderScreen;
     const { GovernanceAdminTab } = await import("./index");
     await renderScreen(<GovernanceAdminTab institution={INST} />);
     expect(document.querySelector("[data-slice='9E']")).toBeTruthy();
-    expect(await screen.findByText("GOV-000001 · Campus readiness for NAAC cycle")).toBeTruthy();
+    expect(await screen.findByText("Campus readiness for NAAC cycle")).toBeTruthy();
+    expect(document.querySelector("[data-case-row='GOV-000001']")).toBeTruthy();
     expect(await screen.findByText("Operations review Q2 evidence")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Open case" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "New version" })).toBeTruthy();

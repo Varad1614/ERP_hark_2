@@ -7,15 +7,20 @@
  */
 export { activeTab, type TabDef } from "../institution";
 
-/** Tabs of Admin → Finance (`/finance/:tab?`, first = default) with their owning slice. */
+/**
+ * Tabs of Admin → Finance (`/finance/:tab?`, first = default) with their owning slice. Re-skin v2:
+ * the area header shows Overview / Collections / Receivables / Ledger and folds the rest into
+ * **More** (`AreaHeader` keeps ≤5 header tabs), so the order here is the header order.
+ */
 export const FINANCE_TABS = [
+  { key: "overview", label: "Overview", slice: "R5" },
+  { key: "collections", label: "Collections", slice: "5B" },
+  { key: "receivables", label: "Receivables", slice: "5B" },
+  { key: "ledger", label: "Ledger", slice: "5C" },
   { key: "charges", label: "Fees & charges", slice: "5A" },
   { key: "adjustments", label: "Adjustments", slice: "5A" },
   { key: "aid", label: "Financial aid", slice: "5A" },
-  { key: "collections", label: "Collections", slice: "5B" },
   { key: "refunds", label: "Refunds", slice: "5B" },
-  { key: "receivables", label: "Receivables", slice: "5B" },
-  { key: "ledger", label: "Ledger", slice: "5C" },
   { key: "periods", label: "Periods", slice: "5C" },
   { key: "treasury", label: "Bank & treasury", slice: "5C" },
 ] as const;
@@ -31,7 +36,12 @@ export function financePath(tab?: string): string {
   return `/finance${tab ? `/${tab}` : ""}`;
 }
 
-/** Indian-grouped rupee display of a decimal string from the API (`"125000.00"` → `₹1,25,000.00`). Never parses to a float. */
+/**
+ * Legacy Batch 5 rupee display (`"125000.00"` → `₹1,25,000.00`, always two decimals), kept only
+ * for the other areas that still import it (campus, home, reports — their re-skin slices move them
+ * to `formatINR`). **Finance screens no longer use it**: they format through the R0 `formatINR`
+ * (`money` / `ledger` / `compact` in `./ui`), i.e. no needless `.00`, paise kept on ledgers.
+ */
 export function formatInr(amount: string | null | undefined): string {
   if (amount == null || amount === "") return "—";
   const negative = amount.startsWith("-");

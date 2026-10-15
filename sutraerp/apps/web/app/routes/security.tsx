@@ -1,6 +1,6 @@
-import { KeyRound, LaptopMinimal, LogOut, ShieldCheck, Smartphone, Trash2 } from "lucide-react";
+import { ArrowLeft, KeyRound, LaptopMinimal, LogOut, ShieldCheck, Smartphone, Trash2 } from "lucide-react";
 import { ApiProblem, type SessionView } from "@sutra/api-client";
-import { Badge, BentoGrid, BentoTile, Button, EmptyState, IconChip, Input, useToast } from "@sutra/ui";
+import { Badge, BentoGrid, BentoTile, Button, EmptyState, ListRow, TextField, useToast } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -114,6 +114,18 @@ export default function Security() {
 
   return (
     <BentoGrid data-screen="security">
+      <BentoTile span={12} className="sb-area-head" data-area-head="">
+        <div className="sb-area-title">
+          <button type="button" className="sb-back sb-page-eyebrow" onClick={() => navigate("/profile")} data-back-profile>
+            <ArrowLeft strokeWidth={1.75} /> My profile
+          </button>
+          <h1>Security & sign-in</h1>
+          <p className="sb-area-summary" data-area-summary="">
+            {sessions.data ? `${sessions.data.length} active session${sessions.data.length === 1 ? "" : "s"}` : "Sessions"}
+            {status ? ` · ${status.totpEnrolled || status.passkeys.length ? "two-step verification on" : "password only"}` : ""}
+          </p>
+        </div>
+      </BentoTile>
       <BentoTile span={7} title="Where you’re signed in" action={
         <Button size="sm" variant="ghost" icon={<LogOut strokeWidth={1.75} />} onClick={revokeOthers} disabled={others === 0} data-revoke-others>
           Sign out others
@@ -124,26 +136,19 @@ export default function Security() {
         ) : (
           <div className="sb-list" data-session-list>
             {(sessions.data ?? []).map((s) => (
-              <article key={s.id} className="sb-list-row" data-session={s.id}>
-                <IconChip icon={LaptopMinimal} tone={s.current ? "green" : "grey"} size="sm" />
-                <div>
-                  <h3>
-                    {describeSession(s)}
-                    {s.current && <Badge kind="done">This device</Badge>}
-                    {s.mfaLevel === "mfa" && <Badge kind="info">Verified</Badge>}
-                  </h3>
-                  <small>
-                    Signed in {relativeTime(s.createdAt)} · active {relativeTime(s.lastSeenAt)}
-                  </small>
-                </div>
-                {!s.current && (
-                  <div className="sb-row-actions">
-                    <Button size="sm" variant="ghost" onClick={() => revoke(s)} data-revoke={s.id}>
-                      Sign out
-                    </Button>
-                  </div>
-                )}
-              </article>
+              <ListRow
+                key={s.id}
+                icon={LaptopMinimal}
+                tone={s.current ? "green" : "grey"}
+                title={
+                  <>
+                    {describeSession(s)} {s.current && <Badge kind="done">This device</Badge>} {s.mfaLevel === "mfa" && <Badge kind="info">Verified</Badge>}
+                  </>
+                }
+                meta={`Signed in ${relativeTime(s.createdAt)} · active ${relativeTime(s.lastSeenAt)}`}
+                primary={s.current ? undefined : { label: "Sign out", ghost: true, onClick: () => revoke(s), "data-revoke": s.id }}
+                data-session={s.id}
+              />
             ))}
           </div>
         )}
@@ -168,47 +173,33 @@ export default function Security() {
               {status.mfaRequired ? " Your role requires a second factor." : ""}
             </p>
             <div className="sb-list">
-              <article className="sb-list-row" data-totp-status>
-                <IconChip icon={Smartphone} tone="violet" size="sm" />
-                <div>
-                  <h3>
-                    Authenticator app {status.totpEnrolled ? <Badge kind="done">On</Badge> : <Badge kind="neutral">Off</Badge>}
-                  </h3>
-                  <small>Six-digit codes from Google Authenticator, Microsoft Authenticator, 1Password…</small>
-                </div>
-                <div className="sb-row-actions">
-                  {status.totpEnrolled ? (
-                    <Button size="sm" variant="ghost" onClick={disableTotp} data-disable-totp disabled={!USES_API}>
-                      Turn off
-                    </Button>
-                  ) : (
-                    <Button size="sm" onClick={() => navigate("/account/mfa")} disabled={!USES_API}>
-                      Set up
-                    </Button>
-                  )}
-                </div>
-              </article>
+              <ListRow
+                icon={Smartphone}
+                tone="violet"
+                title={<>Authenticator app {status.totpEnrolled ? <Badge kind="done">On</Badge> : <Badge kind="neutral">Off</Badge>}</>}
+                meta="Six-digit codes from Google Authenticator, Microsoft Authenticator, 1Password…"
+                primary={
+                  status.totpEnrolled
+                    ? { label: "Turn off", ghost: true, onClick: disableTotp, disabled: !USES_API, "data-disable-totp": "" }
+                    : { label: "Set up", onClick: () => navigate("/account/mfa"), disabled: !USES_API, "data-setup-totp": "" }
+                }
+                data-totp-status=""
+              />
               {status.passkeys.map((p) => (
-                <article key={p.id} className="sb-list-row" data-passkey={p.id}>
-                  <IconChip icon={KeyRound} tone="orange" size="sm" />
-                  <div>
-                    <h3>{p.label}</h3>
-                    <small>
-                      Added {relativeTime(p.createdAt)}
-                      {p.lastUsedAt ? ` · used ${relativeTime(p.lastUsedAt)}` : " · not used yet"}
-                    </small>
-                  </div>
-                  <div className="sb-row-actions">
-                    <Button size="sm" variant="ghost" icon={<Trash2 strokeWidth={1.75} />} onClick={() => removePasskey(p.id)} aria-label={`Remove ${p.label}`}>
-                      Remove
-                    </Button>
-                  </div>
-                </article>
+                <ListRow
+                  key={p.id}
+                  icon={KeyRound}
+                  tone="orange"
+                  title={p.label}
+                  meta={`Added ${relativeTime(p.createdAt)}${p.lastUsedAt ? ` · used ${relativeTime(p.lastUsedAt)}` : " · not used yet"}`}
+                  primary={{ label: "Remove", ghost: true, icon: Trash2, onClick: () => removePasskey(p.id), "data-remove-passkey": p.id }}
+                  data-passkey={p.id}
+                />
               ))}
             </div>
             {status.webauthnAvailable ? (
               <div className="sb-form" data-passkey-form>
-                <Input label="Passkey name" name="label" placeholder="Work laptop" maxLength={64} value={label} onChange={(e) => setLabel(e.target.value)} />
+                <TextField label="Passkey name" name="label" placeholder="Work laptop" maxLength={64} value={label} onChange={(e) => setLabel(e.target.value)} />
                 <div className="sb-actions-row">
                   <Button icon={<KeyRound strokeWidth={1.75} />} iconPosition="start" onClick={registerPasskey} disabled={enrol.running || !webauthnSupported()} data-add-passkey>
                     {enrol.running ? "Waiting for your device…" : "Add a passkey"}

@@ -2,7 +2,8 @@ import { Plus } from "lucide-react";
 import { BentoTile, Button, DataTable, EmptyState, Modal } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, QuickForm } from "./forms";
+import { fmtDate, NoInstitution, QuickForm } from "./forms";
+import { Actions } from "../campus/ui";
 import { keys, StatusBadge, useCommand, useInstitutionApi } from "./hooks";
 import type { Institution } from "./types";
 
@@ -27,7 +28,7 @@ export function PoliciesTab({ institution }: { institution: Institution | null }
           caption="Policies"
           rows={q.data ?? []}
           rowKey={(p) => p.id}
-          empty={<EmptyState title="No policies yet">Policies are advisory for activation.</EmptyState>}
+          empty={<EmptyState title="No policies yet" compact>Policies are advisory for activation.</EmptyState>}
           columns={[
             { key: "key", header: "Key", render: (p) => p.key },
             { key: "title", header: "Title", render: (p) => <span data-policy={p.key}>{p.title}</span> },

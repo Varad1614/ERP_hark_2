@@ -1,28 +1,54 @@
-import { Bell, BellOff, Check, Contrast, KeyRound, ListTodo, LogOut, Megaphone, Moon, Search, ShieldCheck, Sun, Type, User } from "lucide-react";
-import type { Notification } from "@sutra/api-client";
+/**
+ * App shell (re-skin v2, prototype header): logo, pill navigation, search (Ctrl K palette),
+ * notifications bell and the avatar menu with its collapsible Personalization group (Customize
+ * Home, Theme, Layouts, Focus mode, Print) + Install as an app, Take the tour, Institution
+ * branding (administrator), Switch role and Sign out. The personal theme applies on every page.
+ */
 import {
-  Avatar,
-  CommandPalette,
-  IconButton,
-  Popover,
-  ROLE_ACCENTS,
-  RoleTheme,
-  Segmented,
-  Shell,
-  useDisplayPrefs,
-  useToast,
-  type NavLinkLikeProps,
-  type PaletteItem,
-} from "@sutra/ui";
+  Bell,
+  BellOff,
+  Building2,
+  Check,
+  ChevronDown,
+  Contrast,
+  Focus,
+  KeyRound,
+  LayoutGrid,
+  LayoutTemplate,
+  ListTodo,
+  LogOut,
+  Map as MapIcon,
+  Megaphone,
+  Menu,
+  MonitorSmartphone,
+  Moon,
+  Printer,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Smartphone,
+  Sun,
+  SwatchBook,
+  Type,
+  User,
+} from "lucide-react";
+import type { Notification } from "@sutra/api-client";
+import { Avatar, Drawer, IconButton, IconChip, Popover, ROLE_ACCENTS, RoleTheme, Shell, StepDialog, useToast, type NavLinkLikeProps } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { AUTH_MODE, useWorkspaces } from "../lib/api";
 import { useAuth, type SignInResult } from "../lib/auth";
 import { NotificationRow } from "../components/NotificationRow";
+import { Palette, type PaletteEntry } from "../components/Palette";
 import { groupMeta } from "../lib/icons";
 import { inboxKeys, useInbox, useInboxRefresh, useUnreadCount } from "../lib/inbox";
 import { ROLE_CONFIG, ROLES, routeFor, type Role } from "../lib/roles";
+import { ThemeDrawer } from "../features/home/Customize";
+import { PRESETS, presetLayout } from "../features/home/model";
+import { effectiveLayout, homeUi, setLayout, setTheme, themeSnapshot, useHomeUi, useTheme, type ThemeMode } from "../features/home/store";
+import { useApplyTheme } from "../features/home/theme";
+import "../components/shell.css";
 
 function RouterLink({ to, className, end, match, children }: NavLinkLikeProps) {
   const { pathname } = useLocation();
@@ -42,23 +68,39 @@ export default function AppShell() {
   return <AuthenticatedShell role={session.role} signIn={signIn} signOut={signOut} />;
 }
 
-function AuthenticatedShell({
-  role,
-  signIn,
-  signOut,
-}: {
-  role: Role;
-  signIn: (r: Role) => Promise<SignInResult>;
-  signOut: () => Promise<void>;
-}) {
+interface InstallPrompt extends Event {
+  prompt: () => Promise<void>;
+}
+
+const TOUR = [
+  ["Your Home", "The tiles show what needs you today. Open Personalization in your avatar menu to rearrange them."],
+  ["Navigation", "The pills across the top take you to every area of the ERP for your role."],
+  ["Search and commands", "Press Ctrl K (⌘K on a Mac) to jump to any screen or workspace, or run a command like Dark mode."],
+  ["Notifications", "The bell collects what changed for you. Open one to go straight to where the work happens."],
+] as const;
+
+function isTyping(e: KeyboardEvent): boolean {
+  const t = e.target as HTMLElement | null;
+  return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+}
+
+function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r: Role) => Promise<SignInResult>; signOut: () => Promise<void> }) {
   const cfg = ROLE_CONFIG[role];
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const toast = useToast();
   const [pop, setPop] = useState<"bell" | "menu" | null>(null);
+  const [pzOpen, setPzOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [tour, setTour] = useState<number | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [install, setInstall] = useState<InstallPrompt | null>(null);
   const inbox = useInbox();
   const refreshInbox = useInboxRefresh();
   const unreadQuery = useUnreadCount();
+  const { panel, focus } = useHomeUi();
+  const theme = useTheme();
+  useApplyTheme();
   // Latest notifications for the bell; fetched when the popover opens (and kept for a minute).
   const recent = useQuery({
     queryKey: [...inboxKeys.notifications(role, false), "bell"],
@@ -67,19 +109,64 @@ function AuthenticatedShell({
     staleTime: 60_000,
   });
   const workspaces = useWorkspaces(role);
-  const [display, setDisplay] = useDisplayPrefs();
+  const onHome = pathname === "/";
 
   useEffect(() => setPop(null), [role]);
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstall(e as InstallPrompt);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+  }, []);
+
+  const goHomeThen = useCallback(
+    (fn: () => void) => {
+      if (!onHome) navigate("/");
+      // Let Home mount first when we navigated.
+      setTimeout(fn, onHome ? 0 : 60);
+    },
+    [onHome, navigate],
+  );
+  const customize = useCallback(() => goHomeThen(() => homeUi.startCustomize()), [goHomeThen]);
+  const toggleFocus = useCallback(() => {
+    if (homeUi.get().focus) homeUi.setFocus(false);
+    else goHomeThen(() => homeUi.setFocus(true));
+  }, [goHomeThen]);
+  const openLayouts = useCallback(() => goHomeThen(() => homeUi.openPanel("layouts")), [goHomeThen]);
+  const print = useCallback(() => setTimeout(() => window.print(), 50), []);
+  const installApp = useCallback(async () => {
+    if (install) {
+      await install.prompt().catch(() => undefined);
+      setInstall(null);
+    } else toast("To install SutraERP, use your browser’s Install app option (address bar or menu).");
+  }, [install, toast]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setPaletteOpen((o) => !o);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e) || document.querySelector(".sb-overlay")) return;
+      const k = e.key.toLowerCase();
+      if (k === "e" && onHome) {
+        e.preventDefault();
+        if (homeUi.get().editing) homeUi.stopCustomize();
+        else customize();
+      } else if (k === "f" && onHome) {
+        e.preventDefault();
+        toggleFocus();
+      } else if (k === "d") {
+        e.preventDefault();
+        setTheme({ mode: themeSnapshot().mode === "dark" || themeSnapshot().mode === "oled" ? "light" : "dark" });
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  }, [onHome, customize, toggleFocus]);
 
   const unread = unreadQuery.data ?? 0;
 
@@ -99,34 +186,91 @@ function AuthenticatedShell({
   };
   const nav = cfg.nav.map((n) => ({ id: n.id, label: n.label, to: routeFor(n.id), match: n.match }));
 
-  const paletteItems = useMemo<PaletteItem[]>(
-    () => [
+  const dark = theme.mode === "dark" || theme.mode === "oled";
+  const paletteItems = useMemo<PaletteEntry[]>(() => {
+    const act = (id: string, title: string, subtitle: string, icon: PaletteEntry["icon"], tone: PaletteEntry["tone"], keywords = "", kbd?: string): PaletteEntry => ({ id: `cmd:${id}`, title, subtitle, group: "Actions", icon, tone, keywords, ...(kbd ? { kbd } : {}) });
+    return [
+      act("customize", "Customize Home", "Personalization", LayoutGrid, "orange", "edit widgets tiles drag", "E"),
+      act("focus", focus ? "Exit focus mode" : "Focus mode", "Just your queue", Focus, "grey", "focus quiet", "F"),
+      act("theme", "Theme settings", "Accent, background, corners, font", SwatchBook, "violet", "colour accent font appearance"),
+      act("layouts", "Layouts", "Switch your Home for the season", LayoutTemplate, "teal", "preset season"),
+      ...PRESETS[role].map(([key, name, desc]) => act(`preset:${key}`, `Switch layout: ${name}`, desc, LayoutTemplate, "teal", "layout preset")),
+      act(dark ? "light" : "dark", dark ? "Light mode" : "Dark mode", "Theme", dark ? Sun : Moon, "grey", "theme appearance", "D"),
+      act("auto", "Match device theme", "Theme", MonitorSmartphone, "grey", "auto system"),
+      act("oled", "OLED black mode", "Theme", Contrast, "grey", "black night"),
+      act("contrast", theme.hc ? "Standard contrast" : "High contrast", "Accessibility", Contrast, "grey", "a11y accessibility"),
+      act("font", theme.font === "easy" ? "Standard font" : "Easy-read font", "Accessibility · Atkinson Hyperlegible", Type, "grey", "dyslexia accessibility"),
+      act("print", "Print or save as PDF", "This page", Printer, "grey", "pdf export"),
+      act("todos", "To-dos", "Your work queue", ListTodo, "orange", "tasks queue"),
+      act("notices", "Notices", "Announcements for your role", Megaphone, "green", "announcements"),
+      act("notifications", "Notifications", "Everything that changed for you", Bell, "violet", "inbox alerts"),
+      act("profile", "My profile", "Details and preferences", User, "grey", "account"),
+      act("security", "Security", "Sessions, passkeys", KeyRound, "grey", "sessions passkeys password"),
+      act("mfa", "Two-step verification", "Authenticator app", ShieldCheck, "grey", "mfa totp 2fa"),
+      ...(role === "administrator" ? [act("branding", "Institution branding", "Name, logo and brand colour", Building2, "teal", "logo brand")] : []),
       ...cfg.nav.map((n) => ({ id: `screen:${n.id}`, title: n.label, subtitle: "Screen", group: "Screens", icon: n.icon, tone: "grey" as const })),
       ...(workspaces.data?.items ?? []).map((w) => {
         const g = groupMeta(w.group);
         return { id: `ws:${w.key}`, title: w.name, subtitle: `${w.key} · Workspace`, group: "Workspaces", icon: g.icon, tone: g.tone };
       }),
-      { id: "cmd:light", title: "Light mode", subtitle: "Theme", group: "Display", icon: Sun, tone: "grey" as const },
-      { id: "cmd:dark", title: "Dark mode", subtitle: "Theme", group: "Display", icon: Moon, tone: "grey" as const },
-      { id: "cmd:contrast", title: display.contrast === "high" ? "Standard contrast" : "High contrast", subtitle: "Accessibility", group: "Display", icon: Contrast, tone: "grey" as const },
-      { id: "cmd:font", title: display.font === "easy" ? "Standard font" : "Easy-read font", subtitle: "Accessibility · Atkinson Hyperlegible", group: "Display", icon: Type, tone: "grey" as const },
-    ],
-    [cfg.nav, workspaces.data, display.contrast, display.font],
-  );
+    ];
+  }, [cfg.nav, workspaces.data, role, focus, dark, theme.hc, theme.font]);
+  const suggested = useMemo(() => paletteItems.filter((x) => ["cmd:customize", "cmd:todos", `cmd:${dark ? "light" : "dark"}`, "cmd:theme"].includes(x.id) || x.id === `screen:${cfg.nav[1]?.id}`), [paletteItems, dark, cfg.nav]);
 
   const onPick = useCallback(
-    (item: PaletteItem) => {
-      const [kind, id] = item.id.split(":");
+    (item: PaletteEntry) => {
+      const [kind, ...rest] = item.id.split(":");
+      const id = rest.join(":");
       if (kind === "cmd") {
-        if (id === "light" || id === "dark") setDisplay({ mode: id });
-        else if (id === "contrast") setDisplay({ contrast: display.contrast === "high" ? "standard" : "high" });
-        else if (id === "font") setDisplay({ font: display.font === "easy" ? "sutra" : "easy" });
-        toast(`Display: ${item.title}`);
-        return;
+        const t = themeSnapshot();
+        switch (id) {
+          case "customize":
+            return customize();
+          case "focus":
+            return toggleFocus();
+          case "theme":
+            return homeUi.openPanel("theme");
+          case "layouts":
+            return openLayouts();
+          case "light":
+          case "dark":
+          case "auto":
+          case "oled":
+            setTheme({ mode: id as ThemeMode });
+            return toast(`Theme: ${item.title}`);
+          case "contrast":
+            setTheme({ hc: !t.hc });
+            return toast(`Display: ${item.title}`);
+          case "font":
+            setTheme({ font: t.font === "easy" ? "sutra" : "easy" });
+            return toast(`Display: ${item.title}`);
+          case "print":
+            return print();
+          case "todos":
+          case "notices":
+          case "notifications":
+          case "profile":
+            return navigate(`/${id}`);
+          case "security":
+            return navigate("/account/security");
+          case "mfa":
+            return navigate("/account/mfa");
+          case "branding":
+            return navigate("/campus/institution");
+          default:
+            if (id.startsWith("preset:")) {
+              const key = id.slice(7);
+              goHomeThen(() => {
+                setLayout(presetLayout(key, effectiveLayout(), role));
+                toast(item.title.replace("Switch layout: ", "Layout: "));
+              });
+            }
+            return;
+        }
       }
-      navigate(kind === "ws" ? `/workspaces/${id}` : routeFor(id ?? "home"));
+      navigate(kind === "ws" ? `/workspaces/${id}` : routeFor(id || "home"));
     },
-    [navigate, setDisplay, display.contrast, display.font, toast],
+    [navigate, toast, customize, toggleFocus, openLayouts, print, goHomeThen, role],
   );
 
   const switchRole = async (next: Role) => {
@@ -143,6 +287,11 @@ function AuthenticatedShell({
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not switch role");
     }
+  };
+
+  const menuGo = (fn: () => void) => () => {
+    setPop(null);
+    fn();
   };
 
   const actions = (
@@ -179,14 +328,12 @@ function AuthenticatedShell({
         ) : (
           recent.data?.items.map((n) => <NotificationRow key={n.id} n={n} onOpen={openNotification} />)
         )}
-        <div className="sb-pop-sep" />
-        <button type="button" className="sb-pop-item" data-bell-see-all onClick={() => { setPop(null); navigate("/notifications"); }}>
-          <Bell strokeWidth={1.75} />
-          <div><b>See all notifications</b></div>
+        <button type="button" className="bell-all" data-bell-see-all onClick={menuGo(() => navigate("/notifications"))}>
+          See all notifications
         </button>
       </Popover>
       <Popover open={pop === "menu"} onClose={() => setPop(null)} variant="menu" label="Account menu">
-        <div className="sb-pop-item">
+        <div className="sb-pop-item mn-me">
           <span className="sb-avatar" style={{ width: 36, height: 36, fontSize: 13 }}>
             {cfg.initials}
           </span>
@@ -195,31 +342,83 @@ function AuthenticatedShell({
             <small>{cfg.title} · Sutra Institute of Technology</small>
           </div>
         </div>
-        <button type="button" className="sb-pop-item" onClick={() => { setPop(null); navigate("/profile"); }}>
+        <button type="button" className="sb-pop-item mn" data-profile-menu onClick={menuGo(() => navigate("/profile"))}>
           <User strokeWidth={1.75} />
-          <div><b>My profile</b></div>
+          <div>
+            <b>My profile</b>
+          </div>
         </button>
-        <button type="button" className="sb-pop-item" onClick={() => { setPop(null); navigate("/notices"); }}>
+        <button type="button" className="sb-pop-item mn" data-notices-menu onClick={menuGo(() => navigate("/notices"))}>
           <Megaphone strokeWidth={1.75} />
-          <div><b>Notices</b></div>
+          <div>
+            <b>Notices</b>
+          </div>
         </button>
-        <button type="button" className="sb-pop-item" data-todos-menu onClick={() => { setPop(null); navigate("/todos"); }}>
-          <ListTodo strokeWidth={1.75} />
-          <div><b>To-dos</b></div>
+        <button type="button" className={`sb-pop-item mn mn-pz${pzOpen ? " is-open" : ""}`} aria-expanded={pzOpen} data-pz-toggle onClick={() => setPzOpen((o) => !o)}>
+          <SlidersHorizontal strokeWidth={1.75} />
+          <div>
+            <b>Personalization</b>
+            <small>Customize, theme, layouts, focus</small>
+          </div>
+          <ChevronDown strokeWidth={1.75} className="mn-chev" />
         </button>
-        <button type="button" className="sb-pop-item" data-security-menu onClick={() => { setPop(null); navigate("/account/security"); }}>
-          <KeyRound strokeWidth={1.75} />
-          <div><b>Security</b><small>Sessions, passkeys</small></div>
+        {pzOpen && (
+          <div className="mn-sub" data-pz-group>
+            <button type="button" className="sb-pop-item mn" data-pz="customize" onClick={menuGo(customize)}>
+              <LayoutGrid strokeWidth={1.75} />
+              <div>
+                <b>Customize Home</b>
+              </div>
+              <kbd className="sb-kbd">E</kbd>
+            </button>
+            <button type="button" className="sb-pop-item mn" data-pz="theme" onClick={menuGo(() => homeUi.openPanel("theme"))}>
+              <SwatchBook strokeWidth={1.75} />
+              <div>
+                <b>Theme</b>
+              </div>
+            </button>
+            <button type="button" className="sb-pop-item mn" data-pz="layouts" onClick={menuGo(openLayouts)}>
+              <LayoutTemplate strokeWidth={1.75} />
+              <div>
+                <b>Layouts</b>
+              </div>
+            </button>
+            <button type="button" className="sb-pop-item mn" data-pz="focus" onClick={menuGo(toggleFocus)}>
+              <Focus strokeWidth={1.75} />
+              <div>
+                <b>{focus ? "Exit focus mode" : "Focus mode"}</b>
+              </div>
+              <kbd className="sb-kbd">F</kbd>
+            </button>
+            <button type="button" className="sb-pop-item mn" data-pz="print" onClick={menuGo(print)}>
+              <Printer strokeWidth={1.75} />
+              <div>
+                <b>Print or save as PDF</b>
+              </div>
+            </button>
+          </div>
+        )}
+        <button type="button" className="sb-pop-item mn" data-install-menu onClick={menuGo(installApp)}>
+          <Smartphone strokeWidth={1.75} />
+          <div>
+            <b>Install as an app</b>
+          </div>
         </button>
-        <button type="button" className="sb-pop-item" data-mfa-menu onClick={() => { setPop(null); navigate("/account/mfa"); }}>
-          <ShieldCheck strokeWidth={1.75} />
-          <div><b>Two-step verification</b></div>
+        <button type="button" className="sb-pop-item mn" data-tour-menu onClick={menuGo(() => setTour(0))}>
+          <MapIcon strokeWidth={1.75} />
+          <div>
+            <b>Take the tour</b>
+          </div>
         </button>
-        <div className="sb-pop-sep" />
-        <p className="sb-pop-label">Display</p>
-        <Segmented label="Theme" value={display.mode} options={[["light", "Light"], ["dark", "Dark"], ["auto", "Auto"]] as const} onChange={(mode) => setDisplay({ mode })} />
-        <Segmented label="Contrast" value={display.contrast} options={[["standard", "Standard"], ["high", "High"]] as const} onChange={(contrast) => setDisplay({ contrast })} />
-        <Segmented label="Font" value={display.font} options={[["sutra", "Sutra"], ["easy", "Easy read"]] as const} onChange={(font) => setDisplay({ font })} />
+        {role === "administrator" && (
+          <button type="button" className="sb-pop-item mn" data-branding-menu onClick={menuGo(() => navigate("/campus/institution"))}>
+            <Building2 strokeWidth={1.75} />
+            <div>
+              <b>Institution branding</b>
+              <small>Name, logo, colour</small>
+            </div>
+          </button>
+        )}
         <div className="sb-pop-sep" />
         <p className="sb-pop-label">Switch role</p>
         {ROLES.map((r) => {
@@ -240,7 +439,8 @@ function AuthenticatedShell({
         <div className="sb-pop-sep" />
         <button
           type="button"
-          className="sb-pop-item"
+          className="sb-pop-item mn"
+          data-sign-out
           onClick={async () => {
             setPop(null);
             await signOut();
@@ -248,29 +448,71 @@ function AuthenticatedShell({
           }}
         >
           <LogOut strokeWidth={1.75} />
-          <div><b>Sign out</b></div>
+          <div>
+            <b>Sign out</b>
+          </div>
         </button>
       </Popover>
     </>
   );
 
+  const step = tour === null ? null : TOUR[tour];
   return (
     <>
       <RoleTheme role={role} />
-      <Shell
-        nav={nav}
-        linkComponent={RouterLink}
-        actions={actions}
-        footer={
-          <div className="sb-env-tag">
-            <i />
-            {AUTH_MODE === "mock" ? "Demo · mock data" : AUTH_MODE === "oidc" ? "Live API · SSO" : "Live API"}
-          </div>
-        }
-      >
+      <Shell nav={nav} linkComponent={RouterLink} actions={actions} footer={AUTH_MODE === "mock" ? <div className="sb-env-tag"><i />Demo · mock data</div> : undefined}>
         <Outlet />
       </Shell>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} onSelect={onPick} />
+      <nav className="dtab" aria-label="Main (mobile)" data-mobile-tabs>
+        {cfg.nav.slice(0, 4).map((n) => (
+          <RouterLink key={n.id} to={routeFor(n.id)} end={n.id === "home"} match={n.match} className={({ isActive }) => (isActive ? "on" : "")}>
+            <n.icon strokeWidth={1.75} />
+            {n.label}
+          </RouterLink>
+        ))}
+        <button type="button" onClick={() => setMoreOpen(true)} data-mobile-more>
+          <Menu strokeWidth={1.75} />
+          More
+        </button>
+      </nav>
+      <Drawer open={moreOpen} onClose={() => setMoreOpen(false)} title="More" eyebrow="Navigation">
+        <div className="dh-presets">
+          {cfg.nav.slice(4).map((n) => (
+            <button
+              key={n.id}
+              type="button"
+              className="sb-row"
+              onClick={() => {
+                setMoreOpen(false);
+                navigate(routeFor(n.id));
+              }}
+            >
+              <IconChip icon={n.icon} tone="grey" size="sm" />
+              <div>
+                <b>{n.label}</b>
+              </div>
+            </button>
+          ))}
+        </div>
+      </Drawer>
+      <Palette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} suggested={suggested} onSelect={onPick} />
+      <ThemeDrawer open={panel === "theme"} onClose={homeUi.closePanel} />
+      {step && tour !== null && (
+        <StepDialog
+          open
+          onClose={() => setTour(null)}
+          eyebrow={`Tour · ${tour + 1} of ${TOUR.length}`}
+          title={step[0]}
+          steps={TOUR.map((s) => s[0])}
+          step={tour}
+          cancelLabel="Skip tour"
+          primary={{ label: tour === TOUR.length - 1 ? "Done" : "Next →", onClick: () => setTour(tour === TOUR.length - 1 ? null : tour + 1) }}
+          onBack={tour > 0 ? () => setTour(tour - 1) : undefined}
+          data-tour=""
+        >
+          <p className="tour-copy">{step[1]}</p>
+        </StepDialog>
+      )}
     </>
   );
 }

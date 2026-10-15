@@ -45,7 +45,6 @@ import {
   newProblems,
   psql,
   row,
-  rowAction,
   seedInstitution,
   seedStudent,
   settle,
@@ -77,11 +76,57 @@ async function fillForm(page, name, values) {
   await settle(page);
 }
 
-/** Clicks a page-level action button (`[data-action=id]`) and waits for the network. */
+/**
+ * Re-skin v2: a row / tile shows ONE action pill (`[data-action=id]`) and folds the others into a
+ * kebab (`[data-row-menu]` → `[data-menu-item=id]`). Clicks the action wherever it lives inside
+ * `container`, then waits for the network.
+ */
+async function clickAction(page, container, id, timeout = 15000) {
+  const deadline = Date.now() + timeout;
+  const direct = container.locator(`[data-action="${id}"]`).first();
+  while (Date.now() < deadline) {
+    if (await direct.isVisible().catch(() => false)) {
+      await direct.click();
+      await settle(page);
+      return;
+    }
+    const menus = container.locator("[data-row-menu]");
+    const n = await menus.count().catch(() => 0);
+    for (let i = 0; i < n; i++) {
+      const m = menus.nth(i);
+      if (!(await m.isVisible().catch(() => false))) continue;
+      await m.click();
+      const item = container.locator(`[data-menu-item="${id}"]`).first();
+      if (await item.isVisible().catch(() => false)) {
+        await item.click();
+        await settle(page);
+        return;
+      }
+      await page.keyboard.press("Escape");
+    }
+    await page.waitForTimeout(300);
+  }
+  throw new Error(`action ${id} not found (pill or kebab)`);
+}
+
+/** Clicks a page-level action (pill or kebab entry) and waits for the network. */
 async function action(page, id) {
-  const b = page.locator(`[data-action="${id}"]`).first();
-  await b.waitFor({ state: "visible", timeout: 15000 });
-  await b.click();
+  await clickAction(page, page.locator("main"), id);
+}
+
+/** Clicks action `id` in the table row containing `text` (pill or kebab entry). */
+async function rowAction(page, text, id, scope) {
+  const r = row(page, text, scope);
+  await r.waitFor({ timeout: 10000 });
+  await clickAction(page, r, id, 10000);
+}
+
+/** The paper row (ListRow `[data-paper]`) of Marks / Assessments. */
+const paperRow = (page, code) => page.locator(`[data-paper^="${code}"]`).first();
+async function openPaper(page, code) {
+  const r = paperRow(page, code);
+  await r.waitFor({ timeout: 15000 });
+  await r.locator("[data-row-open]").click();
   await settle(page);
 }
 
@@ -183,6 +228,9 @@ function seedFinance(setup, studentId) {
 
 async function display(page, setting) {
   await page.click('[aria-label="Account menu"]');
+  // Re-skin v2 (R1): display settings live in the Theme drawer (avatar menu → Personalization → Theme).
+  if (!(await page.locator("[data-pz-group]").count())) await page.click("[data-pz-toggle]");
+  await page.click('[data-pz="theme"]');
   await page.locator(`[data-display="${setting}"]`).click();
   await page.keyboard.press("Escape");
   await page.mouse.click(4, 700);
@@ -232,7 +280,7 @@ try {
 
   await waitFor(`${BASE}/sign-in`, web);
   browser = await chromium.launch({ headless: !process.env.E2E_HEADED, executablePath: process.env.CHROMIUM_PATH || undefined, args: ["--no-sandbox", ...(process.env.E2E_CHROMIUM_ARGS ?? "").split(" ").filter(Boolean)] });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   watch(page);
@@ -245,14 +293,20 @@ try {
   page.setDefaultNavigationTimeout(30000);
   newProblems();
 
-  await step(page, "admin: Examinations is live in the new UI (page header, tabs)", async () => {
+  await step(page, "admin: Examinations overview (area header, ≤5 tabs + More)", async () => {
     await go(page, "/");
     await page.click('nav.sb-pills a[href="/examinations"]');
     await settle(page);
     await page.locator('[data-screen="examinations"]').waitFor();
     check((await page.locator("[data-coming]").count()) === 0, "no “Coming in Batch 6” page");
-    const tabs = await page.locator("[data-tab-link]").evaluateAll((as) => as.map((a) => a.getAttribute("data-tab-link")));
-    check(JSON.stringify(tabs) === JSON.stringify(["sessions", "schedule", "registrations", "marks", "malpractice", "results", "revaluation"]), `seven tabs (${tabs.join(", ")})`);
+    await page.locator("[data-area-head] [data-area-summary]").waitFor();
+    const tabs = await page.locator("[data-area-head] nav.sb-tabs a[data-tab-link]").evaluateAll((as) => as.map((a) => a.getAttribute("data-tab-link")));
+    check(JSON.stringify(tabs) === JSON.stringify(["overview", "schedule", "marks", "results"]), `header tabs Overview · Schedule · Marks · Results (${tabs.join(", ")})`);
+    await page.click("[data-tab-more]");
+    const more = await page.locator(".sb-menu a[data-tab-link]").evaluateAll((as) => as.map((a) => a.getAttribute("data-tab-link")));
+    check(JSON.stringify(more) === JSON.stringify(["registrations", "malpractice", "revaluation", "sessions"]), `More holds the other four (${more.join(", ")})`);
+    await page.keyboard.press("Escape");
+    check((await page.locator("[data-kpi-tile]").count()) === 3, "three KPI tiles");
     await shot(page, "6-admin-examinations-empty");
   });
 
@@ -307,7 +361,7 @@ try {
     await tile(page, "Venues").getByText("HALL-A").first().waitFor();
     await rowAction(page, "CS101", "venue-allocate", tile(page, "Timetable"));
     await fillForm(page, "venue-allocate", { venueId: "HALL-A" });
-    await row(page, "CS101", tile(page, "Timetable")).getByText("HALL-A").waitFor();
+    await row(page, "CS101", tile(page, "Timetable")).getByText("Main Hall A").waitFor();
     await action(page, "schedule-submit");
     await page.locator('[data-schedule-status="approved"]').waitFor();
     await action(page, "schedule-publish");
@@ -356,8 +410,8 @@ try {
 
   await step(page, "admin: mark sheet opened, internal assessment imported (Batch 4)", async () => {
     await go(page, "/examinations/marks");
-    await rowAction(page, "CS101", "sheet-open", tile(page, "Mark sheets"));
-    await rowAction(page, "CS101", "paper-open", tile(page, "Mark sheets"));
+    await clickAction(page, paperRow(page, "CS101"), "sheet-open");
+    await openPaper(page, "CS101");
     await action(page, "sheet-import");
     await row(page, "S2026-0001").getByText("34.50").first().waitFor();
     check(true, "internal 34.50 / 40 imported");
@@ -383,7 +437,8 @@ try {
     await page.locator('[data-slice="6B"]').first().waitFor();
     check((await page.locator("[data-page-head]").count()) === 1, "page header");
     await shot(page, "6-faculty-assessments");
-    await rowAction(page, "CS101", "paper-open", tile(page, "My assessments"));
+    check((await page.locator("[data-my-assessments] [data-paper]").count()) === 1, "papers listed as rows");
+    await openPaper(page, "CS101");
     const input = page.locator('[data-mark-input="S2026-0001"]');
     await input.waitFor();
     await input.fill("78");
@@ -400,10 +455,22 @@ try {
   // ------------------------------------------------------------ admin: marks approval + results
   await signOut(page);
   await signIn(page, "administrator");
-  await step(page, "admin: marks verified → final approval → finalised", async () => {
+  await step(page, "admin: overview calendar + Result verification card → Verify", async () => {
+    await go(page, "/examinations");
+    await page.locator('[data-exam-calendar] [data-calendar-sitting^="CS101"]').waitFor();
+    await page.locator("[data-seating-plan]").getByText("Main Hall A").first().waitFor();
+    const card = page.locator('[data-verify^="CS101"]');
+    await card.waitFor();
+    await shot(page, "6-admin-overview-verification");
+    await card.locator("[data-approve]").click();
+    await settle(page);
+    await card.waitFor({ state: "detached", timeout: 15000 });
+    check(true, "mark sheet verified from the overview");
+  });
+
+  await step(page, "admin: marks → final approval → finalised", async () => {
     await go(page, "/examinations/marks");
-    await rowAction(page, "CS101", "paper-open", tile(page, "Mark sheets"));
-    await action(page, "sheet-verify");
+    await openPaper(page, "CS101");
     await action(page, "sheet-approval");
     await action(page, "sheet-finalise");
     await expectRowStatus(page, "S2026-0001", "Finalised");
@@ -454,14 +521,14 @@ try {
     check(/^\d+\.\d\d$/.test(cgpa), `CGPA tile ${cgpa}`);
     check((await page.locator(`[data-my-ticket="${ids.ticketNo}"]`).count()) === 1, `hall ticket ${ids.ticketNo} listed`);
     check((await page.locator("[data-my-timetable] [data-my-sitting]").count()) >= 1, "exam timetable listed");
-    await tile(page, "Results").getByText(/GC-|grade card/i).first().waitFor().catch(() => {});
+    await page.locator("[data-grade-card]").first().waitFor().catch(() => {});
     await shot(page, "6-student-results");
   });
 
   await step(page, "student: revaluation requested — Finance fee raised", async () => {
-    await rowAction(page, "CS101", "request-review", tile(page, "Results"));
+    await rowAction(page, "CS101", "request-review", page.locator("[data-result]"));
     await fillForm(page, "review-request", { kind: "revaluation", reason: "Expected higher marks in section B" });
-    const r = row(page, "CS101", tile(page, "Results").locator("table").last());
+    const r = page.locator('[data-my-review^="CS101"]').first();
     await r.waitFor();
     const text = ((await r.textContent()) ?? "").replace(/\s+/g, " ");
     check(/₹\d/.test(text) && /due|paid/.test(text), `review request shows its fee (${text.slice(0, 120)})`);

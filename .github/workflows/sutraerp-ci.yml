@@ -2,7 +2,7 @@ name: SutraERP CI
 
 on:
   push:
-    branches: [main, erp_merge, "dev/**", "batch5/**", "batch6/**", "batch7/**", "batch8/**", "batch9/**", "ui/**"]
+    branches: [main, erp_merge, "dev/**", "batch5/**", "batch6/**", "batch7/**", "batch8/**", "batch9/**", "ui/**", "reskin2/**"]
     paths: ["sutraerp/**", ".github/workflows/sutraerp-ci.yml"]
   workflow_dispatch:
   pull_request:
@@ -159,17 +159,19 @@ jobs:
           path: sutraerp/target/debug/sutra-api
           retention-days: 3
 
+  # reskin2 = visual proof for the re-skin v2 (every screen at 1440×960 + /dev/catalogue → artifact
+  # e2e-shots-reskin2); e2e builds set VITE_UI_CATALOGUE=1 so the dev-only catalogue is served.
   # Click-through e2e suites in preview mode (Batch 3 student, Batch 4 academic, Batch 5 finance, Batch 6 exams, Batch 7 people, Batch 8 campus,
   # UI re-skin shell/homes/workspaces); screenshots uploaded as artifacts (the sandbox OOMs running
   # chromium + API + preview together). Runs on ui/**, batch*/** and erp_merge.
   e2e:
     name: E2E ${{ matrix.suite }} (preview)
-    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || github.ref == 'refs/heads/erp_merge'
+    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || github.ref == 'refs/heads/erp_merge'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        suite: [finance, student, academic, ui, exams, people, campus]
+        suite: [finance, student, academic, ui, exams, people, campus, reskin2]
     services:
       postgres:
         image: postgres:18
@@ -201,7 +203,7 @@ jobs:
       - run: cargo build -p sutra-api --locked
       - run: SUTRA_ENV=development target/debug/sutra-api migrate
       - run: pnpm --filter @sutra/web exec playwright install --with-deps chromium
-      - run: VITE_AUTH_MODE=api pnpm --filter @sutra/web build
+      - run: VITE_AUTH_MODE=api VITE_UI_CATALOGUE=1 pnpm --filter @sutra/web build
       - name: ${{ matrix.suite }} e2e
         run: E2E_WEB=preview VITE_AUTH_MODE=api E2E_SHOTS=$RUNNER_TEMP/shots CARGO_TARGET_DIR=$GITHUB_WORKSPACE/sutraerp/target timeout 1200 pnpm e2e:${{ matrix.suite }}
       - uses: actions/upload-artifact@v4

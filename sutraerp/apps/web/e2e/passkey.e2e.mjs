@@ -261,7 +261,7 @@ try {
   await page.click("[data-add-passkey]");
   await page.waitForSelector("[data-passkey]", { timeout: 20000 });
   check((await page.locator("[data-passkey]").count()) === 1, "passkey listed on the Security page");
-  check((await page.locator("[data-passkey] h3").first().textContent())?.includes("E2E virtual passkey"), "listed with its name");
+  check((await page.locator("[data-passkey] b").first().textContent())?.includes("E2E virtual passkey"), "listed with its name");
   check((await page.textContent("[data-add-passkey]"))?.includes("Add a passkey"), "button back to “Add a passkey”");
   const created = await credentials();
   check(created.length === 1, "virtual authenticator holds the credential");

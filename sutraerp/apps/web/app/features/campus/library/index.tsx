@@ -13,17 +13,17 @@
  * - `MyLibraryPanel` — the student's loans (renew), catalogue search (reserve), reservations
  *   (cancel), fines, library clearance and a library complaint (service desk ticket).
  */
-import { AlertTriangle, BookMarked, BookOpen, ClipboardCheck, Library, LibraryBig, Receipt, Users } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, EmptyState, FilterChip, SearchField, StatTile } from "@sutra/ui";
+import { AlertTriangle, BookCopy, BookMarked, BookmarkPlus, BookOpen, CalendarPlus, ClipboardCheck, Library, LibraryBig, Receipt, Users } from "lucide-react";
+import { Badge, BentoTile, Button, DataTable, EmptyState, FilterChip, formatNumber, KpiTile, ListRow, NameCell, plural, SearchField, statusKind } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, REASON, todayIso, useAsk, type RowAction } from "../../institution/forms";
+import { fmtDate, REASON, todayIso, useAsk, type RowAction } from "../../institution/forms";
+import { ApprovalBadge, Actions, inr as formatInr } from "../ui";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { lkeys, useLibraryApi } from "./hooks";
 import { kindOf, personField, usePeople } from "../PersonPicker"; // 9E
 import type { CatalogueRecord, Clearance, Copy, CopyCondition, Fine, LibraryPolicy, LibraryReservation, Loan, Membership } from "./types";
-import { formatInr } from "../../finance";
 
 export { LibraryApiProvider } from "./hooks";
 
@@ -37,7 +37,7 @@ const LOAN_FILTERS = [
 function NoInstitutionTile({ title }: { title: string }) {
   return (
     <BentoTile span={12} title={title} data-slice="8C">
-      <EmptyState icon={Library} title="No institution selected">
+      <EmptyState icon={Library} title="No institution selected" compact>
         Register an institution in Campus setup → Institution first.
       </EmptyState>
     </BentoTile>
@@ -396,10 +396,10 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
 
   return (
     <>
-      <StatTile span={3} icon={Users} tone="blue" label="Members" value={String(members.filter((m) => m.status === "active").length)} data-slice="8C" data-kpi="library-members" />
-      <StatTile span={3} icon={LibraryBig} tone="violet" label="Titles" value={String(records.filter((r) => r.status === "published").length)} data-kpi="library-titles" />
-      <StatTile span={3} icon={BookOpen} tone="green" label="Loans out" value={String(out.length)} hint={liveReservations.length ? `${liveReservations.length} reservation(s) waiting` : undefined} data-kpi="library-loans" />
-      <StatTile span={3} icon={AlertTriangle} tone="rose" label="Overdue" value={String(overdue.length)} data-kpi="library-overdue" />
+      <KpiTile span={3} icon={Users} tone="blue" label="Members" value={String(members.filter((m) => m.status === "active").length)} data-slice="8C" data-kpi="library-members" />
+      <KpiTile span={3} icon={LibraryBig} tone="violet" label="Titles" value={String(records.filter((r) => r.status === "published").length)} data-kpi="library-titles" />
+      <KpiTile span={3} icon={BookOpen} tone="green" label="Loans out" value={String(out.length)} sub={liveReservations.length ? `${liveReservations.length} reservation(s) waiting` : undefined} data-kpi="library-loans" />
+      <KpiTile span={3} icon={AlertTriangle} tone="rose" label="Overdue" value={String(overdue.length)} data-kpi="library-overdue" />
       <BentoTile
         span={12}
         title="Borrowing policy"
@@ -414,13 +414,13 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
           caption="Library policies"
           rows={policies}
           rowKey={(p) => p.id}
-          empty={<EmptyState icon={BookMarked} title="No borrowing policy yet">Members can borrow once a policy is active.</EmptyState>}
+          empty={<EmptyState icon={BookMarked} title="No borrowing policy yet" compact>Members can borrow once a policy is active.</EmptyState>}
           columns={[
             { key: "name", header: "Policy", render: (p) => p.name },
             { key: "from", header: "From", render: (p) => fmtDate(p.effectiveFrom), muted: true },
             { key: "loans", header: "Loan days", render: (p) => `${p.loanDaysStudent} student · ${p.loanDaysStaff} staff`, muted: true },
             { key: "fine", header: "Fine / day", render: (p) => formatInr(p.finePerDay), muted: true },
-            { key: "approval", header: "Approval", render: (p) => <StatusBadge status={p.approvalState} /> },
+            { key: "approval", header: "Approval", render: (p) => <ApprovalBadge state={p.approvalState} /> },
             { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
             { key: "actions", header: "", render: (p) => <Actions actions={policyRowActions(p)} disabled={busy} /> },
           ]}
@@ -440,7 +440,7 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
           caption="Library members"
           rows={members}
           rowKey={(m) => m.id}
-          empty={<EmptyState icon={Users} title="No members yet">Students and staff become members to borrow.</EmptyState>}
+          empty={<EmptyState icon={Users} title="No members yet" compact>Students and staff become members to borrow.</EmptyState>}
           columns={[
             { key: "number", header: "Member", render: (m) => m.number },
             { key: "name", header: "Name", render: (m) => m.displayName },
@@ -465,7 +465,7 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
           caption="Catalogue records"
           rows={records}
           rowKey={(r) => r.id}
-          empty={<EmptyState icon={LibraryBig} title="The catalogue is empty">Catalogue a title, publish it and add copies.</EmptyState>}
+          empty={<EmptyState icon={LibraryBig} title="The catalogue is empty" compact>Catalogue a title, publish it and add copies.</EmptyState>}
           columns={[
             { key: "title", header: "Title", render: (r) => r.title },
             { key: "copies", header: "On shelf", render: (r) => `${r.availableCopies} of ${r.copies}`, muted: true },
@@ -489,7 +489,7 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
             caption="Copies"
             rows={copies}
             rowKey={(c) => c.id}
-            empty={<EmptyState icon={BookOpen} title="No copies yet">Add a copy to put the title on the shelf.</EmptyState>}
+            empty={<EmptyState icon={BookOpen} title="No copies yet" compact>Add a copy to put the title on the shelf.</EmptyState>}
             columns={[
               { key: "acc", header: "Accession", render: (c) => c.accessionNumber },
               { key: "where", header: "Location", render: (c) => c.nodeCode ?? c.shelfMark ?? "—", muted: true },
@@ -522,7 +522,7 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
           caption="Loans"
           rows={loans}
           rowKey={(l) => l.id}
-          empty={<EmptyState icon={BookOpen} title="No loans here">Issued copies and their due dates appear here.</EmptyState>}
+          empty={<EmptyState icon={BookOpen} title="No loans here" compact>Issued copies and their due dates appear here.</EmptyState>}
           columns={[
             { key: "number", header: "Loan", render: (l) => l.number },
             { key: "title", header: "Title", render: (l) => `${l.title} · ${l.accessionNumber}` },
@@ -539,9 +539,9 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
           caption="Library fines"
           rows={fines}
           rowKey={(f) => f.id}
-          empty={<EmptyState icon={Receipt} title="No fines">Fines are assessed when an overdue copy comes back.</EmptyState>}
+          empty={<EmptyState icon={Receipt} title="No fines" compact>Fines are assessed when an overdue copy comes back.</EmptyState>}
           columns={[
-            { key: "member", header: "Member", render: (f) => `${f.memberNumber} · ${f.displayName}` },
+            { key: "member", header: "Member", render: (f) => <NameCell name={f.displayName} sub={f.memberNumber} /> },
             { key: "kind", header: "For", render: (f) => (f.kind === "overdue" ? `Overdue ${f.days} day(s)${f.loanNumber ? ` · ${f.loanNumber}` : ""}` : "Replacement"), muted: true },
             { key: "amount", header: "Amount", render: (f) => formatInr(f.amount) },
             { key: "charge", header: "Finance", render: (f) => f.chargeNumber ?? (f.personKind === "staff" ? "Not billed (staff)" : "—"), muted: true },
@@ -555,10 +555,10 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
           caption="Reservations"
           rows={reservations}
           rowKey={(r) => r.id}
-          empty={<EmptyState icon={BookMarked} title="No reservations">Members reserve titles that are out on loan; a returned copy is held for the first in the queue.</EmptyState>}
+          empty={<EmptyState icon={BookMarked} title="No reservations" compact>Members reserve titles that are out on loan; a returned copy is held for the first in the queue.</EmptyState>}
           columns={[
             { key: "title", header: "Title", render: (r) => r.title },
-            { key: "member", header: "Member", render: (r) => `${r.memberNumber} · ${r.displayName}`, muted: true },
+            { key: "member", header: "Member", render: (r) => <NameCell name={r.displayName} sub={r.memberNumber} />, muted: true },
             { key: "queue", header: "Queue", render: (r) => (r.status === "ready" ? `${r.accessionNumber ?? "Held"} · until ${fmtDate(r.holdUntil)}` : `#${r.currentPosition ?? r.queuePosition}`), muted: true },
             { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
             { key: "actions", header: "", render: (r) => <Actions actions={reservationRowActions(r)} disabled={busy} /> },
@@ -579,9 +579,9 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
           caption="Library clearances"
           rows={clearances}
           rowKey={(c) => c.id}
-          empty={<EmptyState icon={ClipboardCheck} title="No clearance requests">A member is cleared with no loans out and no unsettled fines.</EmptyState>}
+          empty={<EmptyState icon={ClipboardCheck} title="No clearance requests" compact>A member is cleared with no loans out and no unsettled fines.</EmptyState>}
           columns={[
-            { key: "member", header: "Member", render: (c) => `${c.memberNumber} · ${c.displayName}` },
+            { key: "member", header: "Member", render: (c) => <NameCell name={c.displayName} sub={c.memberNumber} /> },
             { key: "purpose", header: "Purpose", render: (c) => c.purpose, muted: true },
             { key: "check", header: "Check", render: (c) => (c.verification.blockers.length ? c.verification.blockers.join("; ") : "No loans or fines outstanding"), muted: true },
             { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
@@ -619,7 +619,6 @@ export function MyLibraryPanel() {
   const reservations = m?.reservations ?? [];
   const due = sumAmounts(fines.filter((f) => UNSETTLED.includes(f.status)).map((f) => f.amount));
   const clearance = m?.clearance ?? null;
-  const blockers = m?.eligibility?.blockers ?? [];
 
   const requestClearance = () =>
     ask({
@@ -645,7 +644,7 @@ export function MyLibraryPanel() {
   if (mine.isError)
     return (
       <BentoTile span={12} title="My library" data-slice="8C" data-my-library>
-        <EmptyState icon={Library} title="Your library record is not available">
+        <EmptyState icon={Library} title="Your library record is not available" compact>
           The library could not find a student record for this sign-in.
         </EmptyState>
       </BentoTile>
@@ -654,143 +653,160 @@ export function MyLibraryPanel() {
   if (mine.isSuccess && !member)
     return (
       <BentoTile span={12} title="My library" data-slice="8C" data-my-library>
-        <EmptyState icon={Library} title="You are not a library member yet">
+        <EmptyState icon={Library} title="You are not a library member yet" compact>
           The library office adds students as members once the borrowing policy is active.
         </EmptyState>
       </BentoTile>
     );
 
+  const settled = due === "0.00" || due === "0";
+  const sideTile = reservations.length > 0 || fines.length > 0 || !!clearance;
   return (
     <>
-      <StatTile span={4} icon={BookOpen} tone="green" label="On loan" value={String(loans.length)} data-slice="8C" data-kpi="my-loans" />
-      <StatTile span={4} icon={BookMarked} tone="violet" label="Reservations" value={String(reservations.filter((r) => r.status === "queued" || r.status === "ready").length)} data-kpi="my-reservations" />
-      <StatTile span={4} icon={Receipt} tone={due !== "0.00" ? "rose" : "blue"} label="Fines due" value={formatInr(due)} hint={blockers.length ? blockers.join("; ") : undefined} data-kpi="my-fines" />
       <BentoTile
         span={12}
-        title="My loans"
+        title="Borrowed"
         data-slice="8C"
         data-my-library
+        data-kpi="my-loans"
         action={
-          <Button size="sm" variant="ghost" data-action="library-complaint" onClick={complain}>
-            Report a problem
-          </Button>
-        }
-      >
-        <DataTable<Loan>
-          caption="My loans"
-          rows={loans}
-          rowKey={(l) => l.id}
-          empty={<EmptyState icon={BookOpen} title="Nothing on loan">Borrowed books and their due dates appear here.</EmptyState>}
-          columns={[
-            { key: "title", header: "Title", render: (l) => l.title },
-            { key: "acc", header: "Copy", render: (l) => l.accessionNumber, muted: true },
-            { key: "due", header: "Due", render: (l) => fmtDate(l.dueOn) },
-            { key: "fine", header: "Fine", render: (l) => (l.fineAmount ? formatInr(l.fineAmount) : "—"), muted: true },
-            { key: "status", header: "Status", render: (l) => <LoanBadge status={l.status} /> },
-            {
-              key: "actions",
-              header: "",
-              render: (l) => (
-                <Actions
-                  actions={l.status === "active" ? [{ id: "my-renew", label: "Renew", onClick: () => void run(() => api.renewMine(l.id, l.version), (r) => `Due ${fmtDate(r.dueOn)}`) }] : []}
-                  disabled={busy}
-                />
-              ),
-            },
-          ]}
-        />
-      </BentoTile>
-      <BentoTile span={7} title="Search the catalogue" data-slice="8C">
-        <SearchField label="Search titles" placeholder="Title or author" value={q} onChange={(e) => setQ(e.target.value)} data-library-search />
-        <DataTable<CatalogueRecord>
-          caption="Catalogue"
-          rows={results}
-          rowKey={(r) => r.id}
-          empty={<EmptyState icon={LibraryBig} title="No titles found">Try another title or author.</EmptyState>}
-          columns={[
-            { key: "title", header: "Title", render: (r) => r.title },
-            { key: "authors", header: "Authors", render: (r) => r.authors.join(", ") || "—", muted: true },
-            { key: "shelf", header: "On shelf", render: (r) => `${r.availableCopies} of ${r.copies}`, muted: true },
-            {
-              key: "actions",
-              header: "",
-              render: (r) => (
-                <Actions
-                  actions={r.availableCopies === 0 && r.copies > 0 ? [{ id: "my-reserve", label: "Reserve", variant: "primary", onClick: () => void run(() => api.reserve(r.id), (x) => `Reserved · position ${x.queuePosition}`) }] : []}
-                  disabled={busy}
-                />
-              ),
-            },
-          ]}
-        />
-      </BentoTile>
-      <BentoTile span={5} title="Reservations & fines" data-slice="8C">
-        <DataTable<LibraryReservation>
-          caption="My reservations"
-          rows={reservations}
-          rowKey={(r) => r.id}
-          empty={<EmptyState icon={BookMarked} title="No reservations">Reserve a title that is out on loan.</EmptyState>}
-          columns={[
-            { key: "title", header: "Reserved", render: (r) => r.title },
-            { key: "pos", header: "Queue", render: (r) => (r.status === "ready" ? `Collect by ${fmtDate(r.holdUntil)}` : `#${r.currentPosition ?? r.queuePosition}`), muted: true },
-            { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-            {
-              key: "actions",
-              header: "",
-              render: (r) => (
-                <Actions
-                  actions={r.status === "queued" || r.status === "ready" ? [{ id: "my-reservation-cancel", label: "Cancel", onClick: () => void run(() => api.cancelMine(r.id, r.version), `Reservation of ${r.title} cancelled`) }] : []}
-                  disabled={busy}
-                />
-              ),
-            },
-          ]}
-        />
-        <DataTable<Fine>
-          caption="My fines"
-          rows={fines}
-          rowKey={(f) => f.id}
-          empty={<EmptyState icon={Receipt} title="No fines">Return books on time to keep it that way.</EmptyState>}
-          columns={[
-            { key: "for", header: "Fine", render: (f) => (f.kind === "overdue" ? `${f.days} day(s) late` : "Replacement") },
-            { key: "amount", header: "Amount", render: (f) => formatInr(f.amount) },
-            { key: "status", header: "Status", render: (f) => <StatusBadge status={f.status} /> },
-          ]}
-        />
-      </BentoTile>
-      <BentoTile
-        span={12}
-        title="Library clearance"
-        data-slice="8C"
-        action={
-          clearance?.status === "approved" ? undefined : (
-            <Button size="sm" data-action="my-clearance" onClick={requestClearance} disabled={busy}>
-              Request clearance
+          <>
+            <span data-kpi="my-fines" style={{ fontSize: 13, fontWeight: 500, color: settled ? "var(--sb-mute)" : "var(--tint-rose-fg)" }}>
+              Fines due <b>{formatInr(due)}</b>
+            </span>
+            <Button size="sm" variant="ghost" data-action="library-complaint" onClick={complain}>
+              Report a problem
             </Button>
-          )
+            {clearance?.status !== "approved" && (
+              <Button size="sm" variant="ghost" data-action="my-clearance" onClick={requestClearance} disabled={busy}>
+                Request clearance
+              </Button>
+            )}
+          </>
         }
       >
-        {clearance ? (
-          <DataTable<Clearance>
-            caption="My clearance"
-            rows={[clearance]}
-            rowKey={(c) => c.id}
-            columns={[
-              { key: "purpose", header: "Purpose", render: (c) => c.purpose },
-              { key: "loans", header: "Loans out", render: (c) => String(c.verification.activeLoans), muted: true },
-              { key: "fines", header: "Unsettled fines", render: (c) => formatInr(c.verification.unsettledFines), muted: true },
-              { key: "why", header: "Notes", render: (c) => c.statusReason ?? (c.verification.blockers.join("; ") || "Clear"), muted: true },
-              { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
-            ]}
-          />
+        {loans.length ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {loans.map((l) => (
+              <ListRow
+                key={l.id}
+                icon={BookOpen}
+                tone={l.status === "overdue" ? "rose" : "amber"}
+                title={l.title}
+                meta={[l.accessionNumber, `Due ${fmtDate(l.dueOn)}`, l.fineAmount ? `fine ${formatInr(l.fineAmount)}` : null].filter(Boolean).join(" · ")}
+                badge={l.status === "active" ? undefined : { label: statusLabel(l.status), kind: statusKind(l.status) }}
+                primary={l.status === "active" ? { label: "Renew", icon: CalendarPlus, ghost: true, disabled: busy, onClick: () => void run(() => api.renewMine(l.id, l.version), (r) => `Due ${fmtDate(r.dueOn)}`), "data-action": "my-renew" } : undefined}
+                data-loan={l.title}
+              />
+            ))}
+          </div>
         ) : (
-          <EmptyState icon={ClipboardCheck} title="No clearance requested">
-            Return every book and settle your fines, then request clearance for programme completion or a transfer.
+          <EmptyState icon={BookOpen} title="Nothing on loan" compact>
+            Borrowed books and their due dates appear here.
           </EmptyState>
         )}
       </BentoTile>
+      <BentoTile
+        span={12}
+        title="Catalogue"
+        data-slice="8C"
+        data-catalogue=""
+        action={<SearchField label="Search title or author" placeholder="Search title or author" value={q} onChange={(e) => setQ(e.target.value)} data-library-search />}
+      >
+        {results.length ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {results.map((r) => {
+              const available = r.availableCopies > 0;
+              return (
+                <ListRow
+                  key={r.id}
+                  icon={BookCopy}
+                  tone={available ? "teal" : "grey"}
+                  title={r.title}
+                  meta={[r.authors.join(", ") || null, r.copies ? `${r.availableCopies} of ${plural(r.copies, "copy", "copies")} on shelf` : null].filter(Boolean).join(" · ")}
+                  badge={{ label: available ? "Available" : r.copies ? "Issued" : "No copies", kind: available ? "done" : "neutral" }}
+                  primary={!available && r.copies > 0 ? { label: "Reserve", icon: BookmarkPlus, ghost: true, disabled: busy, onClick: () => void run(() => api.reserve(r.id), (x) => `Reserved · position ${x.queuePosition}`), "data-action": "my-reserve" } : undefined}
+                  data-title={r.title}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState icon={LibraryBig} title="No titles found" compact>
+            Try another title or author.
+          </EmptyState>
+        )}
+      </BentoTile>
+      {sideTile && (
+        <BentoTile span={12} title="Reservations & fines" data-slice="8C">
+          {reservations.length > 0 && (
+            <DataTable<LibraryReservation>
+              caption="My reservations"
+              rows={reservations}
+              rowKey={(r) => r.id}
+              columns={[
+                { key: "title", header: "Reserved", render: (r) => r.title },
+                { key: "pos", header: "Queue", render: (r) => (r.status === "ready" ? `Collect by ${fmtDate(r.holdUntil)}` : `#${r.currentPosition ?? r.queuePosition}`), muted: true },
+                { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
+                {
+                  key: "actions",
+                  header: "",
+                  render: (r) => (
+                    <Actions
+                      actions={r.status === "queued" || r.status === "ready" ? [{ id: "my-reservation-cancel", label: "Cancel", onClick: () => void run(() => api.cancelMine(r.id, r.version), `Reservation of ${r.title} cancelled`) }] : []}
+                      disabled={busy}
+                    />
+                  ),
+                },
+              ]}
+            />
+          )}
+          {fines.length > 0 && (
+            <DataTable<Fine>
+              caption="My fines"
+              rows={fines}
+              rowKey={(f) => f.id}
+              columns={[
+                { key: "for", header: "Fine", render: (f) => (f.kind === "overdue" ? `${plural(f.days, "day")} late` : "Replacement") },
+                { key: "amount", header: "Amount", render: (f) => formatInr(f.amount) },
+                { key: "status", header: "Status", render: (f) => <StatusBadge status={f.status} /> },
+              ]}
+            />
+          )}
+          {clearance && (
+            <DataTable<Clearance>
+              caption="My clearance"
+              rows={[clearance]}
+              rowKey={(c) => c.id}
+              columns={[
+                { key: "purpose", header: "Clearance", render: (c) => c.purpose },
+                { key: "loans", header: "Loans out", render: (c) => formatNumber(c.verification.activeLoans), muted: true },
+                { key: "fines", header: "Unsettled fines", render: (c) => formatInr(c.verification.unsettledFines), muted: true },
+                { key: "why", header: "Notes", render: (c) => c.statusReason ?? (c.verification.blockers.join("; ") || "Clear"), muted: true },
+                { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
+              ]}
+            />
+          )}
+        </BentoTile>
+      )}
       {prompt}
       {dialog}
     </>
   );
+}
+
+/** Student → Library header line: "3 books borrowed · 9 of 15 titles available · fines ₹10". */
+export function useMyLibrarySummary(enabled = true): string | undefined {
+  const api = useLibraryApi();
+  const mine = useQuery({ queryKey: lkeys("me", "library"), queryFn: () => api.mine(), enabled });
+  const member = !!mine.data?.membership;
+  const titles = useQuery({ queryKey: lkeys("me", "catalogue", ""), queryFn: () => api.myCatalogue(undefined), enabled: enabled && member }).data;
+  if (!mine.data) return undefined;
+  if (!member) return "Not a library member yet";
+  const out = (mine.data.loans ?? []).filter((l) => OPEN_LOAN.includes(l.status)).length;
+  const due = sumAmounts((mine.data.fines ?? []).filter((f) => UNSETTLED.includes(f.status)).map((f) => f.amount));
+  const parts = [`${plural(out, "book")} borrowed`];
+  if (titles) parts.push(`${formatNumber(titles.filter((t) => t.availableCopies > 0).length)} of ${plural(titles.length, "title")} available`);
+  if (due !== "0.00" && due !== "0") parts.push(`fines due ${formatInr(due)}`);
+  return parts.join(" · ");
 }

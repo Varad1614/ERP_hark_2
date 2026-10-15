@@ -1,10 +1,12 @@
 import { BellOff, CheckCheck } from "lucide-react";
 import type { Notification } from "@sutra/api-client";
-import { BentoGrid, BentoTile, Button, EmptyState, FilterChip, useToast } from "@sutra/ui";
+import { BentoGrid, BentoTile, Button, EmptyState, useToast } from "@sutra/ui";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useSession } from "../lib/auth";
+import "../components/shell.css";
+import "../features/home/home.css";
 import { NotificationRow } from "../components/NotificationRow";
 import { inboxKeys, useInbox, useInboxRefresh } from "../lib/inbox";
 
@@ -44,15 +46,28 @@ export default function Notifications() {
 
   return (
     <BentoGrid data-screen="notifications">
-      <BentoTile span={12} title="Notifications" action={
-        <Button size="sm" variant="ghost" icon={<CheckCheck strokeWidth={1.75} />} onClick={readAll} disabled={unread === 0} data-read-all>
-          Mark all read
-        </Button>
-      }>
-        <div className="sb-actions-row">
-          <FilterChip active={!unreadOnly} label="All" onClick={() => setUnreadOnly(false)} />
-          <FilterChip active={unreadOnly} label="Unread" count={unread} onClick={() => setUnreadOnly(true)} />
+      <BentoTile span={12} className="sb-area-head" data-area-head="">
+        <div className="sb-area-title">
+          <h1>Notifications</h1>
+          <p className="sb-area-summary" data-area-summary="">
+            {q.isLoading ? "Loading…" : unread ? `${unread} unread · newest first` : "You’re all caught up · newest first"}
+          </p>
         </div>
+        <div className="sb-area-side">
+          <div className="dseg" aria-label="Show">
+            <button type="button" aria-pressed={!unreadOnly} className={!unreadOnly ? "on" : ""} onClick={() => setUnreadOnly(false)} data-notif-view="all">
+              All
+            </button>
+            <button type="button" aria-pressed={unreadOnly} className={unreadOnly ? "on" : ""} onClick={() => setUnreadOnly(true)} data-notif-view="unread">
+              Unread{unread ? ` · ${unread}` : ""}
+            </button>
+          </div>
+          <Button variant="ghost" icon={<CheckCheck strokeWidth={1.75} />} iconPosition="start" onClick={readAll} disabled={unread === 0} data-read-all>
+            Mark all read
+          </Button>
+        </div>
+      </BentoTile>
+      <BentoTile span={12}>
         {q.isLoading ? (
           <div className="sb-skeleton" style={{ width: "60%" }} />
         ) : q.isError ? (
@@ -64,7 +79,7 @@ export default function Notifications() {
             Updates about your institution, notices and to-dos appear here.
           </EmptyState>
         ) : (
-          <div className="sb-list" data-notification-list>
+          <div className="nf-list" data-notification-list>
             {items.map((n) => (
               <NotificationRow key={n.id} n={n} onOpen={open} />
             ))}

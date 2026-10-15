@@ -15,6 +15,8 @@ export interface EngagementSummary {
   staffCategory: string;
   startDate: string;
   endDate?: string | null;
+  /** Department (org unit) of the engagement, when assigned. */
+  orgUnitId?: string | null;
   status: string;
 }
 

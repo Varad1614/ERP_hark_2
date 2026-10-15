@@ -100,11 +100,11 @@ describe("8D Campus tabs", () => {
     const { ProcurementAdminTab, InventoryAdminTab, AssetsAdminTab } = await import("./index");
     const institution = { id: "inst-1", name: "Sutra College" } as Parameters<typeof ProcurementAdminTab>[0]["institution"];
     await renderScreen(<ProcurementAdminTab institution={institution} />, { path: "/campus/:tab?", entry: "/campus/procurement" });
-    expect(await screen.findByText("SUP-000001")).toBeTruthy();
+    expect((await screen.findAllByText("SUP-000001")).length).toBeGreaterThan(0);
     expect(document.querySelector("[data-slice='8D']")).toBeTruthy();
     await renderScreen(<InventoryAdminTab institution={institution} />, { path: "/campus/:tab?", entry: "/campus/inventory" });
-    expect((await screen.findAllByText("PAPER-A4 · A4 paper (ream)")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("A4 paper (ream)")).length).toBeGreaterThan(0);
     await renderScreen(<AssetsAdminTab institution={institution} />, { path: "/campus/:tab?", entry: "/campus/assets" });
-    expect(await screen.findByText("AST-000001")).toBeTruthy();
+    expect((await screen.findAllByText("AST-000001")).length).toBeGreaterThan(0);
   });
 });

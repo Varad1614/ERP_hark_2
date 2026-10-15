@@ -13,9 +13,10 @@
  * - `AssetsAdminTab` — asset register, custody, condition and retirement.
  */
 import { Boxes, ClipboardList, FileText, Package, PackageCheck, Receipt, ShieldAlert, Truck, Wrench } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, StatTile } from "@sutra/ui";
+import { BentoTile, Button, DataTable, EmptyState, formatNumber, KpiTile } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
-import { Actions, fmtDate, NoInstitution, REASON, todayIso, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { fmtDate, NoInstitution, REASON, todayIso, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { Actions, CodeName, inr } from "../ui";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { useWorkforceApi, wkeys } from "../../people/workforce/hooks";
@@ -379,10 +380,10 @@ function Procurement({ institution }: { institution: Institution }) {
 
   return (
     <>
-      <StatTile icon={Truck} tone="orange" label="Active suppliers" value={count(suppliers.data, (s) => s.status === "active")} hint="Approved and orderable" data-kpi="proc-suppliers" />
-      <StatTile icon={ClipboardList} tone="violet" label="Requisitions to decide" value={count(reqs.data, (r) => r.status === "submitted")} hint="Awaiting approval" data-kpi="proc-requisitions" />
-      <StatTile icon={Package} tone="blue" label="Open purchase orders" value={count(orders.data, (o) => ["issued", "acknowledged", "partially_received"].includes(o.status))} hint="Issued, not fully received" data-kpi="proc-orders" />
-      <StatTile icon={ShieldAlert} tone="rose" label="Invoice mismatches" value={count(invoices.data, (i) => i.status === "mismatch")} hint="Blocked from posting" data-kpi="proc-mismatch" />
+      <KpiTile icon={Truck} tone="orange" label="Active suppliers" value={count(suppliers.data, (s) => s.status === "active")} sub="Approved and orderable" data-kpi="proc-suppliers" />
+      <KpiTile icon={ClipboardList} tone="violet" label="Requisitions to decide" value={count(reqs.data, (r) => r.status === "submitted")} sub="Awaiting approval" data-kpi="proc-requisitions" />
+      <KpiTile icon={Package} tone="blue" label="Open purchase orders" value={count(orders.data, (o) => ["issued", "acknowledged", "partially_received"].includes(o.status))} sub="Issued, not fully received" data-kpi="proc-orders" />
+      <KpiTile icon={ShieldAlert} tone="rose" label="Invoice mismatches" value={count(invoices.data, (i) => i.status === "mismatch")} sub="Blocked from posting" data-kpi="proc-mismatch" />
       <BentoTile
         span={12}
         title="Suppliers"
@@ -398,10 +399,9 @@ function Procurement({ institution }: { institution: Institution }) {
           caption="Suppliers"
           rows={suppliers.data ?? []}
           rowKey={(s) => s.id}
-          empty={<EmptyState icon={Truck} title="No suppliers">Register the first supplier to start sourcing.</EmptyState>}
+          empty={<EmptyState icon={Truck} title="No suppliers" compact>Register the first supplier to start sourcing.</EmptyState>}
           columns={[
-            { key: "number", header: "No.", render: (s) => s.number },
-            { key: "name", header: "Legal name", render: (s) => s.legalName },
+            { key: "name", header: "Supplier", render: (s) => <CodeName name={s.legalName} code={s.number} /> },
             { key: "gstin", header: "GSTIN", render: (s) => dash(s.gstin), muted: true },
             { key: "bank", header: "Bank account", render: (s) => dash(s.bankAccountNumber), muted: true },
             { key: "status", header: "Status", render: (s) => <StatusBadge status={s.approvalPending ? "pending_approval" : s.status} /> },
@@ -428,11 +428,10 @@ function Procurement({ institution }: { institution: Institution }) {
           caption="Requisitions"
           rows={reqs.data ?? []}
           rowKey={(r) => r.id}
-          empty={<EmptyState icon={ClipboardList} title="No requisitions">Raise demand for goods or services.</EmptyState>}
+          empty={<EmptyState icon={ClipboardList} title="No requisitions" compact>Raise demand for goods or services.</EmptyState>}
           columns={[
-            { key: "number", header: "No.", render: (r) => `${r.number}${r.revision > 1 ? ` · rev ${r.revision}` : ""}` },
-            { key: "title", header: "Title", render: (r) => r.title },
-            { key: "total", header: "Estimate (₹)", render: (r) => r.estimatedTotal },
+            { key: "title", header: "Requisition", render: (r) => <CodeName name={r.title} code={`${r.number}${r.revision > 1 ? ` · rev ${r.revision}` : ""}`} /> },
+            { key: "total", header: "Estimate", render: (r) => inr(r.estimatedTotal) },
             { key: "source", header: "Source", render: (r) => statusLabel(r.source), muted: true },
             { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
             {
@@ -448,7 +447,7 @@ function Procurement({ institution }: { institution: Institution }) {
           caption="Sourcing events"
           rows={events.data ?? []}
           rowKey={(e) => e.id}
-          empty={<EmptyState icon={FileText} title="No sourcing events">Source a released requisition by RFQ or directly.</EmptyState>}
+          empty={<EmptyState icon={FileText} title="No sourcing events" compact>Source a released requisition by RFQ or directly.</EmptyState>}
           columns={[
             { key: "number", header: "No.", render: (e) => e.number },
             { key: "req", header: "Requisition", render: (e) => e.requisitionNumber, muted: true },
@@ -464,12 +463,12 @@ function Procurement({ institution }: { institution: Institution }) {
           caption="Purchase orders"
           rows={orders.data ?? []}
           rowKey={(o) => o.id}
-          empty={<EmptyState icon={Package} title="No purchase orders">Create an order from an award or a released requisition.</EmptyState>}
+          empty={<EmptyState icon={Package} title="No purchase orders" compact>Create an order from an award or a released requisition.</EmptyState>}
           columns={[
             { key: "number", header: "No.", render: (o) => `${o.number}${o.revision > 1 ? ` · rev ${o.revision}` : ""}` },
-            { key: "supplier", header: "Supplier", render: (o) => `${o.supplierNumber} · ${o.supplierName}` },
+            { key: "supplier", header: "Supplier", render: (o) => <CodeName name={o.supplierName} code={o.supplierNumber} /> },
             { key: "date", header: "Ordered", render: (o) => fmtDate(o.orderDate), muted: true },
-            { key: "total", header: "Total (₹)", render: (o) => o.totalAmount },
+            { key: "total", header: "Total", render: (o) => inr(o.totalAmount) },
             { key: "status", header: "Status", render: (o) => <StatusBadge status={o.approvalPending ? "pending_approval" : o.status} /> },
             {
               key: "actions",
@@ -484,7 +483,7 @@ function Procurement({ institution }: { institution: Institution }) {
           caption="Goods receipts"
           rows={receipts.data ?? []}
           rowKey={(g) => g.id}
-          empty={<EmptyState icon={PackageCheck} title="No deliveries">Record a delivery against an issued order.</EmptyState>}
+          empty={<EmptyState icon={PackageCheck} title="No deliveries" compact>Record a delivery against an issued order.</EmptyState>}
           columns={[
             { key: "number", header: "No.", render: (g) => g.number },
             { key: "po", header: "Order", render: (g) => g.purchaseOrderNumber, muted: true },
@@ -512,11 +511,11 @@ function Procurement({ institution }: { institution: Institution }) {
           caption="Vendor payments"
           rows={payments.data ?? []}
           rowKey={(p) => p.id}
-          empty={<EmptyState icon={Receipt} title="No payments">Pay posted invoices from the invoice list.</EmptyState>}
+          empty={<EmptyState icon={Receipt} title="No payments" compact>Pay posted invoices from the invoice list.</EmptyState>}
           columns={[
             { key: "number", header: "No.", render: (p) => p.number },
             { key: "supplier", header: "Supplier", render: (p) => p.supplierNumber, muted: true },
-            { key: "amount", header: "Amount (₹)", render: (p) => p.amount },
+            { key: "amount", header: "Amount", render: (p) => inr(p.amount) },
             { key: "entry", header: "Journal", render: (p) => dash(p.entryNumber), muted: true },
             { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
           ]}
@@ -527,13 +526,13 @@ function Procurement({ institution }: { institution: Institution }) {
           caption="Vendor invoices"
           rows={invoices.data ?? []}
           rowKey={(i) => i.id}
-          empty={<EmptyState icon={Receipt} title="No vendor invoices">Record an invoice against a received order.</EmptyState>}
+          empty={<EmptyState icon={Receipt} title="No vendor invoices" compact>Record an invoice against a received order.</EmptyState>}
           columns={[
             { key: "number", header: "No.", render: (i) => `${i.number}${i.isCreditNote ? " · credit note" : ""}` },
             { key: "ref", header: "Supplier invoice", render: (i) => `${i.supplierNumber} · ${i.supplierInvoiceNumber}`, muted: true },
             { key: "po", header: "Order", render: (i) => i.purchaseOrderNumber, muted: true },
-            { key: "total", header: "Total (₹)", render: (i) => i.totalAmount },
-            { key: "paid", header: "Paid (₹)", render: (i) => i.paidAmount },
+            { key: "total", header: "Total", render: (i) => inr(i.totalAmount) },
+            { key: "paid", header: "Paid", render: (i) => inr(i.paidAmount) },
             { key: "match", header: "Three-way match", render: (i) => (i.matchFindings.length ? i.matchFindings.map((f) => `L${f.lineNo}: ${f.message}`).join("; ") : i.status === "received" ? "Not matched yet" : "Matched") },
             { key: "status", header: "Status", render: (i) => <StatusBadge status={i.approvalPending ? "pending_approval" : i.status} /> },
             {
@@ -663,10 +662,10 @@ function Inventory({ institution }: { institution: Institution }) {
 
   return (
     <>
-      <StatTile icon={Boxes} tone="orange" label="Active items" value={count(items.data, (i) => i.status === "active")} hint="Item master" data-kpi="inv-items" />
-      <StatTile icon={ShieldAlert} tone="amber" label="At reorder level" value={count(stock.data, (l) => l.atReorderLevel)} hint="Stock lines to replenish" data-kpi="inv-reorder" />
-      <StatTile icon={ClipboardList} tone="violet" label="Issues to hand over" value={count(issues.data, (s) => s.status === "requested" || s.status === "approved")} hint="Requested or approved" data-kpi="inv-issues" />
-      <StatTile icon={Package} tone="blue" label="Active reservations" value={count(reservations.data, (r) => r.status === "active")} hint="Held stock" data-kpi="inv-reservations" />
+      <KpiTile icon={Boxes} tone="orange" label="Active items" value={count(items.data, (i) => i.status === "active")} sub="Item master" data-kpi="inv-items" />
+      <KpiTile icon={ShieldAlert} tone="amber" label="At reorder level" value={count(stock.data, (l) => l.atReorderLevel)} sub="Stock lines to replenish" data-kpi="inv-reorder" />
+      <KpiTile icon={ClipboardList} tone="violet" label="Issues to hand over" value={count(issues.data, (s) => s.status === "requested" || s.status === "approved")} sub="Requested or approved" data-kpi="inv-issues" />
+      <KpiTile icon={Package} tone="blue" label="Active reservations" value={count(reservations.data, (r) => r.status === "active")} sub="Held stock" data-kpi="inv-reservations" />
       <BentoTile
         span={8}
         title="Items"
@@ -682,13 +681,12 @@ function Inventory({ institution }: { institution: Institution }) {
           caption="Items"
           rows={items.data ?? []}
           rowKey={(i) => i.id}
-          empty={<EmptyState icon={Boxes} title="No items">Create the item master first.</EmptyState>}
+          empty={<EmptyState icon={Boxes} title="No items" compact>Create the item master first.</EmptyState>}
           columns={[
-            { key: "code", header: "Code", render: (i) => i.code },
-            { key: "name", header: "Name", render: (i) => i.name },
+            { key: "name", header: "Item", render: (i) => <CodeName name={i.name} code={i.code} /> },
             { key: "kind", header: "Kind", render: (i) => statusLabel(i.kind), muted: true },
-            { key: "onHand", header: "On hand", render: (i) => `${i.onHand} ${i.unit}` },
-            { key: "reorder", header: "Reorder at", render: (i) => dash(i.reorderLevel), muted: true },
+            { key: "onHand", header: "On hand", render: (i) => `${formatNumber(i.onHand)} ${i.unit}` },
+            { key: "reorder", header: "Reorder at", render: (i) => formatNumber(i.reorderLevel), muted: true },
             { key: "status", header: "Status", render: (i) => <StatusBadge status={i.status} /> },
             {
               key: "actions",
@@ -718,10 +716,9 @@ function Inventory({ institution }: { institution: Institution }) {
           caption="Stores"
           rows={stores.data ?? []}
           rowKey={(s) => s.id}
-          empty={<EmptyState icon={Package} title="No stores">Create a store to receive stock.</EmptyState>}
+          empty={<EmptyState icon={Package} title="No stores" compact>Create a store to receive stock.</EmptyState>}
           columns={[
-            { key: "code", header: "Code", render: (s) => (s.parentId ? `↳ ${s.code}` : s.code) },
-            { key: "name", header: "Name", render: (s) => s.name },
+            { key: "name", header: "Store", render: (s) => <span style={{ paddingLeft: s.parentId ? 22 : 0, display: "inline-block" }}><CodeName name={s.name} code={s.code} /></span> },
             { key: "status", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
           ]}
         />
@@ -731,12 +728,11 @@ function Inventory({ institution }: { institution: Institution }) {
           caption="Stock on hand"
           rows={stock.data ?? []}
           rowKey={(l) => `${l.itemId}|${l.locationId}`}
-          empty={<EmptyState icon={Boxes} title="No stock">Accepted goods receipts put stock here.</EmptyState>}
+          empty={<EmptyState icon={Boxes} title="No stock" compact>Accepted goods receipts put stock here.</EmptyState>}
           columns={[
-            { key: "item", header: "Item", render: (l) => `${l.itemCode} · ${l.itemName}` },
-            { key: "loc", header: "Location", render: (l) => l.locationCode, muted: true },
-            { key: "qty", header: "On hand", render: (l) => `${l.onHand} ${l.unit}` },
-            { key: "reorder", header: "Reorder", render: (l) => (l.atReorderLevel ? <StatusBadge status="reorder" /> : dash(l.reorderLevel)) },
+            { key: "item", header: "Item", render: (l) => <CodeName name={l.itemName} code={l.itemCode} sub={l.locationCode} /> },
+            { key: "qty", header: "On hand", render: (l) => `${formatNumber(l.onHand)} ${l.unit}` },
+            { key: "reorder", header: "Reorder", render: (l) => (l.atReorderLevel ? <StatusBadge status="reorder" /> : formatNumber(l.reorderLevel)) },
           ]}
         />
       </BentoTile>
@@ -755,11 +751,11 @@ function Inventory({ institution }: { institution: Institution }) {
           caption="Replenishment needs"
           rows={needs.data ?? []}
           rowKey={(n) => n.id}
-          empty={<EmptyState icon={ShieldAlert} title="Nothing to replenish">Run the reorder-level check.</EmptyState>}
+          empty={<EmptyState icon={ShieldAlert} title="Nothing to replenish" compact>Run the reorder-level check.</EmptyState>}
           columns={[
-            { key: "item", header: "Item", render: (n) => `${n.itemCode} · ${n.itemName}` },
-            { key: "onHand", header: "On hand", render: (n) => n.onHand, muted: true },
-            { key: "suggested", header: "Order", render: (n) => n.suggestedQuantity },
+            { key: "item", header: "Item", render: (n) => <CodeName name={n.itemName} code={n.itemCode} /> },
+            { key: "onHand", header: "On hand", render: (n) => formatNumber(n.onHand), muted: true },
+            { key: "suggested", header: "Order", render: (n) => formatNumber(n.suggestedQuantity) },
             { key: "status", header: "Status", render: (n) => <StatusBadge status={n.status} /> },
           ]}
         />
@@ -779,11 +775,11 @@ function Inventory({ institution }: { institution: Institution }) {
           caption="Stock issues"
           rows={issues.data ?? []}
           rowKey={(s) => s.id}
-          empty={<EmptyState icon={ClipboardList} title="No issues">Request stock for a department or a person.</EmptyState>}
+          empty={<EmptyState icon={ClipboardList} title="No issues" compact>Request stock for a department or a person.</EmptyState>}
           columns={[
             { key: "number", header: "No.", render: (s) => s.number },
-            { key: "item", header: "Item", render: (s) => `${s.itemCode} @ ${s.locationCode}` },
-            { key: "qty", header: "Quantity", render: (s) => (!/^0(\.0+)?$/.test(s.returnedQuantity) ? `${s.quantity} (returned ${s.returnedQuantity})` : s.quantity) },
+            { key: "item", header: "Item", render: (s) => <CodeName name={s.itemCode} sub={s.locationCode} /> },
+            { key: "qty", header: "Quantity", render: (s) => (!/^0(\.0+)?$/.test(s.returnedQuantity) ? `${formatNumber(s.quantity)} (returned ${formatNumber(s.returnedQuantity)})` : formatNumber(s.quantity)) },
             { key: "purpose", header: "Purpose", render: (s) => s.purpose, muted: true },
             { key: "status", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
             {
@@ -833,10 +829,10 @@ function Inventory({ institution }: { institution: Institution }) {
           caption="Reservations"
           rows={reservations.data ?? []}
           rowKey={(r) => r.id}
-          empty={<EmptyState icon={Package} title="No reservations">Hold stock for an upcoming need.</EmptyState>}
+          empty={<EmptyState icon={Package} title="No reservations" compact>Hold stock for an upcoming need.</EmptyState>}
           columns={[
-            { key: "item", header: "Item", render: (r) => `${r.itemCode} @ ${r.locationCode}` },
-            { key: "qty", header: "Quantity", render: (r) => r.quantity },
+            { key: "item", header: "Item", render: (r) => <CodeName name={r.itemCode} sub={r.locationCode} /> },
+            { key: "qty", header: "Quantity", render: (r) => formatNumber(r.quantity) },
             { key: "purpose", header: "Purpose", render: (r) => r.purpose, muted: true },
             { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
             {
@@ -862,10 +858,10 @@ function Inventory({ institution }: { institution: Institution }) {
           caption="Adjustments"
           rows={adjustments.data ?? []}
           rowKey={(a) => a.id}
-          empty={<EmptyState icon={Wrench} title="No adjustments">Correct stock after a count, with approval.</EmptyState>}
+          empty={<EmptyState icon={Wrench} title="No adjustments" compact>Correct stock after a count, with approval.</EmptyState>}
           columns={[
-            { key: "item", header: "Item", render: (a) => `${a.itemCode} @ ${a.locationCode}` },
-            { key: "qty", header: "Quantity", render: (a) => a.quantity },
+            { key: "item", header: "Item", render: (a) => <CodeName name={a.itemCode} sub={a.locationCode} /> },
+            { key: "qty", header: "Quantity", render: (a) => formatNumber(a.quantity) },
             { key: "reason", header: "Reason", render: (a) => a.reason, muted: true },
             { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
             {
@@ -982,10 +978,10 @@ function Assets({ institution }: { institution: Institution }) {
 
   return (
     <>
-      <StatTile icon={Package} tone="orange" label="Assets in service" value={count((a) => a.status !== "retired")} hint="Registered, available, assigned" data-kpi="asset-total" />
-      <StatTile icon={PackageCheck} tone="green" label="Assigned" value={count((a) => a.status === "assigned")} hint="In someone's custody" data-kpi="asset-assigned" />
-      <StatTile icon={Wrench} tone="amber" label="Under repair" value={count((a) => a.status === "under_repair")} hint="Out of service" data-kpi="asset-repair" />
-      <StatTile icon={ShieldAlert} tone="grey" label="Retired" value={count((a) => a.status === "retired")} hint="Written off" data-kpi="asset-retired" />
+      <KpiTile icon={Package} tone="orange" label="Assets in service" value={count((a) => a.status !== "retired")} sub="Registered, available, assigned" data-kpi="asset-total" />
+      <KpiTile icon={PackageCheck} tone="green" label="Assigned" value={count((a) => a.status === "assigned")} sub="In someone's custody" data-kpi="asset-assigned" />
+      <KpiTile icon={Wrench} tone="amber" label="Under repair" value={count((a) => a.status === "under_repair")} sub="Out of service" data-kpi="asset-repair" />
+      <KpiTile icon={ShieldAlert} tone="grey" label="Retired" value={count((a) => a.status === "retired")} sub="Written off" data-kpi="asset-retired" />
       <BentoTile
         span={12}
         title="Asset register"
@@ -1001,12 +997,11 @@ function Assets({ institution }: { institution: Institution }) {
           caption="Assets"
           rows={assets.data ?? []}
           rowKey={(a) => a.id}
-          empty={<EmptyState icon={Package} title="No assets">Register assets manually or from accepted goods receipts.</EmptyState>}
+          empty={<EmptyState icon={Package} title="No assets" compact>Register assets manually or from accepted goods receipts.</EmptyState>}
           columns={[
-            { key: "number", header: "No.", render: (a) => a.number },
-            { key: "name", header: "Name", render: (a) => a.name },
+            { key: "name", header: "Asset", render: (a) => <CodeName name={a.name} code={a.number} /> },
             { key: "serial", header: "Serial", render: (a) => dash(a.serialNumber), muted: true },
-            { key: "cost", header: "Cost (₹)", render: (a) => dash(a.acquisitionCost) },
+            { key: "cost", header: "Cost", render: (a) => inr(a.acquisitionCost) },
             { key: "custody", header: "Custody", render: (a) => custodian(a), muted: true },
             { key: "condition", header: "Condition", render: (a) => statusLabel(a.condition) },
             { key: "status", header: "Status", render: (a) => <StatusBadge status={a.retirementPending ? "pending_approval" : a.status} /> },

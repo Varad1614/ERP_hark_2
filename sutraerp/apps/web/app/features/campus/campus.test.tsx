@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ROLE_CONFIG, SCREEN_BATCH, type Role } from "../../lib/roles";
 import { workspaceBatch, workspaceScreen } from "../../lib/workspace-screens";
 import { CAMPUS_SETUP_TABS } from "../institution";
-import { activeTab, CAMPUS_OPS_TABS, CAMPUS_TABS, campusPath, REPORTS_TABS, reportsPath } from "./index";
+import { activeTab, CAMPUS_GROUPS, CAMPUS_OPS_TABS, CAMPUS_TABS, campusGroupOf, campusPath, REPORTS_TABS, reportsPath } from "./index";
 
 beforeEach(() => {
   vi.resetModules();
@@ -24,8 +24,16 @@ describe("Batch 8 tabs and screens", () => {
     expect(CAMPUS_TABS.slice(0, CAMPUS_SETUP_TABS.length).map((t) => t.key)).toEqual(CAMPUS_SETUP_TABS.map((t) => t.key));
     expect(activeTab(CAMPUS_TABS, "library").key).toBe("library");
     expect(new Set(CAMPUS_TABS.map((t) => t.key)).size).toBe(CAMPUS_TABS.length);
-    expect(new Set(CAMPUS_OPS_TABS.map((t) => t.slice))).toEqual(new Set(["8A", "8B", "8C", "8D", "9E"])); // 9E: governance tab
-    expect(activeTab(REPORTS_TABS, undefined).key).toBe("dashboards");
+    expect(new Set(CAMPUS_OPS_TABS.map((t) => t.slice))).toEqual(new Set(["8A", "8B", "8C", "8D"]));
+    // Re-skin v2: ≤5 header tabs; every section belongs to exactly one group; governance moved to Reports.
+    expect(CAMPUS_GROUPS.length).toBeLessThanOrEqual(5);
+    expect(CAMPUS_GROUPS.flatMap((g) => [...g.sections]).sort()).toEqual(CAMPUS_TABS.map((t) => t.key).sort());
+    expect(campusGroupOf(undefined).key).toBe("overview");
+    expect(campusGroupOf("hostel").key).toBe("spaces");
+    expect(campusGroupOf("positions").key).toBe("setup");
+    expect(REPORTS_TABS.length).toBeLessThanOrEqual(5);
+    expect(REPORTS_TABS.map((t) => t.key)).toContain("governance");
+    expect(activeTab(REPORTS_TABS, undefined).key).toBe("overview");
     expect(campusPath("hostel")).toBe("/campus/hostel");
     expect(reportsPath()).toBe("/reports");
     expect(SCREEN_BATCH.reports?.batch).toBe(8);
@@ -54,15 +62,36 @@ describe("Batch 8 route frames (foundation placeholders)", () => {
     const renderScreen = await harness();
     const { default: Campus } = await import("../../routes/admin/campus-setup");
     await renderScreen(<Campus />, { path: "/campus/:tab?", entry: `/campus/${tab}` });
-    await screen.findByRole("link", { name: "Assets" });
+    await screen.findByRole("link", { name: "Resources" });
+    expect(document.querySelector(`[data-tab-link="${tab}"][aria-current="page"]`)).toBeTruthy();
     expect(sliceMarker(slice)).toBeTruthy();
+  });
+
+  it("opens the Campus overview (rooms today, transport, hostel, maintenance) with five header tabs", async () => {
+    const renderScreen = await harness();
+    const { default: Campus } = await import("../../routes/admin/campus-setup");
+    const { createMockInstitutionApi } = await import("../institution/mock");
+    const { InstitutionApiProvider, selectInstitution } = await import("../institution/hooks");
+    const api = createMockInstitutionApi();
+    const inst = await api.registerInstitution({ code: "OVW", name: "Overview College" });
+    selectInstitution(inst.id);
+    await renderScreen(
+      <InstitutionApiProvider api={api}>
+        <Campus />
+      </InstitutionApiProvider>,
+      { path: "/campus/:tab?", entry: "/campus" },
+    );
+    expect(await screen.findByText("Rooms today")).toBeTruthy();
+    expect(screen.getByText("Maintenance tickets")).toBeTruthy();
+    expect(document.querySelectorAll("[data-area-head] nav.sb-tabs a").length).toBe(5);
+    expect(document.querySelector("[data-screen='campus']")?.getAttribute("data-group")).toBe("overview");
   });
 
   it.each(REPORTS_TABS.map((t): [string, string] => [t.key, t.slice]))("renders the Reports %s tab of slice %s", async (tab, slice) => {
     const renderScreen = await harness();
     const { default: Reports } = await import("../../routes/admin/reports");
     await renderScreen(<Reports />, { path: "/reports/:tab?", entry: `/reports/${tab}` });
-    await screen.findByRole("link", { name: "Regulatory reporting" });
+    await screen.findByRole("link", { name: "Regulatory" });
     expect(document.querySelector("[data-screen='reports']")).toBeTruthy();
     expect(sliceMarker(slice)).toBeTruthy();
   });

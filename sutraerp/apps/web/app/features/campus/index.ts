@@ -22,17 +22,59 @@ export const CAMPUS_OPS_TABS = [
   { key: "procurement", label: "Procurement", slice: "8D" },
   { key: "inventory", label: "Inventory", slice: "8D" },
   { key: "assets", label: "Assets", slice: "8D" },
-  { key: "governance", label: "Governance", slice: "9E" }, // 9E: G00 campus governance
 ] as const;
 
 /** Every tab of Admin → Campus (first = default: the Batch 2 institution tab). */
 export const CAMPUS_TABS = [...CAMPUS_SETUP_TABS, ...CAMPUS_OPS_TABS] as const;
 
-/** Tabs of Admin → Reports (`/reports/:tab?`, first = default) with their owning slice. */
+/**
+ * Re-skin v2 (R7): Admin → Campus shows five header tabs; each groups its sections, which stay
+ * addressable as `/campus/<section>` (old links keep working) and appear as sub-section chips.
+ * `/campus` (no section) is the Overview — the prototype Campus page.
+ */
+export const CAMPUS_GROUPS = [
+  { key: "overview", label: "Overview", sections: [] as string[] },
+  { key: "spaces", label: "Spaces", sections: ["infrastructure", "labs", "hostel"] },
+  { key: "services", label: "Services", sections: ["facilities", "transport", "library"] },
+  { key: "resources", label: "Resources", sections: ["procurement", "inventory", "assets"] },
+  { key: "setup", label: "Setup", sections: ["institution", "readiness", "campuses", "organisation", "positions", "policies"] },
+] as const;
+
+/** Short chip labels of the Campus sections. */
+export const SECTION_LABELS: Record<string, string> = {
+  infrastructure: "Rooms & buildings",
+  labs: "Laboratories",
+  hostel: "Hostel",
+  facilities: "Service desk",
+  transport: "Transport",
+  library: "Library",
+  procurement: "Procurement",
+  inventory: "Inventory",
+  assets: "Assets",
+  institution: "Institution",
+  readiness: "Readiness",
+  campuses: "Campuses",
+  organisation: "Organisation",
+  positions: "Positions",
+  policies: "Policies",
+};
+
+/** Header group of a Campus section (`undefined` / unknown → overview). */
+export function campusGroupOf(section: string | undefined): (typeof CAMPUS_GROUPS)[number] {
+  return CAMPUS_GROUPS.find((g) => (g.sections as readonly string[]).includes(section ?? "")) ?? CAMPUS_GROUPS[0];
+}
+
+/**
+ * Tabs of Admin → Reports (`/reports/:tab?`, first = default) with their owning slice. Re-skin v2
+ * (R7): Overview = the six report cards; Governance moved here from Campus (`/campus/governance`
+ * redirects).
+ */
 export const REPORTS_TABS = [
+  { key: "overview", label: "Overview", slice: "8C" },
   { key: "dashboards", label: "Dashboards", slice: "8C" },
-  { key: "regulatory", label: "Regulatory reporting", slice: "8C" },
+  { key: "regulatory", label: "Regulatory", slice: "8C" },
   { key: "accreditation", label: "Accreditation", slice: "9E" }, // 9E: H09 accreditation
+  { key: "governance", label: "Governance", slice: "9E" }, // 9E: G00 campus governance
 ] as const;
 
 /** Role-facing Batch 8 screens: route path → the slices that render panels on it and the roles that may open it. */

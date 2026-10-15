@@ -8,6 +8,7 @@ import { ChevronRight, GraduationCap, Inbox, Megaphone, PencilLine, Presentation
 import { BentoTile, IconChip, StatTile } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
+import { Children, type ReactElement, type ReactNode } from "react";
 import { useDeliveryApi, dkeys } from "../academic/delivery/hooks";
 import type { TimetableSlot } from "../academic/delivery/types";
 import { formatInr } from "../finance";
@@ -24,6 +25,11 @@ import { inboxKeys, useInbox } from "../../lib/inbox";
 import type { Role } from "../../lib/roles";
 
 type Go = (to: string) => void;
+
+/** One tile of a KPI group (customizable Home: each metric is its own tile), or all of them. */
+function pick(all: ReactElement<{ children?: ReactNode }>, only: number | undefined): ReactNode {
+  return only === undefined ? all : (Children.toArray(all.props.children)[only] ?? null);
+}
 
 /** ISO weekday (1 = Monday … 7 = Sunday) of a date. */
 export function isoDay(d: Date): number {
@@ -150,7 +156,7 @@ const count = (v: string) => (/^-?\d+(\.0+)?$/.test(v) ? Number(v).toLocaleStrin
  * `OperationalMetricsPort`) — students enrolled, fee collection, open work orders — plus faculty
  * on roll from the staff records. A figure no domain reports renders as a pending tile.
  */
-export function AdminKpis({ go }: { go: Go }) {
+export function AdminKpis({ go, only }: { go: Go; only?: number }) {
   const { current: institution, query: instQ } = useInstitutions();
   const inst = institution?.id ?? "-";
   const analytics = useAnalyticsApi();
@@ -170,7 +176,7 @@ export function AdminKpis({ go }: { go: Go }) {
   const loadingOr = (v: string | undefined, f: (x: string) => string) => (v !== undefined ? f(v) : noInst ? "—" : metrics.isLoading ? "…" : "—");
   const pendingIf = (v: string | undefined) => (m && v === undefined ? "Not reported yet" : undefined);
   const inr = (v: string) => formatInr(v).replace(/\.00$/, "");
-  return (
+  const all = (
     <>
       <StatTile
         icon={GraduationCap}
@@ -213,9 +219,10 @@ export function AdminKpis({ go }: { go: Go }) {
       />
     </>
   );
+  return pick(all, only);
 }
 
-export function FacultyKpis({ go }: { go: Go }) {
+export function FacultyKpis({ go, only }: { go: Go; only?: number }) {
   const api = useDeliveryApi();
   const tt = useQuery({ queryKey: dkeys.scoped("my", "timetable"), queryFn: () => api.teachingTimetable() });
   const taught = useQuery({ queryKey: dkeys.scoped("my", "attendance"), queryFn: () => api.facultyAttendance() });
@@ -237,7 +244,7 @@ export function FacultyKpis({ go }: { go: Go }) {
   };
   const series = sessions.slice(-7).map((x) => pct(x.records));
   const avg = sessions.length ? pct(sessions.flatMap((x) => x.records)) : null;
-  return (
+  const all = (
     <>
       <StatTile
         icon={Presentation}
@@ -271,9 +278,10 @@ export function FacultyKpis({ go }: { go: Go }) {
       />
     </>
   );
+  return pick(all, only);
 }
 
-export function StudentKpis({ go }: { go: Go }) {
+export function StudentKpis({ go, only }: { go: Go; only?: number }) {
   const api = useDeliveryApi();
   const payments = usePaymentsApi();
   const att = useQuery({ queryKey: dkeys.scoped("me", "attendance"), queryFn: () => api.myAttendance() });
@@ -295,7 +303,7 @@ export function StudentKpis({ go }: { go: Go }) {
   const outstanding = (acc.data ?? []).map((a) => a.account.balance.outstanding);
   const owes = outstanding.find((o) => /[1-9]/.test(o));
   const nextDue = (acc.data ?? []).flatMap((a) => a.charges).filter((c) => c.dueDate && /[1-9]/.test(c.outstandingAmount)).sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))[0];
-  return (
+  const all = (
     <>
       <StatTile
         icon={UserCheck}
@@ -335,6 +343,7 @@ export function StudentKpis({ go }: { go: Go }) {
       />
     </>
   );
+  return pick(all, only);
 }
 
 /* ------------------------------------------------------------------ announcement */

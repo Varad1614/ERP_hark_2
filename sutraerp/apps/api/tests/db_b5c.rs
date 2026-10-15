@@ -40,6 +40,7 @@ const T_PERIODS: &str = "0192f5a0-7c3e-7000-8000-0000000b5c01";
 const T_JOURNALS: &str = "0192f5a0-7c3e-7000-8000-0000000b5c02";
 const T_TREASURY: &str = "0192f5a0-7c3e-7000-8000-0000000b5c03";
 const T_AWAIT: &str = "0192f5a0-7c3e-7000-8000-0000000b5c04";
+const T_IMPORTED: &str = "0192f5a0-7c3e-7000-8000-0000000b5c05";
 
 const F: &str = "/api/v1/finance";
 
@@ -1866,4 +1867,79 @@ async fn approvals_await_a_decision_with_maker_checker() {
     .await;
     assert_eq!(bank["status"], "active");
     ledger_balanced(&pool, &setup).await;
+}
+
+// ------------------------------------------------------------------ chart imported with other codes
+
+/// A chart of accounts inserted outside Finance (a migration import, the re-skin demo seed) may
+/// number the system accounts differently from `DEFAULT_CHART` (bank 1100 / cash 1200 / gateway
+/// 1150). Reading the chart must provision only the roles that are still missing instead of
+/// answering 409 on the `(institution, system_key)` unique index; it stays idempotent.
+#[tokio::test]
+async fn chart_listing_keeps_system_accounts_imported_under_other_codes() {
+    let (app, pool) = app(T_IMPORTED).await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let delivery =
+        b4::academic_setup(&app, &admin, &pool, T_IMPORTED, "Imported Chart College").await;
+    let (t, inst) = (delivery.tenant(), delivery.institution());
+    sqlx::query("UPDATE institution.institution SET status = 'active' WHERE id = $1")
+        .bind(inst.as_uuid())
+        .execute(&pool)
+        .await
+        .unwrap();
+    for (key, code, name, ty, normal) in [
+        ("bank_main", "1100", "Main bank account", "asset", "debit"),
+        (
+            "gateway_clearing",
+            "1150",
+            "Payment gateway clearing",
+            "asset",
+            "debit",
+        ),
+        ("cash_on_hand", "1200", "Cash on hand", "asset", "debit"),
+        (
+            "fee_income",
+            "4100",
+            "Tuition and academic fee income",
+            "income",
+            "credit",
+        ),
+    ] {
+        sqlx::query(
+            "INSERT INTO finance.ledger_account (tenant_id, institution_id, code, name, account_type, \
+             normal_balance, system_key) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        )
+        .bind(t.as_uuid())
+        .bind(inst.as_uuid())
+        .bind(code)
+        .bind(name)
+        .bind(ty)
+        .bind(normal)
+        .bind(key)
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+    let path = format!("/institutions/{}/ledger-accounts", inst.as_uuid());
+    let first = read(&app, &admin, &path).await;
+    let again = read(&app, &admin, &path).await;
+    assert_eq!(
+        first["items"], again["items"],
+        "listing the chart twice changes nothing"
+    );
+    let items = first["items"].as_array().unwrap();
+    let code_of = |key: &str| {
+        let hits: Vec<&Value> = items.iter().filter(|a| a["systemKey"] == key).collect();
+        assert_eq!(hits.len(), 1, "exactly one {key} account");
+        hits[0]["code"].as_str().unwrap().to_owned()
+    };
+    // The imported numbering is kept …
+    assert_eq!(code_of("bank_main"), "1100");
+    assert_eq!(code_of("gateway_clearing"), "1150");
+    assert_eq!(code_of("cash_on_hand"), "1200");
+    // … and the roles that were missing are provisioned under their default codes.
+    assert_eq!(code_of("student_receivables"), "1300");
+    assert_eq!(code_of("bank_charges"), "5900");
+    let system = items.iter().filter(|a| a["systemKey"].is_string()).count();
+    assert_eq!(system, 14, "every system role exists once");
 }

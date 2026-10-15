@@ -118,8 +118,10 @@ pub struct LedgerAccountRow {
     pub status: LedgerAccountStatus,
 }
 
-/// Inserts the missing [`DEFAULT_CHART`] accounts of an institution (idempotent; existing codes
-/// are left untouched).
+/// Inserts the missing [`DEFAULT_CHART`] accounts of an institution (idempotent). An existing
+/// account wins on either unique key: a code already in use **or** a system role already held by
+/// an account under another code (a chart imported or seeded with its own numbering) is left
+/// untouched instead of failing the caller with a unique violation (409).
 pub async fn ensure_default_chart(
     conn: &mut PgConnection,
     tenant: TenantId,
@@ -129,7 +131,7 @@ pub async fn ensure_default_chart(
         sqlx::query(
             "INSERT INTO finance.ledger_account (tenant_id, institution_id, code, name, \
              account_type, normal_balance, system_key) VALUES ($1, $2, $3, $4, $5, $6, $7) \
-             ON CONFLICT (tenant_id, institution_id, code) DO NOTHING",
+             ON CONFLICT DO NOTHING",
         )
         .bind(tenant.as_uuid())
         .bind(institution.as_uuid())

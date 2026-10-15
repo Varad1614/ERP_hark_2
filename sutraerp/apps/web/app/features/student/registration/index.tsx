@@ -9,11 +9,11 @@
  * - `StudentRegistrationScreen` — student-facing `/registration` (self-registration, add/drop).
  */
 import { Award, CalendarCheck, GraduationCap, Layers, Plus } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, Modal, Select, StatTile } from "@sutra/ui";
+import { AreaHeader, BentoTile, Button, Checkbox, CheckboxList, DataTable, EmptyState, FormSelect, KpiTile, StatusBadge, humanize } from "@sutra/ui";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, QuickForm, REASON, todayIso, useAsk, type RowAction } from "../../institution/forms";
-import { StatusBadge, statusLabel, useInstitutionApi } from "../../institution/hooks";
+import { useInstitutionApi } from "../../institution/hooks";
+import { Actions, creditsText, fmtDate, FormDialog, NoInstitution, REASON, todayIso, useAsk, type RowAction } from "../ui";
 // The record command runner also refreshes the Student 360 header/overview (3A queries) after 3B commands.
 import { useRecordCommand } from "../record/hooks";
 import type { Institution } from "../../institution/types";
@@ -22,7 +22,7 @@ import type { HoldSource, LineInput, ProgressionOutcome, Registration, Registrat
 
 export { RegistrationApiProvider } from "./hooks";
 
-const credits = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n} cr`);
+const credits = creditsText;
 
 /** Finance evidence (`kind` is camelCase on the wire) in words. */
 const FINANCE_LABEL: Record<string, string> = {
@@ -45,7 +45,7 @@ function useTerms(institutionId: string | null | undefined) {
   return versions
     .flatMap((q) => q.data ?? [])
     .filter((v) => v.status === "published")
-    .flatMap((v) => v.terms.map((t) => ({ value: t.id, label: `${t.name} (${t.code}) · ${fmtDate(t.startsOn)} – ${fmtDate(t.endsOn)}` })));
+    .flatMap((v) => v.terms.map((t) => ({ value: t.id, label: `${t.name} · ${fmtDate(t.startsOn)} – ${fmtDate(t.endsOn)}` })));
 }
 
 // ================================================================== admin: windows
@@ -116,12 +116,9 @@ export function RegistrationAdminTab({ institution }: { institution: Institution
           ]}
         />
       </BentoTile>
-      <Modal open={adding} onClose={() => setAdding(false)} label="Schedule registration window">
-        <h2>Schedule registration window</h2>
-        <QuickForm
+      <FormDialog open={adding} onClose={() => setAdding(false)} eyebrow="Students" title="Schedule registration window"
           name="new-window"
           submitLabel="Schedule"
-          onCancel={() => setAdding(false)}
           fields={[
             { name: "academicTermId", label: "Term", type: "select", required: true, options: [{ value: "", label: "Choose a term" }, ...terms], wide: true },
             { name: "name", label: "Name", placeholder: "Term 1 registration" },
@@ -146,7 +143,6 @@ export function RegistrationAdminTab({ institution }: { institution: Institution
             setAdding(false);
           }}
         />
-      </Modal>
       {prompt}
       {dialog}
     </>
@@ -227,12 +223,9 @@ export function ProgressionAdminTab({ institution }: { institution: Institution 
           ]}
         />
       </BentoTile>
-      <Modal open={adding} onClose={() => setAdding(false)} label="Define progression policy">
-        <h2>Define progression policy</h2>
-        <QuickForm
+      <FormDialog open={adding} onClose={() => setAdding(false)} eyebrow="Students" title="Define progression policy"
           name="new-progression-policy"
           submitLabel="Create draft"
-          onCancel={() => setAdding(false)}
           fields={[
             { name: "code", label: "Code", required: true, placeholder: "UG" },
             { name: "name", label: "Name", required: true, placeholder: "UG progression rules" },
@@ -270,7 +263,6 @@ export function ProgressionAdminTab({ institution }: { institution: Institution 
             setAdding(false);
           }}
         />
-      </Modal>
       {prompt}
       {dialog}
     </>
@@ -306,7 +298,7 @@ function askAddLine(
         initial: choices[0]?.curriculumComponentId ?? "",
         options: choices.map((c) => ({
           value: c.curriculumComponentId,
-          label: `${c.slotCode} · ${c.title} · ${credits(c.credits)}${c.suggestedKind && c.suggestedKind !== "regular" ? ` · ${statusLabel(c.suggestedKind)}` : ""}`,
+          label: `${c.slotCode} · ${c.title} · ${credits(c.credits)}${c.suggestedKind && c.suggestedKind !== "regular" ? ` · ${humanize(c.suggestedKind)}` : ""}`,
         })),
         wide: true,
       },
@@ -340,14 +332,14 @@ function RegistrationCard({
 }) {
   const editable = r.status === "draft" || r.status === "returned" || r.status === "registered";
   const actions: RowAction[] = [];
-  if (onAdd && canAdd && editable) actions.push({ id: "line-add", label: "Add component", onClick: onAdd });
   if (onSubmit && (r.status === "draft" || r.status === "returned")) actions.push({ id: "registration-submit", label: "Submit", variant: "primary", onClick: onSubmit });
-  if (onFinalise && r.status === "registered") actions.push({ id: "registration-finalise", label: "Finalise", onClick: onFinalise });
+  if (onFinalise && r.status === "registered") actions.push({ id: "registration-finalise", label: "Finalise", variant: "primary", onClick: onFinalise });
   if (onCancel && !["finalised", "cancelled", "archived"].includes(r.status)) actions.push({ id: "registration-cancel", label: "Cancel registration", onClick: onCancel });
+  const live = r.lines.filter((l) => l.status !== "dropped");
   return (
     <BentoTile span={12} title={`Term ${r.termNo} registration`} action={<StatusBadge status={r.status} />}>
       <div data-registration={r.id}>
-        <p className="is-muted">
+        <p className="st-meta" style={{ marginBottom: 12 }}>
           {credits(r.totalCredits)} · {r.origin === "self" ? "registered by the student" : "registered by staff"}
           {r.statusReason ? ` · ${r.statusReason}` : ""}
         </p>
@@ -355,10 +347,18 @@ function RegistrationCard({
           caption="Registered components"
           rows={r.lines}
           rowKey={(l) => l.id}
-          empty={<EmptyState title="No components selected" />}
+          empty={<EmptyState title="No components selected" compact />}
           columns={[
-            { key: "slot", header: "Component", render: (l) => `${l.slotCode} · ${l.title}` },
-            { key: "kind", header: "Kind", render: (l) => statusLabel(l.kind), muted: true },
+            {
+              key: "slot",
+              header: "Component",
+              render: (l) => (
+                <span>
+                  <b>{`${l.slotCode} · ${l.title}`}</b>
+                </span>
+              ),
+            },
+            { key: "kind", header: "Type", render: (l) => humanize(l.kind), muted: true },
             { key: "cr", header: "Credits", render: (l) => credits(l.credits), muted: true },
             { key: "st", header: "Status", render: (l) => <StatusBadge status={l.status} /> },
             {
@@ -369,7 +369,17 @@ function RegistrationCard({
             },
           ]}
         />
-        <Actions disabled={busy} actions={actions} />
+        <div className="st-total">
+          <span className="st-meta">{`${live.length} ${live.length === 1 ? "component" : "components"}`}</span>
+          <span style={{ display: "inline-flex", gap: 10, alignItems: "center", marginLeft: "auto" }}>
+            {onAdd && canAdd && editable && (
+              <button type="button" className="sb-btn sb-btn--ghost" disabled={busy} onClick={onAdd} data-action="line-add">
+                Add component
+              </button>
+            )}
+            <Actions disabled={busy} actions={actions} label="Registration actions" />
+          </span>
+        </div>
       </div>
     </BentoTile>
   );
@@ -393,39 +403,41 @@ function NewRegistration({
   if (options.activeHolds.length > 0) return <EmptyState title="Registration is on hold">{options.activeHolds.map((h) => h.reason).join(" · ")}</EmptyState>;
   const selected = choices.filter((c) => picked[c.curriculumComponentId]);
   const total = selected.reduce((a, c) => a + c.credits, 0);
+  const win = open.find((w) => w.academicTermId === term);
   return (
-    <div data-form="new-registration">
-      <Select label="Window" value={term} onChange={(e) => setTerm(e.target.value)} options={open.map((w) => ({ value: w.academicTermId, label: `${w.name} · closes ${fmtDate(w.closesOn)}` }))} />
-      <ul className="sb-list">
+    <div data-form="new-registration" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {open.length > 1 && <FormSelect label="Window" value={term} onChange={(e) => setTerm(e.target.value)} options={open.map((w) => ({ value: w.academicTermId, label: `${w.name} · closes ${fmtDate(w.closesOn)}` }))} />}
+      {open.length === 1 && win && <p className="st-meta">{`${win.name} · closes ${fmtDate(win.closesOn)}${win.minCredits || win.maxCredits ? ` · ${win.minCredits ?? 0}–${win.maxCredits ?? "any"} credits` : ""}`}</p>}
+      <CheckboxList label="Components">
         {choices.map((c) => (
-          <li key={c.curriculumComponentId}>
-            <label>
-              <input
-                type="checkbox"
-                data-component={c.slotCode}
-                checked={!!picked[c.curriculumComponentId]}
-                onChange={(e) => setPicked((p) => ({ ...p, [c.curriculumComponentId]: e.target.checked }))}
-              />{" "}
-              {c.slotCode} · {c.title} · {credits(c.credits)}
-              {c.suggestedKind && c.suggestedKind !== "regular" ? ` · ${statusLabel(c.suggestedKind)}` : ""}
-            </label>
-          </li>
+          <Checkbox
+            key={c.curriculumComponentId}
+            data-component={c.slotCode}
+            checked={!!picked[c.curriculumComponentId]}
+            onChange={(e) => setPicked((p) => ({ ...p, [c.curriculumComponentId]: e.target.checked }))}
+            label={c.title}
+            description={[c.slotCode, c.suggestedKind && c.suggestedKind !== "regular" ? humanize(c.suggestedKind) : null].filter(Boolean).join(" · ")}
+            note={credits(c.credits)}
+          />
         ))}
-      </ul>
-      <p className="is-muted">{credits(total)} selected</p>
-      <Button
-        size="sm"
-        disabled={busy || !term || total === 0}
-        data-action="registration-create"
-        onClick={() =>
-          void onCreate(
-            term,
-            selected.map((c) => ({ curriculumComponentId: c.curriculumComponentId, kind: c.suggestedKind ?? "regular" })),
-          ).then(() => setPicked({}))
-        }
-      >
-        Start registration
-      </Button>
+      </CheckboxList>
+      <div className="st-total">
+        <b>{`${credits(total)} selected`}</b>
+        <button
+          type="button"
+          className="sb-btn"
+          disabled={busy || !term || total === 0}
+          data-action="registration-create"
+          onClick={() =>
+            void onCreate(
+              term,
+              selected.map((c) => ({ curriculumComponentId: c.curriculumComponentId, kind: c.suggestedKind ?? "regular" })),
+            ).then(() => setPicked({}))
+          }
+        >
+          Start registration
+        </button>
+      </div>
     </div>
   );
 }
@@ -443,7 +455,7 @@ export function Student360Registration({ studentId }: { studentId: string }) {
     ask({
       title: "Place registration hold",
       name: "hold-place",
-      fields: [{ name: "source", label: "Source", type: "select", options: HOLD_SOURCES.map((s) => ({ value: s, label: statusLabel(s) })), initial: "administrative" }, REASON],
+      fields: [{ name: "source", label: "Source", type: "select", options: HOLD_SOURCES.map((s) => ({ value: s, label: humanize(s) })), initial: "administrative" }, REASON],
       submitLabel: "Place hold",
       onSubmit: (v) => submit(() => api.placeHold(studentId, { source: (v.source || "administrative") as HoldSource, reason: v.reason! }), "Hold placed"),
     });
@@ -460,7 +472,7 @@ export function Student360Registration({ studentId }: { studentId: string }) {
         }
       >
         <p className="is-muted" data-finance={holds.data?.financeEvidence.kind}>
-          Finance: {holds.data ? (FINANCE_LABEL[holds.data.financeEvidence.kind] ?? statusLabel(holds.data.financeEvidence.kind)) : "—"}
+          Finance: {holds.data ? (FINANCE_LABEL[holds.data.financeEvidence.kind] ?? humanize(holds.data.financeEvidence.kind)) : "—"}
         </p>
         <DataTable
           caption="Holds"
@@ -468,7 +480,7 @@ export function Student360Registration({ studentId }: { studentId: string }) {
           rowKey={(h) => h.id}
           empty={<EmptyState title="No holds" />}
           columns={[
-            { key: "src", header: "Source", render: (h) => statusLabel(h.source) },
+            { key: "src", header: "Source", render: (h) => humanize(h.source) },
             { key: "why", header: "Reason", render: (h) => h.reason, muted: true },
             { key: "st", header: "Status", render: (h) => <StatusBadge status={h.status} /> },
             {
@@ -498,11 +510,6 @@ export function Student360Registration({ studentId }: { studentId: string }) {
           <p className="is-muted">Loading…</p>
         )}
       </BentoTile>
-      {(regs.data ?? []).length === 0 && (
-        <BentoTile span={12}>
-          <EmptyState icon={CalendarCheck} title="No registrations yet" />
-        </BentoTile>
-      )}
       {(regs.data ?? []).map((r) => (
         <RegistrationCard
           key={r.id}
@@ -510,7 +517,7 @@ export function Student360Registration({ studentId }: { studentId: string }) {
           busy={busy}
           canAdd={addableComponents(r, opts.data).length > 0}
           onAdd={() => askAddLine(r, opts.data, ask, (line) => submit(() => api.addLine(r.id, r.version, line), "Component added"))}
-          onSubmit={() => void run(() => api.registrationCommand(r.id, r.version, "submit"), (x) => `Registration ${statusLabel(x.status).toLowerCase()}`)}
+          onSubmit={() => void run(() => api.registrationCommand(r.id, r.version, "submit"), (x) => `Registration ${humanize(x.status).toLowerCase()}`)}
           onDrop={(lineId) => void run(() => api.dropLine(r.id, r.version, lineId), "Component dropped")}
           onFinalise={() => void run(() => api.registrationCommand(r.id, r.version, "finalise"), "Registration finalised")}
           onCancel={() =>
@@ -549,7 +556,7 @@ export function Student360Progression({ studentId }: { studentId: string }) {
         { name: "academicTermId", label: "Term", type: "select", required: true, options: [{ value: "", label: "Choose a term" }, ...terms], wide: true },
         { name: "creditsAttempted", label: "Credits attempted", type: "number" },
         { name: "creditsEarned", label: "Credits earned", type: "number", required: true },
-        { name: "outcome", label: "Outcome", type: "select", options: [{ value: "", label: "Policy recommendation" }, ...OUTCOMES.map((o) => ({ value: o, label: statusLabel(o) }))] },
+        { name: "outcome", label: "Outcome", type: "select", options: [{ value: "", label: "Policy recommendation" }, ...OUTCOMES.map((o) => ({ value: o, label: humanize(o) }))] },
         { name: "evidenceNote", label: "Evidence note", wide: true },
       ],
       submitLabel: "Save draft",
@@ -572,22 +579,29 @@ export function Student360Progression({ studentId }: { studentId: string }) {
       name: "break-request",
       fields: [REASON, { name: "startsOn", label: "Starts on", type: "date", required: true, initial: todayIso() }, { name: "expectedReturnOn", label: "Expected return", type: "date", required: true }],
       submitLabel: "Request",
-      onSubmit: (v) => submit(() => api.requestBreak(studentId, { reason: v.reason!, startsOn: v.startsOn!, expectedReturnOn: v.expectedReturnOn! }), (b) => `Break ${statusLabel(b.status).toLowerCase()}`),
+      onSubmit: (v) => submit(() => api.requestBreak(studentId, { reason: v.reason!, startsOn: v.startsOn!, expectedReturnOn: v.expectedReturnOn! }), (b) => `Break ${humanize(b.status).toLowerCase()}`),
     });
   return (
     <>
-      <StatTile span={3} icon={GraduationCap} tone="violet" label="Standing" value={s ? statusLabel(s.standing) : "—"} />
-      <StatTile span={3} icon={CalendarCheck} tone="blue" label="Current term" value={String(s?.currentTermNo ?? "—")} />
-      <StatTile span={3} icon={Layers} tone="green" label="Credits" value={s ? String(s.totalCredits) : "—"} />
-      <StatTile span={3} icon={Award} tone="amber" label="Qualification" value={elig ? (elig.eligible ? "Eligible" : "Pending") : "Not evaluated"} />
+      <KpiTile span={3} icon={GraduationCap} tone="violet" label="Standing" value={s ? humanize(s.standing) : "—"} />
+      <KpiTile span={3} icon={CalendarCheck} tone="blue" label="Current term" value={String(s?.currentTermNo ?? "—")} />
+      <KpiTile span={3} icon={Layers} tone="green" label="Credits" value={s ? String(s.totalCredits) : "—"} />
+      <KpiTile span={3} icon={Award} tone="amber" label="Qualification" value={elig ? (elig.eligible ? "Eligible" : "Pending") : "Not evaluated"} />
       <BentoTile
         span={12}
         title="Progression decisions"
         data-slice="3B"
         action={
-          <Button size="sm" data-action="decision-new" onClick={recordDecision}>
-            Record decision
-          </Button>
+          <span style={{ display: "inline-flex", gap: 8 }}>
+            {(breaks.data ?? []).length === 0 && (
+              <Button size="sm" variant="ghost" data-action="break-request" onClick={requestBreak}>
+                Request break
+              </Button>
+            )}
+            <Button size="sm" data-action="decision-new" onClick={recordDecision}>
+              Record decision
+            </Button>
+          </span>
         }
       >
         <DataTable
@@ -602,8 +616,8 @@ export function Student360Progression({ studentId }: { studentId: string }) {
               header: "Outcome",
               render: (d) => (
                 <span data-outcome={d.outcome}>
-                  {statusLabel(d.outcome)}
-                  {d.recommendedOutcome && d.recommendedOutcome !== d.outcome ? ` (policy: ${statusLabel(d.recommendedOutcome)})` : ""}
+                  {humanize(d.outcome)}
+                  {d.recommendedOutcome && d.recommendedOutcome !== d.outcome ? ` (policy: ${humanize(d.recommendedOutcome)})` : ""}
                 </span>
               ),
             },
@@ -617,7 +631,7 @@ export function Student360Progression({ studentId }: { studentId: string }) {
                   <Actions
                     disabled={busy}
                     actions={[
-                      { id: "decision-submit", label: "Make effective", variant: "primary", onClick: () => void run(() => api.decisionCommand(d.id, d.version, "submit"), (x) => `Decision ${statusLabel(x.status).toLowerCase()}`) },
+                      { id: "decision-submit", label: "Make effective", variant: "primary", onClick: () => void run(() => api.decisionCommand(d.id, d.version, "submit"), (x) => `Decision ${humanize(x.status).toLowerCase()}`) },
                       { id: "decision-discard", label: "Discard", onClick: () => void run(() => api.decisionCommand(d.id, d.version, "discard"), "Draft discarded") },
                     ]}
                   />
@@ -691,15 +705,15 @@ export function Student360Progression({ studentId }: { studentId: string }) {
           rowKey={(e) => e.id}
           empty={<EmptyState title="No credits recorded" />}
           columns={[
-            { key: "k", header: "Entry", render: (e) => statusLabel(e.kind) },
+            { key: "k", header: "Entry", render: (e) => humanize(e.kind) },
             { key: "c", header: "Credits", render: (e) => (e.kind === "revoked" || e.kind === "expired" ? `−${e.credits}` : `${e.credits}`) },
-            { key: "src", header: "Source", render: (e) => statusLabel(e.sourceType), muted: true },
+            { key: "src", header: "Source", render: (e) => humanize(e.sourceType), muted: true },
             { key: "at", header: "Recorded", render: (e) => fmtDate(e.recordedAt.slice(0, 10)), muted: true },
           ]}
         />
         {lastAbc && (
           <p className="is-muted">
-            Last ABC sync: {statusLabel(lastAbc.status)}
+            Last ABC sync: {humanize(lastAbc.status)}
             {lastAbc.failureReason ? ` (${lastAbc.failureReason})` : ""}
           </p>
         )}
@@ -717,7 +731,7 @@ export function Student360Progression({ studentId }: { studentId: string }) {
           <div data-eligibility={elig.eligible ? "eligible" : "pending"}>
             <p>
               {elig.eligible ? "Eligible" : "Pending"} · {elig.totalCredits} / {elig.requiredCredits ?? "—"} credits
-              {elig.outcomes.length ? ` · ${elig.outcomes.map(statusLabel).join(", ")}` : ""}
+              {elig.outcomes.length ? ` · ${elig.outcomes.map((o) => humanize(o)).join(", ")}` : ""}
             </p>
             {elig.outstanding.length > 0 && (
               <ul className="sb-list">
@@ -731,6 +745,7 @@ export function Student360Progression({ studentId }: { studentId: string }) {
           <EmptyState title="Not evaluated yet" />
         )}
       </BentoTile>
+      {(breaks.data ?? []).length > 0 && (
       <BentoTile
         span={6}
         title="Academic breaks"
@@ -758,6 +773,8 @@ export function Student360Progression({ studentId }: { studentId: string }) {
           ]}
         />
       </BentoTile>
+      )}
+      {(transfers.data ?? []).length > 0 && (
       <BentoTile span={6} title="Credit transfers">
         <DataTable
           caption="Credit transfers"
@@ -771,6 +788,7 @@ export function Student360Progression({ studentId }: { studentId: string }) {
           ]}
         />
       </BentoTile>
+      )}
       {prompt}
       {dialog}
     </>
@@ -789,13 +807,11 @@ export function StudentRegistrationScreen() {
   const live = (mine.data ?? []).filter((r) => r.status !== "cancelled");
   return (
     <>
-      <BentoTile span={12} variant="accent" data-slice="3B">
-        <span className="sb-chip">
-          <CalendarCheck strokeWidth={1.75} /> Registration
-        </span>
-        <h1>My registration</h1>
-        <p>{opts.data ? `Term ${opts.data.termNo ?? "—"} · ${statusLabel(opts.data.standing)}` : "Loading…"}</p>
-      </BentoTile>
+      <AreaHeader
+        title="Registration"
+        data-slice="3B"
+        summary={opts.data ? [opts.data.termNo ? `Term ${opts.data.termNo}` : null, humanize(opts.data.standing), live[0] ? `registration ${humanize(live[0].status).toLowerCase()}` : "not registered yet"].filter(Boolean).join(" · ") : "Loading…"}
+      />
       {live.length === 0 && (
         <BentoTile span={12} title="Register for the term">
           {opts.data ? (
@@ -812,7 +828,7 @@ export function StudentRegistrationScreen() {
           busy={busy}
           canAdd={addableComponents(r, opts.data).length > 0}
           onAdd={() => askAddLine(r, opts.data, ask, (line) => submit(() => api.addMyLine(r.id, r.version, line), "Component added"))}
-          onSubmit={() => void run(() => api.submitMine(r.id, r.version), (x) => `Registration ${statusLabel(x.status).toLowerCase()}`)}
+          onSubmit={() => void run(() => api.submitMine(r.id, r.version), (x) => `Registration ${humanize(x.status).toLowerCase()}`)}
           onDrop={(lineId) => void run(() => api.dropMyLine(r.id, r.version, lineId), "Component dropped")}
           onCancel={() =>
             ask({ title: "Cancel my registration", name: "my-registration-cancel", fields: [REASON], submitLabel: "Cancel registration", onSubmit: (v) => submit(() => api.cancelMine(r.id, r.version, v.reason!), "Registration cancelled") })

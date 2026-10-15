@@ -10,16 +10,17 @@
  *   administrative registration, withdrawal / reinstatement, finalisation, hall tickets).
  * - `StudentExamPanel` — student `/results`: register, hall ticket, timetable.
  */
-import { CalendarCheck, CalendarDays, ClipboardList, FileBadge, Inbox, ScrollText, ShieldCheck, Ticket } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, Select, StatTile } from "@sutra/ui";
+import { AlertTriangle, CalendarCheck, CalendarDays, ClipboardList, FileBadge, Inbox, ScrollText, ShieldCheck, Ticket } from "lucide-react";
+import { BentoTile, Button, DataTable, DateList, EmptyState, KeyTag, KpiTile, ListRow, NameCell, RowActions, formatDate, formatINR, formatNumber, formatTime, plural, statusKind } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, REASON, useAsk, type RowAction } from "../../institution/forms";
+import { fmtDate, REASON, type RowAction } from "../../institution/forms";
+import { ExamActions as Actions, SessionSelect, timeRange, useExamAsk as useAsk } from "../ui";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { ekeys, useExamSetupApi } from "./hooks";
 import { useOfferingOptions, useSchemeOptions, useStudentOptions, useTermOptions } from "./pickers";
-import type { ExamPolicy, ExamRegistration, ExamSession, HallTicket } from "./types";
+import type { ExamPolicy, ExamRegistration, ExamSession, HallTicket, TimetableEntry } from "./types";
 
 export { ExamSetupApiProvider } from "./hooks";
 
@@ -41,16 +42,7 @@ function useSessionPicker(institution: Institution | null) {
   const [picked, setPicked] = useState<string>("");
   const list = sessions.data ?? [];
   const current: ExamSession | undefined = list.find((s) => s.id === picked) ?? list.find((s) => ["active", "reopened"].includes(s.status)) ?? list[0];
-  const picker =
-    list.length > 0 ? (
-      <Select
-        label="Examination session"
-        data-session-picker
-        value={current?.id ?? ""}
-        onChange={(e) => setPicked(e.target.value)}
-        options={list.map((s) => ({ value: s.id, label: `${s.code} — ${s.name} (${statusLabel(s.status)})` }))}
-      />
-    ) : null;
+  const picker = <SessionSelect value={current?.id ?? ""} onChange={setPicked} options={list.map((s) => ({ value: s.id, label: `${s.name} · ${statusLabel(s.status)}` }))} />;
   return { current, picker, sessions };
 }
 
@@ -97,23 +89,23 @@ export function SessionsAdminTab({ institution }: { institution: Institution | n
   };
   return (
     <>
-      <StatTile
+      <KpiTile
         span={4}
         icon={CalendarCheck}
         tone="violet"
         label="Active sessions"
-        value={sessions.data ? String(operational.length) : "…"}
-        hint={operational[0] ? `${operational[0].code} — ${operational[0].name}` : `${sessionList.length} session${sessionList.length === 1 ? "" : "s"} in all`}
+        value={sessions.data ? formatNumber(operational.length) : "…"}
+        sub={operational[0] ? operational[0].name : `${sessionList.length} session${sessionList.length === 1 ? "" : "s"} in all`}
         data-kpi="exam-sessions"
       />
-      <StatTile span={4} icon={ClipboardList} tone="green" label="Papers in session" value={sessions.data ? String(paperCount) : "…"} hint="Across active sessions" data-kpi="exam-papers" />
-      <StatTile
+      <KpiTile span={4} icon={ClipboardList} tone="green" label="Papers in session" value={sessions.data ? formatNumber(paperCount) : "…"} sub="Across active sessions" data-kpi="exam-papers" />
+      <KpiTile
         span={4}
         icon={ShieldCheck}
         tone="orange"
         label="Examination policy"
         value={policies.data ? (activePolicy ? `v${activePolicy.versionNo}` : "None") : "…"}
-        hint={activePolicy ? `${activePolicy.code} is active` : "Draft and activate a policy"}
+        sub={activePolicy ? `${activePolicy.code} is active` : "Draft and activate a policy"}
         data-kpi="exam-policy"
       />
       <BentoTile
@@ -122,7 +114,6 @@ export function SessionsAdminTab({ institution }: { institution: Institution | n
         data-slice="6A"
         action={
           <Button
-            size="sm"
             icon={<ScrollText strokeWidth={1.75} />}
             data-new-policy
             onClick={() =>
@@ -164,10 +155,14 @@ export function SessionsAdminTab({ institution }: { institution: Institution | n
           rowKey={(p) => p.id}
           empty={<EmptyState icon={ScrollText} title="No examination policy yet">Draft the institution's first policy version.</EmptyState>}
           columns={[
-            { key: "c", header: "Policy", render: (p) => <span data-policy={p.code}>{`${p.code} v${p.versionNo}`}</span> },
+            { key: "c", header: "Policy", render: (p) => (
+                <span data-policy={p.code}>
+                  <b>{p.name || "Examination policy"}</b> <KeyTag>{`${p.code} v${p.versionNo}`}</KeyTag>
+                </span>
+              ) },
             { key: "a", header: "Attendance", render: (p) => (p.minAttendancePercent ? `≥ ${p.minAttendancePercent}%` : "—") },
             { key: "d", header: "Dues", render: (p) => (p.requireDuesCleared ? "Must be cleared" : "Not checked") },
-            { key: "l", header: "Late fee", render: (p) => (p.lateFeeAmount ? `₹${p.lateFeeAmount}` : "—") },
+            { key: "l", header: "Late fee", render: (p) => (p.lateFeeAmount ? formatINR(p.lateFeeAmount) : "—") },
             { key: "s", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
             { key: "x", header: "", render: (p) => <Actions actions={policyActions(p)} disabled={busy} /> },
           ]}
@@ -179,7 +174,6 @@ export function SessionsAdminTab({ institution }: { institution: Institution | n
         data-slice="6A"
         action={
           <Button
-            size="sm"
             icon={<CalendarDays strokeWidth={1.75} />}
             data-new-session
             onClick={() =>
@@ -216,10 +210,14 @@ export function SessionsAdminTab({ institution }: { institution: Institution | n
           rowKey={(s) => s.id}
           empty={<EmptyState icon={CalendarDays} title="No examination sessions">Create a session for an academic term.</EmptyState>}
           columns={[
-            { key: "c", header: "Session", render: (s) => <span data-session={s.code}>{`${s.code} — ${s.name}`}</span> },
+            { key: "c", header: "Session", render: (s) => (
+                <span data-session={s.code}>
+                  <b>{s.name}</b> <KeyTag>{s.code}</KeyTag>
+                </span>
+              ) },
             { key: "w", header: "Dates", render: (s) => `${fmtDate(s.startsOn)} – ${fmtDate(s.endsOn)}` },
             { key: "p", header: "Papers", render: (s) => s.papers.map((p) => p.paperCode).join(", ") || "—" },
-            { key: "r", header: "Revisions", render: (s) => (s.mergedIntoId ? "Merged (duplicate)" : String(s.revisions)) },
+            { key: "r", header: "Revisions", render: (s) => (s.mergedIntoId ? "Merged (duplicate)" : formatNumber(s.revisions)) },
             { key: "s", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
             { key: "x", header: "", render: (s) => <Actions actions={sessionActions(s)} disabled={busy} /> },
           ]}
@@ -281,7 +279,7 @@ export function ScheduleAdminTab({ institution }: { institution: Institution | n
         data-slice="6A"
         action={
           current && !live ? (
-            <Button size="sm" icon={<CalendarDays strokeWidth={1.75} />} data-new-schedule onClick={() => void run(() => api.createSchedule(current.id, `${current.code} timetable`), "Timetable drafted")}>
+            <Button icon={<CalendarDays strokeWidth={1.75} />} data-new-schedule onClick={() => void run(() => api.createSchedule(current.id, `${current.name} timetable`), "Timetable drafted")}>
               Plan timetable
             </Button>
           ) : undefined
@@ -290,26 +288,32 @@ export function ScheduleAdminTab({ institution }: { institution: Institution | n
         {picker}
         {live ? (
           <>
-            <p data-schedule-status={live.status}>
-              Version {live.versionNo} · <StatusBadge status={live.status} />
-            </p>
+            <div data-schedule-status={live.status} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <b>{live.name}</b> <KeyTag>{`Version ${live.versionNo}`}</KeyTag> <StatusBadge status={live.status} />
+              </span>
+              <Actions actions={scheduleActions()} disabled={busy} label="Timetable actions" />
+            </div>
             {live.conflicts.length > 0 && (
-              <ul data-conflicts>
+              <div data-conflicts>
                 {live.conflicts.map((c, i) => (
-                  <li key={i}>{c.detail}</li>
+                  <ListRow key={i} icon={AlertTriangle} tone="orange" title={c.detail} meta={plural(c.count, "sitting")} />
                 ))}
-              </ul>
+              </div>
             )}
-            <Actions actions={scheduleActions()} disabled={busy} />
             <DataTable
               caption="Sittings"
               rows={live.sittings}
               rowKey={(x) => x.id}
               empty={<EmptyState icon={CalendarDays} title="No sittings yet">Add a sitting for each paper.</EmptyState>}
               columns={[
-                { key: "p", header: "Paper", render: (x) => <span data-sitting={x.paperCode}>{`${x.paperCode} — ${x.title}`}</span> },
-                { key: "d", header: "When", render: (x) => `${fmtDate(x.sitsOn)} ${x.startsAt} · ${x.durationMinutes} min` },
-                { key: "v", header: "Venues", render: (x) => x.venues.map((v) => `${v.venueCode} (${v.seats})`).join(", ") || "—" },
+                { key: "p", header: "Paper", render: (x) => (
+                    <span data-sitting={x.paperCode}>
+                      <b>{x.paperCode}</b> · {x.title}
+                    </span>
+                  ) },
+                { key: "d", header: "When", render: (x) => `${fmtDate(x.sitsOn)} · ${timeRange(formatTime(x.startsAt), x.durationMinutes)}` },
+                { key: "v", header: "Venues", render: (x) => x.venues.map((v) => `${v.venueName} · ${formatNumber(v.seats)} seats`).join(", ") || "—" },
                 { key: "s", header: "Status", render: (x) => <StatusBadge status={x.status} /> },
                 {
                   key: "x",
@@ -350,7 +354,6 @@ export function ScheduleAdminTab({ institution }: { institution: Institution | n
         data-slice="6A"
         action={
           <Button
-            size="sm"
             data-new-venue
             onClick={() =>
               ask({
@@ -376,8 +379,12 @@ export function ScheduleAdminTab({ institution }: { institution: Institution | n
           rowKey={(v) => v.id}
           empty={<EmptyState icon={ClipboardList} title="No venues">Add the examination halls and rooms.</EmptyState>}
           columns={[
-            { key: "c", header: "Venue", render: (v) => `${v.code} — ${v.name}` },
-            { key: "n", header: "Capacity", render: (v) => String(v.capacity) },
+            { key: "c", header: "Venue", render: (v) => (
+                <span>
+                  <b>{v.name}</b> <KeyTag>{v.code}</KeyTag>
+                </span>
+              ) },
+            { key: "n", header: "Capacity", render: (v) => formatNumber(v.capacity) },
           ]}
         />
       </BentoTile>
@@ -424,9 +431,9 @@ export function RegistrationsAdminTab({ institution }: { institution: Institutio
   const withheld = ticketList.filter((t) => t.status === "withheld").length;
   return (
     <>
-      <StatTile span={4} icon={ClipboardList} tone="violet" label="Registrations" value={regs.data ? String(confirmed) : current ? "…" : "—"} hint={`${regList.length} in all${current ? ` · ${current.code}` : ""}`} data-kpi="exam-registrations" />
-      <StatTile span={4} icon={Ticket} tone="green" label="Hall tickets issued" value={tickets.data ? String(issued) : current ? "…" : "—"} hint="Active tickets" data-kpi="hall-tickets" />
-      <StatTile span={4} icon={FileBadge} tone="orange" label="Withheld" value={tickets.data ? String(withheld) : current ? "…" : "—"} hint="Dues or attendance conditions" data-kpi="hall-tickets-withheld" />
+      <KpiTile span={4} icon={ClipboardList} tone="violet" label="Registrations" value={regs.data ? formatNumber(confirmed) : current ? "…" : "—"} sub={`${regList.length} in all${current ? ` · ${current.name}` : ""}`} data-kpi="exam-registrations" />
+      <KpiTile span={4} icon={Ticket} tone="green" label="Hall tickets issued" value={tickets.data ? formatNumber(issued) : current ? "…" : "—"} sub="Active tickets" data-kpi="hall-tickets" />
+      <KpiTile span={4} icon={FileBadge} tone="orange" label="Withheld" value={tickets.data ? formatNumber(withheld) : current ? "…" : "—"} sub="Dues or attendance conditions" data-kpi="hall-tickets-withheld" />
       <BentoTile
         span={12}
         title="Registrations"
@@ -434,22 +441,22 @@ export function RegistrationsAdminTab({ institution }: { institution: Institutio
         action={
           current ? (
             <>
-              <Button size="sm" icon={<ClipboardList strokeWidth={1.75} />} data-bulk-register onClick={() => void run(() => api.bulkRegister(current.id), (r) => `${r.processed} registered, ${r.skipped} already registered, ${r.failed.length} not eligible`)}>
+              <Button icon={<ClipboardList strokeWidth={1.75} />} data-bulk-register onClick={() => void run(() => api.bulkRegister(current.id), (r) => `${r.processed} registered, ${r.skipped} already registered, ${r.failed.length} not eligible`)}>
                 Register from rosters
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                data-register
-                onClick={() =>
-                  ask({ title: "Register a candidate", name: "registration-create", submitLabel: "Register", fields: [{ name: "studentId", label: "Student", type: "select", required: true, wide: true, options: studentOptions }], onSubmit: (v) => submit(() => api.register(current.id, v.studentId!), (r) => `${r.registrationNumber}: ${statusLabel(r.status)}`) })
-                }
-              >
-                Register candidate
-              </Button>
-              <Button size="sm" variant="ghost" data-finalise onClick={() => void run(() => api.finalisePopulation(current.id), (r) => `${r.processed} registration(s) locked`)}>
-                Finalise population
-              </Button>
+              <RowActions
+                label="Registration actions"
+                menu={[
+                  {
+                    id: "register",
+                    label: "Register candidate",
+                    disabled: busy,
+                    onSelect: () =>
+                      ask({ title: "Register a candidate", name: "registration-create", submitLabel: "Register", fields: [{ name: "studentId", label: "Student", type: "select", required: true, wide: true, options: studentOptions }], onSubmit: (v) => submit(() => api.register(current.id, v.studentId!), (r) => `${r.registrationNumber}: ${statusLabel(r.status)}`) }),
+                  },
+                  { id: "finalise", label: "Finalise population", disabled: busy, onSelect: () => void run(() => api.finalisePopulation(current.id), (r) => `${r.processed} registration(s) locked`) },
+                ]}
+              />
             </>
           ) : undefined
         }
@@ -462,7 +469,7 @@ export function RegistrationsAdminTab({ institution }: { institution: Institutio
           empty={<EmptyState icon={ClipboardList} title="No registrations">Students register themselves, or register them from the rosters.</EmptyState>}
           columns={[
             { key: "n", header: "Registration", render: (r) => <span data-registration={r.registrationNumber}>{r.registrationNumber}</span> },
-            { key: "w", header: "Candidate", render: (r) => `${r.displayName} (${r.studentNumber})` },
+            { key: "w", header: "Candidate", render: (r) => <NameCell name={r.displayName} sub={r.studentNumber} /> },
             { key: "c", header: "Channel", render: (r) => statusLabel(r.channel) },
             { key: "p", header: "Papers", render: (r) => r.papers.filter((p) => p.status !== "withdrawn").map((p) => p.paperCode).join(", ") || "—" },
             { key: "s", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
@@ -476,7 +483,7 @@ export function RegistrationsAdminTab({ institution }: { institution: Institutio
         data-slice="6A"
         action={
           current ? (
-            <Button size="sm" icon={<Ticket strokeWidth={1.75} />} data-issue-tickets onClick={() => void run(() => api.issueHallTickets(current.id), (r) => `${r.processed} hall ticket(s) issued or withheld, ${r.skipped} unchanged`)}>
+            <Button icon={<Ticket strokeWidth={1.75} />} data-issue-tickets onClick={() => void run(() => api.issueHallTickets(current.id), (r) => `${r.processed} hall ticket(s) issued or withheld, ${r.skipped} unchanged`)}>
               Issue hall tickets
             </Button>
           ) : undefined
@@ -504,8 +511,34 @@ export function RegistrationsAdminTab({ institution }: { institution: Institutio
 
 // ------------------------------------------------------------------ Student
 
-/** Student Results: registration, hall ticket and exam timetable (span 4). */
-export function StudentExamPanel() {
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** The student's sittings grouped by day for a `DateList` (prototype calendar chips). */
+function timetableDays(list: readonly TimetableEntry[]) {
+  const days = new Map<string, TimetableEntry[]>();
+  for (const e of [...list].sort((a, b) => a.sitsOn.localeCompare(b.sitsOn) || a.startsAt.localeCompare(b.startsAt))) days.set(e.sitsOn, [...(days.get(e.sitsOn) ?? []), e]);
+  return [...days.entries()].map(([date, items]) => {
+    const [, m, d] = date.split("-").map(Number);
+    return {
+      key: date,
+      day: String(d),
+      month: MON[(m ?? 1) - 1] ?? "",
+      items: items.map((e) => ({
+        meta: timeRange(formatTime(e.startsAt), e.durationMinutes),
+        label: (
+          <strong data-my-sitting={e.paperCode} style={{ fontWeight: 500 }}>
+            {`${e.paperCode} · ${e.title}`}
+            {e.seatNo ? ` · seat ${e.seatNo}` : ""}
+            {e.postponedFrom ? ` (moved from ${fmtDate(e.postponedFrom)})` : ""}
+          </strong>
+        ),
+      })),
+    };
+  });
+}
+
+/** Student Results: registration, hall ticket and exam timetable (secondary tile, ListRows). */
+export function StudentExamPanel({ span = 6 }: { span?: 4 | 6 | 12 }) {
   const api = useExamSetupApi();
   const { run, busy, dialog } = useCommand();
   const options = useQuery({ queryKey: ekeys.scoped("me", "options"), queryFn: () => api.myOptions() });
@@ -513,45 +546,43 @@ export function StudentExamPanel() {
   const tickets = useQuery({ queryKey: ekeys.scoped("me", "tickets"), queryFn: () => api.myHallTickets() });
   const timetable = useQuery({ queryKey: ekeys.scoped("me", "timetable"), queryFn: () => api.myTimetable() });
   const open = (options.data ?? []).filter((o) => !o.registered && (o.window === "open" || o.window === "override") && o.papers.some((p) => p.covered));
-  const nothing = !open.length && !(regs.data ?? []).length;
+  const nothing = !open.length && !(regs.data ?? []).length && !(tickets.data ?? []).length && !(timetable.data ?? []).length;
+  const badge = (st: string) => ({ label: statusLabel(st), kind: statusKind(st) });
   return (
-    <BentoTile span={4} title="My examinations" data-slice="6A">
+    <BentoTile span={span} title="My examinations" data-slice="6A">
       {nothing ? (
-        <EmptyState icon={FileBadge} title="No examination registration">
+        <EmptyState icon={FileBadge} title="No examination registration" compact>
           Registration opens when the examination office activates a session.
         </EmptyState>
       ) : null}
       {open.map((o) => (
-        <div key={o.sessionId} data-exam-option={o.code}>
-          <p>
-            <b>{o.name}</b> — registration closes {fmtDate(o.registrationClosesOn)}. Papers: {o.papers.filter((p) => p.covered).map((p) => p.paperCode).join(", ")}
-          </p>
-          <Button size="sm" variant="primary" disabled={busy} data-register-me onClick={() => void run(() => api.registerMe(o.sessionId), (r) => (r.status === "confirmed" ? `Registered — ${r.registrationNumber}` : `Not accepted: ${r.statusReason ?? statusLabel(r.status)}`))}>
-            Register
-          </Button>
-        </div>
+        <ListRow
+          key={o.sessionId}
+          data-exam-option={o.code}
+          icon={ClipboardList}
+          tone="violet"
+          title={o.name}
+          meta={`Registration closes ${fmtDate(o.registrationClosesOn)} · ${o.papers.filter((p) => p.covered).map((p) => p.paperCode).join(", ")}`}
+          primary={{ label: "Register", disabled: busy, "data-register-me": "", onClick: () => void run(() => api.registerMe(o.sessionId), (r) => (r.status === "confirmed" ? `Registered — ${r.registrationNumber}` : `Not accepted: ${r.statusReason ?? statusLabel(r.status)}`)) }}
+        />
       ))}
       {(regs.data ?? []).map((r) => (
-        <p key={r.id} data-my-registration={r.registrationNumber}>
-          {r.registrationNumber} · <StatusBadge status={r.status} />
-          {r.statusReason && r.status === "rejected" ? ` — ${r.statusReason}` : ""}
-        </p>
+        <ListRow
+          key={r.id}
+          data-my-registration={r.registrationNumber}
+          icon={FileBadge}
+          tone="blue"
+          title={`Registration ${r.registrationNumber}`}
+          meta={r.statusReason && r.status === "rejected" ? r.statusReason : `${plural(r.papers.filter((p) => p.status !== "withdrawn").length, "paper")} registered`}
+          badge={badge(r.status)}
+        />
       ))}
       {(tickets.data ?? []).map((t) => (
-        <p key={t.ticket.id} data-my-ticket={t.ticket.number}>
-          Hall ticket {t.ticket.number} · <StatusBadge status={t.ticket.status} />
-          {t.ticket.withheldReason ? ` — ${t.ticket.withheldReason}` : ""}
-        </p>
+        <ListRow key={t.ticket.id} data-my-ticket={t.ticket.number} icon={Ticket} tone="green" title={`Hall ticket ${t.ticket.number}`} meta={t.ticket.withheldReason ?? (t.ticket.issuedAt ? `Issued ${formatDate(t.ticket.issuedAt)}` : "Hall ticket")} badge={badge(t.ticket.status)} />
       ))}
       {(timetable.data ?? []).length > 0 && (
-        <div data-my-timetable>
-          {(timetable.data ?? []).map((e) => (
-            <p key={e.sittingId} data-my-sitting={e.paperCode}>
-              {fmtDate(e.sitsOn)} {e.startsAt} — {e.paperCode} {e.title}
-              {e.seatNo ? ` · seat ${e.seatNo}` : ""}
-              {e.postponedFrom ? ` (moved from ${fmtDate(e.postponedFrom)})` : ""}
-            </p>
-          ))}
+        <div data-my-timetable style={{ marginTop: 8 }}>
+          <DateList days={timetableDays(timetable.data ?? [])} />
         </div>
       )}
       {dialog}

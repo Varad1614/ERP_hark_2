@@ -1,5 +1,5 @@
 /** Batch 4 foundation: Academic delivery frames, role gating, slice placeholders and the faculty nav fix. */
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ROLE_CONFIG, SCREEN_BATCH, type Role } from "../../lib/roles";
@@ -38,10 +38,14 @@ describe("Batch 4 tabs and screens", () => {
 });
 
 describe("Batch 4 route frames (foundation placeholders)", () => {
-  it("renders Admin → Academic delivery with a tab per slice", async () => {
+  it("renders Admin → Academic delivery with ≤5 header tabs and the rest under More", async () => {
     const renderScreen = await harness();
     const { default: AcademicDelivery } = await import("../../routes/admin/academic-delivery");
     await renderScreen(<AcademicDelivery />, { path: "/academic-delivery/:tab?", entry: "/academic-delivery/attendance" });
+    expect(await screen.findByRole("link", { name: "Attendance" })).toBeTruthy();
+    // Re-skin v2: 4 tabs + "More" (docs/reskin2-contracts.md §2.1).
+    expect(document.querySelectorAll("[data-area-head] nav.sb-tabs > a").length).toBe(4);
+    fireEvent.click(document.querySelector("[data-tab-more]")!);
     expect(await screen.findByRole("link", { name: "Credit recognition" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Faculty assignment" }).getAttribute("href")).toBe("/academic-delivery/faculty");
   });

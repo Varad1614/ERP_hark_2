@@ -14,11 +14,12 @@
  *   `services.report.approve` with step-up. Figures only through the metrics port (server side).
  */
 import { BookCheck, ClipboardList, FileCheck2, Gauge, ListChecks, ShieldCheck } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, FilterChip, StatTile } from "@sutra/ui";
+import { BentoTile, Button, ClassCard, EmptyState, FilterChips, formatNumber, KpiTile, ListRow, plural, SidePanel, statusKind } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, REASON, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
-import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
+import { fmtDate, NoInstitution, REASON, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { Actions, rowProps, stageOf } from "../../campus/ui";
+import { statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { approvalStateLabel } from "../../campus/approval";
 import { gkeys, useGovernanceApi } from "../../campus/governance/hooks";
@@ -27,6 +28,10 @@ import { needsCycle, RECORD_LABELS, recordItemKinds } from "./rules";
 import type { AccreditationCycle, AccreditationFramework, AccreditationItem, AccreditationRecord, Criterion, RecordKind } from "./types";
 
 export { AccreditationApiProvider } from "./hooks";
+
+/** Lifecycles shown as side-panel stages. */
+const CYCLE_STAGES = ["planning", "active", "submitted", "closed"] as const;
+const RECORD_STAGES = ["draft", "open", "pending_decision", "closed"] as const;
 
 const BODIES = ["NAAC", "NBA", "NIRF", "Other"] as const;
 const SEVERITIES = ["low", "medium", "high", "critical"] as const;
@@ -131,6 +136,7 @@ function AccreditationScreen({ institutionId }: { institutionId: string }) {
   const { ask, prompt } = useAsk();
   const [family, setFamily] = useState("all");
   const [selected, setSelected] = useState<string | null>(null);
+  const [openCycle, setOpenCycle] = useState<string | null>(null);
   const frameworks = useQuery({ queryKey: ackeys(institutionId, "frameworks"), queryFn: () => api.frameworks(institutionId) }).data ?? [];
   const cycles = useQuery({ queryKey: ackeys(institutionId, "cycles"), queryFn: () => api.cycles(institutionId) }).data ?? [];
   const records = useQuery({ queryKey: ackeys(institutionId, "records"), queryFn: () => api.records(institutionId) }).data ?? [];
@@ -397,60 +403,78 @@ function AccreditationScreen({ institutionId }: { institutionId: string }) {
     });
 
   const facts = current ? Object.entries((current.facts ?? {}) as Record<string, unknown>).filter(([, v]) => v === null || ["string", "number", "boolean"].includes(typeof v)) : [];
+  const cycle = cycles.find((c) => c.id === openCycle) ?? null;
+  const recordMenu = (r: AccreditationRecord) => recordRowActions(r).filter((a) => a.id !== "record-open");
+  const frameworkMenu = (f: AccreditationFramework) => [...frameworkRowActions(f), ...(f.status === "active" ? [{ id: "framework-version", label: "New version", onClick: () => newFramework(f) } as RowAction] : [])];
 
   return (
     <>
-      <StatTile span={3} icon={ShieldCheck} tone="blue" label="Active frameworks" value={String(active.length)} hint={active.map((f) => `${f.code} v${f.versionNo}`).join(", ") || undefined} data-slice="9E" data-kpi="accreditation-frameworks" />
-      <StatTile span={3} icon={ClipboardList} tone="violet" label="Live cycles" value={String(liveCycles.length)} data-kpi="accreditation-cycles" />
-      <StatTile span={3} icon={Gauge} tone="amber" label="Open records" value={String(openRecords.length)} data-kpi="accreditation-open" />
-      <StatTile span={3} icon={FileCheck2} tone="green" label="Approved evidence" value={String(approvedEvidence.length)} data-kpi="accreditation-evidence" />
+      <KpiTile span={3} icon={ShieldCheck} tone="blue" label="Active frameworks" value={formatNumber(active.length)} sub={active.map((f) => `${f.code} v${f.versionNo}`).join(", ") || "None active yet"} data-slice="9E" data-kpi="accreditation-frameworks" />
+      <KpiTile span={3} icon={ClipboardList} tone="violet" label="Live cycles" value={formatNumber(liveCycles.length)} sub="Planning, active or submitted" data-kpi="accreditation-cycles" />
+      <KpiTile span={3} icon={Gauge} tone="amber" label="Open records" value={formatNumber(openRecords.length)} sub="Obligations, audits, findings …" data-kpi="accreditation-open" />
+      <KpiTile span={3} icon={FileCheck2} tone="green" label="Approved evidence" value={formatNumber(approvedEvidence.length)} sub="Ready to cite in the self-study" data-kpi="accreditation-evidence" />
       <BentoTile
         span={12}
         title="Accreditation frameworks"
         data-slice="9E"
         action={
-          <Button size="sm" data-action="accreditation-framework-new" onClick={() => newFramework()}>
+          <Button size="sm" variant="ghost" data-action="accreditation-framework-new" onClick={() => newFramework()}>
             Define framework
           </Button>
         }
       >
-        <DataTable<AccreditationFramework>
-          caption="Accreditation frameworks"
-          rows={frameworks}
-          rowKey={(f) => f.id}
-          empty={<EmptyState icon={ShieldCheck} title="No accreditation frameworks yet">Define the NAAC, NBA or NIRF criteria and their weights.</EmptyState>}
-          columns={[
-            { key: "code", header: "Framework", render: (f) => `${f.code} v${f.versionNo} · ${f.name}` },
-            { key: "body", header: "Body", render: (f) => f.body, muted: true },
-            { key: "criteria", header: "Criteria", render: (f) => `${f.criteria.length} criteria`, muted: true },
-            { key: "approval", header: "Approval", render: (f) => approvalStateLabel(f.approvalState), muted: true },
-            { key: "status", header: "Status", render: (f) => <StatusBadge status={f.status} /> },
-            {
-              key: "actions",
-              header: "",
-              render: (f) => <Actions actions={[...frameworkRowActions(f), ...(f.status === "active" ? [{ id: "framework-version", label: "New version", onClick: () => newFramework(f) } as RowAction] : [])]} disabled={busy} />,
-            },
-          ]}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {frameworks.length ? (
+            frameworks.map((f) => (
+              <ListRow
+                key={f.id}
+                icon={ShieldCheck}
+                tone={f.status === "active" ? "green" : "grey"}
+                title={f.name}
+                meta={[`${f.code} v${f.versionNo}`, f.body, plural(f.criteria.length, "criterion", "criteria"), f.approvalState && f.approvalState !== "not_requested" ? approvalStateLabel(f.approvalState) : null].filter(Boolean).join(" · ")}
+                badge={{ label: statusLabel(f.status), kind: statusKind(f.status) }}
+                {...rowProps(frameworkMenu(f), busy)}
+                data-framework-row={f.code}
+              />
+            ))
+          ) : (
+            <EmptyState icon={ShieldCheck} title="No accreditation frameworks yet" compact>
+              Define the NAAC, NBA or NIRF criteria and their weights.
+            </EmptyState>
+          )}
+        </div>
       </BentoTile>
-      <BentoTile span={12} title="Accreditation cycles" data-slice="9E">
-        <DataTable<AccreditationCycle>
-          caption="Accreditation cycles"
-          rows={cycles}
-          rowKey={(c) => c.id}
-          empty={<EmptyState icon={ClipboardList} title="No cycles yet">Open a cycle on an active framework, then plan every criterion.</EmptyState>}
-          columns={[
-            { key: "number", header: "Cycle", render: (c) => `${c.number} · ${c.title}` },
-            { key: "framework", header: "Framework", render: (c) => `${c.frameworkCode} v${c.frameworkVersionNo}`, muted: true },
-            { key: "period", header: "Period", render: (c) => `${fmtDate(c.periodStart)} – ${fmtDate(c.periodEnd)}`, muted: true },
-            { key: "plan", header: "Plan", render: (c) => `${c.plan.length}/${c.criteria.length} criteria`, muted: true },
-            { key: "records", header: "Records", render: (c) => String(c.records.reduce((s, x) => s + x.count, 0)), muted: true },
-            { key: "approval", header: "Approval", render: (c) => approvalStateLabel(c.approvalState), muted: true },
-            { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
-            { key: "actions", header: "", render: (c) => <Actions actions={cycleRowActions(c)} disabled={busy} /> },
-          ]}
-        />
-      </BentoTile>
+      {cycles.length ? (
+        cycles.map((c) => {
+          const planned = c.criteria.length ? Math.round((c.plan.length / c.criteria.length) * 100) : 0;
+          return (
+            <ClassCard
+              key={c.id}
+              span={4}
+              code={c.number}
+              title={c.title}
+              meta={`${c.frameworkCode} v${c.frameworkVersionNo} · ${fmtDate(c.periodStart)} – ${fmtDate(c.periodEnd)}`}
+              icon={ClipboardList}
+              tone="violet"
+              badge={{ label: statusLabel(c.status), kind: statusKind(c.status) }}
+              facts={[
+                { label: "Records", value: formatNumber(c.records.reduce((n, x) => n + x.count, 0)) },
+                { label: "Approval", value: approvalStateLabel(c.approvalState) },
+              ]}
+              progress={{ label: `Assessment plan · ${c.plan.length} of ${plural(c.criteria.length, "criterion", "criteria")}`, value: planned }}
+              onClick={() => setOpenCycle(c.id)}
+              data-cycle={c.number}
+              data-slice="9E"
+            />
+          );
+        })
+      ) : (
+        <BentoTile span={12} title="Accreditation cycles" data-slice="9E">
+          <EmptyState icon={ClipboardList} title="No cycles yet" compact>
+            Open a cycle on an active framework, then plan every criterion.
+          </EmptyState>
+        </BentoTile>
+      )}
       <BentoTile
         span={12}
         title="Accreditation records"
@@ -461,64 +485,103 @@ function AccreditationScreen({ institutionId }: { institutionId: string }) {
           </Button>
         }
       >
-        <div className="sb-row-actions">
-          {RECORD_FAMILIES.map((f) => (
-            <FilterChip key={f.key} active={family === f.key} label={f.label} count={f.kinds.length ? records.filter((r) => f.kinds.includes(r.kind)).length : records.length} onClick={() => setFamily(f.key)} />
-          ))}
-        </div>
-        <DataTable<AccreditationRecord>
-          caption="Accreditation records"
-          rows={shown}
-          rowKey={(r) => r.id}
-          empty={<EmptyState icon={BookCheck} title="No records">Track obligations, evidence, audits, findings, improvements and the self-study report here.</EmptyState>}
-          columns={[
-            { key: "number", header: "Record", render: (r) => `${r.number} · ${r.title}` },
-            { key: "kind", header: "Kind", render: (r) => RECORD_LABELS[r.kind] ?? statusLabel(r.kind), muted: true },
-            { key: "cycle", header: "Cycle", render: (r) => `${cycleLabel(r.cycleId)}${r.criterionCode ? ` · ${r.criterionCode}` : ""}`, muted: true },
-            { key: "outcome", header: "Outcome", render: (r) => (r.outcome ? statusLabel(r.outcome) : "—"), muted: true },
-            { key: "approval", header: "Approval", render: (r) => approvalStateLabel(r.approvalState), muted: true },
-            { key: "status", header: "Status", render: (r) => <StatusBadge status={r.handedOffAt ? "handed_off" : r.status} /> },
-            { key: "actions", header: "", render: (r) => <Actions actions={recordRowActions(r)} disabled={busy} /> },
-          ]}
+        <FilterChips
+          label="Records"
+          options={RECORD_FAMILIES.map((f) => ({ id: f.key, label: f.label, count: f.kinds.length ? records.filter((r) => f.kinds.includes(r.kind)).length : records.length }))}
+          value={family}
+          onChange={setFamily}
         />
-      </BentoTile>
-      {current && (
-        <BentoTile span={12} title={`${current.number} · ${RECORD_LABELS[current.kind] ?? current.kind}`} data-slice="9E" data-record={current.number}>
-          <DataTable
-            caption="Record summary"
-            rows={[
-              { k: "Status", v: `${statusLabel(current.status)} · ${approvalStateLabel(current.approvalState)}` },
-              { k: "Outcome", v: current.outcome ? statusLabel(current.outcome) : "—" },
-              { k: "Owner · due", v: `${current.owner ?? "—"} · ${fmtDate(current.dueOn)}` },
-              { k: "Severity", v: statusLabel(current.severity) },
-              { k: "Cites", v: refsText(current.refs) },
-              ...(current.handoffReference ? [{ k: "Hand-off reference", v: current.handoffReference }] : []),
-              ...(current.statusReason ? [{ k: "Reason", v: current.statusReason }] : []),
-              ...facts.map(([k, v]) => ({ k: statusLabel(k), v: String(v) })),
-            ]}
-            rowKey={(x) => x.k}
-            columns={[
-              { key: "k", header: "Field", render: (x) => x.k, muted: true },
-              { key: "v", header: "Value", render: (x) => x.v },
-            ]}
-          />
-          {recordItemKinds(current.kind).length > 0 && (
-            <DataTable<AccreditationItem>
-              caption="Items"
-              rows={current.items}
-              rowKey={(i) => i.id}
-              empty={<EmptyState icon={ListChecks} title="No items yet">Add requirements, checklist entries or CAPA actions while the record is open.</EmptyState>}
-              columns={[
-                { key: "title", header: "Item", render: (i) => i.title },
-                { key: "kind", header: "Kind", render: (i) => statusLabel(i.kind), muted: true },
-                { key: "owner", header: "Owner", render: (i) => i.owner ?? "—", muted: true },
-                { key: "evidence", header: "Evidence", render: (i) => i.evidenceRef ?? "—", muted: true },
-                { key: "status", header: "Status", render: (i) => <StatusBadge status={i.status} /> },
-                { key: "actions", header: "", render: (i) => <Actions actions={itemRowActions(current, i)} disabled={busy} /> },
-              ]}
-            />
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 12 }}>
+          {shown.length ? (
+            shown.map((r) => (
+              <ListRow
+                key={r.id}
+                icon={BookCheck}
+                tone={r.severity === "critical" || r.severity === "high" ? "rose" : "blue"}
+                title={r.title}
+                meta={[r.number, RECORD_LABELS[r.kind] ?? statusLabel(r.kind), r.cycleId ? `${cycleLabel(r.cycleId)}${r.criterionCode ? ` · ${r.criterionCode}` : ""}` : null, r.outcome ? statusLabel(r.outcome) : null, r.dueOn ? `due ${fmtDate(r.dueOn)}` : null].filter(Boolean).join(" · ")}
+                badge={{ label: statusLabel(r.handedOffAt ? "handed_off" : r.status), kind: statusKind(r.handedOffAt ? "done" : r.status) }}
+                selected={r.id === current?.id}
+                onOpen={() => setSelected(r.id)}
+                {...rowProps(recordMenu(r), busy)}
+                data-record-row={r.number}
+              />
+            ))
+          ) : (
+            <EmptyState icon={BookCheck} title="No records" compact>
+              Track obligations, evidence, audits, findings, improvements and the self-study report here.
+            </EmptyState>
           )}
-        </BentoTile>
+        </div>
+      </BentoTile>
+      {cycle && (
+        <SidePanel
+          open
+          onClose={() => setOpenCycle(null)}
+          eyebrow={`${cycle.number} · ${cycle.frameworkCode} v${cycle.frameworkVersionNo}`}
+          title={cycle.title}
+          chip={{ label: statusLabel(cycle.status), kind: statusKind(cycle.status) }}
+          stages={CYCLE_STAGES.map((st) => statusLabel(st))}
+          stage={stageOf(CYCLE_STAGES, cycle.status)}
+          facts={[
+            { label: "Period", value: `${fmtDate(cycle.periodStart)} – ${fmtDate(cycle.periodEnd)}` },
+            { label: "Approval", value: approvalStateLabel(cycle.approvalState) },
+            { label: "Plan", value: `${cycle.plan.length} of ${plural(cycle.criteria.length, "criterion", "criteria")}` },
+            ...cycle.records.map((x) => ({ label: RECORD_LABELS[x.kind as RecordKind] ?? statusLabel(x.kind), value: formatNumber(x.count) })),
+          ]}
+          actions={<Actions actions={cycleRowActions(cycle)} disabled={busy} />}
+        >
+          <div data-cycle-panel={cycle.number} />
+        </SidePanel>
+      )}
+      {current && (
+        <SidePanel
+          open
+          onClose={() => setSelected(null)}
+          eyebrow={`${current.number} · ${RECORD_LABELS[current.kind] ?? current.kind}`}
+          title={current.title}
+          chip={{ label: statusLabel(current.status), kind: statusKind(current.status) }}
+          stages={RECORD_STAGES.map((st) => statusLabel(st))}
+          stage={stageOf(RECORD_STAGES, current.status)}
+          facts={[
+            { label: "Approval", value: approvalStateLabel(current.approvalState) },
+            { label: "Outcome", value: current.outcome ? statusLabel(current.outcome) : "—" },
+            { label: "Owner", value: current.owner ?? "—" },
+            { label: "Due", value: fmtDate(current.dueOn) },
+            { label: "Severity", value: statusLabel(current.severity) },
+            { label: "Cites", value: refsText(current.refs) },
+            ...(current.handoffReference ? [{ label: "Hand-off reference", value: current.handoffReference }] : []),
+            ...(current.statusReason ? [{ label: "Reason", value: current.statusReason }] : []),
+            ...facts.map(([k, v]) => ({ label: statusLabel(k), value: String(v) })),
+          ]}
+          actions={<Actions actions={recordMenu(current)} disabled={busy} />}
+        >
+          <div data-record={current.number}>
+            {recordItemKinds(current.kind).length > 0 && (
+              <>
+                <h3 style={{ fontSize: 15, margin: "18px 0 8px" }}>Items</h3>
+                {current.items.length ? (
+                  current.items.map((i) => (
+                    <ListRow
+                      key={i.id}
+                      icon={ListChecks}
+                      tone="blue"
+                      title={i.title}
+                      meta={[statusLabel(i.kind), i.owner, i.evidenceRef].filter(Boolean).join(" · ")}
+                      badge={{ label: statusLabel(i.status), kind: statusKind(i.status) }}
+                      {...rowProps(itemRowActions(current, i), busy)}
+                      data-item-row={i.title}
+                    />
+                  ))
+                ) : (
+                  <EmptyState icon={ListChecks} title="No items yet" compact>
+                    Add requirements, checklist entries or CAPA actions while the record is open.
+                  </EmptyState>
+                )}
+              </>
+            )}
+          </div>
+        </SidePanel>
       )}
       {prompt}
       {dialog}

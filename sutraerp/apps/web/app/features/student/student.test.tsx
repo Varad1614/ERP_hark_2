@@ -1,5 +1,5 @@
 /** Batch 3 foundation: Student 360 frame and student-facing placeholders render and route. */
-import { screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 beforeEach(() => {
@@ -16,10 +16,12 @@ describe("Batch 3 screens (foundation placeholders)", () => {
     const renderScreen = await harness();
     const { default: Student360 } = await import("../../routes/admin/student-360");
     await renderScreen(<Student360 />, { path: "/students/record/:studentId/:tab?", entry: "/students/record/s1/registration" });
-    expect(await screen.findByText("Student 360")).toBeTruthy(); // header chip; the heading is the student's name
-    expect(document.querySelector("[data-student-name]")).toBeTruthy();
+    await waitFor(() => expect(document.querySelector("[data-student-name]")).toBeTruthy()); // the heading is the student's name
     expect(document.querySelector("[data-tab='registration']")).toBeTruthy();
     expect(document.querySelector("[data-placeholder='3B'], [data-slice='3B']")).toBeTruthy(); // 3B: slice screens replace the placeholder
+    // Five prototype tabs in the header; the lifecycle sections sit in the "More" menu.
+    expect(screen.getByRole("link", { name: "Fees" }).getAttribute("href")).toBe("/students/record/s1/fees");
+    fireEvent.click(document.querySelector("[data-student-more]")!);
     const link = screen.getByRole("link", { name: "Guardians" });
     expect(link.getAttribute("href")).toBe("/students/record/s1/guardians");
   });

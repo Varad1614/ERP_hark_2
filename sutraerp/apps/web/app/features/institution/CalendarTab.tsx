@@ -5,11 +5,12 @@
  * simulation preview. All dates are business dates in the institution timezone.
  */
 import { CalendarDays, FlaskConical, Plus } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, Modal, Select } from "@sutra/ui";
+import { BentoTile, Button, DataTable, EmptyState, FormSelect, StepDialog } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { ExceptionCommand } from "./api";
-import { Actions, fmtDate, NoInstitution, QuickForm, type RowAction } from "./forms";
+// Re-skin v2 (R3): inline forms, one-pill row menus and StepDialogs from the Academics kit.
+import { Actions, AskForm as QuickForm, fmtDate, NoInstitution, type RowAction } from "../academic/kit";
 import { keys, statusLabel, StatusBadge, useCommand, useInstitutionApi } from "./hooks";
 import type { AcademicYear, Calendar, CalendarException, CalendarSimulation, CalendarVersion, ExceptionKind, Institution, KeyDateKind, ScopeKind } from "./types";
 
@@ -35,12 +36,12 @@ function YearClose({ year, onDone }: { year: AcademicYear; onDone: () => void })
   const { submit } = useCommand();
   return (
     <>
-      <h2>Close academic year {year.label}</h2>
-      <p>
+      <p className="ac-ask-note">
         Closing completes temporary exceptions and prepares the next year as a <strong>planned</strong> draft (it is not opened automatically). Before {fmtDate(year.endsOn)}, an early-closure reason is required.
       </p>
       <QuickForm
         name="close-year"
+        bare
         submitLabel="Close year"
         onCancel={onDone}
         fields={[
@@ -262,7 +263,7 @@ export function CalendarTab({ institution }: { institution: Institution | null }
         ) : calendar ? (
           <div className="sb-actions-row" data-calendar={calendar.code} data-calendar-status={calendar.status}>
             {(calendars.data ?? []).length > 1 && (
-              <Select label="Calendar" name="calendar" value={calendar.id} options={(calendars.data ?? []).map((c) => ({ value: c.id, label: `${c.name} (${c.code})` }))} onChange={(e) => setCalendarId(e.target.value)} />
+              <FormSelect label="Calendar" name="calendar" value={calendar.id} options={(calendars.data ?? []).map((c) => ({ value: c.id, label: `${c.name} (${c.code})` }))} onChange={(e) => setCalendarId(e.target.value)} />
             )}
             <span>
               <strong>{calendar.name}</strong> · {calendar.code} <StatusBadge status={calendar.status} /> · dates in {institution.timezone}
@@ -329,7 +330,7 @@ export function CalendarTab({ institution }: { institution: Institution | null }
 
           <BentoTile span={12} title="Calendar versions">
             {vlist.length > 1 && (
-              <Select label="Version" name="version" value={version?.id ?? ""} options={vlist.map((v) => ({ value: v.id, label: `Version ${v.versionNo} · ${statusLabel(v.status)}` }))} onChange={(e) => setVersionId(e.target.value)} />
+              <FormSelect label="Version" name="version" value={version?.id ?? ""} options={vlist.map((v) => ({ value: v.id, label: `Version ${v.versionNo} · ${statusLabel(v.status)}` }))} onChange={(e) => setVersionId(e.target.value)} />
             )}
             {version ? <VersionPanel version={version} years={calYears} onRun={run} onSubmit={submit} onSelect={setVersionId} busy={busy} /> : <EmptyState title="No version yet">Create a draft version for an academic year.</EmptyState>}
             {!retired && yearsWithoutVersion.length > 0 && (
@@ -435,10 +436,10 @@ export function CalendarTab({ institution }: { institution: Institution | null }
       )}
 
       {calendar && (
-        <Modal open={addingYear} onClose={() => setAddingYear(false)} label="Plan academic year">
-          <h2>Plan academic year</h2>
+        <StepDialog open={addingYear} onClose={() => setAddingYear(false)} eyebrow="Academics · Calendar" title="Plan academic year" footer={<></>}>
           <QuickForm
             name="new-year"
+            bare
             submitLabel="Plan"
             onCancel={() => setAddingYear(false)}
             fields={[
@@ -451,11 +452,11 @@ export function CalendarTab({ institution }: { institution: Institution | null }
               if (y) setAddingYear(false);
             }}
           />
-        </Modal>
+        </StepDialog>
       )}
-      <Modal open={closing !== null} onClose={() => setClosing(null)} label="Close academic year">
+      <StepDialog open={closing !== null} onClose={() => setClosing(null)} eyebrow="Academics · Calendar" title={closing ? `Close academic year ${closing.label}` : "Close academic year"} footer={<></>}>
         {closing && <YearClose year={closing} onDone={() => setClosing(null)} />}
-      </Modal>
+      </StepDialog>
       {dialog}
     </>
   );

@@ -12,11 +12,12 @@
  * - Governance evidence (G-002, G-015): evidence of a closed case, published for accreditation
  *   (`sutraerp.campus.governance_evidence.published`).
  */
-import { AlertTriangle, ClipboardCheck, FileCheck2, Gauge, Settings2, ShieldCheck } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, FilterChip, StatTile } from "@sutra/ui";
+import { AlertTriangle, ClipboardCheck, FileCheck2, Flag, Gauge, ListChecks, Settings2, ShieldCheck, TrendingUp, type LucideIcon } from "lucide-react";
+import { BentoTile, Button, DataTable, EmptyState, FilterChips, formatNumber, KeyValue, KpiTile, ListRow, SidePanel, statusKind } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, REASON, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { fmtDate, NoInstitution, REASON, useAsk, type FieldSpec, type RowAction } from "../../institution/forms";
+import { Actions, CodeName, rowProps, stageOf } from "../ui";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { approvalStateLabel } from "../approval";
@@ -50,6 +51,25 @@ export const KIND_LABELS: Record<GovernanceKind, string> = {
   escalation: "Escalation",
   exception: "Exception",
 };
+
+/** Icon of a case row by kind. */
+const KIND_ICON: Partial<Record<GovernanceKind, LucideIcon>> = {
+  readiness_assessment: ListChecks,
+  health_assessment: ListChecks,
+  maturity_assessment: ListChecks,
+  operational_review: TrendingUp,
+  executive_review: TrendingUp,
+  kpi_review: TrendingUp,
+  risk: AlertTriangle,
+  action_plan: ClipboardCheck,
+  sla_deviation: Gauge,
+  finding: Flag,
+  escalation: Flag,
+  exception: Flag,
+};
+
+/** Case lifecycle shown as the side panel's stages. */
+const CASE_STAGES = ["draft", "open", "pending_decision", "closed"] as const;
 
 const DOMAINS = ["facility", "maintenance", "hostel", "transport", "library", "laboratory", "it", "other"] as const;
 const SEVERITIES = ["low", "medium", "high", "critical"] as const;
@@ -408,13 +428,14 @@ function GovernanceScreen({ institutionId }: { institutionId: string }) {
     evidenceActions(e).map((): RowAction => ({ id: "evidence-publish", label: "Publish for accreditation", variant: "primary", onClick: () => void run(() => api.publishEvidence(e.id, e.version), `“${e.title}” published for accreditation`) }));
 
   const facts = current ? Object.entries((current.facts ?? {}) as Record<string, unknown>).filter(([, v]) => v === null || ["string", "number", "boolean"].includes(typeof v)) : [];
+  const caseMenu = (c: GovernanceCase) => caseRowActions(c).filter((a) => a.id !== "case-open");
 
   return (
     <>
-      <StatTile span={3} icon={ClipboardCheck} tone="blue" label="Open cases" value={String(openCases.length)} data-slice="9E" data-kpi="governance-open" />
-      <StatTile span={3} icon={Gauge} tone="violet" label="Awaiting decision" value={String(pending.length)} data-kpi="governance-pending" />
-      <StatTile span={3} icon={AlertTriangle} tone="amber" label="Open risks" value={String(openRisks.length)} data-kpi="governance-risks" />
-      <StatTile span={3} icon={FileCheck2} tone="green" label="Evidence for accreditation" value={String(ready.length)} data-kpi="governance-evidence" />
+      <KpiTile span={3} icon={ClipboardCheck} tone="blue" label="Open cases" value={formatNumber(openCases.length)} sub="Drafts and cases in progress" data-slice="9E" data-kpi="governance-open" />
+      <KpiTile span={3} icon={Gauge} tone="amber" label="Awaiting decision" value={formatNumber(pending.length)} sub="Submitted outcomes to approve" data-kpi="governance-pending" />
+      <KpiTile span={3} icon={AlertTriangle} tone="rose" label="Open risks" value={formatNumber(openRisks.length)} sub="On the campus risk register" data-kpi="governance-risks" />
+      <KpiTile span={3} icon={FileCheck2} tone="green" label="Evidence for accreditation" value={formatNumber(ready.length)} sub="Published from closed cases" data-kpi="governance-evidence" />
       <BentoTile
         span={12}
         title="Governance cases"
@@ -425,70 +446,86 @@ function GovernanceScreen({ institutionId }: { institutionId: string }) {
           </Button>
         }
       >
-        <div className="sb-row-actions">
-          {FAMILIES.map((f) => (
-            <FilterChip key={f.key} active={family === f.key} label={f.label} count={f.kinds.length ? cases.filter((c) => f.kinds.includes(c.kind)).length : cases.length} onClick={() => setFamily(f.key)} />
-          ))}
-        </div>
-        <DataTable<GovernanceCase>
-          caption="Governance cases"
-          rows={shown}
-          rowKey={(c) => c.id}
-          empty={<EmptyState icon={ShieldCheck} title="No governance cases">Open an assessment, review, risk, action plan or finding to govern campus operations.</EmptyState>}
-          columns={[
-            { key: "number", header: "Case", render: (c) => `${c.number} · ${c.title}` },
-            { key: "kind", header: "Kind", render: (c) => KIND_LABELS[c.kind] ?? statusLabel(c.kind), muted: true },
-            { key: "domains", header: "Domains", render: (c) => (c.domains.length ? c.domains.map(statusLabel).join(", ") : "—"), muted: true },
-            { key: "severity", header: "Severity", render: (c) => statusLabel(c.severity) },
-            { key: "items", header: "Items", render: (c) => progressOf(c), muted: true },
-            { key: "approval", header: "Approval", render: (c) => approvalStateLabel(c.approvalState), muted: true },
-            { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
-            { key: "actions", header: "", render: (c) => <Actions actions={caseRowActions(c)} disabled={busy} /> },
-          ]}
+        <FilterChips
+          label="Workflow"
+          options={FAMILIES.map((f) => ({ id: f.key, label: f.label, count: f.kinds.length ? cases.filter((c) => f.kinds.includes(c.kind)).length : cases.length }))}
+          value={family}
+          onChange={setFamily}
         />
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 12 }}>
+          {shown.length ? (
+            shown.map((c) => (
+              <ListRow
+                key={c.id}
+                icon={KIND_ICON[c.kind] ?? ShieldCheck}
+                tone={c.severity === "critical" || c.severity === "high" ? "rose" : "violet"}
+                title={c.title}
+                meta={[c.number, KIND_LABELS[c.kind] ?? statusLabel(c.kind), c.severity ? `${statusLabel(c.severity)} severity` : null, c.items.length ? `${progressOf(c)} items done` : null, c.dueOn ? `due ${fmtDate(c.dueOn)}` : null].filter(Boolean).join(" · ")}
+                badge={{ label: statusLabel(c.status), kind: statusKind(c.status) }}
+                selected={c.id === current?.id}
+                onOpen={() => setSelected(c.id)}
+                {...rowProps(caseMenu(c), busy)}
+                data-case-row={c.number}
+              />
+            ))
+          ) : (
+            <EmptyState icon={ShieldCheck} title="No governance cases" compact>
+              Open an assessment, review, risk, action plan or finding to govern campus operations.
+            </EmptyState>
+          )}
+        </div>
       </BentoTile>
       {current && (
-        <BentoTile span={12} title={`${current.number} · ${KIND_LABELS[current.kind] ?? current.kind}`} data-slice="9E" data-case={current.number}>
-          <DataTable
-            caption="Case summary"
-            rows={[
-              { k: "Status", v: `${statusLabel(current.status)} · ${approvalStateLabel(current.approvalState)}` },
-              { k: "Outcome", v: current.outcome ? statusLabel(current.outcome) : "—" },
-              { k: "Owner · due", v: `${current.owner ?? "—"} · ${fmtDate(current.dueOn)}` },
-              ...(current.averageScore !== null && current.averageScore !== undefined ? [{ k: "Average rating", v: current.averageScore.toFixed(2) }] : []),
-              ...(current.inherentScore ? [{ k: "Inherent / residual score", v: `${current.inherentScore} / ${current.residualScore ?? "—"}` }] : []),
-              ...(current.statusReason ? [{ k: "Reason", v: current.statusReason }] : []),
-              ...facts.map(([k, v]) => ({ k: statusLabel(k), v: String(v) })),
-            ]}
-            rowKey={(r) => r.k}
-            columns={[
-              { key: "k", header: "Field", render: (r) => r.k, muted: true },
-              { key: "v", header: "Value", render: (r) => r.v },
-            ]}
-          />
-          <DataTable<GovernanceItem>
-            caption="Items"
-            rows={current.items}
-            rowKey={(i) => i.id}
-            empty={<EmptyState icon={ClipboardCheck} title="No items yet">Add criteria, recommendations or actions while the case is open.</EmptyState>}
-            columns={[
-              { key: "title", header: "Item", render: (i) => i.title },
-              { key: "kind", header: "Kind", render: (i) => statusLabel(i.kind), muted: true },
-              { key: "domain", header: "Domain", render: (i) => (i.domain ? statusLabel(i.domain) : "—"), muted: true },
-              { key: "score", header: "Rating", render: (i) => (i.score ?? "—").toString(), muted: true },
-              { key: "evidence", header: "Evidence", render: (i) => i.evidenceRef ?? "—", muted: true },
-              { key: "status", header: "Status", render: (i) => <StatusBadge status={i.status} /> },
-              { key: "actions", header: "", render: (i) => <Actions actions={itemRowActions(current, i)} disabled={busy} /> },
-            ]}
-          />
-        </BentoTile>
+        <SidePanel
+          open
+          onClose={() => setSelected(null)}
+          eyebrow={`${current.number} · ${KIND_LABELS[current.kind] ?? current.kind}`}
+          title={current.title}
+          chip={{ label: statusLabel(current.status), kind: statusKind(current.status) }}
+          stages={CASE_STAGES.map((st) => statusLabel(st))}
+          stage={stageOf(CASE_STAGES, current.status)}
+          facts={[
+            { label: "Approval", value: approvalStateLabel(current.approvalState) },
+            { label: "Outcome", value: current.outcome ? statusLabel(current.outcome) : "—" },
+            { label: "Owner", value: current.owner ?? "—" },
+            { label: "Due", value: fmtDate(current.dueOn) },
+            ...(current.domains.length ? [{ label: "Domains", value: current.domains.map(statusLabel).join(", ") }] : []),
+            ...(current.averageScore !== null && current.averageScore !== undefined ? [{ label: "Average rating", value: formatNumber(current.averageScore) }] : []),
+            ...(current.inherentScore ? [{ label: "Inherent / residual", value: `${current.inherentScore} / ${current.residualScore ?? "—"}` }] : []),
+            ...(current.statusReason ? [{ label: "Reason", value: current.statusReason }] : []),
+            ...facts.map(([k, v]) => ({ label: statusLabel(k), value: String(v) })),
+          ]}
+          actions={<Actions actions={caseMenu(current)} disabled={busy} />}
+        >
+          <div data-case={current.number}>
+            <h3 style={{ fontSize: 15, margin: "18px 0 8px" }}>Items</h3>
+            {current.items.length ? (
+              current.items.map((i) => (
+                <ListRow
+                  key={i.id}
+                  icon={ClipboardCheck}
+                  tone="blue"
+                  title={i.title}
+                  meta={[statusLabel(i.kind), i.domain ? statusLabel(i.domain) : null, i.score != null ? `rated ${i.score}` : null, i.evidenceRef].filter(Boolean).join(" · ")}
+                  badge={{ label: statusLabel(i.status), kind: statusKind(i.status) }}
+                  {...rowProps(itemRowActions(current, i), busy)}
+                  data-item-row={i.title}
+                />
+              ))
+            ) : (
+              <EmptyState icon={ClipboardCheck} title="No items yet" compact>
+                Add criteria, recommendations or actions while the case is open.
+              </EmptyState>
+            )}
+          </div>
+        </SidePanel>
       )}
       <BentoTile
-        span={7}
+        span={8}
         title="Governance configuration"
         data-slice="9E"
         action={
-          <Button size="sm" data-action="governance-config-new" onClick={newConfig}>
+          <Button size="sm" variant="ghost" data-action="governance-config-new" onClick={newConfig}>
             New version
           </Button>
         }
@@ -497,9 +534,9 @@ function GovernanceScreen({ institutionId }: { institutionId: string }) {
           caption="Configuration versions"
           rows={configs}
           rowKey={(c) => c.id}
-          empty={<EmptyState icon={Settings2} title="Defaults in force">No configuration version yet: the default readiness threshold and risk appetite apply.</EmptyState>}
+          empty={<EmptyState icon={Settings2} title="Defaults in force" compact>No configuration version yet: the default readiness threshold and risk appetite apply.</EmptyState>}
           columns={[
-            { key: "key", header: "Setting", render: (c) => `${statusLabel(c.key)} v${c.versionNo}` },
+            { key: "key", header: "Setting", render: (c) => `${statusLabel(c.key)} · v${c.versionNo}` },
             { key: "settings", header: "Values", render: (c) => settingsText(c.settings), muted: true },
             { key: "approval", header: "Approval", render: (c) => approvalStateLabel(c.approvalState), muted: true },
             { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
@@ -507,35 +544,25 @@ function GovernanceScreen({ institutionId }: { institutionId: string }) {
           ]}
         />
       </BentoTile>
-      <BentoTile span={5} title="Effective policy" data-slice="9E">
-        <DataTable
-          caption="Effective policy"
-          rows={
-            policy
-              ? [
-                  { k: "Lowest criterion rating for ready / healthy", v: String(policy.policy.minCriterionScore) },
-                  { k: "Highest residual score of a mitigated risk", v: String(policy.policy.maxResidualScore) },
-                  { k: "Effective versions", v: String(policy.effective.length) },
-                ]
-              : []
-          }
-          rowKey={(r) => r.k}
-          empty={<EmptyState icon={Settings2} title="Loading">Reading the effective policy…</EmptyState>}
-          columns={[
-            { key: "k", header: "Rule", render: (r) => r.k, muted: true },
-            { key: "v", header: "Value", render: (r) => r.v },
-          ]}
-        />
+      <BentoTile span={4} title="Effective policy" data-slice="9E">
+        {policy ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <KeyValue label="Lowest criterion rating for ready" value={formatNumber(policy.policy.minCriterionScore)} />
+            <KeyValue label="Highest residual risk score to close" value={formatNumber(policy.policy.maxResidualScore)} />
+            <KeyValue label="Effective versions" value={formatNumber(policy.effective.length)} />
+          </div>
+        ) : (
+          <EmptyState icon={Settings2} title="Reading the effective policy…" compact />
+        )}
       </BentoTile>
       <BentoTile span={12} title="Governance evidence" data-slice="9E">
         <DataTable<GovernanceEvidence>
           caption="Governance evidence"
           rows={evidence}
           rowKey={(e) => e.id}
-          empty={<EmptyState icon={FileCheck2} title="No evidence yet">Record evidence of a closed case, then publish it so accreditation can cite it.</EmptyState>}
+          empty={<EmptyState icon={FileCheck2} title="No evidence yet" compact>Record evidence of a closed case, then publish it so accreditation can cite it.</EmptyState>}
           columns={[
-            { key: "title", header: "Evidence", render: (e) => e.title },
-            { key: "case", header: "Case", render: (e) => `${e.caseNumber} · ${KIND_LABELS[e.caseKind] ?? e.caseKind}`, muted: true },
+            { key: "title", header: "Evidence", render: (e) => <CodeName name={e.title} code={e.caseNumber} sub={KIND_LABELS[e.caseKind] ?? statusLabel(e.caseKind)} /> },
             { key: "outcome", header: "Outcome", render: (e) => (e.caseOutcome ? statusLabel(e.caseOutcome) : "—"), muted: true },
             { key: "published", header: "Published", render: (e) => (e.publishedAt ? fmtDate(e.publishedAt.slice(0, 10)) : "—"), muted: true },
             { key: "status", header: "Status", render: (e) => <StatusBadge status={e.status} /> },

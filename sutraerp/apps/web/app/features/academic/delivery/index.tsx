@@ -9,18 +9,17 @@
  * - `FacultyAttendanceScreen` — faculty `/attendance`.
  */
 import { BookOpenCheck, CalendarDays, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, EmptyState, Modal, Select } from "@sutra/ui";
+import { Badge, BentoTile, Button, DataTable, EmptyState, FormSelect, WeekGrid as Week } from "@sutra/ui";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, REASON, todayIso, useAsk, type RowAction } from "../../institution/forms";
+import { Actions, NoInstitution, REASON, todayIso, useAsk, weekOf, type RowAction } from "../kit";
 import { StatusBadge, statusLabel, useCommand, useInstitutionApi } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
-import { DAY, dkeys, useDeliveryApi } from "./hooks";
-import type { AttendanceMark, TeachingSession, TimetableCommand, TimetableSlot } from "./types";
+import { dkeys, useDeliveryApi } from "./hooks";
+import type { TimetableCommand, TimetableSlot } from "./types";
 
 export { DeliveryApiProvider } from "./hooks";
 
-const MARKS: AttendanceMark[] = ["present", "absent", "late", "excused"];
 const pct = (n: number) => `${Math.round(n * 10) / 10}%`;
 /** No finalised sessions yet: there is no attendance to report, so show a dash rather than 100%. */
 const attendancePct = (l: { total: number; percent: number }) => (l.total > 0 ? pct(l.percent) : "—");
@@ -38,7 +37,7 @@ function useTerms(institutionId: string | null | undefined) {
 }
 
 function TermPicker({ terms, value, onChange }: { terms: { value: string; label: string }[]; value: string; onChange: (v: string) => void }) {
-  return <Select label="Academic term" value={value} onChange={(e) => onChange(e.target.value)} options={[{ value: "", label: "Choose a term" }, ...terms]} data-term-picker />;
+  return <FormSelect label="Academic term" value={value} onChange={(e) => onChange(e.target.value)} options={terms} placeholder="Choose a term" data-term-picker />;
 }
 
 function useSections(institutionId: string | undefined, termId: string) {
@@ -49,52 +48,29 @@ function useSections(institutionId: string | undefined, termId: string) {
 function SectionPicker({ institutionId, term, value, onChange }: { institutionId: string; term: string; value: string; onChange: (v: string) => void }) {
   const sections = useSections(institutionId, term);
   return (
-    <Select
+    <FormSelect
       label="Section"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      options={[{ value: "", label: "Choose a section" }, ...(sections.data ?? []).map((s) => ({ value: s.sectionId, label: `${s.offeringCode} · ${s.sectionCode}` }))]}
+      placeholder="Choose a section"
+      options={(sections.data ?? []).map((s) => ({ value: s.sectionId, label: `${s.offeringCode} · Section ${s.sectionCode}` }))}
       data-section-picker
     />
   );
 }
 
-/** Weekly grid: one column per weekday with its slots. */
+/** Section timetable as the prototype hour × day week grid. */
 function WeekGrid({ slots, empty }: { slots: TimetableSlot[]; empty: string }) {
   if (slots.length === 0)
     return (
-      <EmptyState icon={CalendarDays} title="No classes scheduled">
+      <EmptyState icon={CalendarDays} title="No classes scheduled" compact>
         {empty}
       </EmptyState>
     );
-  const days = [1, 2, 3, 4, 5, 6, 7].filter((d) => d <= 5 || slots.some((s) => s.dayOfWeek === d));
+  const w = weekOf(slots);
   return (
-    <div className="sb-week" data-week-grid style={{ display: "grid", gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`, gap: "0.75rem" }}>
-      {days.map((d) => (
-        <section key={d} data-day={d}>
-          <h3>{DAY[d]}</h3>
-          {slots
-            .filter((s) => s.dayOfWeek === d)
-            .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
-            .map((s) => (
-              <article key={s.id} className="sb-slot" data-slot={s.id} style={{ padding: "0.5rem", borderRadius: "0.75rem", border: "1px solid var(--sb-border, #ddd)", marginBottom: "0.5rem" }}>
-                <b>
-                  {s.startsAt}–{s.endsAt}
-                </b>
-                <div>
-                  {s.offeringCode} · {s.sectionCode}
-                </div>
-                <small>{s.title}</small>
-                <div>
-                  <small>
-                    {s.roomLabel ?? "Room to be announced"}
-                    {s.facultyNames.length ? ` · ${s.facultyNames.join(", ")}` : ""}
-                  </small>
-                </div>
-              </article>
-            ))}
-        </section>
-      ))}
+    <div data-week-grid="">
+      <Week days={w.days} slots={w.grid} todayIndex={w.todayIndex} startHour={w.startHour} endHour={w.endHour} label="Section timetable" />
     </div>
   );
 }
@@ -706,256 +682,8 @@ export function AssessmentAdminTab({ institution }: { institution: Institution |
   );
 }
 
-// ================================================================== student / faculty timetable
+// ================================================================== role screens (re-skin v2, R3: features/academic/teaching)
 
-export function StudentTimetableScreen() {
-  const api = useDeliveryApi();
-  const week = useQuery({ queryKey: dkeys.scoped("me", "timetable"), queryFn: () => api.myTimetable() });
-  const att = useQuery({ queryKey: dkeys.scoped("me", "attendance"), queryFn: () => api.myAttendance() });
-  return (
-    <>
-      <BentoTile span={12} title={week.data ? `My timetable · week of ${fmtDate(week.data.weekOf)}` : "My timetable"} data-slice="4B" data-student-timetable>
-        <WeekGrid slots={week.data?.items ?? []} empty="Your classes appear here once your courses have an operational timetable." />
-      </BentoTile>
-      <BentoTile span={12} title="My attendance">
-        <DataTable
-          caption="My attendance"
-          rows={att.data ?? []}
-          rowKey={(l) => l.sectionId}
-          empty={
-            <EmptyState icon={ClipboardCheck} title="No attendance yet">
-              Attendance appears once sessions are finalised.
-            </EmptyState>
-          }
-          columns={[
-            { key: "c", header: "Course", render: (l) => `${l.offeringCode} · ${l.title}` },
-            { key: "n", header: "Sessions", render: (l) => `${l.attended} / ${l.total}`, muted: true },
-            { key: "p", header: "Attendance", render: (l) => (l.belowThreshold ? <Badge kind="attention">{`${pct(l.percent)} · needs ${l.thresholdPercent}%`}</Badge> : <span data-attendance-ok>{attendancePct(l)}</span>) },
-          ]}
-        />
-      </BentoTile>
-    </>
-  );
-}
-
-export function FacultyTimetableScreen() {
-  const api = useDeliveryApi();
-  const week = useQuery({ queryKey: dkeys.scoped("my", "timetable"), queryFn: () => api.teachingTimetable() });
-  return (
-    <BentoTile span={12} title={week.data ? `My teaching timetable · week of ${fmtDate(week.data.weekOf)}` : "My teaching timetable"} data-slice="4B" data-faculty-timetable>
-      <WeekGrid slots={week.data?.items ?? []} empty="Sections you teach appear here once the timetable is operational." />
-    </BentoTile>
-  );
-}
-
-// ================================================================== student assignments
-
-export function StudentAssignmentsScreen() {
-  const api = useDeliveryApi();
-  const { submit, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
-  const q = useQuery({ queryKey: dkeys.scoped("me", "assignments"), queryFn: () => api.myAssignments() });
-  return (
-    <>
-      <BentoTile span={12} title="Assignments" data-slice="4B" data-assignments>
-        <DataTable
-          caption="Assignments"
-          rows={q.data ?? []}
-          rowKey={(a) => a.id}
-          empty={
-            <EmptyState icon={BookOpenCheck} title="Nothing assigned">
-              Open coursework of your courses appears here.
-            </EmptyState>
-          }
-          columns={[
-            { key: "t", header: "Assignment", render: (a) => <span data-assignment={a.id}>{`${a.title} · ${a.offeringCode}`}</span> },
-            { key: "d", header: "Due", render: (a) => when(a.extendedDueAt ?? a.dueAt), muted: true },
-            { key: "m", header: "Marks", render: (a) => (a.submission?.marks !== null && a.submission?.marks !== undefined ? `${a.submission.marks} / ${a.maxMarks}` : `— / ${a.maxMarks}`), muted: true },
-            { key: "s", header: "Status", render: (a) => <StatusBadge status={a.submission?.status ?? (a.status === "closed" ? "closed" : "pending")} /> },
-            {
-              key: "a",
-              header: "",
-              render: (a) =>
-                !a.submission && (a.status === "open" || a.status === "extended") ? (
-                  <Actions
-                    actions={[
-                      {
-                        id: "assignment-submit",
-                        label: "Submit",
-                        variant: "primary",
-                        onClick: () =>
-                          ask({
-                            title: `Submit · ${a.title}`,
-                            name: "assignment-submit",
-                            submitLabel: "Submit",
-                            fields: [{ name: "content", label: "Your answer or a link to your work", required: true, wide: true }],
-                            onSubmit: (v) => submit(() => api.submitAssignment(a.id, v.content!), "Submitted"),
-                          }),
-                      },
-                    ]}
-                  />
-                ) : null,
-            },
-          ]}
-        />
-      </BentoTile>
-      {prompt}
-      {dialog}
-    </>
-  );
-}
-
-// ================================================================== faculty attendance
-
-function SessionRoster({ session, onClose }: { session: TeachingSession; onClose: () => void }) {
-  const api = useDeliveryApi();
-  const { run, busy, dialog } = useCommand();
-  const live = useQuery({ queryKey: dkeys.scoped(session.id, "session"), queryFn: () => api.getSession(session.id), initialData: session });
-  const s = live.data ?? session;
-  const [marks, setMarks] = useState<Record<string, AttendanceMark>>(() => Object.fromEntries(session.records.filter((r) => r.mark).map((r) => [r.studentId, r.mark as AttendanceMark])));
-  const open = s.attendanceStatus !== "finalised";
-  const canMark = open && ["started", "in_progress", "paused", "completed"].includes(s.status);
-  return (
-    <Modal open onClose={onClose} label="Session attendance">
-      <h2>
-        {fmtDate(s.sessionDate)} · {s.startsAt}–{s.endsAt}
-      </h2>
-      <p data-session-state>
-        <StatusBadge status={s.status} /> <StatusBadge status={s.attendanceStatus} />
-      </p>
-      <div data-roster>
-        {s.records.map((r) => (
-          <div key={r.studentId} data-roster-student={r.studentNumber} style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.35rem", flexWrap: "wrap" }}>
-            <span style={{ flex: 1 }}>
-              {r.displayName} <small>({r.studentNumber})</small>
-            </span>
-            {MARKS.map((m) => (
-              <Button key={m} size="sm" variant={(marks[r.studentId] ?? r.mark) === m ? "primary" : "ghost"} disabled={!canMark} data-mark={m} onClick={() => setMarks((x) => ({ ...x, [r.studentId]: m }))}>
-                {m}
-              </Button>
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="sb-row-actions">
-        {s.status === "scheduled" && (
-          <Button variant="primary" disabled={busy} data-session-start onClick={() => void run(() => api.sessionCommand(s.id, s.version, "start"), "Session started")}>
-            Start session
-          </Button>
-        )}
-        {canMark && (
-          <Button
-            disabled={busy || Object.keys(marks).length === 0}
-            data-save-marks
-            onClick={() =>
-              void run(
-                () =>
-                  api.capture(
-                    s.id,
-                    s.version,
-                    Object.entries(marks).map(([studentId, mark]) => ({ studentId, mark })),
-                  ),
-                "Attendance saved",
-              )
-            }
-          >
-            Save marks
-          </Button>
-        )}
-        {(s.status === "started" || s.status === "in_progress") && (
-          <Button disabled={busy} data-session-complete onClick={() => void run(() => api.sessionCommand(s.id, s.version, "complete"), "Session completed")}>
-            Complete session
-          </Button>
-        )}
-        {open && s.attendanceStatus !== "not_started" && s.status !== "paused" && (
-          <Button variant="primary" disabled={busy} data-finalise onClick={() => void run(() => api.finalise(s.id, s.version), "Attendance finalised")}>
-            Finalise attendance
-          </Button>
-        )}
-      </div>
-      {dialog}
-    </Modal>
-  );
-}
-
-export function FacultyAttendanceScreen() {
-  const api = useDeliveryApi();
-  const { submit, dialog } = useCommand();
-  const { ask, prompt } = useAsk();
-  const [open, setOpen] = useState<TeachingSession | null>(null);
-  const q = useQuery({ queryKey: dkeys.scoped("my", "attendance"), queryFn: () => api.facultyAttendance() });
-  const sections = q.data ?? [];
-  return (
-    <>
-      <BentoTile span={12} variant="accent" data-slice="4B" data-faculty-attendance>
-        <h1>Attendance</h1>
-        {sections.length === 0 ? (
-          <EmptyState icon={ClipboardCheck} title="No sections to teach">
-            Sections appear here once you hold an active teaching assignment.
-          </EmptyState>
-        ) : (
-          <p>Schedule a session, start it, mark the seated students and finalise the register.</p>
-        )}
-      </BentoTile>
-      {sections.map((sec) => (
-        <BentoTile
-          key={sec.sectionId}
-          span={12}
-          title={`${sec.offeringCode} · ${sec.sectionCode} — ${sec.title} (${sec.seatedCount} seated)`}
-          data-taught-section={sec.sectionId}
-          action={
-            <Button
-              size="sm"
-              icon={<Plus strokeWidth={1.75} />}
-              data-new-session
-              onClick={() =>
-                ask({
-                  title: `New session · ${sec.offeringCode}`,
-                  name: "new-session",
-                  submitLabel: "Schedule",
-                  fields: [
-                    { name: "sessionDate", label: "Date", type: "date", required: true, initial: todayIso() },
-                    { name: "startsAt", label: "Starts (HH:MM)", required: true, initial: "09:00" },
-                    { name: "endsAt", label: "Ends (HH:MM)", required: true, initial: "10:00" },
-                    { name: "topic", label: "Topic", wide: true },
-                  ],
-                  onSubmit: (v) => submit(() => api.createSession(sec.sectionId, { sessionDate: v.sessionDate!, startsAt: v.startsAt, endsAt: v.endsAt, topic: v.topic || null }), "Session scheduled"),
-                })
-              }
-            >
-              New session
-            </Button>
-          }
-        >
-          <DataTable
-            caption="Sessions"
-            rows={sec.sessions}
-            rowKey={(s) => s.id}
-            empty={
-              <EmptyState icon={CalendarDays} title="No sessions yet">
-                Schedule today’s session to take attendance.
-              </EmptyState>
-            }
-            columns={[
-              {
-                key: "d",
-                header: "Session",
-                render: (s) => (
-                  <button type="button" className="sb-link" data-session={s.id} onClick={() => setOpen(s)}>
-                    {`${fmtDate(s.sessionDate)} · ${s.startsAt}`}
-                  </button>
-                ),
-              },
-              { key: "t", header: "Topic", render: (s) => s.topic ?? "—", muted: true },
-              { key: "s", header: "Session", render: (s) => <StatusBadge status={s.status} /> },
-              { key: "a", header: "Attendance", render: (s) => <StatusBadge status={s.attendanceStatus} /> },
-            ]}
-          />
-        </BentoTile>
-      ))}
-      {open && <SessionRoster session={open} onClose={() => setOpen(null)} />}
-      {prompt}
-      {dialog}
-    </>
-  );
-}
+export { FacultyTimetableScreen, StudentTimetableScreen } from "../teaching/timetable";
+export { StudentAssignmentsScreen } from "../teaching/assignments";
+export { FacultyAttendanceScreen } from "../teaching/attendance";

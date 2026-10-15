@@ -9,10 +9,11 @@
  * - `MyPayslipsPanel` — My HR (`/leave`): the caller's own payslips.
  */
 import { Banknote, CalendarRange, FileText, Layers, Settings2, UserCheck, UserMinus } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, Select, StatTile } from "@sutra/ui";
+import { BentoTile, Button, DataTable, EmptyState, FormSelect, KpiTile } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Actions, fmtDate, NoInstitution, REASON, todayIso, useAsk, type RowAction } from "../../institution/forms";
+import { fmtDate, NoInstitution, REASON, todayIso } from "../../institution/forms";
+import { Acts, days, inr as formatInr, useAsk, type RowAction } from "../ui";
 import { useWorkforceApi, wkeys } from "../workforce/hooks";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
@@ -23,7 +24,9 @@ export { PayrollApiProvider } from "./hooks";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const monthLabel = (year: number, month: number) => `${MONTHS[month - 1] ?? month} ${year}`;
-const inr = (v: string | null | undefined) => (v ? `₹${v}` : "—");
+const inr = (v: string | null | undefined) => (v ? formatInr(v) : "—");
+/** The run's next forward step: the row's one primary pill (the rest go in its kebab). */
+const NEXT_RUN_STEP: Record<string, string> = { created: "calculate", reprocessing: "calculate", calculated: "validate", validating: "submit", pending_approval: "approve", approved: "finalise", finalized: "post", posted: "issue", failed: "reprocess" };
 const COMPONENT_KINDS = [
   { value: "earning", label: "Earning" },
   { value: "deduction", label: "Deduction" },
@@ -88,11 +91,11 @@ function SalarySetup({ institutionId }: { institutionId: string }) {
           caption="Salary structures"
           rows={structures}
           rowKey={(st) => st.id}
-          empty={<EmptyState icon={Layers} title="No salary structures">Create one per grade with its basic pay.</EmptyState>}
+          empty={<EmptyState icon={Layers} title="No salary structures" compact>Create one per grade with its basic pay.</EmptyState>}
           columns={[
             { key: "code", header: "Structure", render: (st) => `${st.code} · ${st.name}` },
             { key: "grade", header: "Grade", render: (st) => st.grade ?? "—", muted: true },
-            { key: "lines", header: "Lines", render: (st) => st.lines.map((l) => `${l.componentCode} ${l.amount ? inr(l.amount) : `${l.rate ?? ""}%`}`).join(", ") },
+            { key: "lines", header: "Pay lines", render: (st) => st.lines.map((l) => `${l.componentCode} ${l.amount ? inr(l.amount) : `${l.rate ?? ""}%`}`).join(", ") },
             { key: "status", header: "Status", render: (st) => <StatusBadge status={st.status} /> },
           ]}
         />
@@ -129,12 +132,12 @@ function SalarySetup({ institutionId }: { institutionId: string }) {
           </Button>
         }
       >
-        {engaged.length > 0 && <Select label="Staff member" value={person?.id ?? ""} options={engaged.map((x) => ({ value: x.id, label: `${x.staffNumber} · ${x.displayName}` }))} onChange={(e) => setPicked(e.target.value)} />}
+        {engaged.length > 0 && <FormSelect label="Staff member" value={person?.id ?? ""} options={engaged.map((x) => ({ value: x.id, label: `${x.staffNumber} · ${x.displayName}` }))} onChange={(e) => setPicked(e.target.value)} />}
         <DataTable
           caption="Salary assignments"
           rows={assignments.map((a) => ({ ...a, who: person ? `${person.staffNumber} · ${person.displayName}` : "—" }))}
           rowKey={(a) => a.id}
-          empty={<EmptyState icon={UserCheck} title="No salary assignment">Assign a structure before running payroll.</EmptyState>}
+          empty={<EmptyState icon={UserCheck} title="No salary assignment" compact>Assign a structure before running payroll.</EmptyState>}
           columns={[
             { key: "who", header: "Staff", render: (a) => a.who },
             { key: "structure", header: "Structure", render: (a) => a.structureCode },
@@ -203,9 +206,9 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
 
   return (
     <>
-      <StatTile span={4} icon={Settings2} tone="violet" label="Active configuration" value={active ? `v${active.versionNo}` : "None"} hint={active ? `${active.name} · from ${fmtDate(active.effectiveFrom)}` : "Activate a version to run payroll"} data-kpi="payroll-config" />
-      <StatTile span={4} icon={Banknote} tone="green" label="Net pay (selected run)" value={current ? inr(current.netPay) : "—"} hint={current ? `${current.number} · ${current.headcount} staff` : "No run yet"} data-kpi="payroll-net" />
-      <StatTile span={4} icon={UserMinus} tone="orange" label="Final settlements" value={String((settlements.data ?? []).filter((s) => s.status !== "completed").length)} hint="Open settlements" data-kpi="payroll-fnf" />
+      <KpiTile span={4} icon={Settings2} tone="violet" label="Active configuration" value={active ? `v${active.versionNo}` : "None"} sub={active ? `${active.name} · from ${fmtDate(active.effectiveFrom)}` : "Activate a version to run payroll"} data-kpi="payroll-config" />
+      <KpiTile span={4} icon={Banknote} tone="green" label="Net pay (selected run)" value={current ? inr(current.netPay) : "—"} sub={current ? `${current.number} · ${current.headcount} staff` : "No run yet"} data-kpi="payroll-net" />
+      <KpiTile span={4} icon={UserMinus} tone="orange" label="Final settlements" value={String((settlements.data ?? []).filter((s) => s.status !== "completed").length)} sub="Open settlements" data-kpi="payroll-fnf" />
 
       <BentoTile
         span={12}
@@ -235,7 +238,7 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
         }
       >
         <DataTable caption="Configuration versions" rows={configs.data ?? []} rowKey={(c) => c.id}
-          empty={<EmptyState icon={Settings2} title="No configuration">Create a version with pay components and statutory rules.</EmptyState>}
+          empty={<EmptyState icon={Settings2} title="No configuration" compact>Create a version with pay components and statutory rules.</EmptyState>}
           columns={[
             { key: "v", header: "Version", render: (c) => `v${c.versionNo} · ${c.name}` },
             { key: "from", header: "Effective from", render: (c) => fmtDate(c.effectiveFrom) },
@@ -276,7 +279,7 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
                   acts.push({ id: "config-reject", label: "Reject", onClick: () => ask({ title: `Reject v${c.versionNo}`, name: "config-reject", fields: [REASON], submitLabel: "Reject", onSubmit: (v) => submit(() => api.decideConfig(c.id, c.version, "reject", v.reason), `v${c.versionNo} sent back`) }) });
                 }
                 if (c.status === "approved") acts.push({ id: "config-activate", label: "Activate", variant: "primary", onClick: () => void run(() => api.configCommand(c.id, c.version, "activate"), `v${c.versionNo} active`) });
-                return <Actions disabled={busy} actions={acts} />;
+                return <Acts disabled={busy} actions={acts} />;
               },
             },
           ]}
@@ -290,7 +293,7 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
         title="Payroll runs"
         data-slice="7C"
         action={
-          <Actions
+          <Acts
             disabled={busy}
             actions={[
               {
@@ -319,7 +322,7 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
         }
       >
         {periodList.length > 0 && (
-          <Select
+          <FormSelect
             label="Period"
             value={periodId}
             onChange={(e) => {
@@ -331,10 +334,10 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
           />
         )}
         {periodList.length === 0 ? (
-          <EmptyState icon={CalendarRange} title="No payroll period">Open the month you want to pay.</EmptyState>
+          <EmptyState icon={CalendarRange} title="No payroll period" compact>Open the month you want to pay.</EmptyState>
         ) : (
           <DataTable caption="Runs" rows={runList} rowKey={(r) => r.id}
-            empty={<EmptyState icon={Banknote} title="No runs">Create the regular run of the period.</EmptyState>}
+            empty={<EmptyState icon={Banknote} title="No runs" compact>Create the regular run of the period.</EmptyState>}
             columns={[
               { key: "number", header: "Run", render: (r) => (
                   <Button size="sm" variant="ghost" onClick={() => setRunPicked(r.id)} data-run={r.id}>
@@ -351,9 +354,9 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
                 key: "actions",
                 header: "",
                 render: (r) => (
-                  <Actions
+                  <Acts
                     disabled={busy}
-                    actions={runActions(r.status).map((a) => ({ id: `run-${a}`, label: statusLabel(a), variant: a === "approve" || a === "finalise" || a === "post" ? "primary" : "ghost", onClick: () => void runAct(r, a) }))}
+                    actions={runActions(r.status).map((a) => ({ id: `run-${a}`, label: statusLabel(a), variant: a === NEXT_RUN_STEP[r.status] ? "primary" : "ghost", onClick: () => void runAct(r, a) }))}
                   />
                 ),
               },
@@ -373,11 +376,11 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
 
       <BentoTile span={12} title={current ? `Results · ${current.number}` : "Results"} data-slice="7C">
         <DataTable caption="Payroll results" rows={results.data ?? []} rowKey={(r) => r.id}
-          empty={<EmptyState icon={FileText} title="No results">Calculate the run to produce per-employee results.</EmptyState>}
+          empty={<EmptyState icon={FileText} title="No results" compact>Calculate the run to produce per-employee results.</EmptyState>}
           columns={[
             { key: "staff", header: "Staff", render: (r) => `${r.staffNumber} · ${r.displayName}` },
             { key: "rev", header: "Rev.", render: (r) => String(r.revision), muted: true },
-            { key: "lop", header: "LOP days", render: (r) => r.lopDays },
+            { key: "lop", header: "Loss of pay", render: (r) => days(r.lopDays) },
             { key: "gross", header: "Gross", render: (r) => inr(r.grossEarnings) },
             { key: "ded", header: "Deductions", render: (r) => inr(r.totalDeductions) },
             { key: "net", header: "Net pay", render: (r) => inr(r.netPay) },
@@ -419,7 +422,7 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
         }
       >
         <DataTable caption="Final settlements" rows={settlements.data ?? []} rowKey={(s) => s.id}
-          empty={<EmptyState icon={UserMinus} title="No settlements">Settlements start from closed engagements.</EmptyState>}
+          empty={<EmptyState icon={UserMinus} title="No settlements" compact>Settlements start from closed engagements.</EmptyState>}
           columns={[
             { key: "number", header: "Settlement", render: (s) => s.number ?? "—" },
             { key: "lwd", header: "Last working day", render: (s) => fmtDate(s.lastWorkingDate) },
@@ -436,7 +439,7 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
                 if (f.status === "initiated" || f.status === "calculated") acts.push({ id: "settlement-calculate", label: "Calculate", onClick: () => void run(() => api.settlementCommand(f.id, f.version, "calculate"), "Settlement calculated") });
                 if (f.status === "pending_approval") acts.push({ id: "settlement-approve", label: "Approve", variant: "primary", onClick: () => void run(() => api.decideSettlement(f.id, f.version, "approve"), "Settlement approved") });
                 if (f.status === "approved") acts.push({ id: "settlement-complete", label: "Complete", variant: "primary", onClick: () => void run(() => api.settlementCommand(f.id, f.version, "complete"), (r) => `${r.number ?? "Settlement"} completed`) });
-                return <Actions disabled={busy} actions={acts} />;
+                return <Acts disabled={busy} actions={acts} />;
               },
             },
           ]}
@@ -456,7 +459,7 @@ export function MyPayslipsPanel() {
   return (
     <BentoTile span={12} title="My payslips" data-slice="7C">
       {list.length === 0 ? (
-        <EmptyState icon={FileText} title="No payslips yet">Payslips appear here once payroll is finalised.</EmptyState>
+        <EmptyState icon={FileText} title="No payslips yet" compact>Payslips appear here once payroll is finalised.</EmptyState>
       ) : (
         <DataTable caption="Payslips" rows={list} rowKey={(p) => p.id}
           columns={[
@@ -465,7 +468,7 @@ export function MyPayslipsPanel() {
             { key: "gross", header: "Gross", render: (p) => inr(p.grossEarnings) },
             { key: "ded", header: "Deductions", render: (p) => inr(p.totalDeductions) },
             { key: "net", header: "Net pay", render: (p) => inr(p.netPay) },
-            { key: "lop", header: "LOP days", render: (p) => p.lopDays, muted: true },
+            { key: "lop", header: "Loss of pay", render: (p) => days(p.lopDays), muted: true },
             { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
           ]}
         />

@@ -21,7 +21,7 @@
  *   student  /registration (self-registration, add + drop, submit) and /documents (certificate
  *          request + cancel); faculty  Student 360 read-only.
  *
- * A full-page PNG (1280×800 viewport) is written at each step to $E2E_SHOTS (default
+ * A full-page PNG (1440×960 viewport, the prototype size) is written at each step to $E2E_SHOTS (default
  * /workspace/work/out/b3-shots, else ./e2e-shots). Every console error, page error and failed /api
  * response fails the run, as do empty states where data should be and buttons that change nothing.
  *
@@ -432,16 +432,66 @@ function tile(page, title) {
   return page.locator(".sb-tile").filter({ has: page.locator("h4", { hasText: title }) }).first();
 }
 
-/** The table row (`tr`) containing `text`. */
+/** The table row (`tr`) or list row (`.sb-lrow`) containing `text`. */
 function row(page, text, scope) {
-  return (scope ?? page).locator("tr", { hasText: text }).first();
+  return (scope ?? page).locator("tr, .sb-lrow", { hasText: text }).first();
 }
 
-/** Clicks `[data-action=id]` in the row containing `text`, then waits for the network. */
+/**
+ * Clicks the command `id` inside `container`: the row's primary pill (`[data-action]`), else the
+ * kebab (`[data-row-menu]`) → `[data-menu-item]` (re-skin v2: one primary action per row).
+ */
+async function act(page, container, id) {
+  const direct = container.locator(`[data-action="${id}"]`).first();
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    if (await direct.isVisible().catch(() => false)) {
+      await direct.click();
+      await settle(page);
+      return;
+    }
+    const kebab = container.locator("[data-row-menu]").first();
+    if (await kebab.isVisible().catch(() => false)) {
+      if ((await kebab.getAttribute("aria-expanded")) !== "true") await kebab.click();
+      const item = container.locator(`[data-menu-item="${id}"]`).first();
+      if (await item.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await item.click();
+        await settle(page);
+        return;
+      }
+      await page.keyboard.press("Escape").catch(() => {});
+    }
+    await page.waitForTimeout(250);
+  }
+  throw new Error(`action ${id} not found`);
+}
+
+/** Clicks the command `id` in the row containing `text`, then waits for the network. */
 async function rowAction(page, text, id, scope) {
-  const btn = row(page, text, scope).locator(`[data-action="${id}"]`).first();
-  await btn.waitFor({ state: "visible", timeout: 10000 });
-  await btn.click();
+  await act(page, row(page, text, scope), id);
+}
+
+/** A Student 360 record action from the header "More" menu. */
+async function moreAction(page, id) {
+  await page.locator("[data-student-more]").click();
+  await page.locator(`[data-menu-item="${id}"]`).click();
+  await settle(page);
+}
+
+/** "New admission": the 3-step dialog (applicant → programme → confirm). */
+async function newApplication(page, v) {
+  await page.click("[data-new-application]");
+  const form = page.locator('[data-form="new-application"]');
+  await form.waitFor({ state: "visible", timeout: 10000 });
+  await fillForm(page, "new-application", { fullName: v.fullName, dateOfBirth: v.dateOfBirth, phone: v.phone ?? "", email: v.email ?? "" }, { submit: false });
+  if (v.shot) await shot(page, v.shot);
+  await form.locator('button[type="submit"]').click();
+  await form.locator('[name="programmeId"]').waitFor({ timeout: 10000 });
+  if (v.subjectRef) await fillForm(page, "new-application", { subjectRef: v.subjectRef }, { submit: false });
+  await form.locator('button[type="submit"]').click();
+  await form.locator("[data-confirm]").waitFor({ timeout: 10000 });
+  await form.locator('button[type="submit"]').click();
+  await form.waitFor({ state: "detached", timeout: 15000 });
   await settle(page);
 }
 
@@ -452,7 +502,10 @@ async function fillForm(page, name, values = {}, { submit = true } = {}) {
   for (const [k, v] of Object.entries(values)) {
     const el = form.locator(`[name="${k}"]`).first();
     const tag = await el.evaluate((n) => `${n.tagName}:${n.getAttribute("type") ?? ""}`);
-    if (tag.startsWith("SELECT")) {
+    if (tag === "INPUT:hidden") {
+      // TagInput: toggle each option chip.
+      for (const t of String(v).split(",").map((x) => x.trim()).filter(Boolean)) await form.locator(`[data-tag-option="${t}"]`).click();
+    } else if (tag.startsWith("SELECT")) {
       // By value, else by the first option whose label contains `v`.
       const opts = await el.locator("option").evaluateAll((os) => os.map((o) => ({ value: o.value, label: o.textContent ?? "" })));
       const hit = opts.find((o) => o.value === v) ?? opts.find((o) => o.label.includes(v));
@@ -524,7 +577,7 @@ try {
     executablePath: process.env.CHROMIUM_PATH || undefined,
     args: ["--no-sandbox", ...(process.env.E2E_CHROMIUM_ARGS ?? "").split(" ").filter(Boolean)],
   });
-  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   watch(page);
@@ -543,17 +596,8 @@ try {
     await go(page, "/students/admissions");
     await page.locator("[data-new-application]").waitFor();
     check(await page.locator("[data-new-application]").isEnabled(), "“New application” enabled (programme published)");
-    await page.click("[data-new-application]");
-    await fillForm(page, "new-application", {
-      givenName: "Aarav",
-      familyName: "Desai",
-      dateOfBirth: "2007-03-14",
-      email: "aarav.desai@students.sit.edu.in",
-      phone: "+91 98220 11223",
-      subjectRef: STUDENT_SUBJECT,
-    });
-    await page.click("[data-new-application]");
-    await fillForm(page, "new-application", { givenName: "Kavya", familyName: "Joshi", dateOfBirth: "2007-08-02", email: "kavya@example.in" });
+    await newApplication(page, { shot: "admissions-new-admission-dialog", fullName: "Aarav Desai", dateOfBirth: "2007-03-14", email: "aarav.desai@students.sit.edu.in", phone: "+91 98220 11223", subjectRef: STUDENT_SUBJECT });
+    await newApplication(page, { fullName: "Kavya Joshi", dateOfBirth: "2007-08-02", email: "kavya@example.in" });
     await page.locator('[data-application="Aarav Desai"]').waitFor();
     await expectRowStatus(page, "Aarav Desai", "Draft");
     await shot(page, "admissions-applications");
@@ -576,10 +620,9 @@ try {
   });
 
   await step(page, "admissions: acceptance and documents", async () => {
-    const recs = page.locator("tr", { has: page.locator('[data-admission="Aarav Desai"]') });
-    await recs.locator('[data-action="admission-accept"]').click();
-    await settle(page);
-    await recs.locator('[data-action="admission-documents"]').click();
+    const recs = page.locator('.sb-lrow[data-admission="Aarav Desai"]');
+    await act(page, recs, "admission-accept");
+    await act(page, recs, "admission-documents");
     const drawer = page.getByRole("dialog");
     await drawer.waitFor();
     for (const [type, title] of [
@@ -589,19 +632,18 @@ try {
       await drawer.locator("[data-add-admission-document]").click();
       await fillForm(page, "admission-document", { documentType: type, title, fileRef: `dms://admissions/${type}.pdf` });
     }
-    await page.waitForFunction(() => document.querySelectorAll('[role="dialog"] tbody tr').length >= 2);
+    await page.waitForFunction(() => document.querySelectorAll('[role="dialog"] [data-admission-doc]').length >= 2);
     await shot(page, "admissions-documents-drawer");
     await page.keyboard.press("Escape");
     await settle(page);
-    await recs.locator('[data-action="admission-submit-documents"]').click();
-    await settle(page);
-    await recs.locator('[data-action="admission-documents"]').click();
+    await act(page, recs, "admission-submit-documents");
+    await act(page, recs, "admission-documents");
     await drawer.waitFor();
     for (let i = 0; i < 2; i++) {
       await drawer.locator('[data-action="doc-verify"]').first().click();
       await settle(page);
     }
-    await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] tbody tr')].every((r) => r.textContent.includes("Verified")));
+    await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] [data-admission-doc]')].every((r) => r.textContent.includes("Verified")));
     await shot(page, "admissions-documents-verified");
     await page.keyboard.press("Escape");
     await settle(page);
@@ -609,18 +651,14 @@ try {
   });
 
   await step(page, "admissions: approval, clearance, confirmation, student", async () => {
-    const recs = () => tile(page, "Admission records").locator("tr", { hasText: "Aarav Desai" });
-    await recs().locator('[data-action="admission-submit-for-approval"]').click();
-    await settle(page);
+    const recs = () => tile(page, "Admission records").locator(".sb-lrow", { hasText: "Aarav Desai" });
+    await act(page, recs(), "admission-submit-for-approval");
     await expectRowStatus(page, "Aarav Desai", "Approved", tile(page, "Admission records"));
-    await recs().locator('[data-action="admission-financial-clearance"]').click();
-    await settle(page);
-    await recs().locator('[data-action="admission-confirm"]').click();
-    await settle(page);
+    await act(page, recs(), "admission-financial-clearance");
+    await act(page, recs(), "admission-confirm");
     await expectRowStatus(page, "Aarav Desai", "Confirmed", tile(page, "Admission records"));
     await shot(page, "admissions-confirmed");
-    await recs().locator('[data-action="admission-create-student"]').click();
-    await settle(page);
+    await act(page, recs(), "admission-create-student");
     await recs().getByRole("link", { name: "Aarav Desai" }).waitFor();
     await shot(page, "admissions-student-created");
   });
@@ -641,14 +679,14 @@ try {
     await go(page, "/students");
     await page.locator('[data-student]').first().waitFor();
     check((await page.locator("tbody tr").count()) >= 3, "directory lists the three students");
-    await expectRowStatus(page, "Aarav Desai", "Active");
+    await expectRowStatus(page, "Aarav Desai", "Sem");
     await shot(page, "students-directory");
   });
 
   await step(page, "student 360: overview", async () => {
     await go(page, `/students/record/${ids.aarav}`);
     await page.locator('[data-current-context="active"]').waitFor();
-    await page.locator('[data-action="student-profile"]').click();
+    await moreAction(page, "student-profile");
     await fillForm(page, "student-profile", { preferredName: "Aarav" });
     await shot(page, "student360-overview");
   });
@@ -663,7 +701,7 @@ try {
     await rowAction(page, "Bonafide certificate", "request-issue", requests);
     await fillForm(page, "request-issue", { issuedReference: "BON/2026/0001" });
     await expectRowStatus(page, "Bonafide certificate", "Issued", requests);
-    await expectRowStatus(page, "Bonafide certificate", "Verified", tile(page, "Documents on record"));
+    await expectRowStatus(page, "Bonafide certificate", "Verified", tile(page, "Documents"));
     await shot(page, "student360-documents");
   });
 
@@ -719,8 +757,6 @@ try {
   await step(page, "student: documents and certificate request", async () => {
     await go(page, "/documents");
     await page.getByText("Identity proof", { exact: false }).first().waitFor();
-    const req = page.locator("[data-request-certificate], [data-action='request-certificate']").first();
-    await req.click();
     await fillForm(page, "my-request", { documentType: "transcript_copy", purpose: "Internship application" });
     await expectRowStatus(page, "Transcript copy", "Requested");
     await rowAction(page, "Transcript copy", "my-request-cancel");
@@ -871,8 +907,8 @@ try {
     }
     await expectRowStatus(page, "Qualification", "Archived", tile(page, "Alumni transition"));
     // Without a reload: the header follows the persona (archived once no live context remains).
-    await page.locator(".sb-page-head").filter({ hasText: "Archived" }).waitFor({ timeout: 10000 }).catch(() => {});
-    check(((await page.locator(".sb-page-head").first().textContent()) ?? "").includes("Archived"), "Student 360 header shows the archived persona without a reload");
+    await page.locator("[data-area-head]").filter({ hasText: "Archived" }).waitFor({ timeout: 10000 }).catch(() => {});
+    check(((await page.locator("[data-area-head]").first().textContent()) ?? "").includes("Archived"), "Student 360 header shows the archived persona without a reload");
     await shot(page, "student360-alumni");
   });
 

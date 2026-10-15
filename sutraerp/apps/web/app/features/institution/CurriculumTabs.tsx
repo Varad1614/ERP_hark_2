@@ -3,11 +3,13 @@
  * (versions: draft → published → immutable successor → retired) and the school academic model.
  */
 import { BookOpen, Plus } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, Modal, Select } from "@sutra/ui";
+import { BentoTile, Button, DataTable, EmptyState, FormSelect, ListRow, TagInput } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+// Re-skin v2 (R3): StepDialog quick forms, one-pill row menus and structured editors.
+import { emptySlot, LevelsPicker, levelName, levelNodes, slotComponents, SlotsEditor, type SlotRow } from "../academic/admin/editors";
+import { Actions, AskForm, fmtDate, NoInstitution, REASON, useAsk } from "../academic/kit";
 import type { PublishCommand } from "./api";
-import { Actions, fmtDate, NoInstitution, QuickForm, REASON, useAsk } from "./forms";
 import { keys, StatusBadge, useCommand, useInstitutionApi } from "./hooks";
 import type { AcademicModel, AcademicStructure, ComponentCategory, CurriculumComponent, GradeLevel, Institution, PublicationStatus, StructureNode } from "./types";
 
@@ -79,6 +81,7 @@ export function StructureTab({ institution }: { institution: Institution | null 
   const { run, submit, busy, dialog } = useCommand();
   const { ask, prompt } = useAsk();
   const q = useQuery({ queryKey: keys.scoped(institution?.id ?? "-", "structures"), queryFn: () => api.listStructures(institution!.id), enabled: !!institution });
+  const [levels, setLevels] = useState<string[]>(["ug", "pg"]);
   if (!institution) return <Needs institution={institution} />;
   const draft = (q.data ?? []).find((s) => s.status === "draft");
   return (
@@ -92,7 +95,7 @@ export function StructureTab({ institution }: { institution: Institution | null 
           columns={[
             { key: "v", header: "Version", render: (s) => `v${s.versionNo}` },
             { key: "name", header: "Name", render: (s) => <span data-structure={s.versionNo}>{s.name}</span> },
-            { key: "levels", header: "Levels", render: (s) => s.nodes.filter((n) => n.kind === "level").map((n) => n.key).join(", ") || "—", muted: true },
+            { key: "levels", header: "Levels", render: (s) => s.nodes.filter((n) => n.kind === "level").map((n) => n.name || levelName(n.key)).join(" · ") || "—", muted: true },
             { key: "status", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
             {
               key: "a",
@@ -113,25 +116,28 @@ export function StructureTab({ institution }: { institution: Institution | null 
             },
           ]}
         />
-        <QuickForm
+        <AskForm
           name="new-structure"
+          title={draft ? `Update draft v${draft.versionNo}` : "New draft structure"}
           submitLabel={draft ? `Update draft v${draft.versionNo}` : "Create draft structure"}
           fields={[
             { name: "name", label: "Name", required: true, initial: "Academic structure" },
-            { name: "model", label: "Model", type: "select", initial: "higher_education", options: MODELS.map((m) => ({ value: m, label: m.replace(/_/g, " ") })) },
-            { name: "levels", label: "Levels (key:name:NHEQF level, comma separated)", required: true, wide: true, initial: "ug:Undergraduate:6, pg:Postgraduate:6.5" },
+            { name: "model", label: "Model", type: "select", initial: "higher_education", options: MODELS.map((m) => ({ value: m, label: m === "higher_education" ? "Higher education" : m === "school" ? "School" : "Mixed" })) },
             { name: "effectiveFrom", label: "Effective from", type: "date" },
           ]}
-          onSubmit={(v) =>
-            submit(
+          onSubmit={(v) => {
+            if (levels.length === 0) return Promise.reject(new Error("Pick at least one level"));
+            return submit(
               () => {
-                const input = { name: v.name!.trim(), model: v.model as AcademicModel, nepAligned: true, nodes: parseLevels(v.levels!), effectiveFrom: v.effectiveFrom || null };
+                const input = { name: v.name!.trim(), model: v.model as AcademicModel, nepAligned: true, nodes: levelNodes(levels), effectiveFrom: v.effectiveFrom || null };
                 return draft ? api.updateStructure(draft.id, draft.version, input) : api.createStructure(institution.id, input);
               },
               draft ? `Draft v${draft.versionNo} updated` : "Draft structure created",
-            )
-          }
-        />
+            );
+          }}
+        >
+          <LevelsPicker value={levels} onChange={setLevels} />
+        </AskForm>
       </BentoTile>
       {prompt}
       {dialog}
@@ -143,7 +149,6 @@ export function ProgrammesTab({ institution }: { institution: Institution | null
   const api = useInstitutionApi();
   const { run, submit, busy, dialog } = useCommand();
   const { ask, prompt } = useAsk();
-  const [adding, setAdding] = useState(false);
   const inst = institution?.id ?? "-";
   const q = useQuery({ queryKey: keys.scoped(inst, "programmes"), queryFn: () => api.listProgrammes(institution!.id), enabled: !!institution });
   const units = useQuery({ queryKey: keys.scoped(inst, "org-units"), queryFn: () => api.listOrgUnits(institution!.id), enabled: !!institution });
@@ -156,7 +161,31 @@ export function ProgrammesTab({ institution }: { institution: Institution | null
         span={12}
         title="Programme catalogue"
         action={
-          <Button size="sm" icon={<Plus strokeWidth={1.75} />} onClick={() => setAdding(true)} data-new-programme>
+          <Button
+            size="sm"
+            icon={<Plus strokeWidth={1.75} />}
+            data-new-programme
+            onClick={() =>
+              ask({
+                eyebrow: "Academics · Programmes",
+                title: "Register programme",
+                name: "new-programme",
+                submitLabel: "Register",
+                fields: [
+                  { name: "code", label: "Code", required: true, placeholder: "BTECH-CSE" },
+                  { name: "name", label: "Name", required: true, placeholder: "B.Tech Computer Science" },
+                  { name: "level", label: "Level", type: "select", required: true, initial: levels[0]?.key ?? "", options: levels.map((l) => ({ value: l.key, label: l.name || levelName(l.key) })) },
+                  { name: "durationTerms", label: "Duration (terms)", type: "number", required: true, initial: "8" },
+                  { name: "orgUnitId", label: "Owning unit", type: "select", wide: true, options: [{ value: "", label: "Not set" }, ...(units.data ?? []).map((u) => ({ value: u.id, label: u.name }))] },
+                ],
+                onSubmit: (v) =>
+                  submit(
+                    () => api.createProgramme(institution.id, { code: v.code!.trim().toUpperCase(), name: v.name!.trim(), level: v.level!, durationTerms: Number(v.durationTerms), orgUnitId: v.orgUnitId || null }),
+                    "Programme registered",
+                  ),
+              })
+            }
+          >
             Register programme
           </Button>
         }
@@ -167,9 +196,9 @@ export function ProgrammesTab({ institution }: { institution: Institution | null
           rowKey={(p) => p.id}
           empty={<EmptyState icon={BookOpen} title="No programmes yet">Register a programme, then publish it.</EmptyState>}
           columns={[
-            { key: "code", header: "Code", render: (p) => p.code },
+            { key: "code", header: "Code", render: (p) => <b>{p.code}</b> },
             { key: "name", header: "Name", render: (p) => <span data-programme={p.code}>{p.name}</span> },
-            { key: "level", header: "Level", render: (p) => `${p.level} · ${p.durationTerms} terms`, muted: true },
+            { key: "level", header: "Level", render: (p) => `${levelName(p.level)} · ${p.durationTerms} terms`, muted: true },
             { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
             {
               key: "a",
@@ -191,28 +220,6 @@ export function ProgrammesTab({ institution }: { institution: Institution | null
           ]}
         />
       </BentoTile>
-      <Modal open={adding} onClose={() => setAdding(false)} label="Register programme">
-        <h2>Register programme</h2>
-        <QuickForm
-          name="new-programme"
-          submitLabel="Register"
-          onCancel={() => setAdding(false)}
-          fields={[
-            { name: "code", label: "Code", required: true, placeholder: "BTECH-CSE" },
-            { name: "name", label: "Name", required: true, placeholder: "B.Tech Computer Science" },
-            { name: "level", label: "Level (from the academic structure)", type: "select", required: true, initial: levels[0]?.key ?? "", options: levels.map((l) => ({ value: l.key, label: `${l.name} (${l.key})` })) },
-            { name: "durationTerms", label: "Duration (terms)", type: "number", required: true, initial: "8" },
-            { name: "orgUnitId", label: "Owning unit", type: "select", options: [{ value: "", label: "—" }, ...(units.data ?? []).map((u) => ({ value: u.id, label: u.name }))] },
-          ]}
-          onSubmit={async (v) => {
-            await submit(
-              () => api.createProgramme(institution.id, { code: v.code!.trim().toUpperCase(), name: v.name!.trim(), level: v.level!, durationTerms: Number(v.durationTerms), orgUnitId: v.orgUnitId || null }),
-              "Programme registered",
-            );
-            setAdding(false);
-          }}
-        />
-      </Modal>
       {prompt}
       {dialog}
     </>
@@ -232,6 +239,7 @@ export function CurriculumTab({ institution }: { institution: Institution | null
   const [curriculumId, setCurriculumId] = useState<string>("");
   const cid = curricula.data?.some((c) => c.id === curriculumId) ? curriculumId : (curricula.data?.[0]?.id ?? "");
   const versions = useQuery({ queryKey: keys.scoped(inst, "curriculum-versions", cid), queryFn: () => api.listCurriculumVersions(cid), enabled: !!cid });
+  const [slots, setSlots] = useState<SlotRow[]>([emptySlot()]);
   if (!institution) return <Needs institution={institution} />;
   if ((programmes.data ?? []).length === 0)
     return (
@@ -242,33 +250,30 @@ export function CurriculumTab({ institution }: { institution: Institution | null
   return (
     <>
       <BentoTile span={5} title="Curricula">
-        <Select label="Programme" name="programme" value={pid} options={(programmes.data ?? []).map((p) => ({ value: p.id, label: `${p.name} (${p.code})` }))} onChange={(e) => setProgrammeId(e.target.value)} />
-        <div className="sb-list">
+        <FormSelect label="Programme" name="programme" value={pid} options={(programmes.data ?? []).map((p) => ({ value: p.id, label: p.name }))} onChange={(e) => setProgrammeId(e.target.value)} />
+        <div className="sb-list-rows" style={{ marginTop: 12 }}>
           {(curricula.data ?? []).map((c) => (
-            <article key={c.id} className={`sb-list-row${c.id === cid ? "" : " is-muted"}`} data-curriculum={c.code}>
-              <div>
-                <h3>{c.title}</h3>
-                <small>{c.code}</small>
-              </div>
-              <Button size="sm" variant="ghost" onClick={() => setCurriculumId(c.id)}>
-                Open
-              </Button>
-            </article>
+            <div key={c.id} data-curriculum={c.code}>
+              <ListRow icon={BookOpen} tone="violet" title={c.title} meta={c.code} selected={c.id === cid} onOpen={c.id === cid ? undefined : () => setCurriculumId(c.id)} badge={c.id === cid ? { label: "Open", kind: "info" } : undefined} />
+            </div>
           ))}
         </div>
-        <QuickForm
+        <AskForm
+          title="Add a curriculum"
+          columns={2}
           name="new-curriculum"
           submitLabel="Add curriculum"
           fields={[
             { name: "code", label: "Code", required: true, placeholder: "CSE-2026" },
             { name: "title", label: "Title", required: true, placeholder: "CSE scheme 2026" },
             { name: "effectiveFrom", label: "Effective from", type: "date", required: true },
-            { name: "termStructure", label: "Terms", type: "select", initial: "semester", options: ["semester", "trimester", "annual"].map((t) => ({ value: t, label: t })) },
-            { name: "creditFramework", label: "Credit framework", type: "select", initial: "nep2020", options: ["nep2020", "cbcs", "custom"].map((t) => ({ value: t, label: t })) },
-            { name: "slots", label: `Course slots (term:code:credits, comma separated; ${programme?.durationTerms ?? "?"} terms)`, required: true, wide: true, placeholder: "1:CS101:20, 2:CS201:20" },
+            { name: "termStructure", label: "Terms", type: "select", initial: "semester", options: [{ value: "semester", label: "Semesters" }, { value: "trimester", label: "Trimesters" }, { value: "annual", label: "Annual" }] },
+            { name: "creditFramework", label: "Credit framework", type: "select", initial: "nep2020", options: [{ value: "nep2020", label: "NEP 2020" }, { value: "cbcs", label: "CBCS" }, { value: "custom", label: "Custom" }] },
           ]}
-          onSubmit={(v) =>
-            submit(
+          onSubmit={(v) => {
+            const components = slotComponents(slots);
+            if (components.length === 0) return Promise.reject(new Error("Add at least one course slot (code and credits)"));
+            return submit(
               () =>
                 api.createCurriculum(pid, {
                   code: v.code!.trim().toUpperCase(),
@@ -278,13 +283,18 @@ export function CurriculumTab({ institution }: { institution: Institution | null
                     termStructure: v.termStructure as "semester" | "trimester" | "annual",
                     termCount: programme?.durationTerms ?? 1,
                     creditFramework: v.creditFramework as "nep2020" | "cbcs" | "custom",
-                    components: parseSlots(v.slots!),
+                    components,
                   },
                 }),
               "Curriculum added (draft version 1)",
-            )
-          }
-        />
+            ).then((r) => {
+              setSlots([emptySlot()]);
+              return r;
+            });
+          }}
+        >
+          <SlotsEditor rows={slots} onChange={setSlots} terms={programme?.durationTerms ?? 1} />
+        </AskForm>
       </BentoTile>
       <BentoTile span={7} title="Versions">
         {!cid ? (
@@ -346,6 +356,7 @@ export function SchoolModelTab({ institution }: { institution: Institution | nul
   const api = useInstitutionApi();
   const { run, submit, busy, dialog } = useCommand();
   const q = useQuery({ queryKey: keys.scoped(institution?.id ?? "-", "school-models"), queryFn: () => api.listSchoolModels(institution!.id), enabled: !!institution });
+  const [grades, setGrades] = useState<string[]>([]);
   if (!institution) return <Needs institution={institution} />;
   return (
     <>
@@ -370,30 +381,29 @@ export function SchoolModelTab({ institution }: { institution: Institution | nul
             },
           ]}
         />
-        <QuickForm
+        <AskForm
           name="new-school-model"
+          title="New draft model"
           submitLabel="Create draft model"
           fields={[
             { name: "name", label: "Name", required: true, initial: "School model" },
             { name: "board", label: "Board", placeholder: "CBSE" },
-            { name: "gradeLevels", label: "Grade levels (comma separated)", required: true, placeholder: "1, 2, 3, 4, 5" },
-          ]}
-          onSubmit={(v) =>
-            submit(
+                      ]}
+          onSubmit={(v) => {
+            if (grades.length === 0) return Promise.reject(new Error("Pick at least one grade level"));
+            return submit(
               () =>
                 api.createSchoolModel(institution.id, {
                   name: v.name!.trim(),
                   board: v.board?.trim() || undefined,
-                  gradeLevels: v.gradeLevels!
-                    .split(",")
-                    .map((g) => g.trim().toLowerCase())
-                    .filter(Boolean)
-                    .map((key): GradeLevel => ({ key, name: /^\d+$/.test(key) ? `Class ${key}` : key })),
+                  gradeLevels: grades.map((g) => g.trim().toLowerCase()).map((key): GradeLevel => ({ key, name: /^\d+$/.test(key) ? `Class ${key}` : key })),
                 }),
               "Draft school model created",
-            )
-          }
-        />
+            );
+          }}
+        >
+          <TagInput label="Grade levels" name="gradeLevels" value={grades} onChange={setGrades} options={Array.from({ length: 12 }, (_, n) => ({ value: String(n + 1), label: `Class ${n + 1}` }))} placeholder="Other grade (e.g. nursery) and Enter" wide />
+        </AskForm>
       </BentoTile>
       {dialog}
     </>

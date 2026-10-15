@@ -46,7 +46,6 @@ import {
   newProblems,
   psql,
   row,
-  rowAction,
   seedInstitution,
   seedStudent,
   settle,
@@ -75,38 +74,76 @@ async function fillForm(page, name, values) {
   await settle(page);
 }
 
-/** Clicks a page-level action button (`[data-action=id]`) and waits for the network. */
+/**
+ * Re-skin v2: a row shows ONE primary pill (`[data-action]`); every other action sits in its kebab
+ * (`[data-row-menu]` → `[data-menu-item=id]`). Finds `id` as a visible button, else opens the kebabs in
+ * `scope` (a row or a tile) until one offers it. Returns the element to click, or null.
+ */
+async function findAction(page, id, scope) {
+  const root = scope ?? page;
+  const direct = root.locator(`[data-action="${id}"]`).first();
+  if (await direct.isVisible().catch(() => false)) return direct;
+  const kebabs = root.locator("[data-row-menu]");
+  const n = await kebabs.count();
+  for (let i = 0; i < n; i++) {
+    const k = kebabs.nth(i);
+    if (!(await k.isVisible().catch(() => false))) continue;
+    await k.click();
+    const item = root.locator(`[data-menu-item="${id}"]`).first();
+    if (await item.isVisible({ timeout: 500 }).catch(() => false)) return item;
+    await page.keyboard.press("Escape");
+  }
+  return null;
+}
+
+/** Clicks action `id` (pill or kebab item) in `scope`, waiting for it to appear, then for the network. */
 async function action(page, id, scope) {
-  const b = (scope ?? page).locator(`[data-action="${id}"]`).first();
-  await b.waitFor({ state: "visible", timeout: 15000 });
-  await b.click();
-  await settle(page);
+  const deadline = Date.now() + 15000;
+  for (;;) {
+    const el = await findAction(page, id, scope);
+    if (el) {
+      await el.click();
+      await settle(page);
+      return;
+    }
+    if (Date.now() > deadline) throw new Error(`action ${id} not offered (pill or kebab)`);
+    await page.waitForTimeout(500);
+  }
 }
 
-/** Clicks `[data-action=id]` when it is offered (auto-approval may skip a step). */
+/** Clicks action `id` when it is offered (auto-approval may skip a step). */
 async function maybeAction(page, id, scope) {
-  const b = (scope ?? page).locator(`[data-action="${id}"]`).first();
-  if (await b.isVisible().catch(() => false)) {
-    await b.click();
-    await settle(page);
-    return true;
-  }
-  return false;
+  const el = await findAction(page, id, scope);
+  if (!el) return false;
+  await el.click();
+  await settle(page);
+  return true;
 }
 
-/** Clicks `[data-action=id]` in the row containing `text` when it is offered. */
+/** Clicks action `id` in the table row containing `text` (pill or kebab). */
+async function rowAction(page, text, id, scope) {
+  const r = row(page, text, scope);
+  await r.waitFor({ timeout: 10000 });
+  await action(page, id, r);
+}
+
+/** Clicks action `id` in the row containing `text` when it is offered. */
 async function maybeRowAction(page, text, id, scope) {
-  const btn = row(page, text, scope).locator(`[data-action="${id}"]`).first();
-  if (await btn.isVisible().catch(() => false)) {
-    await btn.click();
-    await settle(page);
-    return true;
-  }
-  return false;
+  const r = row(page, text, scope);
+  if (!(await r.isVisible().catch(() => false))) return false;
+  return maybeAction(page, id, r);
+}
+
+/** A re-skinned list row (`ListRow`, `.sb-lrow`) containing `text`. */
+function lrow(page, text, scope) {
+  return (scope ?? page).locator(".sb-lrow", { hasText: text }).first();
 }
 
 async function display(page, setting) {
   await page.click('[aria-label="Account menu"]');
+  // Re-skin v2 (R1): display settings live in the Theme drawer (avatar menu → Personalization → Theme).
+  if (!(await page.locator("[data-pz-group]").count())) await page.click("[data-pz-toggle]");
+  await page.click('[data-pz="theme"]');
   await page.locator(`[data-display="${setting}"]`).click();
   await page.keyboard.press("Escape");
   await page.mouse.click(4, 700);
@@ -157,7 +194,7 @@ try {
 
   await waitFor(`${BASE}/sign-in`, web);
   browser = await chromium.launch({ headless: !process.env.E2E_HEADED, executablePath: process.env.CHROMIUM_PATH || undefined, args: ["--no-sandbox", ...(process.env.E2E_CHROMIUM_ARGS ?? "").split(" ").filter(Boolean)] });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, locale: "en-IN", timezoneId: "Asia/Kolkata" });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   watch(page);
@@ -421,12 +458,12 @@ try {
     await shot(page, "8-admin-library-overdue");
   });
 
-  await step(page, "admin: Library — returned with a ₹10.00 fine, billed through Finance", async () => {
+  await step(page, "admin: Library — returned with a ₹10 fine, billed through Finance", async () => {
     const circ = tile(page, "Circulation");
     await rowAction(page, "Fluid Mechanics", "loan-return", circ);
     const fines = tile(page, "Fines");
     await row(page, "Overdue", fines).waitFor();
-    await expectRowStatus(page, "Overdue", "₹10.00", fines);
+    await expectRowStatus(page, "Overdue", "₹10", fines);
     await rowAction(page, "Overdue", "fine-bill", fines);
     await expectRowStatus(page, "Overdue", "Billed", fines);
     await circ.getByRole("button", { name: "All" }).first().click();
@@ -496,7 +533,7 @@ try {
   });
 
   // ------------------------------------------------------------ 9E: governance + accreditation (integration)
-  await step(page, "admin: Campus → Governance — readiness assessment and a campus risk (G00)", async () => {
+  await step(page, "admin: Reports → Governance — readiness assessment and a campus risk (G00, moved from Campus)", async () => {
     await admin.call("POST", `${C}/institutions/${inst}/governance-cases`, {
       kind: "readiness_assessment",
       title: "Campus readiness for the academic year",
@@ -510,10 +547,15 @@ try {
       impact: 4,
       dueOn: plusDays(14),
     });
-    await go(page, "/campus/governance");
+    await go(page, "/campus/governance"); // old link → redirects to Reports → Governance
+    await page.waitForURL(/\/reports\/governance$/, { timeout: 15000 });
     const cases = tile(page, "Governance cases");
-    await row(page, "Hostel fire-safety audit overdue", cases).waitFor();
-    await row(page, "Campus readiness for the academic year", cases).waitFor();
+    await lrow(page, "Hostel fire-safety audit overdue", cases).waitFor();
+    await lrow(page, "Campus readiness for the academic year", cases).waitFor();
+    await lrow(page, "Hostel fire-safety audit overdue", cases).locator("[data-row-open]").click();
+    await page.locator("[data-case]").waitFor();
+    await shot(page, "9-admin-governance-case-panel");
+    await page.keyboard.press("Escape");
     await shot(page, "9-admin-governance");
   });
 
@@ -530,8 +572,25 @@ try {
     });
     await go(page, "/reports/accreditation");
     const fw = tile(page, "Accreditation frameworks");
-    await row(page, "NAAC", fw).waitFor();
+    await lrow(page, "NAAC Revised Accreditation Framework", fw).waitFor();
     await shot(page, "9-admin-accreditation");
+  });
+
+  // ------------------------------------------------------------ re-skin v2 proof (R7)
+  await step(page, "admin: re-skin v2 — Campus overview + every section chip, Reports tabs (≤5 header tabs, 1440×960 full page)", async () => {
+    const paths = ["/campus", "/campus/infrastructure", "/campus/labs", "/campus/hostel", "/campus/facilities", "/campus/transport", "/campus/library", "/campus/procurement", "/campus/inventory", "/campus/assets", "/campus/institution", "/campus/readiness", "/campus/campuses", "/campus/organisation", "/campus/positions", "/campus/policies", "/reports", "/reports/dashboards", "/reports/regulatory", "/reports/accreditation", "/reports/governance"];
+    for (const p of paths) {
+      await go(page, p);
+      await page.waitForTimeout(400);
+      const tabs = await page.locator("[data-area-head] nav.sb-tabs a, [data-area-head] nav.sb-tabs button").count();
+      check(tabs > 0 && tabs <= 5, `${p}: ${tabs} header tabs (≤5)`);
+      await page.screenshot({ path: path.join(SHOTS, `rs2-adm-${p.slice(1).replace(/\//g, "_")}.png`), fullPage: true });
+    }
+    await go(page, "/reports");
+    await page.locator("[data-report]").first().click();
+    await page.locator("[data-report-dialog]").waitFor();
+    await page.screenshot({ path: path.join(SHOTS, "rs2-adm-reports-dlg.png") });
+    await page.keyboard.press("Escape");
   });
 
   // ------------------------------------------------------------ student: library
@@ -539,18 +598,19 @@ try {
   await signIn(page, "student");
   await step(page, "student: Library — loans, billed fine and the catalogue", async () => {
     await go(page, "/library");
-    const loans = tile(page, "My loans");
-    await row(page, "Higher Engineering Mathematics", loans).waitFor();
-    check(((await page.locator('[data-kpi="my-fines"] b').textContent()) ?? "").includes("10.00"), "fine due ₹10.00");
-    await maybeRowAction(page, "Higher Engineering Mathematics", "my-renew", loans);
+    const loans = tile(page, "Borrowed");
+    await lrow(page, "Higher Engineering Mathematics", loans).waitFor();
+    check(((await page.locator('[data-kpi="my-fines"] b').textContent()) ?? "").includes("₹10"), "fine due ₹10");
+    await maybeAction(page, "my-renew", lrow(page, "Higher Engineering Mathematics", loans));
     await shot(page, "8-student-library");
   });
 
   await step(page, "student: Library — reserves a title that is out on loan", async () => {
-    const cat = tile(page, "Search the catalogue");
+    const cat = tile(page, "Catalogue");
     await page.locator("[data-library-search] input, input[data-library-search]").first().fill("Algorithms");
     await settle(page);
-    await rowAction(page, "Introduction to Algorithms", "my-reserve", cat);
+    await lrow(page, "Introduction to Algorithms", cat).waitFor();
+    await action(page, "my-reserve", lrow(page, "Introduction to Algorithms", cat));
     const res = tile(page, "Reservations & fines");
     await expectRowStatus(page, "Introduction to Algorithms", "Queued", res);
     await shot(page, "8-student-library-reserved");

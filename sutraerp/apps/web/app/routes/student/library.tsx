@@ -1,25 +1,35 @@
-import { RoleScreen } from "../../features/academic/RoleScreen";
+import { AreaHeader, BentoGrid, BentoTile } from "@sutra/ui";
 import { StudentLibraryScreen } from "../../features/academic/flexible";
-import { MyLibraryPanel } from "../../features/campus/library";
+import { MyLibraryPanel, useMyLibrarySummary } from "../../features/campus/library";
+import { useSession } from "../../lib/auth";
 
 export function meta() {
   return [{ title: "Library · SutraERP" }];
 }
 
 /**
- * Student Library (`/library`): the Batch 8 library panel (catalogue, loans, reservations, fines —
- * slice 8C, `MyLibraryPanel`) above the Batch 4 course resources and library links (slice 4C,
- * docs/batch4-contracts.md §10). Foundation frame since Batch 8 (docs/batch8-contracts.md §10).
+ * Student Library (`/library`), re-skin v2 (R7) — the prototype `stu-library.png`: header with a live
+ * summary, Borrowed (Renew) and Catalogue (search, Available / Issued, Reserve) from the Batch 8
+ * library panel (slice 8C, `MyLibraryPanel`), then reservations / fines / clearance when there are
+ * any, and the Batch 4 course resources and library links (slice 4C) below.
  */
 export default function Screen() {
+  const { role } = useSession();
+  const summary = useMyLibrarySummary(role === "student");
+  if (role !== "student")
+    return (
+      <BentoGrid data-screen="library">
+        <BentoTile span={12} variant="accent" className="sb-soon">
+          <h1>This screen isn’t available</h1>
+          <p>Library is the students’ view of the library and course resources.</p>
+        </BentoTile>
+      </BentoGrid>
+    );
   return (
-    <RoleScreen screen="library" roles={["student"]} title="Library" heading={() => "Your library loans, reservations and fines; reading lists, library links and flexible learning from your courses."} note="is the students’ view of the library and course resources.">
-      {() => (
-        <>
-          <MyLibraryPanel />
-          <StudentLibraryScreen />
-        </>
-      )}
-    </RoleScreen>
+    <BentoGrid data-screen="library">
+      <AreaHeader title="Library" summary={summary ?? "Your loans, the catalogue and your course reading"} data-page-head="library" />
+      <MyLibraryPanel />
+      <StudentLibraryScreen />
+    </BentoGrid>
   );
 }

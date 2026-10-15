@@ -3,12 +3,11 @@
  * The routes import these export names (foundation wiring, docs/batch3-contracts.md §10).
  */
 import { Plus } from "lucide-react";
-import { BentoTile, Button, DataTable, EmptyState, Modal } from "@sutra/ui";
+import { BentoTile, Button, DataTable, EmptyState, NameCell, StatusBadge, humanize } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
-import { Actions, fmtDate, NoInstitution, QuickForm, REASON, useAsk, type RowAction } from "../../institution/forms";
-import { StatusBadge, statusLabel } from "../../institution/hooks";
+import { Actions, fmtDate, FormDialog, NoInstitution, REASON, useAsk, type RowAction } from "../ui";
 import type { Institution } from "../../institution/types";
 import type { CompletionCommand, EligibilityCommand, RelationshipCommand, ScholarshipCommand } from "./api";
 import { k3, useC3Api } from "./hooks";
@@ -105,7 +104,7 @@ export function eligibilityActions(e: ScholarshipEligibility): EligibilityComman
   }
 }
 
-const label = (s: string) => statusLabel(s.replace(/-/g, "_"));
+const label = (s: string) => humanize(s.replace(/-/g, "_"));
 
 /** The institution of a student's current (else latest) context — scopes guardian/scholarship pickers. */
 function useStudentInstitution(studentId: string): string | null {
@@ -119,19 +118,20 @@ const fullName = (g: { givenName: string; familyName?: string | null }) => [g.gi
 function ClearanceList({ items, onResolve }: { items: Clearance[]; onResolve?: (c: Clearance) => void }) {
   if (items.length === 0) return null;
   return (
-    <ul className="sb-list" data-clearances>
+    <div data-clearances="" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {items.map((c) => (
-        <li key={c.id} data-clearance={c.item}>
-          {statusLabel(c.item)} <StatusBadge status={c.status} />
-          {c.note ? <span className="sb-muted"> · {c.note}</span> : null}
+        <span key={c.id} data-clearance={c.item} style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <b style={{ fontWeight: 600 }}>{humanize(c.item)}</b>
+          <StatusBadge status={c.status} />
+          {c.note ? <small className="st-count">{c.note}</small> : null}
           {onResolve && c.item !== "finance" && c.status !== "cleared" && c.status !== "waived" ? (
-            <Button size="sm" variant="ghost" onClick={() => onResolve(c)} data-action={`resolve-${c.item}`}>
+            <button type="button" className="sb-btn sb-btn--ghost" style={{ padding: "6px 14px", fontSize: 12.5, minHeight: 32 }} onClick={() => onResolve(c)} data-action={`resolve-${c.item}`}>
               Resolve
-            </Button>
+            </button>
           ) : null}
-        </li>
+        </span>
       ))}
-    </ul>
+    </div>
   );
 }
 
@@ -148,7 +148,7 @@ export function ExitsAdminTab({ institution }: { institution: Institution | null
   const studentName = (id: string) => students.data?.find((s) => s.id === id)?.displayName ?? "Student";
   const resolve = (e: StudentExit, c: Clearance) =>
     ask({
-      title: `Resolve ${statusLabel(c.item)} clearance`,
+      title: `Resolve ${humanize(c.item)} clearance`,
       name: "exit-clearance",
       submitLabel: "Resolve",
       fields: [
@@ -177,8 +177,8 @@ export function ExitsAdminTab({ institution }: { institution: Institution | null
           rowKey={(e) => e.id}
           empty={<EmptyState title="No exits">Exits are initiated from a student's 360 view.</EmptyState>}
           columns={[
-            { key: "student", header: "Student", render: (e) => <Link to={student360Path(e.studentId, "completion")}>{studentName(e.studentId)}</Link> },
-            { key: "kind", header: "Kind", render: (e) => <span data-exit={e.kind}>{statusLabel(e.kind)}</span> },
+            { key: "student", header: "Student", render: (e) => <Link to={student360Path(e.studentId, "completion")} className="st-name-link"><NameCell name={studentName(e.studentId)} /></Link> },
+            { key: "kind", header: "Kind", render: (e) => <span data-exit={e.kind}>{humanize(e.kind)}</span> },
             { key: "reason", header: "Reason", render: (e) => e.reason, muted: true },
             { key: "clearance", header: "Clearance", render: (e) => <ClearanceList items={e.clearances} onResolve={e.status === "clearance_pending" ? (c) => resolve(e, c) : undefined} /> },
             { key: "effective", header: "Effective", render: (e) => fmtDate(e.effectiveOn) },
@@ -218,30 +218,26 @@ export function GuardiansAdminTab({ institution }: { institution: Institution | 
           rowKey={(g) => g.id}
           empty={<EmptyState title="No guardians yet">Register a guardian, then link them from the student's 360 view.</EmptyState>}
           columns={[
-            { key: "name", header: "Name", render: (g) => <span data-guardian={g.givenName}>{[g.givenName, g.familyName].filter(Boolean).join(" ")}</span> },
+            { key: "name", header: "Name", render: (g) => <span data-guardian={g.givenName}><NameCell name={[g.givenName, g.familyName].filter(Boolean).join(" ")} /></span> },
             { key: "phone", header: "Phone", render: (g) => g.phone ?? "—", muted: true },
-            { key: "email", header: "E-mail", render: (g) => g.email ?? "—", muted: true },
+            { key: "email", header: "Email", render: (g) => g.email ?? "—", muted: true },
           ]}
         />
       </BentoTile>
-      <Modal open={adding} onClose={() => setAdding(false)} label="Register guardian">
-        <h2>Register guardian</h2>
-        <QuickForm
+      <FormDialog open={adding} onClose={() => setAdding(false)} eyebrow="Students" title="Register guardian"
           name="new-guardian"
           submitLabel="Register"
-          onCancel={() => setAdding(false)}
           fields={[
             { name: "givenName", label: "Given name", required: true },
             { name: "familyName", label: "Family name" },
             { name: "phone", label: "Phone", placeholder: "+91…" },
-            { name: "email", label: "E-mail" },
+            { name: "email", label: "Email", type: "email" },
           ]}
           onSubmit={async (v) => {
             await submit(() => api.createGuardian(institution.id, { givenName: v.givenName!.trim(), familyName: v.familyName?.trim() || undefined, phone: v.phone?.trim() || undefined, email: v.email?.trim() || undefined }), "Guardian registered");
             setAdding(false);
           }}
         />
-      </Modal>
       {dialog}
     </>
   );
@@ -280,7 +276,7 @@ export function ScholarshipsAdminTab({ institution }: { institution: Institution
           };
           const p = await api.createPolicy(s.id, { criteria });
           return api.policyCommand(p.id, p.version, "submit");
-        }, (p) => `Policy version ${p.versionNo}: ${statusLabel(p.status).toLowerCase()}`),
+        }, (p) => `Policy version ${p.versionNo}: ${humanize(p.status).toLowerCase()}`),
     });
   return (
     <>
@@ -304,9 +300,8 @@ export function ScholarshipsAdminTab({ institution }: { institution: Institution
           rowKey={(s) => s.id}
           empty={<EmptyState title="No scholarships yet">Define a scholarship, give it an eligibility policy and make it available.</EmptyState>}
           columns={[
-            { key: "code", header: "Code", render: (s) => s.code },
-            { key: "name", header: "Name", render: (s) => <span data-scholarship={s.code}>{s.name}</span> },
-            { key: "policy", header: "Policy", render: (s) => (s.effectivePolicy ? `v${s.effectivePolicy.versionNo}` : "—"), muted: true },
+            { key: "name", header: "Scholarship", render: (s) => <span data-scholarship={s.code}><b style={{ fontWeight: 600 }}>{s.name}</b> <small className="st-count">{s.code}</small></span> },
+            { key: "policy", header: "Eligibility policy", render: (s) => (s.effectivePolicy ? `Version ${s.effectivePolicy.versionNo}` : "Not set"), muted: true },
             { key: "status", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
             {
               key: "actions",
@@ -324,17 +319,14 @@ export function ScholarshipsAdminTab({ institution }: { institution: Institution
           ]}
         />
       </BentoTile>
-      <Modal open={adding} onClose={() => setAdding(false)} label="New scholarship">
-        <h2>New scholarship</h2>
-        <QuickForm
+      <FormDialog open={adding} onClose={() => setAdding(false)} eyebrow="Students" title="New scholarship"
           name="new-scholarship"
           submitLabel="Create draft"
-          onCancel={() => setAdding(false)}
           fields={[
             { name: "code", label: "Code", required: true, placeholder: "MERIT-2026" },
             { name: "name", label: "Name", required: true },
-            { name: "sponsorType", label: "Sponsor", type: "select", initial: "institutional", options: ["institutional", "government", "private", "external"].map((x) => ({ value: x, label: statusLabel(x) })) },
-            { name: "benefitType", label: "Benefit", type: "select", initial: "fee_percentage", options: ["fixed_amount", "fee_percentage", "fee_waiver", "stipend"].map((x) => ({ value: x, label: statusLabel(x) })) },
+            { name: "sponsorType", label: "Sponsor", type: "select", initial: "institutional", options: ["institutional", "government", "private", "external"].map((x) => ({ value: x, label: humanize(x) })) },
+            { name: "benefitType", label: "Benefit", type: "select", initial: "fee_percentage", options: ["fixed_amount", "fee_percentage", "fee_waiver", "stipend"].map((x) => ({ value: x, label: humanize(x) })) },
             { name: "benefitValue", label: "Benefit value", type: "number" },
             { name: "validFrom", label: "Valid from", type: "date", required: true },
             { name: "renewable", label: "Renewable", type: "checkbox" },
@@ -356,7 +348,6 @@ export function ScholarshipsAdminTab({ institution }: { institution: Institution
             setAdding(false);
           }}
         />
-      </Modal>
       {prompt}
       {dialog}
     </>
@@ -381,10 +372,10 @@ export function Student360Guardians({ studentId }: { studentId: string }) {
         name: "guardian-verify",
         submitLabel: "Submit",
         fields: [
-          { name: "method", label: "Method", type: "select", initial: "document", options: ["document", "in_person", "court_order"].map((x) => ({ value: x, label: statusLabel(x) })) },
+          { name: "method", label: "Method", type: "select", initial: "document", options: ["document", "in_person", "court_order"].map((x) => ({ value: x, label: humanize(x) })) },
           { name: "evidenceRef", label: "Evidence reference", required: true, wide: true },
         ],
-        onSubmit: (v) => submit(() => api.relationshipCommand(r.id, r.version, cmd, { method: v.method, evidenceRef: v.evidenceRef!.trim() }), (x) => `Relationship ${statusLabel(x.status).toLowerCase()}`),
+        onSubmit: (v) => submit(() => api.relationshipCommand(r.id, r.version, cmd, { method: v.method, evidenceRef: v.evidenceRef!.trim() }), (x) => `Relationship ${humanize(x.status).toLowerCase()}`),
       });
     if (cmd === "suspend" || cmd === "terminate" || cmd === "reinstate")
       return ask({ title: `${label(cmd)} relationship`, name: `guardian-${cmd}`, submitLabel: label(cmd), fields: [cmd === "reinstate" ? { ...REASON, required: r.hasLegalCustody } : REASON], onSubmit: (v) => submit(() => api.relationshipCommand(r.id, r.version, cmd, v.reason?.trim() ? { reason: v.reason.trim() } : {}), `Relationship ${label(cmd).toLowerCase()} done`) });
@@ -405,34 +396,12 @@ export function Student360Guardians({ studentId }: { studentId: string }) {
           options: [{ value: "", label: "Choose a registered guardian" }, ...(guardians.data ?? []).map((g) => ({ value: g.id, label: `${fullName(g)}${g.phone ? ` · ${g.phone}` : ""}` }))],
           wide: true,
         },
-        { name: "relationshipType", label: "Relationship", type: "select", initial: "mother", options: ["mother", "father", "legal_guardian", "grandparent", "sibling", "relative", "sponsor", "other"].map((x) => ({ value: x, label: statusLabel(x) })) },
+        { name: "relationshipType", label: "Relationship", type: "select", initial: "mother", options: ["mother", "father", "legal_guardian", "grandparent", "sibling", "relative", "sponsor", "other"].map((x) => ({ value: x, label: humanize(x) })) },
         { name: "isPrimary", label: "Primary guardian", type: "checkbox" },
       ],
       onSubmit: (v) => submit(() => api.proposeRelationship(studentId, { guardianId: v.guardianId!.trim(), relationshipType: v.relationshipType, isPrimary: v.isPrimary === "true" }), "Relationship proposed"),
     });
-  return (
-    <>
-      <BentoTile span={12} title="Guardian relationships" action={<Button size="sm" icon={<Plus strokeWidth={1.75} />} onClick={link} data-new-relationship>Link guardian</Button>}>
-        <DataTable
-          caption="Guardian relationships"
-          rows={rels.data ?? []}
-          rowKey={(r) => r.id}
-          empty={<EmptyState title="No guardians linked">Link a registered guardian to this student.</EmptyState>}
-          columns={[
-            { key: "name", header: "Guardian", render: (r) => {
-              const g = r.guardian ?? guardians.data?.find((x) => x.id === r.guardianId);
-              return <span data-relationship={r.relationshipType}>{g ? fullName(g) : "Guardian"}</span>;
-            } },
-            { key: "type", header: "Relationship", render: (r) => `${statusLabel(r.relationshipType)}${r.isPrimary ? " · primary" : ""}${r.hasLegalCustody ? " · custody" : ""}`, muted: true },
-            { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-            { key: "actions", header: "", render: (r) => <Actions disabled={busy} actions={relationshipActions(r).map((a) => ({ id: `relationship-${a}`, label: a === "verification-decision" ? "Approve verification" : label(a), onClick: () => act(r, a) }))} /> },
-          ]}
-        />
-      </BentoTile>
-      <BentoTile
-        span={6}
-        title="Emergency contacts"
-        action={
+  const contactButton = (
           <Button
             size="sm"
             variant="ghost"
@@ -452,8 +421,73 @@ export function Student360Guardians({ studentId }: { studentId: string }) {
             }
             data-new-contact
           >
-            Add
+            Add contact
           </Button>
+  );
+  const pickupButton = (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() =>
+              ask({
+                title: "Authorise pickup",
+                name: "pickup",
+                submitLabel: "Authorise",
+                fields: [
+                  { name: "personName", label: "Person", required: true },
+                  { name: "idDocumentRef", label: "Identity document", required: true },
+                  { name: "validUntil", label: "Valid until", type: "date" },
+                ],
+                onSubmit: (v) => submit(() => api.grantPickup(studentId, { personName: v.personName!.trim(), idDocumentRef: v.idDocumentRef!.trim(), validUntil: v.validUntil || undefined }), "Pickup authorised"),
+              })
+            }
+            data-new-pickup
+          >
+            Add pickup
+          </Button>
+  );
+  const noExtras = (contacts.data ?? []).filter((c) => c.status === "active").length === 0 && (pickups.data ?? []).length === 0;
+  return (
+    <>
+      <BentoTile span={12} title="Guardian relationships" action={<Button size="sm" icon={<Plus strokeWidth={1.75} />} onClick={link} data-new-relationship>Link guardian</Button>}>
+        <DataTable
+          caption="Guardian relationships"
+          rows={rels.data ?? []}
+          rowKey={(r) => r.id}
+          empty={<EmptyState title="No guardians linked">Link a registered guardian to this student.</EmptyState>}
+          columns={[
+            { key: "name", header: "Guardian", render: (r) => {
+              const g = r.guardian ?? guardians.data?.find((x) => x.id === r.guardianId);
+              return <span data-relationship={r.relationshipType}>{g ? fullName(g) : "Guardian"}</span>;
+            } },
+            { key: "type", header: "Relationship", render: (r) => `${humanize(r.relationshipType)}${r.isPrimary ? " · primary" : ""}${r.hasLegalCustody ? " · custody" : ""}`, muted: true },
+            { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
+            { key: "actions", header: "", render: (r) => <Actions disabled={busy} actions={relationshipActions(r).map((a) => ({ id: `relationship-${a}`, label: a === "verification-decision" ? "Approve verification" : label(a), onClick: () => act(r, a) }))} /> },
+          ]}
+        />
+      </BentoTile>
+      {noExtras ? (
+        <BentoTile
+          span={12}
+          title="Emergency contacts & pickups"
+          action={
+            <span style={{ display: "inline-flex", gap: 8 }}>
+              {contactButton}
+              {pickupButton}
+            </span>
+          }
+        >
+          <EmptyState title="None recorded" compact>
+            Add who to call in an emergency and who may pick the student up.
+          </EmptyState>
+        </BentoTile>
+      ) : (
+        <>
+      <BentoTile
+        span={6}
+        title="Emergency contacts"
+        action={
+          contactButton
         }
       >
         <DataTable
@@ -473,26 +507,7 @@ export function Student360Guardians({ studentId }: { studentId: string }) {
         span={6}
         title="Pickup authorisations"
         action={
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() =>
-              ask({
-                title: "Authorise pickup",
-                name: "pickup",
-                submitLabel: "Authorise",
-                fields: [
-                  { name: "personName", label: "Person", required: true },
-                  { name: "idDocumentRef", label: "Identity document", required: true },
-                  { name: "validUntil", label: "Valid until", type: "date" },
-                ],
-                onSubmit: (v) => submit(() => api.grantPickup(studentId, { personName: v.personName!.trim(), idDocumentRef: v.idDocumentRef!.trim(), validUntil: v.validUntil || undefined }), "Pickup authorised"),
-              })
-            }
-            data-new-pickup
-          >
-            Add
-          </Button>
+          pickupButton
         }
       >
         <DataTable
@@ -508,6 +523,8 @@ export function Student360Guardians({ studentId }: { studentId: string }) {
           ]}
         />
       </BentoTile>
+        </>
+      )}
       {prompt}
       {dialog}
     </>
@@ -525,13 +542,13 @@ export function Student360Scholarships({ studentId }: { studentId: string }) {
   const scholarships = useQuery({ queryKey: k3("scholarships", institutionId ?? "-"), queryFn: () => api.listScholarships(institutionId!), enabled: !!institutionId });
   const schName = (id: string) => {
     const s = scholarships.data?.find((x) => x.id === id);
-    return s ? `${s.name} (${s.code})` : "Scholarship";
+    return s ? s.name : "Scholarship";
   };
   const act = (e: ScholarshipEligibility, cmd: EligibilityCommand) => {
     if (cmd === "expire" || cmd === "withdraw-recommendation")
       return ask({ title: label(cmd), name: `eligibility-${cmd}`, submitLabel: label(cmd), fields: [REASON], onSubmit: (v) => submit(() => api.eligibilityCommand(e.id, e.version, cmd, { reason: v.reason!.trim() }), `${label(cmd)} done`) });
     const body = cmd === "resolve-condition" ? { outcome: "fulfilled" } : cmd === "recommendation-decision" ? { decision: "approve" } : {};
-    void run(() => api.eligibilityCommand(e.id, e.version, cmd, body), (x) => `Eligibility ${statusLabel(x.status).toLowerCase()}`);
+    void run(() => api.eligibilityCommand(e.id, e.version, cmd, body), (x) => `Eligibility ${humanize(x.status).toLowerCase()}`);
   };
   return (
     <>
@@ -555,7 +572,7 @@ export function Student360Scholarships({ studentId }: { studentId: string }) {
                     required: true,
                     options: [
                       { value: "", label: "Choose an active scholarship" },
-                      ...(scholarships.data ?? []).filter((s) => s.status === "active").map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })),
+                      ...(scholarships.data ?? []).filter((s) => s.status === "active").map((s) => ({ value: s.id, label: s.name })),
                     ],
                     wide: true,
                   },
@@ -569,7 +586,7 @@ export function Student360Scholarships({ studentId }: { studentId: string }) {
                         scholarshipId: v.scholarshipId!.trim(),
                         facts: { academicScore: v.academicScore ? Number(v.academicScore) : undefined, familyIncome: v.familyIncome ? Number(v.familyIncome) : undefined },
                       }),
-                    (x) => `Determination: ${statusLabel(x.status).toLowerCase()}`,
+                    (x) => `Determination: ${humanize(x.status).toLowerCase()}`,
                   ),
               })
             }
@@ -622,7 +639,7 @@ export function Student360Completion({ studentId }: { studentId: string }) {
       });
     if (cmd === "resume") return ask({ title: "Resume completion", name: "completion-resume", submitLabel: "Resume", fields: [{ name: "resolutionNote", label: "Remediation", required: true, wide: true }], onSubmit: (v) => submit(() => api.completionCommand(c.id, c.version, cmd, { resolutionNote: v.resolutionNote!.trim() }), "Completion resumed") });
     const body = cmd === "decision" ? { decision: "approve" } : {};
-    void run(() => api.completionCommand(c.id, c.version, cmd, body), (x) => `Completion ${statusLabel(x.status).toLowerCase()}`);
+    void run(() => api.completionCommand(c.id, c.version, cmd, body), (x) => `Completion ${humanize(x.status).toLowerCase()}`);
   };
   const openExit = (exits.data ?? []).find((e) => !["completed", "cancelled", "rejected"].includes(e.status));
   const concluded = (exits.data ?? []).some((e) => e.status === "completed");
@@ -653,7 +670,7 @@ export function Student360Completion({ studentId }: { studentId: string }) {
           rowKey={(c) => c.id}
           empty={<EmptyState title="No completion in progress" />}
           columns={[
-            { key: "outcome", header: "Outcome", render: (c) => <span data-completion={c.status}>{statusLabel(c.outcome)}{c.pathway === "meme_exit" ? " · MEME exit" : ""}</span> },
+            { key: "outcome", header: "Outcome", render: (c) => <span data-completion={c.status}>{humanize(c.outcome)}{c.pathway === "meme_exit" ? " · MEME exit" : ""}</span> },
             {
               key: "clearance",
               header: "Clearance",
@@ -670,7 +687,7 @@ export function Student360Completion({ studentId }: { studentId: string }) {
         />
       </BentoTile>
       <BentoTile
-        span={6}
+        span={(conferred.data ?? []).length > 0 ? 6 : 12}
         title="Exit"
         action={
           !openExit && !concluded ? (
@@ -708,12 +725,13 @@ export function Student360Completion({ studentId }: { studentId: string }) {
           rowKey={(e) => e.id}
           empty={<EmptyState title="No exit" />}
           columns={[
-            { key: "kind", header: "Kind", render: (e) => statusLabel(e.kind) },
+            { key: "kind", header: "Kind", render: (e) => humanize(e.kind) },
             { key: "effective", header: "Effective", render: (e) => fmtDate(e.effectiveOn), muted: true },
             { key: "status", header: "Status", render: (e) => <StatusBadge status={e.status} /> },
           ]}
         />
       </BentoTile>
+      {(conferred.data ?? []).length > 0 && (
       <BentoTile span={6} title="Conferred qualifications">
         <DataTable
           caption="Conferred qualifications"
@@ -727,6 +745,8 @@ export function Student360Completion({ studentId }: { studentId: string }) {
           ]}
         />
       </BentoTile>
+      )}
+      {(concluded || (alumni.data ?? []).length > 0) && (
       <BentoTile
         span={12}
         title="Alumni transition"
@@ -744,7 +764,7 @@ export function Student360Completion({ studentId }: { studentId: string }) {
           rowKey={(a) => a.id}
           empty={<EmptyState title="No alumni transition">Available once the student exit is completed.</EmptyState>}
           columns={[
-            { key: "basis", header: "Basis", render: (a) => (a.basis ? statusLabel(a.basis) : "—"), muted: true },
+            { key: "basis", header: "Basis", render: (a) => (a.basis ? humanize(a.basis) : "—"), muted: true },
             { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
             {
               key: "actions",
@@ -765,18 +785,19 @@ export function Student360Completion({ studentId }: { studentId: string }) {
                               name: "alumni-policy",
                               submitLabel: "Validate",
                               fields: [{ name: "graduationYear", label: "Graduation year", type: "number", required: true, initial: String(new Date().getFullYear()) }],
-                              onSubmit: (v) => submit(() => api.alumniCommand(a.id, a.version, "validate-policy", { graduationYear: Number(v.graduationYear) }), (x) => `Alumni transition ${statusLabel(x.status).toLowerCase()}`),
+                              onSubmit: (v) => submit(() => api.alumniCommand(a.id, a.version, "validate-policy", { graduationYear: Number(v.graduationYear) }), (x) => `Alumni transition ${humanize(x.status).toLowerCase()}`),
                             }),
                         },
                       ]}
                     />
                   );
-                return next ? <Actions disabled={busy} actions={[{ id: `alumni-${next}`, label: label(next), onClick: () => void run(() => api.alumniCommand(a.id, a.version, next), (x) => `Alumni transition ${statusLabel(x.status).toLowerCase()}`) }]} /> : null;
+                return next ? <Actions disabled={busy} actions={[{ id: `alumni-${next}`, label: label(next), onClick: () => void run(() => api.alumniCommand(a.id, a.version, next), (x) => `Alumni transition ${humanize(x.status).toLowerCase()}`) }]} /> : null;
               },
             },
           ]}
         />
       </BentoTile>
+      )}
       {prompt}
       {dialog}
     </>

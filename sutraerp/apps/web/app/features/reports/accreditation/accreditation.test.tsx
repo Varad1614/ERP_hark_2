@@ -117,9 +117,11 @@ describe("9E Admin → Reports → Accreditation tab", () => {
     const { AccreditationAdminTab } = await import("./index");
     await renderScreen(<AccreditationAdminTab institution={INST} />);
     expect(document.querySelector("[data-slice='9E']")).toBeTruthy();
-    expect(await screen.findByText("NAAC v1 · NAAC Revised Accreditation Framework")).toBeTruthy();
-    expect(await screen.findByText("AC-000001 · NAAC cycle 2026-27")).toBeTruthy();
-    expect(await screen.findByText("ACR-000001 · UGC anti-ragging compliance")).toBeTruthy();
+    expect(await screen.findByText("NAAC Revised Accreditation Framework")).toBeTruthy();
+    expect(await screen.findByText("NAAC cycle 2026-27")).toBeTruthy();
+    expect(document.querySelector("[data-cycle='AC-000001']")).toBeTruthy();
+    expect(await screen.findByText("UGC anti-ragging compliance")).toBeTruthy();
+    expect(document.querySelector("[data-record-row='ACR-000001']")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Define framework" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "New record" })).toBeTruthy();
   });
