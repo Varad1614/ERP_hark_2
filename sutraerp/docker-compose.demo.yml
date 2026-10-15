@@ -1,0 +1,20 @@
+# Part 1 full-stack demo override (CI: .github/workflows/sutraerp-part1-demo.yml).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml --profile app up -d
+#
+# `migrate` and `api` run a sutra-api binary built on the host (`cargo build -p sutra-api`, the
+# same build as the CI e2e jobs, with the runner's Rust cache) inside the SAME distroless runtime
+# as deploy/docker/api.Dockerfile, so the demo job does not recompile the workspace inside Docker.
+# Everything else (postgres, keycloak + realm import, valkey, nats, mailpit, the web image built
+# from deploy/docker/web.Dockerfile, every environment variable) comes unchanged from
+# docker-compose.yml. Locally, plain `docker compose --profile app up --build` is equivalent
+# (see docs/readiness/DEMO_RUN_GUIDE.md).
+services:
+  migrate:
+    image: sutraerp-api:demo
+    build: { context: ., dockerfile: deploy/docker/api-prebuilt.Dockerfile }
+  api:
+    image: sutraerp-api:demo
+    build: { context: ., dockerfile: deploy/docker/api-prebuilt.Dockerfile }
+    environment:
+      RUST_LOG: info,sutra=debug,tower_http=info,sqlx=warn

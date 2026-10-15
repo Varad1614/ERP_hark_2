@@ -47,6 +47,14 @@ services:
     extra_hosts: ["host.docker.internal:host-gateway"]
     volumes:
       - ./deploy/keycloak/realm-sutra-dev.json:/opt/keycloak/data/import/realm-sutra-dev.json:ro
+    # KC_HEALTH_ENABLED serves /health/ready on the management port 9000 (not published). The
+    # image has no curl/wget, so bash's /dev/tcp asks it; `docker compose ps` then shows healthy.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     depends_on:
       postgres: { condition: service_healthy }
 
