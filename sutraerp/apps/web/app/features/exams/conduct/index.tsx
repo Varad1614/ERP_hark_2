@@ -161,7 +161,7 @@ export function ConductAdminTab({ institution }: { institution: Institution | nu
     const fields: FieldSpec[] = candidates.map((r) => ({
       name: attendanceField(r),
       label: `${r.displayName} (${r.studentNumber})${r.hallTicket && r.hallTicket.status !== "active" ? ` · hall ticket ${statusLabel(r.hallTicket.status).toLowerCase()}` : ""}`,
-      type: "select",
+      type: "select" as const,
       options: OUTCOMES,
       initial: "present",
     }));
