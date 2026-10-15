@@ -486,17 +486,42 @@ async fn result_batch_waits_for_an_independent_exam_controller() {
 
 // ------------------------------------------------------------------ (e) production refusals
 
-const KEY: &str = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
-
+/// A production environment that passes the Part 1 · Stage 3 start-up gate (TLS URLs, sslmode,
+/// distinct random keys, non-default secrets — `apps/api/src/config_http.rs`), so these tests
+/// isolate the approval rules.
 fn production(extra: &[(&'static str, &'static str)]) -> HashMap<&'static str, &'static str> {
     let mut m = HashMap::from([
         ("SUTRA_ENV", "production"),
-        ("DATABASE_URL", "postgres://x"),
-        ("SUTRA_OIDC_CLIENT_SECRET", "s"),
-        ("SUTRA_CSRF_KEY", KEY),
-        ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
-        ("SUTRA_AUDIT_ANCHOR_KEY", KEY),
+        (
+            "DATABASE_URL",
+            "postgres://sutra_api:Zq8w3Lr0Vb6Xn2Ty@pg.internal:5432/sutra?sslmode=verify-full",
+        ),
+        ("SUTRA_OIDC_ISSUER", "https://idp.example.edu/realms/sutra"),
+        (
+            "SUTRA_OIDC_REDIRECT_URI",
+            "https://erp.example.edu/api/v1/auth/oidc/callback",
+        ),
+        (
+            "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI",
+            "https://erp.example.edu/sign-in",
+        ),
+        ("SUTRA_OIDC_CLIENT_SECRET", "Kc7tY2mQ9vR4xL8pW1sN6bZ3"),
+        ("SUTRA_PUBLIC_URL", "https://erp.example.edu"),
+        ("SUTRA_WEBAUTHN_ORIGINS", "https://erp.example.edu"),
+        (
+            "SUTRA_CSRF_KEY",
+            "3f9a1c7e5b2d8046a1e9c3b7d5f20864e1a3c5b7d9f1e2a4c6b8d0f2e4a6c8b1",
+        ),
+        (
+            "SUTRA_MFA_ENCRYPTION_KEY",
+            "c1d2e3f405162738495a6b7c8d9eafb0c1d2e3f405162738495a6b7c8d9eafb1",
+        ),
+        (
+            "SUTRA_AUDIT_ANCHOR_KEY",
+            "8e7d6c5b4a39281706f5e4d3c2b1a0998e7d6c5b4a39281706f5e4d3c2b1a092",
+        ),
         ("SUTRA_WORKFLOW", "flowable"),
+        ("SUTRA_FLOWABLE_PASSWORD", "Fw9pL2xR7tQ4mZ8vN3bK"),
     ]);
     m.extend(extra.iter().copied());
     m

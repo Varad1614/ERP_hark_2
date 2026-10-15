@@ -280,6 +280,9 @@ pub struct Config {
     pub webauthn: WebauthnConfig,
     /// Batch 9: telemetry export, audit chain, Flowable, OpenSearch (`config_b9`, contract §1).
     pub hardening: crate::config_b9::HardeningConfig,
+    /// Part 1 · Stage 3 (S3-config): HSTS, body limit, rate limits, ops endpoints
+    /// (`config_http`, `docs/security/config.md`).
+    pub http: crate::config_http::HttpSecurityConfig,
 }
 
 /// A secret string whose `Debug` is redacted.
@@ -698,6 +701,7 @@ impl Config {
             inbox,
             webauthn,
             hardening: crate::config_b9::HardeningConfig::load(src, env)?,
+            http: crate::config_http::HttpSecurityConfig::load(src, env)?,
         };
         cfg.validate()?;
         Ok(cfg)
@@ -884,6 +888,11 @@ impl Config {
                 value: "0".into(),
             });
         }
+        // Part 1 · Stage 3 (S3-config): transport rules everywhere, then the production gate.
+        crate::config_http::validate(self)?;
+        if self.env == Environment::Production {
+            crate::config_http::validate_production(self)?;
+        }
         Ok(())
     }
 }
@@ -1006,19 +1015,13 @@ mod tests {
             Config::load(&no_anchor_key),
             Err(ConfigError::RequiredInProduction("SUTRA_AUDIT_ANCHOR_KEY"))
         ));
-        let mut chain_off = no_anchor_key.clone();
+        // Part 1 · Stage 3: the complete, valid production environment of the start-up gate
+        // (TLS URLs, sslmode, distinct keys, strong secrets; `config_http::tests::prod`).
+        let mut chain_off = crate::config_http::tests::prod();
+        chain_off.remove("SUTRA_AUDIT_ANCHOR_KEY");
         chain_off.insert("SUTRA_AUDIT_CHAIN", "false");
-        chain_off.insert("SUTRA_WORKFLOW", "flowable"); // Part 1: noop is refused in production
         assert!(Config::load(&chain_off).is_ok(), "chain off needs no key");
-        let ok = HashMap::from([
-            ("SUTRA_ENV", "production"),
-            ("DATABASE_URL", "postgres://x"),
-            ("SUTRA_OIDC_CLIENT_SECRET", "s"),
-            ("SUTRA_CSRF_KEY", KEY),
-            ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
-            ("SUTRA_AUDIT_ANCHOR_KEY", KEY), // 9A
-            ("SUTRA_WORKFLOW", "flowable"),  // Part 1: DEF-X-001
-        ]);
+        let ok = crate::config_http::tests::prod(); // 9A anchor key + Part 1 Flowable included
         let c = Config::load(&ok).unwrap();
         assert_eq!(
             c.hardening.workflow.approvals,
@@ -1056,7 +1059,7 @@ mod tests {
         assert_eq!(c.cache.namespace, "production");
         assert!(c.mfa_step_up, "step-up is always enforced in production");
         assert!(
-            !format!("{:?}", c.oidc).contains("\"s\""),
+            !format!("{:?}", c.oidc).contains("Kc7tY2mQ9vR4xL8pW1sN6bZ3"),
             "secret redacted"
         );
         assert_eq!(c.auth_provider, AuthProvider::Keycloak);
@@ -1142,17 +1145,11 @@ mod tests {
             "duplicate window must exceed the lease"
         );
         let prod = |extra: (&'static str, &'static str)| {
-            Config::load(&HashMap::from([
-                ("SUTRA_ENV", "production"),
-                ("DATABASE_URL", "postgres://x"),
-                ("SUTRA_OIDC_CLIENT_SECRET", "s"),
-                ("SUTRA_CSRF_KEY", KEY),
-                ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
-                ("SUTRA_AUDIT_ANCHOR_KEY", KEY), // 9A
-                ("SUTRA_OUTBOX_RELAY", "off"),
-                ("SUTRA_WORKFLOW", "flowable"), // Part 1: DEF-X-001
-                extra,
-            ]))
+            // Part 1 · Stage 3: valid production base (`config_http::tests::prod`).
+            let mut m = crate::config_http::tests::prod();
+            m.insert("SUTRA_OUTBOX_RELAY", "off");
+            m.insert(extra.0, extra.1);
+            Config::load(&m)
         };
         assert!(matches!(
             prod(("SUTRA_CACHE", "off")),

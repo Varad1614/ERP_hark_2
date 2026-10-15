@@ -139,7 +139,12 @@ async fn serve(cfg: Config) -> Result<(), String> {
     tracing::info!(addr = %cfg.http_addr, env = ?cfg.env, "sutra-api listening");
 
     let (signal, started) = shutdown::coordinator(readiness);
-    let server = axum::serve(listener, router).with_graceful_shutdown(signal);
+    // Part 1 · Stage 3: the peer address feeds the public-endpoint rate limiter.
+    let server = axum::serve(
+        listener,
+        router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(signal);
     tokio::select! {
         r = server => r.map_err(|e| e.to_string())?,
         _ = shutdown::deadline(started, cfg.shutdown_grace) => {
