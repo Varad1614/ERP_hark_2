@@ -34,7 +34,7 @@ manage permissions that create requests (`crates/kernel/src/auth.rs`,
 
 | Role | Dev persona | Approve permissions |
 |---|---|---|
-| `finance_approver` | finance.approver@sutra.dev | finance.approve |
+| `finance_approver` | finance.approver@sutra.dev | finance.approve, library.fine.waive.approve (S2-ops, DEF-G-002) |
 | `exam_controller` | exam.controller@sutra.dev | exam.approve, exam.result.publish |
 | `registrar` | registrar@sutra.dev | admission.decide |
 | `payroll_approver` | payroll.approver@sutra.dev | people.payroll.approve |
@@ -43,7 +43,7 @@ manage permissions that create requests (`crates/kernel/src/auth.rs`,
 `administrator` still holds every permission, so an administrator may act as checker, but never on
 a request they made (SoD applies to every caller).
 
-## Governed decisions with SoD enforced (13)
+## Governed decisions with SoD enforced (15)
 
 | Decision (operation) | Endpoint | Maker permission / role | Checker permission / role | SoD | Audit | Test |
 |---|---|---|---|---|---|---|
@@ -60,6 +60,19 @@ a request they made (SoD applies to every caller).
 | Purchase requisition | `POST /resources/requisitions/{id}/decision` | resources.procurement.manage / administrator | resources.approve / procurement_approver | y | y | `db_b8d::governed_decisions_await_a_decision` |
 | Purchase order | `POST /resources/purchase-orders/{id}/decision` | resources.procurement.manage / administrator | resources.approve / procurement_approver | y | y | `db_b8d::governed_decisions_await_a_decision` |
 | Vendor invoice | `POST /resources/vendor-invoices/{id}/decision` | resources.procurement.manage / administrator | resources.approve / procurement_approver | y | y | shared SoD unit tests |
+| Vendor payment (S2-ops, DEF-J-003) | `POST /resources/vendor-payments/{id}/decision` (process `resources.vendor_payment_approval`) | resources.procurement.manage / administrator (create → `pending_approval`) | resources.approve / procurement_approver **or** finance.approve / finance_approver (or another administrator); posting (`/post`) only from `approved` | y (maker = `approval_requested_by` + history) | y (`resources.vendor_payment.decide` + `.approve`/`.reject` + status history + `decided_by/at/decision_reason`; events `vendor_payment.submitted/approved/rejected`) | `db_p1_ops::vendor_payment_posts_only_after_an_independent_approval`; `db_b8d::procure_to_pay_end_to_end` (auto opt-in) |
+| Library fine waiver (S2-ops, DEF-G-002) | `POST /campus/library-fines/{id}/decision` | campus.library.manage / administrator (`/waiver` → `waiver_requested`; no amount threshold — every waiver needs a decision) | library.fine.waive.approve / finance_approver (or another administrator); `campus.approve` alone no longer decides it | y (assessor + waiver requester from `campus.status_history`) | y (`campus.library_fine.request_waiver` / `.waive` / `.reject_waiver` + status history; `library_fine.waived` event) | `db_p1_ops::library_fine_waiver_is_decided_by_another_authorised_user`; `db_b8c::library_await_decision_policy_fine_waiver_and_clearance` |
+
+### Value controls (S2-ops, DEF-J-005)
+
+The ₹1,00,000 direct-purchase limit (`sourcing::DIRECT_SOURCING_LIMIT`,
+`sourcing::ensure_within_direct_limit`) binds the **actual** value, not only the requester's
+estimate: a direct purchase order's total (caller-supplied prices), the quotation and award of a
+direct sourcing event, and any amendment that raises a direct order are refused (409) above it —
+only the competitive route (RFQ → evaluation → award, `AWARD_APPROVAL`) orders more. Every PO
+amendment returns the order to `draft`, so the changed order is issued again only through
+`PURCHASE_ORDER_APPROVAL` decided by an independent procurement approver. Test:
+`db_p1_ops::direct_purchase_limit_binds_the_ordered_value`.
 
 Configuration (production refusals): `db_p1_appr::production_config_refuses_noop_workflow_and_auto_approval`,
 `config::tests` (unit), Helm checks `production-refuses-*` in `.github/workflows/sutraerp-deploy.yml`.
@@ -101,7 +114,6 @@ decision handler requires. Extending `ensure_independent_decider` to these is th
 | `campus_hostel_policy_decide` | `/campus/hostel-policies/{id}/decision` | HostelManage | CampusApprove (administrator) | n | y |
 | `campus_infra_node_decommission_decide` | `/campus/infrastructure-nodes/{id}/decommission-decision` | FacilityManage | CampusApprove (administrator) | n | y |
 | `campus_library_clearance_decide` | `/campus/library-clearances/{id}/decision` | LibraryManage | CampusApprove (administrator) | n | y |
-| `campus_library_fine_decide` | `/campus/library-fines/{id}/decision` | LibraryManage | CampusApprove (administrator) | n | y |
 | `campus_library_policy_decide` | `/campus/library-policies/{id}/decision` | LibraryManage | CampusApprove (administrator) | n | y |
 | `campus_maintenance_plan_decide` | `/campus/maintenance-plans/{id}/decision` | FacilityManage | CampusApprove (administrator) | n | y |
 | `campus_reservation_decide` | `/campus/reservations/{id}/decision` | same slice manage permission | FacilityManage (administrator) | n | y |
