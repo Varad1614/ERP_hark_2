@@ -6488,8 +6488,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Decide a fine waiver (`campus.approve`, step-up; If-Match): approve → `waived`, reject →
-         *     back to `assessed` (billable).
+         * Decide a fine waiver (`library.fine.waive.approve`, step-up; If-Match; Part 1 DEF-G-002):
+         *     approve → `waived`, reject → back to `assessed` (billable). The decider must not be whoever
+         *     assessed the fine or requested the waiver (`403`, separation of duties).
          */
         post: operations["campus_library_fine_decide"];
         delete?: never;
@@ -6509,7 +6510,9 @@ export interface paths {
         put?: never;
         /**
          * Request a waiver of an assessed fine (`campus.library.manage`; If-Match; reason required;
-         *     `FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final).
+         *     `FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final). Part 1
+         *     (DEF-G-002): the fine stays `waiver_requested` until another user with
+         *     `library.fine.waive.approve` decides it.
          */
         post: operations["campus_library_fine_waiver"];
         delete?: never;
@@ -20550,9 +20553,11 @@ export interface paths {
         get: operations["resources_payable_payment_list"];
         put?: never;
         /**
-         * Draft a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each
-         *     allocation settles a **posted** invoice of the supplier, at most its outstanding amount
-         *     (net of other draft payments).
+         * Request a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each
+         *     allocation settles a **posted** invoice of the supplier, at most its outstanding amount (net of
+         *     other payments pending approval or approved). Part 1 (DEF-J-003): the payment starts
+         *     `VENDOR_PAYMENT_APPROVAL` and stays `pending_approval` until a procurement / finance approver
+         *     other than its maker decides it (`POST /vendor-payments/{id}/decision`); nothing posts before.
          */
         post: operations["resources_payable_payment_create"];
         delete?: never;
@@ -21398,6 +21403,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resources/vendor-payments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a vendor payment awaiting approval (`resources.approve` **or** `finance.approve`,
+         *     step-up; If-Match; Part 1 DEF-J-003): approve → `approved` (it may now post); reject →
+         *     `rejected` (reason required; allocations released). The maker of the payment — whoever
+         *     requested it — is refused (`403`, separation of duties), as is a system actor.
+         */
+        post: operations["resources_payable_payment_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/vendor-payments/{id}/post": {
         parameters: {
             query?: never;
@@ -21408,9 +21435,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Post a drafted payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr
+         * Post an **approved** payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr
          *     accounts payable / Cr the main bank account through `ProcurementPostingPort` (idempotent);
-         *     settles the invoices (`paid` once fully paid); `vendor_payment.posted`.
+         *     settles the invoices (`paid` once fully paid); `vendor_payment.posted`. A payment still
+         *     pending approval, or rejected, is refused (409; Part 1 DEF-J-003).
          */
         post: operations["resources_payable_payment_post"];
         delete?: never;
@@ -45233,8 +45261,15 @@ export interface components {
         VendorPaymentView: {
             /** @example 2400.00 */
             amount: string;
+            /** @description Who asked for the payment (never its approver). */
+            approvalRequestedBy?: string | null;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            /** @description The independent approver who decided it. */
+            decidedBy?: string | null;
+            decisionReason?: string | null;
             entryNumber?: string | null;
             /** Format: uuid */
             id: string;
@@ -45248,8 +45283,10 @@ export interface components {
             paymentDate: string;
             /** Format: date-time */
             postedAt?: string | null;
+            /** @description `VENDOR_PAYMENT_APPROVAL` instance. */
+            processInstanceId?: string | null;
             reference?: string | null;
-            /** @description `draft | posted`. */
+            /** @description `pending_approval | approved | rejected | posted` (Part 1 DEF-J-003). */
             status: string;
             /** Format: uuid */
             supplierId: string;
@@ -99363,6 +99400,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorPaymentDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_payment_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the payment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
         responses: {
             200: {
                 headers: {

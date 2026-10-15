@@ -31960,7 +31960,7 @@
         "tags": [
           "campus-library"
         ],
-        "summary": "Decide a fine waiver (`campus.approve`, step-up; If-Match): approve → `waived`, reject →\nback to `assessed` (billable).",
+        "summary": "Decide a fine waiver (`library.fine.waive.approve`, step-up; If-Match; Part 1 DEF-G-002):\napprove → `waived`, reject → back to `assessed` (billable). The decider must not be whoever\nassessed the fine or requested the waiver (`403`, separation of duties).",
         "operationId": "campus_library_fine_decide",
         "parameters": [
           {
@@ -32033,7 +32033,7 @@
         "tags": [
           "campus-library"
         ],
-        "summary": "Request a waiver of an assessed fine (`campus.library.manage`; If-Match; reason required;\n`FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final).",
+        "summary": "Request a waiver of an assessed fine (`campus.library.manage`; If-Match; reason required;\n`FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final). Part 1\n(DEF-G-002): the fine stays `waiver_requested` until another user with\n`library.fine.waive.approve` decides it.",
         "operationId": "campus_library_fine_waiver",
         "parameters": [
           {
@@ -96316,7 +96316,7 @@
         "tags": [
           "resources-procurement"
         ],
-        "summary": "Draft a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each\nallocation settles a **posted** invoice of the supplier, at most its outstanding amount\n(net of other draft payments).",
+        "summary": "Request a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each\nallocation settles a **posted** invoice of the supplier, at most its outstanding amount (net of\nother payments pending approval or approved). Part 1 (DEF-J-003): the payment starts\n`VENDOR_PAYMENT_APPROVAL` and stays `pending_approval` until a procurement / finance approver\nother than its maker decides it (`POST /vendor-payments/{id}/decision`); nothing posts before.",
         "operationId": "resources_payable_payment_create",
         "parameters": [
           {
@@ -99658,12 +99658,86 @@
         ]
       }
     },
+    "/api/v1/resources/vendor-payments/{id}/decision": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Decide a vendor payment awaiting approval (`resources.approve` **or** `finance.approve`,\nstep-up; If-Match; Part 1 DEF-J-003): approve → `approved` (it may now post); reject →\n`rejected` (reason required; allocations released). The maker of the payment — whoever\nrequested it — is refused (`403`, separation of duties), as is a system actor.",
+        "operationId": "resources_payable_payment_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the payment",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcesDecisionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorPaymentDetail"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/resources/vendor-payments/{id}/post": {
       "post": {
         "tags": [
           "resources-procurement"
         ],
-        "summary": "Post a drafted payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr\naccounts payable / Cr the main bank account through `ProcurementPostingPort` (idempotent);\nsettles the invoices (`paid` once fully paid); `vendor_payment.posted`.",
+        "summary": "Post an **approved** payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr\naccounts payable / Cr the main bank account through `ProcurementPostingPort` (idempotent);\nsettles the invoices (`paid` once fully paid); `vendor_payment.posted`. A payment still\npending approval, or rejected, is refused (409; Part 1 DEF-J-003).",
         "operationId": "resources_payable_payment_post",
         "parameters": [
           {
@@ -188665,9 +188739,36 @@
             "type": "string",
             "example": "2400.00"
           },
+          "approvalRequestedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who asked for the payment (never its approver)."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The independent approver who decided it."
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "entryNumber": {
             "type": [
@@ -188705,6 +188806,13 @@
             ],
             "format": "date-time"
           },
+          "processInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`VENDOR_PAYMENT_APPROVAL` instance."
+          },
           "reference": {
             "type": [
               "string",
@@ -188713,7 +188821,7 @@
           },
           "status": {
             "type": "string",
-            "description": "`draft | posted`."
+            "description": "`pending_approval | approved | rejected | posted` (Part 1 DEF-J-003)."
           },
           "supplierId": {
             "type": "string",
