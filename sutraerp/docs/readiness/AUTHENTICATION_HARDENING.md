@@ -1,7 +1,7 @@
 # Authentication hardening — Part 1 Stage 3 (auth)
 
-Branch `part1/s3-auth` (base `part1/s2-int` @ 1fd0e322). Head: `@@SHA@@`.
-Evidence runs (all on the head above): CI `@@CI@@`, Part 1 demo `@@DEMO@@`, deploy (Helm · kind) `@@DEPLOY@@`, quality gates `@@QUALITY@@`.
+Branch `part1/s3-auth` (base `part1/s2-int` @ 1fd0e322). Head: `19abaa32`.
+Evidence runs (all on code head 19abaa32; later commits on the branch are docs-only): CI `38774880706`, Part 1 demo `38774880984`, deploy (Helm · kind) `38774944294`, quality gates `38774948589`.
 Findings table: [`security/auth.md`](security/auth.md). Work log: [`tracker/s3-auth.md`](tracker/s3-auth.md).
 
 ## Controls

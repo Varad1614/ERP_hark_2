@@ -1,6 +1,6 @@
 # Security findings — authentication (Part 1 Stage 3, worker `auth`)
 
-Branch `part1/s3-auth` @ `@@SHA@@`; CI `@@CI@@`, demo `@@DEMO@@`, deploy `@@DEPLOY@@`, quality `@@QUALITY@@`. Control-by-control detail: [`../AUTHENTICATION_HARDENING.md`](../AUTHENTICATION_HARDENING.md).
+Branch `part1/s3-auth` @ `19abaa32`; CI `38774880706`, demo `38774880984`, deploy `38774944294`, quality `38774948589`. Control-by-control detail: [`../AUTHENTICATION_HARDENING.md`](../AUTHENTICATION_HARDENING.md).
 
 | ID | Area | Severity | Evidence (file:line, before) | Exploit sketch | Fix | Test | Status |
 |----|------|----------|------------------------------|----------------|-----|------|--------|
