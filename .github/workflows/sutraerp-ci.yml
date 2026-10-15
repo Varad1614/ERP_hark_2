@@ -2,7 +2,7 @@ name: SutraERP CI
 
 on:
   push:
-    branches: [main, erp_merge, "dev/**", "batch5/**", "batch6/**", "batch7/**", "batch8/**", "batch9/**", "ui/**", "reskin2/**"]
+    branches: [main, erp_merge, "dev/**", "batch5/**", "batch6/**", "batch7/**", "batch8/**", "batch9/**", "ui/**", "reskin2/**", "part1/**"]
     paths: ["sutraerp/**", ".github/workflows/sutraerp-ci.yml"]
   workflow_dispatch:
   pull_request:
@@ -166,7 +166,7 @@ jobs:
   # chromium + API + preview together). Runs on ui/**, batch*/** and erp_merge.
   e2e:
     name: E2E ${{ matrix.suite }} (preview)
-    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || github.ref == 'refs/heads/erp_merge'
+    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || startsWith(github.ref, 'refs/heads/part1/') || github.ref == 'refs/heads/erp_merge'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
