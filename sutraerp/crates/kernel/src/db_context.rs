@@ -14,9 +14,9 @@
 //! scope of the server-side session; server-internal work that is cross-tenant by design
 //! (session resolution and sign-in before a tenant is known, the outbox relay, sweepers, the
 //! payment-gateway webhook lookup, migrations) runs inside [`system`]. The pool
-//! (`sutra_persistence::pool`) copies [`current`] onto every connection it hands out
-//! (`before_acquire` / `after_connect`) and clears it again when the connection returns
-//! (`after_release`), so a pooled connection never carries one request's tenant into the next.
+//! (`sutra_persistence::pool`) overwrites the settings with [`current`] on every connection it
+//! hands out (`before_acquire` / `after_connect`; empty when the task has no context), so a pooled
+//! connection never carries one request's tenant into the next.
 //! Code that runs outside both (a task spawned without the context, an unauthenticated route)
 //! gets **no** context: row-level security then shows no tenant rows and refuses every write —
 //! it fails closed.

@@ -41,9 +41,13 @@ pub async fn apply_context(
 /// Part 1 S3 (DEF-X-003): every connection the pool hands out carries the row-level security
 /// context of the acquiring task ([`db_context::current`]): it is written when a connection is
 /// opened (`after_connect`) or taken from the idle queue (`before_acquire`, which also serves as
-/// the liveness check `test_before_acquire` used to do), and cleared when it is returned
-/// (`after_release`). A task without a context gets empty settings, which row-level security
-/// treats as "no tenant" (fails closed).
+/// the liveness check `test_before_acquire` used to do). Every hand-out overwrites all three
+/// settings, so an idle connection's leftover settings are never visible to the next task: a task
+/// without a context gets empty settings, which row-level security treats as "no tenant" (fails
+/// closed). There is deliberately no `after_release` reset: it cost a second round trip per
+/// checkout while holding the connection (saturated the pool in the S3-int capacity gate)
+/// and protected nothing, because no code path reaches a pooled connection without acquiring it
+/// (`pooled_connections_never_carry_a_tenant_into_the_next_task`).
 pub fn connect_lazy(s: &PoolSettings) -> Result<PgPool, sqlx::Error> {
     let opts = PgConnectOptions::from_str(&s.url)?
         .application_name(&s.application_name)
@@ -61,12 +65,6 @@ pub fn connect_lazy(s: &PoolSettings) -> Result<PgPool, sqlx::Error> {
             let ctx = db_context::current();
             Box::pin(async move {
                 apply_context(conn, ctx, false).await?;
-                Ok(true)
-            })
-        })
-        .after_release(|conn, _meta| {
-            Box::pin(async move {
-                apply_context(conn, None, false).await?;
                 Ok(true)
             })
         })
