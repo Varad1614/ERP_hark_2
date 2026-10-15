@@ -75,6 +75,7 @@ jobs:
         with:
           workspaces: sutraerp
           shared-key: e2e-api
+          cache-on-failure: true
       - name: Build sutra-api (debug, same build as the CI e2e jobs)
         run: |
           cargo build -p sutra-api --locked
