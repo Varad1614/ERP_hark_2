@@ -110,10 +110,46 @@ institution is the only one (a fresh volume) — after earlier runs, `docker com
 
 Stop: `docker compose down` (keeps data) / `docker compose down -v` (wipes the volumes).
 
+## 4. Reading the results
+
+* **Job summary** (the run's page): one row per step — phase, step, driven by (browser / API),
+  result, evidence (API responses, DB checks, audit rows, role visibility, screenshot names) — then
+  the steps driven through the API and every approval that depended on auto-approval.
+* **`part1-demo-logs`**: `journey-results.json` (the full evidence; render it with
+  `node apps/web/e2e/lib/journey-report.mjs journey-results.json`), `health-1-startup.txt`,
+  `health-2-after-restart.txt`, `restart-addresses.txt` (container addresses before / after the
+  restart), `compose-ps.txt`, `compose.resolved.yml`, `api-check-config.txt` and one log per service.
+* **`part1-demo-screenshots`**: numbered PNGs per stage (`04-1-admission-student-created.png` …
+  `20-6-student-results.png`; `101`–`106` are the persistence phase; `fail-*` only on failures).
+* Exit code: a step with status `fail` fails the job; a step whose defect id is listed in
+  `E2E_KNOWN_DEFECTS` (workflow env, today `DEF-C-003`, fixed on `part1/s2-acad`) is reported as
+  “known open defect” and does not fail it. Remove the id once its fix is merged.
+
+Reports from the last green run: [`LOCAL_DEMO_REPORT.md`](LOCAL_DEMO_REPORT.md) (stack, health,
+restart evidence, defects) and [`E2E_TEST_REPORT.md`](E2E_TEST_REPORT.md) (per-step table).
+
+## 5. Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| `web→api(/api/v1/auth/csrf)` never ready, `/api` answers 502 after `docker compose restart api` | an old web image whose nginx resolved `api` once at start-up (DEF-P1-DEMO-004). Rebuild the web image (`docker compose build web`); `deploy/docker/nginx.conf` now resolves through Docker DNS per request. |
+| The first Keycloak sign-in after `docker compose restart postgres` fails (“Invalid username or password”, Keycloak log `Database operation failed`) | Keycloak's pool kept dead connections (DEF-P1-DEMO-005). `docker-compose.yml` now sets `QUARKUS_DATASOURCE_JDBC_FOREGROUND_VALIDATION_INTERVAL=5S`; with an older compose file restart `keycloak` too. |
+| Administrator actions answer `403 mfa-step-up-required` in Keycloak mode | the session has no `otp` AMR — the realm import must contain the `browser-sutra` flow (DEF-P1-DEMO-003). Wipe the Keycloak database (`docker compose down -v`) so the realm is re-imported. |
+| Keycloak rejects the TOTP code | the host clock is off (TOTP is 30 s based) or the same code was used twice (`otpPolicyCodeReusable=false`); the journey waits for the next 30 s window by itself. |
+| Journey admin screens show the wrong institution | earlier runs left institutions behind; start from a fresh volume (`docker compose down -v`). |
+| `migrate` exited non-zero | `docker compose logs migrate`; migrations are append-only — never edit an applied one. |
+
 ## Known limits
 
 * Approvals are automatic today (DEF-X-001, fixed on `part1/s2-appr`); the journey's approval
   steps go through `approve(kind, id)` in `apps/web/e2e/lib/approvals.mjs`, which only asserts
   the approved state and lists every dependency in the job summary.
 * Steps with no screen (exam conduct) and the few driven through the API although a screen exists
+  (registration window, opening the mark sheet, verify / approve / finalise marks) plus the whole seed
   are listed as gaps in the summary and in `E2E_TEST_REPORT.md`.
+* The payment gateway is the dev stack's mock checkout; payment, receipt, allocation and ledger
+  posting behind it are real.
+* The duplicate-applicant negative is a known open defect on this base (DEF-C-003, fixed on
+  `part1/s2-acad`).
+* The restart does not force a new container address; Docker sometimes keeps it. The proxy fix is
+  proven by runs where the addresses changed (see `restart-addresses.txt`).
