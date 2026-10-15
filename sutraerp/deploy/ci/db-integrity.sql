@@ -306,6 +306,67 @@ END $$;
 INSERT INTO integrity
 SELECT 'probes', 'refused: ' || name, CASE WHEN refused THEN 0 ELSE 1 END, left(msg, 160) FROM probe_result;
 
+-- ------------------------------------------------------------------ tenant isolation (Part 1 S3)
+-- DEF-X-003: every table with a tenant_id column has row-level security ENABLED and FORCED and the
+-- single policy sutra_tenant_isolation (platform.tenant_rls_gaps lists the exceptions).
+INSERT INTO integrity
+SELECT 'tenant-rls', 'tenant tables with forced RLS + sutra_tenant_isolation only',
+       (SELECT count(*) FROM platform.tenant_rls_gaps),
+       coalesce((SELECT left(string_agg(schema_name || '.' || table_name, ', '), 300) FROM platform.tenant_rls_gaps),
+                (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                   JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'tenant_id' AND NOT a.attisdropped
+                  WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                    AND n.nspname NOT LIKE 'pg\_%' AND c.relforcerowsecurity) || ' tenant tables covered');
+-- Runtime login roles (members of sutra_app) must be subject to RLS: no superuser, no BYPASSRLS.
+INSERT INTO integrity
+SELECT 'tenant-rls', 'runtime roles (members of sutra_app) are not superuser / BYPASSRLS',
+       count(*) FILTER (WHERE r.rolsuper OR r.rolbypassrls),
+       coalesce(string_agg(r.rolname, ', '), 'no runtime login role') || ' checked'
+FROM pg_roles r
+JOIN pg_auth_members am ON am.member = r.oid
+JOIN pg_roles g ON g.oid = am.roleid AND g.rolname = 'sutra_app'
+WHERE r.rolcanlogin;
+-- Probe as the runtime group role: with an unknown tenant, and with no tenant at all, not one row
+-- of any tenant table may be visible (the demo database holds the journey's data).
+CREATE TEMP TABLE rls_probe (tbl text, ctx text, visible bigint, note text);
+GRANT INSERT ON rls_probe TO sutra_app;
+DO $$
+DECLARE
+    r record;
+    ctx text;
+    n bigint;
+BEGIN
+    FOREACH ctx IN ARRAY ARRAY['foreign-tenant', 'no-context'] LOOP
+        FOR r IN
+            SELECT c.oid::regclass::text AS tbl
+              FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
+              JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'tenant_id' AND NOT a.attisdropped
+             WHERE c.relkind IN ('r', 'p') AND ns.nspname NOT IN ('pg_catalog', 'information_schema')
+               AND ns.nspname NOT LIKE 'pg\_%'
+        LOOP
+            BEGIN
+                SET LOCAL ROLE sutra_app;
+                PERFORM set_config('sutra.rls_scope', CASE ctx WHEN 'foreign-tenant' THEN 'tenant' ELSE '' END, true);
+                PERFORM set_config('sutra.tenant_id', CASE ctx WHEN 'foreign-tenant' THEN gen_random_uuid()::text ELSE '' END, true);
+                PERFORM set_config('sutra.institution_id', '', true);
+                EXECUTE format('SELECT count(*) FROM %s', r.tbl) INTO n;
+                RESET ROLE;
+                INSERT INTO rls_probe VALUES (r.tbl, ctx, n, NULL);
+            EXCEPTION WHEN insufficient_privilege THEN
+                RESET ROLE;
+                INSERT INTO rls_probe VALUES (r.tbl, ctx, 0, 'not readable by sutra_app');
+            END;
+        END LOOP;
+    END LOOP;
+    PERFORM set_config('sutra.rls_scope', '', true);
+    PERFORM set_config('sutra.tenant_id', '', true);
+END $$;
+INSERT INTO integrity
+SELECT 'tenant-rls', 'runtime role sees no row of another tenant (' || ctx || ')',
+       count(*) FILTER (WHERE visible > 0),
+       count(*) || ' tables probed' || coalesce(', leaking: ' || left(string_agg(tbl, ', ') FILTER (WHERE visible > 0), 200), '')
+FROM rls_probe GROUP BY ctx;
+
 -- ------------------------------------------------------------------ inventory (informational)
 INSERT INTO integrity
 SELECT 'inventory', 'triggers in application schemas', 0, count(*)::text
