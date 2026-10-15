@@ -42,7 +42,7 @@ impl CorsPolicy {
 
     fn allows(&self, origin: &str) -> bool {
         let o = origin.trim().to_ascii_lowercase();
-        self.allowed.iter().any(|a| *a == o)
+        self.allowed.contains(&o)
     }
 }
 

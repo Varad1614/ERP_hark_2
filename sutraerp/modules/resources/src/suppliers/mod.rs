@@ -647,7 +647,7 @@ pub async fn update(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ProcurementManage)?;
     let v = expected!(headers);
-    let p = validate_profile(b)?;
+    let mut p = validate_profile(b)?;
     let t = ctx.scope.tenant_id;
     let scope = supplier_scope(&st, ctx, id).await?;
     let actor = actor(ctx);
@@ -667,7 +667,6 @@ pub async fn update(
     // Part 1 · Stage 3 (DEF-J-004): approved bank details change only through an independently
     // approved bank-change request; while the registration awaits its decision they are frozen
     // (the approver decides on what was submitted). Unchanged values are accepted (no-op).
-    let mut p = p;
     if s.approved_at.is_some() || s.approval_pending {
         let differs = |new: &Option<String>, old: &Option<String>| {
             new.as_ref().is_some_and(|v| Some(v) != old.as_ref())

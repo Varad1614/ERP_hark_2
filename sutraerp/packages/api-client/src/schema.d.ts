@@ -21347,6 +21347,50 @@ export interface paths {
         patch: operations["resources_supplier_update"];
         trace?: never;
     };
+    "/api/v1/resources/suppliers/{id}/bank-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request new bank details for an approved supplier (`resources.procurement.manage`; If-Match;
+         *     Part 1 · Stage 3, DEF-J-004). The live details stay in use; the request waits for
+         *     `SUPPLIER_BANK_CHANGE_APPROVAL` (approvers notified, audited with masked accounts). One open
+         *     request at a time (`409`).
+         */
+        post: operations["resources_supplier_bank_change_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}/bank-change/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a supplier's pending bank-change request (`resources.approve` **or**
+         *     `finance.approve`, step-up; If-Match; Part 1 · Stage 3, DEF-J-004): approve → the new details
+         *     go live (`supplier.bank_change_approved` warns finance); reject → discarded (reason
+         *     required). Whoever requested the change — or a system actor — is refused (`403`).
+         */
+        post: operations["resources_supplier_bank_change_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/suppliers/{id}/decision": {
         parameters: {
             query?: never;
@@ -44247,6 +44291,20 @@ export interface components {
          * @enum {string}
          */
         SupplementaryEligibilityStatus: "eligible" | "applied" | "authorised" | "exhausted" | "cancelled";
+        /**
+         * @description Routes of this area.
+         *     New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`).
+         */
+        SupplierBankChangeRequest: {
+            /** @description Defaults to the current account name. */
+            bankAccountName?: string | null;
+            /** @example 001234567890 */
+            bankAccountNumber: string;
+            /** @example HDFC0001234 */
+            bankIfsc: string;
+            /** @description Why the details change (shown to the approver; required). */
+            reason: string;
+        };
         SupplierList: {
             items: components["schemas"]["SupplierView"][];
         };
@@ -44288,6 +44346,18 @@ export interface components {
             bankAccountName?: string | null;
             /** @description Masked (`XXXXXX7890`). */
             bankAccountNumber?: string | null;
+            /** @description Part 1 · Stage 3 (DEF-J-004): a bank-change request awaits an independent decision. */
+            bankChangePending: boolean;
+            bankChangeProcessInstanceId?: string | null;
+            bankChangeReason?: string | null;
+            /**
+             * Format: uuid
+             * @description Id of the open bank-change request (its status history is keyed by it).
+             */
+            bankChangeRequestId?: string | null;
+            /** Format: date-time */
+            bankChangeRequestedAt?: string | null;
+            bankChangeRequestedBy?: string | null;
             bankIfsc?: string | null;
             /** Format: uuid */
             canonicalSupplierId?: string | null;
@@ -44306,6 +44376,10 @@ export interface components {
             number: string;
             /** @example ABCDE1234F */
             pan?: string | null;
+            pendingBankAccountName?: string | null;
+            /** @description Masked (`XXXXXX7890`). */
+            pendingBankAccountNumber?: string | null;
+            pendingBankIfsc?: string | null;
             phone?: string | null;
             processInstanceId?: string | null;
             /** Format: date-time */
@@ -99665,6 +99739,80 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SupplierProfile"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_bank_change_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierBankChangeRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_bank_change_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
             };
         };
         responses: {
