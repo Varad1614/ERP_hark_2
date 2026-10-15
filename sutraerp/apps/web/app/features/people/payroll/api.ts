@@ -126,7 +126,7 @@ export function createHttpPayrollApi(fetchImpl: Fetch = (i, init) => fetch(i, in
     const res = await fetchImpl(`${baseUrl}${path}`, { method: "GET", headers: { Accept: "text/csv, application/problem+json" }, credentials: "include" });
     const text = await res.text();
     if (!res.ok) {
-      let data: unknown = undefined;
+      let data: unknown;
       try {
         data = JSON.parse(text);
       } catch {
