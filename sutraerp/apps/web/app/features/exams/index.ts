@@ -20,6 +20,7 @@ export const EXAM_TABS = [
   { key: "marks", label: "Marks", slice: "6B" },
   { key: "results", label: "Results", slice: "6C" },
   { key: "registrations", label: "Registrations & hall tickets", slice: "6A" },
+  { key: "conduct", label: "Conduct & invigilation", slice: "6A" },
   { key: "malpractice", label: "Malpractice", slice: "6B" },
   { key: "revaluation", label: "Revaluation", slice: "6C" },
   { key: "sessions", label: "Sessions & policy", slice: "6A" },

@@ -23,7 +23,7 @@ describe("Batch 6 tabs and screens", () => {
     expect(activeTab(EXAM_TABS, "bogus").key).toBe("overview");
     expect(new Set(EXAM_TABS.map((t) => t.key)).size).toBe(EXAM_TABS.length);
     // Re-skin v2: the former seven tabs keep their URLs; four show in the header, the rest under More.
-    for (const key of ["sessions", "schedule", "registrations", "marks", "malpractice", "results", "revaluation"]) expect(EXAM_TABS.some((t) => t.key === key), key).toBe(true);
+    for (const key of ["sessions", "schedule", "registrations", "conduct", "marks", "malpractice", "results", "revaluation"]) expect(EXAM_TABS.some((t) => t.key === key), key).toBe(true);
     expect(examinationsPath("marks")).toBe("/examinations/marks");
     expect(examinationsPath()).toBe("/examinations");
     expect(examinationsPath("overview")).toBe("/examinations");
@@ -42,6 +42,7 @@ describe("Batch 6 route frames (foundation placeholders)", () => {
     ["overview", "R4"],
     ["sessions", "6A"],
     ["registrations", "6A"],
+    ["conduct", "6A"],
     ["marks", "6B"],
     ["malpractice", "6B"],
     ["results", "6C"],
