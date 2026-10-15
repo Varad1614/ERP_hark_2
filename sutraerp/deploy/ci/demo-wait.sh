@@ -43,4 +43,4 @@ done
 echo "postgres: $(docker compose exec -T postgres pg_isready -U sutra -d sutra)"
 echo "valkey:   $(docker compose exec -T valkey valkey-cli ping)"
 echo "keycloak: $(health keycloak) (management /health/ready via container healthcheck)"
-echo "migrations applied: $(docker compose exec -T postgres psql -U sutra -d sutra -tAc 'SELECT count(*) || '' (last '' || max(version) || '')'' FROM _sqlx_migrations WHERE success')"
+echo "migrations applied: $(docker compose exec -T postgres psql -U sutra -d sutra -tAc "SELECT count(*) || ' (last ' || max(version) || ')' FROM _sqlx_migrations WHERE success")"

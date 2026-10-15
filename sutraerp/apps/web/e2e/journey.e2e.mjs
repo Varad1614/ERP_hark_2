@@ -835,7 +835,10 @@ try {
       const tr = db(e, "term result", `SELECT id || '|' || status || '|' || coalesce(sgpa::text, '') FROM exams.term_result WHERE session_id = ${q(ids.sessionId)} AND student_id = ${q(ids.aarav.id)} AND status = 'published'`, (v) => v.split("|")[1] === "published");
       ids.termResultId = tr.split("|")[0];
       db(e, "result line", `SELECT paper_code || ':' || coalesce(grade, '') || ':' || coalesce(total_marks::text, '') FROM exams.term_result_line WHERE result_id = ${q(ids.termResultId)}`, (v) => v.startsWith("CS101") && v.includes(":A:"));
-      audit(e, ids.termResultId, [], "term result");
+      // Results are audited per command on their batch and publication (exams results repo:
+      // result_batch.compute / validate / finalise, publication.authorise / publish with counts).
+      audit(e, ids.resultBatchId, ["exams.result_batch.compute", "exams.result_batch.create", "exams.result_batch.finalise", "exams.result_batch.validate"], "result batch");
+      audit(e, ids.publicationId, ["exams.publication.authorise", "exams.publication.create", "exams.publication.publish"], "publication");
       R.snapshot.results = psql(`SELECT r.status || '|' || coalesce(r.sgpa::text, '') || '|' || string_agg(l.grade || ':' || coalesce(l.total_marks::text, ''), ',') FROM exams.term_result r JOIN exams.term_result_line l ON l.result_id = r.id WHERE r.id = ${q(ids.termResultId)} GROUP BY r.status, r.sgpa`);
     });
 
