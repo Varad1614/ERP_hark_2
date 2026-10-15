@@ -71,6 +71,8 @@ pub struct PlatformDeps {
     pub replay: Arc<dyn ReplayGuard>,
     /// Profile refresh at sign-in (`None` without PostgreSQL).
     pub sign_in_hook: Option<Arc<dyn auth::http::SignInHook>>,
+    /// Failed-attempt lockout for password sign-in and TOTP checks (SEC-9D-005).
+    pub throttle: Arc<auth::throttle::AuthThrottle>,
 }
 
 /// Platform routes: auth boundary, catalog, and the Batch 1D self-service APIs (profile,

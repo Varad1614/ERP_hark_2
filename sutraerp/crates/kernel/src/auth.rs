@@ -652,6 +652,17 @@ impl Permission {
     }
 }
 
+impl Permission {
+    /// Personal self-service permissions every role holds (own notifications, notices, to-dos,
+    /// profile). They stay usable by a privileged session that has not verified MFA yet, so the
+    /// signed-in shell works while the user steps up (SEC-P1-AUTH-001).
+    pub fn is_personal_baseline(&self) -> bool {
+        Role::ALL
+            .iter()
+            .all(|r| role_permissions(*r).contains(self))
+    }
+}
+
 /// The role → permission policy. Exhaustive over [`Role`] so a new role cannot compile without
 /// an explicit (possibly empty) grant list; anything not listed is denied.
 pub fn role_permissions(role: Role) -> &'static [Permission] {
@@ -902,6 +913,12 @@ pub struct AuthContext {
     /// Whether step-up permissions ([`Permission::requires_step_up`]) need `mfa_level = Mfa`.
     /// Set by the session resolver from configuration.
     pub step_up_enforced: bool,
+    /// Part 1 S3 (SEC-P1-AUTH-001): privileged roles require MFA (ADR-L5-0038 §3.8). When set,
+    /// a session without a verified second factor may not exercise any permission it holds
+    /// only through a privileged role ([`Role::is_privileged`]): `require` answers
+    /// `StepUpRequired`. Set by the session resolver from configuration (`SUTRA_PRIVILEGED_MFA`,
+    /// always on in production).
+    pub privileged_mfa_enforced: bool,
 }
 
 impl fmt::Debug for AuthContext {
@@ -937,7 +954,26 @@ impl AuthContext {
         {
             return Err(KernelError::StepUpRequired(permission.as_str()));
         }
+        if self.privileged_mfa_enforced
+            && self.mfa_level < MfaLevel::Mfa
+            && !permission.is_personal_baseline()
+            && !self
+                .roles
+                .iter()
+                .any(|r| !r.is_privileged() && role_permissions(*r).contains(&permission))
+        {
+            // Granted only through a privileged role: that role needs an MFA session.
+            return Err(KernelError::StepUpRequired(permission.as_str()));
+        }
         Ok(())
+    }
+
+    /// `true` when the session holds a privileged role but has not verified a second factor
+    /// while privileged-role MFA is enforced (its privileged permissions are refused).
+    pub fn privileged_mfa_pending(&self) -> bool {
+        self.privileged_mfa_enforced
+            && self.mfa_level < MfaLevel::Mfa
+            && self.roles.iter().any(Role::is_privileged)
     }
 
     /// Constant-time check of a presented synchronizer token.
@@ -974,7 +1010,89 @@ mod tests {
             mfa_level: MfaLevel::None,
             amr: vec!["pwd".into()],
             step_up_enforced: false,
+            privileged_mfa_enforced: false,
         }
+    }
+
+    /// SEC-P1-AUTH-001: with privileged-role MFA enforced, a password-only privileged session
+    /// cannot use *any* permission it holds through the privileged role (not just step-up ones);
+    /// permissions a non-privileged role of the same caller grants stay usable.
+    #[test]
+    fn privileged_roles_need_mfa_for_every_privileged_permission() {
+        let mut a = ctx(vec![Role::Administrator]);
+        assert!(
+            a.require(Permission::InstitutionManage).is_ok(),
+            "off by default"
+        );
+        a.privileged_mfa_enforced = true;
+        assert!(a.privileged_mfa_pending());
+        assert!(
+            a.require(Permission::NotificationRead).is_ok(),
+            "personal baseline stays usable while stepping up"
+        );
+        assert!(Permission::ProfileManage.is_personal_baseline());
+        assert!(!Permission::InstitutionManage.is_personal_baseline());
+        for p in [
+            Permission::InstitutionManage,
+            Permission::StudentManage,
+            Permission::ChargeManage,
+        ] {
+            assert!(
+                matches!(a.require(p), Err(KernelError::StepUpRequired(_))),
+                "{p:?} must need MFA for a password-only administrator"
+            );
+        }
+        a.mfa_level = MfaLevel::Mfa;
+        assert!(!a.privileged_mfa_pending());
+        assert!(a.require(Permission::InstitutionManage).is_ok());
+        // Every approver (checker) role is privileged too.
+        for role in Role::ALL.into_iter().filter(Role::is_approver) {
+            let mut c = ctx(vec![role]);
+            c.privileged_mfa_enforced = true;
+            let held = role_permissions(role)
+                .iter()
+                .find(|p| !p.is_personal_baseline())
+                .copied()
+                .unwrap();
+            assert!(
+                matches!(c.require(held), Err(KernelError::StepUpRequired(_))),
+                "{role:?}"
+            );
+        }
+        // Non-privileged roles are unaffected; a faculty member who is also an approver keeps
+        // the faculty permissions at aal1 but not the approver ones.
+        let mut f = ctx(vec![Role::Faculty]);
+        f.privileged_mfa_enforced = true;
+        assert!(!f.privileged_mfa_pending());
+        for p in role_permissions(Role::Faculty) {
+            if !p.requires_step_up() {
+                assert!(f.require(*p).is_ok(), "{p:?}");
+            }
+        }
+        let mut both = ctx(vec![Role::Faculty, Role::ExamController]);
+        both.privileged_mfa_enforced = true;
+        let faculty_only = role_permissions(Role::Faculty)
+            .iter()
+            .find(|p| !p.requires_step_up())
+            .copied()
+            .unwrap();
+        assert!(both.require(faculty_only).is_ok());
+        let approver_only = role_permissions(Role::ExamController)
+            .iter()
+            .find(|p| !role_permissions(Role::Faculty).contains(p) && !p.is_personal_baseline())
+            .copied()
+            .unwrap();
+        assert!(matches!(
+            both.require(approver_only),
+            Err(KernelError::StepUpRequired(_))
+        ));
+        // Still never grants: a student is refused outright.
+        let mut s = ctx(vec![Role::Student]);
+        s.privileged_mfa_enforced = true;
+        assert!(matches!(
+            s.require(Permission::InstitutionManage),
+            Err(KernelError::Forbidden(_))
+        ));
     }
 
     #[test]

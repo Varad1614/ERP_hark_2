@@ -446,6 +446,7 @@ mod tests {
             mfa_level: sutra_kernel::auth::MfaLevel::None,
             amr: vec![],
             step_up_enforced: false,
+            privileged_mfa_enforced: false,
         }
     }
 

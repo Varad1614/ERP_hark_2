@@ -27,6 +27,30 @@ pub enum AuthProvider {
 
 /// Development-only default key for the TOTP secret encryption (AES-256-GCM). Refused in
 /// production; set `SUTRA_MFA_ENCRYPTION_KEY` (64 hex chars) everywhere else that matters.
+/// Client secret of the dev realm's `sutra-web` client (compose, `.env.example`): public, so
+/// production refuses it (SEC-P1-AUTH-006).
+pub const DEV_OIDC_CLIENT_SECRET: &str = "dev-only-change-me";
+
+/// `https://…`, or plain http to a loopback host (never reachable as a production IdP from a
+/// browser, kept for local production-mode checks).
+fn oidc_url_ok_in_production(url: &str) -> bool {
+    let u = url.trim().to_ascii_lowercase();
+    if u.starts_with("https://") {
+        return true;
+    }
+    let Some(rest) = u.strip_prefix("http://") else {
+        return false;
+    };
+    let host = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host = host.rsplit_once('@').map_or(host, |(_, h)| h);
+    let host = if host.starts_with('[') {
+        host.split(']').next().map(|h| &h[1..]).unwrap_or_default()
+    } else {
+        host.split(':').next().unwrap_or_default()
+    };
+    matches!(host, "localhost" | "127.0.0.1" | "::1")
+}
+
 pub const DEV_MFA_ENCRYPTION_KEY: &str =
     "5375747261455250206465762d6f6e6c79204d4641206b6579202d2d20646576";
 
@@ -241,6 +265,17 @@ pub struct Config {
     pub oidc: OidcConfig,
     /// Require an MFA-verified session for step-up permissions (e.g. institution register).
     pub mfa_step_up: bool,
+    /// Part 1 S3 (SEC-P1-AUTH-001): privileged roles (administrator, approvers) need an
+    /// MFA-verified session for every permission they hold through that role
+    /// (`SUTRA_PRIVILEGED_MFA`; default on in production and in Keycloak mode, refused off in
+    /// production).
+    pub privileged_mfa: bool,
+    /// SEC-9D-005: failed sign-ins / second-factor codes per account and window before a
+    /// temporary lockout (`SUTRA_AUTH_MAX_FAILURES`, `0` disables; window and lockout in
+    /// seconds: `SUTRA_AUTH_FAILURE_WINDOW_SECS`, `SUTRA_AUTH_LOCKOUT_SECS`).
+    pub auth_max_failures: u32,
+    pub auth_failure_window_secs: i64,
+    pub auth_lockout_secs: i64,
     /// AES-256-GCM key for TOTP secrets at rest (dev mode).
     pub mfa_encryption_key: Key32,
     /// Issuer label shown in authenticator apps.
@@ -447,7 +482,7 @@ impl Config {
                     "SUTRA_OIDC_CLIENT_SECRET",
                 ))
             }
-            None => "dev-only-change-me".into(),
+            None => DEV_OIDC_CLIENT_SECRET.into(),
         };
         let oidc = OidcConfig {
             issuer,
@@ -476,6 +511,7 @@ impl Config {
         let dev_mfa_enforced: bool = parse(src, "SUTRA_DEV_MFA", false)?;
         let mfa_step_up_default =
             prod || auth_provider == AuthProvider::Keycloak || dev_mfa_enforced;
+        let privileged_mfa_default = prod || auth_provider == AuthProvider::Keycloak;
         let default_store = if env == Environment::Test {
             StoreBackend::Memory
         } else {
@@ -653,6 +689,10 @@ impl Config {
             dev_institution_id: string(src, "SUTRA_DEV_INSTITUTION_ID", DEV_INSTITUTION_ID),
             oidc,
             mfa_step_up: parse(src, "SUTRA_MFA_STEP_UP", mfa_step_up_default)?,
+            privileged_mfa: parse(src, "SUTRA_PRIVILEGED_MFA", privileged_mfa_default)?,
+            auth_max_failures: parse(src, "SUTRA_AUTH_MAX_FAILURES", 10)?,
+            auth_failure_window_secs: parse(src, "SUTRA_AUTH_FAILURE_WINDOW_SECS", 900)?,
+            auth_lockout_secs: parse(src, "SUTRA_AUTH_LOCKOUT_SECS", 900)?,
             mfa_encryption_key: match src.get("SUTRA_MFA_ENCRYPTION_KEY") {
                 Some(v) => v.parse().map_err(|_| ConfigError::Invalid {
                     key: "SUTRA_MFA_ENCRYPTION_KEY",
@@ -720,6 +760,50 @@ impl Config {
                     "SUTRA_MFA_STEP_UP=false is not allowed in production",
                 ));
             }
+            // SEC-9D-005: the failed-attempt lockout cannot be switched off in production.
+            if self.auth_max_failures == 0 {
+                return Err(ConfigError::Forbidden(
+                    "SUTRA_AUTH_MAX_FAILURES=0 (no sign-in lockout) is not allowed in production",
+                ));
+            }
+            // Part 1 S3 (SEC-P1-AUTH-001): privileged roles always need MFA in production.
+            if !self.privileged_mfa {
+                return Err(ConfigError::Forbidden(
+                    "SUTRA_PRIVILEGED_MFA=false is not allowed in production",
+                ));
+            }
+            // Part 1 S3 (SEC-P1-AUTH-006): the browser-facing OIDC endpoints must use TLS (codes,
+            // ID tokens and the post-logout hop travel through them) and the shipped dev client
+            // secret is public.
+            if self.auth_provider == AuthProvider::Keycloak {
+                for (key, url) in [
+                    ("SUTRA_OIDC_ISSUER", Some(self.oidc.issuer.as_str())),
+                    (
+                        "SUTRA_OIDC_REDIRECT_URI",
+                        Some(self.oidc.redirect_uri.as_str()),
+                    ),
+                    (
+                        "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI",
+                        self.oidc.post_logout_redirect_uri.as_deref(),
+                    ),
+                ] {
+                    if let Some(u) = url {
+                        if !oidc_url_ok_in_production(u) {
+                            return Err(ConfigError::Invalid {
+                                key,
+                                value: format!(
+                                    "{u} (production needs https:// for the browser-facing OIDC endpoints)"
+                                ),
+                            });
+                        }
+                    }
+                }
+                if self.oidc.client_secret == DEV_OIDC_CLIENT_SECRET {
+                    return Err(ConfigError::Forbidden(
+                        "the dev SUTRA_OIDC_CLIENT_SECRET is not allowed in production",
+                    ));
+                }
+            }
             if self.csrf_key.is_none() {
                 return Err(ConfigError::RequiredInProduction("SUTRA_CSRF_KEY"));
             }
@@ -770,6 +854,15 @@ impl Config {
                     "SUTRA_FLOWABLE_AUTO_APPROVE=true is not allowed in production",
                 ));
             }
+        }
+        if self.auth_failure_window_secs <= 0 || self.auth_lockout_secs <= 0 {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_AUTH_LOCKOUT_SECS",
+                value: format!(
+                    "window {} / lockout {} (both must be > 0)",
+                    self.auth_failure_window_secs, self.auth_lockout_secs
+                ),
+            });
         }
         if self.relay.batch_size == 0 || self.relay.batch_size > 10_000 {
             return Err(ConfigError::Invalid {
@@ -906,6 +999,12 @@ mod tests {
         assert_eq!(dev.oidc.client_id, "sutra-web");
         assert_eq!(dev.session_touch_secs, 60);
         assert!(dev.csrf_key.is_none());
+        assert!(!dev.privileged_mfa, "dev auth keeps privileged MFA opt-in");
+        assert!(
+            Config::load(&HashMap::from([("SUTRA_PRIVILEGED_MFA", "true")]))
+                .unwrap()
+                .privileged_mfa
+        );
         let kc = Config::load(&HashMap::from([
             ("SUTRA_AUTH_MODE", "keycloak"),
             ("SUTRA_OIDC_ISSUER", "https://sso.example/realms/x"),
@@ -918,6 +1017,7 @@ mod tests {
         .unwrap();
         assert_eq!(kc.auth_provider, AuthProvider::Keycloak);
         assert!(kc.mfa_step_up);
+        assert!(kc.privileged_mfa, "Keycloak mode enforces privileged MFA");
         assert_eq!(kc.oidc.issuer, "https://sso.example/realms/x");
         assert_eq!(kc.oidc.mfa_acr_values, vec!["gold", "silver"]);
         assert_eq!(kc.allowed_origins.len(), 2);
@@ -1055,6 +1155,51 @@ mod tests {
         assert_eq!(c.cache.backend, CacheBackend::Off);
         assert_eq!(c.cache.namespace, "production");
         assert!(c.mfa_step_up, "step-up is always enforced in production");
+        assert!(
+            c.privileged_mfa,
+            "privileged MFA is always enforced in production"
+        );
+        // SEC-P1-AUTH-001 / -006: production refuses privileged MFA off, plain-http OIDC
+        // endpoints and the public dev client secret.
+        for (key, value) in [
+            ("SUTRA_PRIVILEGED_MFA", "false"),
+            ("SUTRA_AUTH_MAX_FAILURES", "0"),
+            ("SUTRA_OIDC_ISSUER", "http://sso.example.edu/realms/sutra"),
+            (
+                "SUTRA_OIDC_REDIRECT_URI",
+                "http://erp.example.edu/api/v1/auth/oidc/callback",
+            ),
+            (
+                "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI",
+                "http://erp.example.edu/sign-in",
+            ),
+            ("SUTRA_OIDC_CLIENT_SECRET", DEV_OIDC_CLIENT_SECRET),
+        ] {
+            let mut bad = ok.clone();
+            bad.insert(key, value);
+            assert!(
+                Config::load(&bad).is_err(),
+                "{key}={value} must be refused in production"
+            );
+        }
+        let mut tls = ok.clone();
+        tls.insert("SUTRA_OIDC_ISSUER", "https://sso.example.edu/realms/sutra");
+        tls.insert(
+            "SUTRA_OIDC_REDIRECT_URI",
+            "https://erp.example.edu/api/v1/auth/oidc/callback",
+        );
+        tls.insert(
+            "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI",
+            "https://erp.example.edu/sign-in",
+        );
+        assert!(Config::load(&tls).is_ok());
+        assert!(oidc_url_ok_in_production("http://127.0.0.1:8180/realms/x"));
+        assert!(oidc_url_ok_in_production("http://[::1]:8180/x"));
+        assert!(!oidc_url_ok_in_production(
+            "http://localhost.evil.example/x"
+        ));
+        assert!(!oidc_url_ok_in_production("http://user@sso.example/x"));
+        assert!(!oidc_url_ok_in_production("ftp://localhost/x"));
         assert!(
             !format!("{:?}", c.oidc).contains("\"s\""),
             "secret redacted"

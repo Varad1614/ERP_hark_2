@@ -202,8 +202,9 @@ impl AppContext {
         // ---- 9C ---- workflow adapter + decision sync, search projector / rebuild (see wire_9c)
         let (workflow, search, consumers) = wire_9c(cfg, &pool, consumers)?;
         // ---- end 9C ----
+        // SEC-P1-AUTH-001: privileged-role MFA also drives dev-mode challenges / enrolment.
         let mfa = PrivilegedRoleMfaPolicy {
-            enforce: cfg.dev_mfa_enforced,
+            enforce: cfg.dev_mfa_enforced || cfg.privileged_mfa,
         };
         let (authenticator, oidc): (
             Arc<dyn CredentialAuthenticator>,
@@ -325,6 +326,7 @@ impl AppContext {
             &cookie,
             pre_session.clone(),
             cfg.mfa_step_up,
+            cfg.privileged_mfa,
         );
         let observability = Some(build_observability(cfg, &pool)); // 9A
         Ok(Self {
@@ -344,6 +346,12 @@ impl AppContext {
                 pre_session,
                 replay,
                 sign_in_hook,
+                // SEC-9D-005: failed-attempt lockout (process-local, see auth::throttle).
+                throttle: Arc::new(sutra_platform::auth::throttle::AuthThrottle::new(
+                    cfg.auth_max_failures,
+                    cfg.auth_failure_window_secs,
+                    cfg.auth_lockout_secs,
+                )),
             },
             session_auth,
             origin_policy: OriginPolicy::new(&cfg.allowed_origins),

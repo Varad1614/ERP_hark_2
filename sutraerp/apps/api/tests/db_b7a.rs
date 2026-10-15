@@ -1917,6 +1917,7 @@ fn custom_app(st: sutra_people::PeopleState, tenant: &str, subject: &str) -> Rou
         mfa_level: MfaLevel::Mfa,
         amr: vec!["pwd".into(), "otp".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     };
     router.layer(axum::middleware::from_fn(
         move |mut req: Request<Body>, next: axum::middleware::Next| {

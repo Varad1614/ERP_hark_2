@@ -2708,6 +2708,7 @@ fn admin_ctx() -> sutra_kernel::auth::AuthContext {
         mfa_level: sutra_kernel::auth::MfaLevel::Mfa,
         amr: vec!["pwd".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     }
 }
 
