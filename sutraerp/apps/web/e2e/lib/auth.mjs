@@ -26,10 +26,13 @@ export const LOGINS = {
   registrar: process.env.E2E_REGISTRAR_LOGIN ?? "registrar@sutra.dev",
   finance_approver: process.env.E2E_FINANCE_APPROVER_LOGIN ?? "finance.approver@sutra.dev",
   exam_controller: process.env.E2E_EXAM_CONTROLLER_LOGIN ?? "exam.controller@sutra.dev",
+  // A second, independent administrator (S3-appr): checker for administrator-only decisions the
+  // first administrator requested (registration, faculty assignment, eligibility override).
+  academic_admin: process.env.E2E_ACADEMIC_ADMIN_LOGIN ?? "dean@sutra.dev",
 };
 
 /** Privileged roles (administrator + checkers) need an MFA session for step-up permissions. */
-const PRIVILEGED = new Set(["administrator", "registrar", "finance_approver", "exam_controller", "payroll_approver", "procurement_approver"]);
+const PRIVILEGED = new Set(["administrator", "academic_admin", "registrar", "finance_approver", "exam_controller", "payroll_approver", "procurement_approver"]);
 
 const log = (...a) => console.log("[auth]", ...a);
 

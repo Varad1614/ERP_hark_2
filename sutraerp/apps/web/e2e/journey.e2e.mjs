@@ -278,7 +278,15 @@ try {
         check(c.session.mfaLevel === "mfa" || AUTH === "dev", `${role} session is MFA (decisions are step-up permissions)`, e);
         check(c.subject !== clients.administrator?.subject, `${role} is a different person from the administrator (maker)`, e);
       }
-      state.subjects = { ...state.subjects, registrar: CHECKERS.registrar.subject, finance_approver: CHECKERS.finance_approver.subject, exam_controller: CHECKERS.exam_controller.subject };
+      // S3-appr: a second, independent administrator decides administrator-only requests the
+      // first administrator made (separation of duties applies to administrators too).
+      const dean = await login("academic_admin");
+      CHECKERS.academic_admin = dean;
+      clients.academic_admin = dean;
+      e(`academic_admin: ${dean.login} subject ${dean.subject} roles [${dean.session.principal.roles.join(",")}] mfa ${dean.session.mfaLevel}`);
+      check(dean.session.principal.roles.includes("administrator"), "the second administrator holds the administrator role", e);
+      check(dean.subject !== clients.administrator?.subject, "the second administrator is a different person from the administrator (maker)", e);
+      state.subjects = { ...state.subjects, registrar: CHECKERS.registrar.subject, finance_approver: CHECKERS.finance_approver.subject, exam_controller: CHECKERS.exam_controller.subject, academic_admin: dean.subject };
     });
   const admin = clients.administrator;
   const faculty = clients.faculty;
@@ -496,7 +504,7 @@ try {
       check(reg.lines?.length === 3, `registration ${reg.id} drafted with 3 lines`, e);
       reg = await admin.call("POST", `${S}/registrations/${reg.id}/submit`, {}, reg.version);
       check(reg.status === "submitted", `submitted — pending a decision (${reg.status})`, e);
-      reg = await approve("registration", reg.id, { client: admin, ev: e, step: "2 Enrolment: office registration of Isha decided" });
+      reg = await approve("registration", reg.id, { client: admin, selfCheck: true, ev: e, step: "2 Enrolment: office registration of Isha decided by a second administrator (maker refused)" });
       const seat = await admin.call("POST", `${A}/sections/${ids.sections.CS101}/enrolments`, { studentId: ids.isha.id });
       check(seat.status === "enrolled", `Isha seated in CS101-T1/A (enrolment ${seat.id}, origin ${seat.origin})`, e);
       db(e, "Isha's registration", `SELECT status FROM student.registration WHERE id = ${q(reg.id)}`, (v) => v === "registered");

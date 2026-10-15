@@ -137,7 +137,7 @@ export async function seedJourney({ admin, faculty }, ev = () => {}) {
     effectiveFrom: "2026-06-15",
   });
   fa = await admin.call("POST", `${A}/faculty-assignments/${fa.id}/submit`, {}, fa.version);
-  fa = await approve("faculty_assignment", fa.id, { client: admin, step: "seed: faculty assignment submitted" });
+  fa = await approve("faculty_assignment", fa.id, { client: admin, selfCheck: true, step: "seed: faculty assignment decided by a second administrator (maker refused)" });
   fa = await admin.call("POST", `${A}/faculty-assignments/${fa.id}/activate`, {}, fa.version);
   if (fa.status !== "active") throw new Error(`faculty assignment: ${fa.status}`);
   ids.facultyAssignmentId = fa.id;

@@ -314,6 +314,27 @@
       "requiredActions": [
         "CONFIGURE_TOTP"
       ]
+    },
+    {
+      "username": "dean@sutra.dev",
+      "email": "dean@sutra.dev",
+      "firstName": "Kiran",
+      "lastName": "Bhat",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "administrator"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
     }
   ],
   "sslRequired": "external",
