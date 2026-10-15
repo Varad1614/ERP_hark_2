@@ -185793,7 +185793,7 @@
       },
       "SupplierBankChangeRequest": {
         "type": "object",
-        "description": "Routes of this area.\nNew bank details for an approved supplier (`POST /suppliers/{id}/bank-change`).",
+        "description": "New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`).",
         "required": [
           "bankAccountNumber",
           "bankIfsc",

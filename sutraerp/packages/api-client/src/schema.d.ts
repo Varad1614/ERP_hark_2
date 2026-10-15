@@ -44291,10 +44291,7 @@ export interface components {
          * @enum {string}
          */
         SupplementaryEligibilityStatus: "eligible" | "applied" | "authorised" | "exhausted" | "cancelled";
-        /**
-         * @description Routes of this area.
-         *     New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`).
-         */
+        /** @description New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`). */
         SupplierBankChangeRequest: {
             /** @description Defaults to the current account name. */
             bankAccountName?: string | null;
