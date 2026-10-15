@@ -24,7 +24,10 @@ impl Source for Vars {
 fn env_example() -> HashMap<String, String> {
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../.env.example");
     let mut vars = HashMap::new();
-    for (n, item) in dotenvy::from_path_iter(path).expect("open .env.example").enumerate() {
+    for (n, item) in dotenvy::from_path_iter(path)
+        .expect("open .env.example")
+        .enumerate()
+    {
         match item {
             Ok((k, v)) => {
                 vars.insert(k, v);
@@ -43,7 +46,12 @@ fn env_example_parses_completely() {
         Some("SutraERP <no-reply@sutra.dev>"),
         "the display-name sender must survive quoting"
     );
-    for key in ["SUTRA_ENV", "DATABASE_URL", "SUTRA_AUTH_MODE", "SUTRA_SMTP_HOST"] {
+    for key in [
+        "SUTRA_ENV",
+        "DATABASE_URL",
+        "SUTRA_AUTH_MODE",
+        "SUTRA_SMTP_HOST",
+    ] {
         assert!(vars.contains_key(key), "{key} missing from .env.example");
     }
 }
