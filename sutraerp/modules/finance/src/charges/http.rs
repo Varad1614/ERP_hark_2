@@ -251,6 +251,10 @@ async fn readable_charge(
     ctx: &AuthContext,
     id: ChargeId,
 ) -> Result<crate::shared::charge::ChargeRow, KernelError> {
+    // SEC-P1-AUTH-005: no row read for a caller who can neither read finance nor self-serve.
+    if !ctx.has_permission(Permission::FinanceRead) {
+        ctx.require(Permission::FinanceSelfService)?;
+    }
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let c = load_charge(&mut conn, ctx.scope.tenant_id, id).await?;
     drop(conn);
@@ -686,7 +690,7 @@ pub async fn charge_self_list(
     State(st): State<FinanceState>,
     auth: Authenticated,
 ) -> ApiResult<Json<ChargeDetailList>> {
-    let ctx = &auth.0;
+    let ctx = auth.require(Permission::FinanceSelfService)?;
     let mut items = Vec::new();
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     for a in my_accounts(&st, ctx).await? {
@@ -1069,6 +1073,10 @@ pub async fn dispute_withdraw(
 ) -> ApiResult<Response> {
     let ctx = &auth.0;
     let v = if_match!(headers);
+    // SEC-P1-AUTH-005: permission before the dispute row is read.
+    if !ctx.has_permission(Permission::ChargeManage) {
+        ctx.require(Permission::FinanceSelfService)?;
+    }
     let current = repo::get_dispute(&st, ctx.scope.tenant_id, ChargeDisputeId(id)).await?;
     if !ctx.has_permission(Permission::ChargeManage) {
         ctx.require(Permission::FinanceSelfService)?;

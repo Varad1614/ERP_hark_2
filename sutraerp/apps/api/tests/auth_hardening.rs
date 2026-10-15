@@ -255,9 +255,10 @@ const PUBLIC: [(&str, &str); 15] = [
     ("GET", "/api/v1/platform/workspaces/{key}"),
 ];
 
-/// Authenticated-only routes that act on the caller's *own* session / second factors and
+/// Authenticated-only routes that act on the caller's *own* session / second factors (or return
+/// only data addressed to the caller's own roles) and
 /// therefore need a session but no role permission.
-const SESSION_ONLY: [(&str, &str); 14] = [
+const SESSION_ONLY: [(&str, &str); 15] = [
     ("GET", "/api/v1/auth/session"),
     ("GET", "/api/v1/auth/mfa"),
     ("DELETE", "/api/v1/auth/mfa/totp"),
@@ -272,6 +273,9 @@ const SESSION_ONLY: [(&str, &str); 14] = [
     ("GET", "/api/v1/auth/sessions"),
     ("POST", "/api/v1/auth/sessions/revoke-others"),
     ("DELETE", "/api/v1/auth/sessions/{id}"),
+    // Dashboards published to the caller's own roles (the query filters by `ctx.roles`; a
+    // role-less session gets an empty list, never another role's board).
+    ("GET", "/api/v1/services/me/dashboards"),
 ];
 
 fn resolve<'a>(doc: &'a Value, schema: &'a Value) -> &'a Value {

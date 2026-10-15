@@ -284,6 +284,7 @@ pub async fn replace_topics(
     actor: &Actor,
 ) -> Result<SyllabusCoverage, KernelError> {
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
     let Locked { cov, ctx } = lock_cov(
         state,
@@ -329,6 +330,7 @@ pub async fn submit(
     actor: &Actor,
 ) -> Result<SyllabusCoverage, KernelError> {
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
     let Locked { cov, ctx } = lock_cov(
         state,
@@ -380,6 +382,7 @@ pub async fn publish(
 ) -> Result<SyllabusCoverage, KernelError> {
     auth.require(Permission::AttendanceManage)?;
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
     let Locked { cov, ctx } = lock_cov(
         state,

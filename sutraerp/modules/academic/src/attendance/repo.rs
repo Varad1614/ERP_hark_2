@@ -583,6 +583,7 @@ pub async fn session_command(
     if cmd == SessionCommand::Abandon {
         auth.require(manage)?;
     }
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
     let LockedSession { s, ctx: c } =
         lock_session(state, &mut tx, auth, id, Some(expected), manage).await?;
@@ -701,6 +702,7 @@ pub async fn capture(
             format!("{} student(s) appear more than once", dups.len()),
         ));
     }
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
     let LockedSession { s, ctx: c } = lock_session(
         state,
@@ -802,6 +804,7 @@ pub async fn submit_attendance(
     actor: &Actor,
 ) -> Result<TeachingSession, KernelError> {
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
     let LockedSession { s, ctx: c } = lock_session(
         state,
@@ -850,6 +853,7 @@ pub async fn finalise_attendance(
     actor: &Actor,
 ) -> Result<TeachingSession, KernelError> {
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
     let LockedSession { s, ctx: c } = lock_session(
         state,
