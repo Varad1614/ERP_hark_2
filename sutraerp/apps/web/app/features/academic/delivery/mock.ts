@@ -8,6 +8,8 @@ import { ApiProblem } from "@sutra/api-client";
 import type { DeliveryApi } from "./api";
 import type {
   AssessmentBlueprint,
+  AttendanceCorrection,
+  AttendanceCorrectionQueueItem,
   AssessmentWindow,
   AttendancePolicy,
   InternalAssessmentResult,
@@ -94,6 +96,7 @@ export function createMockDeliveryApi(): DeliveryApi {
   const sessions: TeachingSession[] = [
     { id: uid(), sectionId: SECTION, offeringId: OFFERING, sessionDate: "2026-07-06", startsAt: "09:00", endsAt: "10:00", topic: "Variables", status: "scheduled", attendanceStatus: "not_started", version: 1, records: roster() },
   ];
+  const corrections: AttendanceCorrection[] = [];
   const policies: AttendancePolicy[] = [
     { id: uid(), institutionId: INST, name: "Default attendance rule", thresholdPercent: 75, minSessions: 3, lateCountsAsPresent: true, excludeExcused: true, status: "effective", version: 3 },
   ];
@@ -195,14 +198,53 @@ export function createMockDeliveryApi(): DeliveryApi {
       if (s.attendanceStatus === "finalised") conflict("attendance is finalised; use a governed correction");
       for (const r of records) {
         const line = s.records.find((x) => x.studentId === r.studentId);
-        if (line) line.mark = r.mark;
+        if (line) {
+          line.mark = r.mark;
+          line.id ??= uid();
+        }
       }
       return bump(s, { attendanceStatus: "capturing", status: s.status === "started" ? "in_progress" : s.status });
     },
+    submitAttendance: async (i) => {
+      const s = find(sessions, i);
+      if (s.attendanceStatus !== "capturing") conflict(`attendance register cannot move from ${s.attendanceStatus} to submitted`);
+      if (s.records.some((r) => !r.mark)) conflict("some seated students have no attendance mark yet");
+      return bump(s, { attendanceStatus: "submitted" });
+    },
     finalise: async (i) => {
       const s = find(sessions, i);
-      if (s.records.some((r) => !r.mark)) conflict("some seated students have no attendance mark yet");
+      if (s.attendanceStatus !== "submitted") conflict(`attendance in capture state ${s.attendanceStatus} cannot be finalised`);
       return bump(s, { attendanceStatus: "finalised" });
+    },
+    listCorrections: async (sid) => corrections.filter((c) => c.sessionId === sid),
+    requestCorrection: async (sid, input) => {
+      const s = find(sessions, sid);
+      if (s.attendanceStatus !== "finalised") conflict("only finalised attendance is corrected; edit the open register instead");
+      const rec = s.records.find((r) => r.id === input.recordId || r.studentId === input.recordId);
+      if (!rec?.mark) conflict("the record has no mark");
+      if (corrections.some((c) => c.recordId === input.recordId && c.status === "requested")) conflict("a correction of this record is already pending");
+      const c: AttendanceCorrection = { id: uid(), sessionId: sid, recordId: input.recordId, studentId: rec.studentId, fromMark: rec.mark, toMark: input.toMark, reason: input.reason, evidence: input.evidence ?? null, status: "requested", requestedBy: "dev|meera.shah@sutra.dev", version: 1, createdAt: new Date().toISOString() };
+      corrections.unshift(c);
+      return c;
+    },
+    withdrawCorrection: async (i) => bump(find(corrections, i), { status: "withdrawn" }),
+    correctionQueue: async (_i, status) =>
+      corrections
+        .filter((c) => !status || c.status === status)
+        .map((c): AttendanceCorrectionQueueItem => {
+          const s = find(sessions, c.sessionId);
+          const rec = s.records.find((r) => r.studentId === c.studentId);
+          return { ...c, studentNumber: rec?.studentNumber ?? "", displayName: rec?.displayName ?? "", sectionId: s.sectionId, offeringCode: "CS101-T1", sectionCode: "A", sessionDate: s.sessionDate, startsAt: s.startsAt };
+        }),
+    decideCorrection: async (i, _v, decision, reason) => {
+      const c = find(corrections, i);
+      if (c.status !== "requested") conflict(`the correction is ${c.status}; it has no pending decision`);
+      if (decision === "reject" && !reason) conflict("a rejection needs a reason");
+      if (decision === "approve") {
+        const rec = find(sessions, c.sessionId).records.find((r) => r.studentId === c.studentId);
+        if (rec) rec.mark = c.toMark;
+      }
+      return bump(c, { status: decision === "approve" ? "applied" : "rejected", statusReason: reason ?? null, decidedBy: "dev|admin@sutra.dev", decidedAt: new Date().toISOString() });
     },
     listPolicies: async () => policies,
     createPolicy: async (i, input) => {

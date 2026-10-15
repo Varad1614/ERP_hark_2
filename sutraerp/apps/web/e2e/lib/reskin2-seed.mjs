@@ -799,6 +799,7 @@ export async function seedAcademics(admin, setup, students, academic) {
     let s = await meera.call("POST", `${A}/sections/${academic.sectionId}/sessions`, { sessionDate: day(offset), startsAt: "10:30", endsAt: "11:30", topic: topics[k] });
     s = await meera.call("POST", `${A}/sessions/${s.id}/start`, {}, s.version);
     s = await meera.call("POST", `${A}/sessions/${s.id}/attendance`, { records: seatedIds.map((studentId, i) => ({ studentId, mark: pattern[k](i) })) }, s.version);
+    s = await meera.call("POST", `${A}/sessions/${s.id}/submit-attendance`, {}, s.version);
     s = await meera.call("POST", `${A}/sessions/${s.id}/complete`, {}, s.version);
     await meera.call("POST", `${A}/sessions/${s.id}/finalise-attendance`, {}, s.version);
     out.sessions++;

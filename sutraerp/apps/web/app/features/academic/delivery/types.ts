@@ -116,6 +116,45 @@ export interface TeachingSession {
 
 export type SessionCommand = "start" | "pause" | "resume" | "complete" | "cancel" | "lock";
 
+/** Governed correction of a finalised register (DEF-D-002/003): requested by faculty, decided by an approver other than the requester. */
+export type CorrectionStatus = "requested" | "validated" | "approved" | "applied" | "rejected" | "withdrawn";
+
+export interface AttendanceCorrection {
+  id: string;
+  sessionId: string;
+  recordId: string;
+  studentId: string;
+  fromMark: AttendanceMark;
+  toMark: AttendanceMark;
+  reason: string;
+  evidence?: string | null;
+  status: CorrectionStatus;
+  statusReason?: string | null;
+  requestedBy?: string | null;
+  decidedBy?: string | null;
+  decidedAt?: string | null;
+  version: number;
+  createdAt: string;
+}
+
+/** A correction in the institution decision queue, with its student and session. */
+export interface AttendanceCorrectionQueueItem extends AttendanceCorrection {
+  studentNumber: string;
+  displayName: string;
+  sectionId: string;
+  offeringCode: string;
+  sectionCode: string;
+  sessionDate: string;
+  startsAt: string;
+}
+
+export interface RequestCorrection {
+  recordId: string;
+  toMark: AttendanceMark;
+  reason: string;
+  evidence?: string | null;
+}
+
 export interface CreateSession {
   sessionDate: string;
   startsAt?: string;
