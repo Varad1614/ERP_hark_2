@@ -9,7 +9,8 @@
  * + fee structure BTECH-Y1 (₹90,000, approved → published), and an examination setup (grading
  * scheme, policy → active, session ESE-… with a CS101 paper → active, venue, official timetable).
  *
- * Every approval goes through `approve(kind, id)` (lib/approvals.mjs): auto-approved today.
+ * Every approval goes through `approve(kind, id)` (lib/approvals.mjs): a real decision by the
+ * checker persona on the pending record (human approval mode).
  */
 import { seedInstitution, I } from "./harness.mjs";
 import { approve } from "./approvals.mjs";
@@ -68,7 +69,8 @@ export async function seedJourney({ admin, faculty }, ev = () => {}) {
   const code = `JIT-${suffix}`;
   // 1. institution → active (the Batch 2 endpoints, harness).
   const setup = await seedInstitution(admin, { code, name: `Journey Institute of Technology ${suffix}`, shortName: "JIT", domain: "jit.edu.in", city: "Pune" });
-  await approve("institution_activation", setup.id, { client: admin, step: "seed: institution submit → active" });
+  // The harness requests activation and the administrator (Institution Activation Authority) decides it.
+  await approve("institution_activation", setup.id, { client: admin, decidedEarlier: true, step: "seed: institution activation decided by the administrator (harness)" });
   ev(`institution ${code} ${setup.id} active (programme BTECH-CSE, curriculum CSE-2026, year 2026-27, terms T1/T2)`);
   const ids = { ...setup, code, suffix };
 

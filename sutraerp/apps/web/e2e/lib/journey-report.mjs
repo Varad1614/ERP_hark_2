@@ -15,9 +15,9 @@ if (r.gaps?.length) {
   lines.push("", "### Steps driven through the API (gaps)", "", "| Step | Why |", "|---|---|");
   for (const g of r.gaps) lines.push(`| ${esc(g.step)} | ${esc(g.why)} |`);
 }
-if (r.autoApproved?.length) {
-  lines.push("", "### Where the journey depends on auto-approval (DEF-X-001)", "", "| Kind | Record | State seen | Step | Real decision endpoint |", "|---|---|---|---|---|");
-  for (const a of r.autoApproved) lines.push(`| ${esc(a.kind)} | \`${esc(a.id)}\` | ${esc(a.status)} | ${esc(a.step)} | \`${esc(a.decision)}\` |`);
+if (r.decisions?.length) {
+  lines.push("", "### Approval decisions (human mode: maker ≠ checker)", "", "| Kind | Record | Before | Decided by | Maker's self-decision | After | Step |", "|---|---|---|---|---|---|---|");
+  for (const a of r.decisions) lines.push(`| ${esc(a.kind)} | \`${esc(a.id)}\` | ${esc(a.before)} | ${esc(a.earlier ? "earlier step" : a.decider)} | ${esc(a.selfDecision ?? "—")} | ${esc(a.after)} | ${esc(a.step)} |`);
 }
 if (r.defects?.length) {
   lines.push("", "### Defects observed", "");

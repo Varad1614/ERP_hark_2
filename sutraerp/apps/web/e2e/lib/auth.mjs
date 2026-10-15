@@ -22,7 +22,14 @@ export const LOGINS = {
   administrator: process.env.E2E_ADMIN_LOGIN ?? "admin@sutra.dev",
   faculty: process.env.E2E_FACULTY_LOGIN ?? "meera.shah@sutra.dev",
   student: process.env.E2E_STUDENT_LOGIN ?? "aarav.desai@sutra.dev",
+  // Checker personas (DEF-X-002): Keycloak dev realm users / dev personas holding one checker role.
+  registrar: process.env.E2E_REGISTRAR_LOGIN ?? "registrar@sutra.dev",
+  finance_approver: process.env.E2E_FINANCE_APPROVER_LOGIN ?? "finance.approver@sutra.dev",
+  exam_controller: process.env.E2E_EXAM_CONTROLLER_LOGIN ?? "exam.controller@sutra.dev",
 };
+
+/** Privileged roles (administrator + checkers) need an MFA session for step-up permissions. */
+const PRIVILEGED = new Set(["administrator", "registrar", "finance_approver", "exam_controller", "payroll_approver", "procurement_approver"]);
 
 const log = (...a) => console.log("[auth]", ...a);
 
@@ -246,15 +253,15 @@ async function oidcLogin(login) {
 }
 
 /**
- * Signs `role` in through the real flow of the configured auth mode. In OIDC mode the
- * administrator's first sign-in only configures TOTP (amr = pwd, no MFA); a second sign-in with
+ * Signs `role` in through the real flow of the configured auth mode. In OIDC mode a privileged
+ * user's (administrator, checker persona) first sign-in only configures TOTP (amr = pwd, no MFA); a second sign-in with
  * the OTP gives the MFA session that step-up permissions need.
  */
 export async function login(role) {
   const id = LOGINS[role] ?? role;
   if (AUTH === "dev") return devLogin(id);
   let c = await oidcLogin(id);
-  if (role === "administrator" && c.session.mfaLevel !== "mfa") {
+  if (PRIVILEGED.has(role) && c.session.mfaLevel !== "mfa") {
     log(`${id}: session mfaLevel=${c.session.mfaLevel} amr=${JSON.stringify(c.session.amr)} — signing in again with the OTP`);
     c = await oidcLogin(id);
   }

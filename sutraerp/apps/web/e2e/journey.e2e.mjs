@@ -11,8 +11,10 @@
  * API response asserted (captured from the browser's own request, or the API call), the DB state
  * verified with psql (rows + platform.audit_log), and what admin / faculty / student can see.
  * Negatives: invalid transition, duplicate admission, wrong role 403, duplicate payment
- * idempotency key, invalid marks. Approvals go through lib/approvals.mjs `approve(kind, id)`
- * (auto-approval today, DEF-X-001).
+ * idempotency key, invalid marks, maker self-approval (403). Approvals are REAL human decisions
+ * (SUTRA_APPROVAL_MODE=human): lib/approvals.mjs `approve(kind, id)` posts the domain decision
+ * endpoint as the checker persona (registrar, finance_approver, exam_controller, or the
+ * administrator where no checker role holds the permission) after asserting the record is pending.
  *
  * Environment: E2E_BASE (default http://localhost:3000, the web container), E2E_AUTH (oidc | dev),
  * DATABASE_URL (schema owner, default postgres://sutra:sutra@localhost:5432/sutra), E2E_SHOTS,
@@ -29,7 +31,7 @@ import { chromium } from "playwright";
 process.env.DATABASE_URL ??= "postgres://sutra:sutra@localhost:5432/sutra";
 const { psql } = await import("./lib/harness.mjs");
 const { AUTH, BASE, login, browserSignIn, totpSecrets } = await import("./lib/auth.mjs");
-const { approve, AUTO_APPROVED } = await import("./lib/approvals.mjs");
+const { approve, DECISIONS, CHECKERS } = await import("./lib/approvals.mjs");
 const { seedJourney, day } = await import("./lib/journey-seed.mjs");
 
 const PHASE = process.env.E2E_PHASE ?? "journey";
@@ -53,7 +55,8 @@ const state = PHASE === "persistence" && existsSync(STATE) ? JSON.parse(readFile
 for (const [k, v] of Object.entries(state.totp ?? {})) totpSecrets.set(k, v);
 const ids = state.ids;
 const save = () => {
-  R.autoApproved = [...(R.autoApproved ?? []).filter((a) => a.phase !== PHASE), ...AUTO_APPROVED.map((a) => ({ ...a, phase: PHASE }))];
+  R.decisions = [...(R.decisions ?? []).filter((a) => a.phase !== PHASE), ...DECISIONS.map((a) => ({ ...a, phase: PHASE }))];
+  delete R.autoApproved;
   R.finishedAt = new Date().toISOString();
   writeFileSync(RESULTS, JSON.stringify(R, null, 2));
   state.totp = Object.fromEntries(totpSecrets);
@@ -261,7 +264,22 @@ try {
     }
     check(clients.administrator.session.mfaLevel === "mfa" || AUTH === "dev", "administrator session is MFA (step-up permissions)", e);
     state.subjects = { administrator: clients.administrator.subject, faculty: clients.faculty.subject, student: clients.student.subject };
+    CHECKERS.administrator = clients.administrator;
   });
+  if (PHASE === "journey")
+    await step(PHASE, "Sign-in: checker personas registrar, finance_approver, exam_controller (API clients, MFA)", AUTH === "oidc" ? "API · Keycloak OIDC (code + PKCE + TOTP)" : "API · dev authenticator", async (e) => {
+      for (const role of ["registrar", "finance_approver", "exam_controller"]) {
+        const c = await login(role);
+        CHECKERS[role] = c;
+        clients[role] = c;
+        e(`${role}: ${c.login} subject ${c.subject} roles [${c.session.principal.roles.join(",")}] mfa ${c.session.mfaLevel}`);
+        check(c.session.principal.roles.includes(role), `${role} session carries the ${role} role`, e);
+        check(!c.session.principal.roles.includes("administrator"), `${role} is not an administrator (independent checker)`, e);
+        check(c.session.mfaLevel === "mfa" || AUTH === "dev", `${role} session is MFA (decisions are step-up permissions)`, e);
+        check(c.subject !== clients.administrator?.subject, `${role} is a different person from the administrator (maker)`, e);
+      }
+      state.subjects = { ...state.subjects, registrar: CHECKERS.registrar.subject, finance_approver: CHECKERS.finance_approver.subject, exam_controller: CHECKERS.exam_controller.subject };
+    });
   const admin = clients.administrator;
   const faculty = clients.faculty;
   const student = clients.student;
@@ -366,8 +384,13 @@ try {
       check(adm.status === "verification_completed", `admission verification completed (${adm.status})`, e);
       r = await ui(page, "POST", /\/admissions\/[^/]+\/submit-for-approval$/, () => act(page, recs(), "admission-submit-for-approval"), e);
       check(r.status === 200, "approval requested", e);
-      adm = await approve("admission", ids.admissionId, { client: admin, step: "1 Admission: submit-for-approval" });
-      e(`approve(admission) → ${adm.status} (approvedBy ${adm.approvedBy ?? "?"}) — auto-approval, DEF-X-001`);
+      check(r.body?.status === "approval_pending", `admission pending a human decision (${r.body?.status})`, e);
+      // Maker-checker: the administrator who requested the approval is refused (403); the registrar decides.
+      adm = await approve("admission", ids.admissionId, { client: admin, selfCheck: true, ev: e, step: "1 Admission: registrar decides (maker refused)" });
+      e(`approve(admission) → ${adm.status} (approvedBy ${adm.approvedBy ?? "?"})`);
+      check(!adm.approvedBy || adm.approvedBy === CHECKERS.registrar.subject, "approved by the registrar", e);
+      await go(page, "/students/admissions");
+      await page.locator('[data-admission="Aarav Desai"]').waitFor();
       r = await ui(page, "POST", /\/admissions\/[^/]+\/financial-clearance$/, () => act(page, recs(), "admission-financial-clearance"), e);
       check(r.status === 200 && r.body.status === "financially_cleared", "financially cleared", e);
       r = await ui(page, "POST", /\/admissions\/[^/]+\/confirm$/, () => act(page, recs(), "admission-confirm"), e);
@@ -385,7 +408,9 @@ try {
       const st = db(e, "student", `SELECT status || '|' || student_number || '|' || coalesce(subject_ref, '') FROM student.student WHERE id = ${q(ids.aarav.id)}`, (v) => v.endsWith(`|${student.subject}`));
       ids.aarav.number = st.split("|")[1];
       const au = audit(e, ids.admissionId, ["student.admission.approve", "student.admission.confirm", "student.admission.create_student"], "admission");
-      if (au.actors.some((a) => a.startsWith("system:"))) e(`auto-approval actor in the audit trail: ${au.actors.filter((a) => a.startsWith("system:")).join(",")} (DEF-X-001)`);
+      check(!au.actors.some((a) => a.startsWith("system:")), "no system/auto-approval actor in the admission audit trail", e);
+      check(au.actors.includes(CHECKERS.registrar.subject), "the registrar is an actor in the admission audit trail", e);
+      db(e, "approval decided by the registrar", `SELECT actor FROM student.admission_status_history WHERE admission_id = ${q(ids.admissionId)} AND to_status = 'approved' ORDER BY occurred_at DESC LIMIT 1`, (v) => v === CHECKERS.registrar.subject);
       // visibility
       await sees(e, "faculty", faculty, `${S}/admissions/${ids.admissionId}`, 200, (j) => j.id === ids.admissionId, "student.read: read-only");
       await sees(e, "student", student, `${S}/admissions/${ids.admissionId}`, 403);
@@ -412,40 +437,22 @@ try {
 
     await step(
       "1 Admission",
-      "Negative: duplicate admission — a second application for the same applicant (same login, name, date of birth, e-mail) is refused",
+      "Negative: duplicate admission — a second application for the same applicant (same login, name, date of birth, e-mail) is refused at intake with 409 (DEF-C-003)",
       "API",
       async (e) => {
         need(ids.aarav?.id, "student");
+        const before = psql(`SELECT count(*) FROM student.admission_application WHERE institution_id = ${q(ids.id)}`);
         const body = { givenName: AARAV.given, familyName: AARAV.family, dateOfBirth: AARAV.dob, email: AARAV.email, phone: AARAV.phone, programmeId: ids.programmeId, admissionTermId: ids.termIds[0], subjectRef: student.subject };
-        const refused = (r) => r.status === 409 || r.status === 422;
-        let r = await admin.raw("POST", `${S}/institutions/${ids.id}/admission-applications`, body);
-        e(`create duplicate application → ${r.status} ${r.json?.detail ?? ""}`);
-        if (refused(r)) return check(true, "duplicate refused at intake", e);
-        check(r.status === 201, "create answered 201 (duplicate accepted at intake)", e);
-        let app = r.json;
-        state.duplicateApplicationId = app.id;
-        for (const cmd of ["submit", "review"]) {
-          r = await admin.raw("POST", `${S}/admission-applications/${app.id}/${cmd}`, {}, app.version);
-          e(`duplicate ${cmd} → ${r.status} ${r.json?.detail ?? ""}`);
-          if (refused(r)) return check(true, `duplicate refused at ${cmd}`, e);
-          app = r.json;
-        }
-        r = await admin.raw("POST", `${S}/admission-applications/${app.id}/offer`, { offerExpiresOn: day(30), requiredDocuments: ["identity_proof"] }, app.version);
-        e(`duplicate offer → ${r.status} ${r.json?.detail ?? ""}`);
-        if (r.status === 200 && r.json?.admissionId) {
-          // Clean up the extra admission so the rest of the journey is not affected.
-          const a2 = await admin.get(`${S}/admissions/${r.json.admissionId}`);
-          // An initiated admission is cancelled (withdraw is only for confirmed ones — admission state machine).
-          const w = await admin.raw("POST", `${S}/admissions/${a2.id}/cancel`, { reason: "duplicate created by the journey negative test" }, a2.version);
-          e(`cleanup: duplicate admission ${a2.id} (${a2.status}) cancel → ${w.status}`);
-        } else if (!refused(r)) {
-          const w = await admin.raw("POST", `${S}/admission-applications/${app.id}/withdraw`, { reason: "journey negative test cleanup" }, app.version);
+        const r = await admin.raw("POST", `${S}/institutions/${ids.id}/admission-applications`, body);
+        e(`create duplicate application → ${r.status} ${r.json?.detail ?? r.json?.title ?? ""}`);
+        if (r.status === 201) {
+          // Keep the rest of the journey clean even when the check fails.
+          const w = await admin.raw("POST", `${S}/admission-applications/${r.json.id}/withdraw`, { reason: "journey negative test cleanup" }, r.json.version);
           e(`cleanup: duplicate application withdraw → ${w.status}`);
         }
-        db(e, "applications for this applicant", `SELECT count(*) FROM student.admission_application WHERE institution_id = ${q(ids.id)} AND date_of_birth = DATE ${q(AARAV.dob)} AND lower(given_name) = 'aarav'`);
-        check(refused(r), "duplicate refused at offer (409/422)", e);
+        check(r.status === 409, "duplicate applicant refused at intake (409)", e);
+        db(e, "no application created", `SELECT count(*) FROM student.admission_application WHERE institution_id = ${q(ids.id)}`, (v) => v === before);
       },
-      { knownDefect: "DEF-C-003" },
     );
 
     // ============================================================ 2. Enrolment
@@ -493,8 +500,10 @@ try {
       await page.locator("[data-registration]").waitFor();
       r = await ui(page, "POST", /\/student\/me\/registrations\/[^/]+\/submit$/, () => page.click('[data-action="registration-submit"]'), e);
       check(r.status === 200, "registration submitted", e);
-      const reg = await approve("registration", ids.registrationId, { client: student, step: "2 Enrolment: registration submitted" });
-      e(`approve(registration) → ${reg.status} (auto-approval)`);
+      check(r.body?.status === "submitted", `registration pending a decision (${r.body?.status})`, e);
+      const reg = await approve("registration", ids.registrationId, { client: student, ev: e, step: "2 Enrolment: academic office decides the registration" });
+      e(`approve(registration) → ${reg.status}`);
+      await go(page, "/registration");
       e(`student sees the registration (${await snap(page, "2-student-registration")})`);
       noServerErrors(e);
       db(e, "registration", `SELECT status FROM student.registration WHERE id = ${q(ids.registrationId)}`, (v) => v === "registered");
@@ -707,6 +716,25 @@ try {
       e(`faculty has no Fees screen (${await snap(fp, "4-faculty-fees-unavailable")})`);
     });
 
+    await step("4 Fees", "Fee adjustment (concession ₹5,000) on a second student's charge: the maker's own decision is refused (403), the finance approver posts it", "API (no adjustment decision screen driven)", async (e) => {
+      gap("4 Fees: fee adjustment + decision", "driven through the API (finance approver persona has no browser context in the journey)");
+      const g = await admin.call("POST", `${F}/fee-structures/${need(ids.feeStructureId, "fee structure")}/generate-charges`, { studentIds: [need(ids.kiran?.id, "seed student Kiran")] });
+      check(g.created?.length === 1 && g.created[0].status === "published", `charge ${g.created?.[0]?.chargeNumber} published for Kiran`, e);
+      const kc = g.created[0];
+      ids.kiranChargeId = kc.chargeId;
+      let adj = await admin.call("POST", `${F}/charges/${kc.chargeId}/adjustments`, { kind: "concession", amount: "5000.00", reason: "Merit concession (journey maker-checker test)" });
+      check(adj.status === "draft", `adjustment ${adj.adjustmentNumber ?? adj.id} drafted`, e);
+      adj = await admin.call("POST", `${F}/adjustments/${adj.id}/submit`, {}, adj.version);
+      check(adj.status === "pending_approval", `submitted — pending approval (${adj.status})`, e);
+      db(e, "charge untouched while pending", `SELECT outstanding_amount FROM finance.charge WHERE id = ${q(kc.chargeId)}`, (v) => v === "90000.00");
+      adj = await approve("adjustment", adj.id, { client: admin, selfCheck: true, ev: e, step: "4 Fees: finance approver posts the concession (maker refused)" });
+      ids.adjustmentId = adj.id;
+      db(e, "adjustment decided by the finance approver", `SELECT status || '|' || coalesce(decided_by, '') || '|' || coalesce(created_by, '') FROM finance.adjustment WHERE id = ${q(adj.id)}`, (v) => v === `posted|${CHECKERS.finance_approver.subject}|${admin.subject}`);
+      db(e, "charge reduced by the concession", `SELECT outstanding_amount FROM finance.charge WHERE id = ${q(kc.chargeId)}`, (v) => v === "85000.00");
+      db(e, "adjustment journal balanced", `SELECT count(*) || '|' || coalesce(sum(total_debit), 0) || '=' || coalesce(sum(total_credit), 0) FROM finance.journal_entry WHERE source_id = ${q(adj.id)}`, (v) => /^[1-9]\d*\|(\d+\.\d+)=\1$/.test(v));
+      audit(e, adj.id, [], "adjustment");
+    });
+
     // ============================================================ 5. Examination
     await step("5 Examination", "Registrations from the rosters and hall tickets (dues clear after the payments)", "browser (admin /examinations/registrations)", async (e) => {
       need(ids.sessionId, "exam session");
@@ -794,8 +822,8 @@ try {
       sh = await admin.call("POST", `${X}/mark-sheets/${sh.id}/verify`, {}, sh.version);
       check(sh.status === "validated", `verified (${sh.status})`, e);
       sh = await admin.call("POST", `${X}/mark-sheets/${sh.id}/request-approval`, {}, sh.version);
-      sh = await approve("mark_sheet", sh.id, { client: admin, step: "5 Examination: final marks approval" });
-      e(`approve(mark_sheet) → ${sh.status} (auto-approval)`);
+      sh = await approve("mark_sheet", sh.id, { client: admin, ev: e, step: "5 Examination: controller of examinations approves final marks" });
+      e(`approve(mark_sheet) → ${sh.status}`);
       sh = await admin.call("POST", `${X}/mark-sheets/${sh.id}/finalise`, {}, sh.version);
       check(sh.status === "finalised", "marks finalised", e);
       db(e, "paper", `SELECT status FROM exams.exam_paper WHERE id = ${q(ids.paperId)}`, (v) => v === "marks_finalised");
@@ -818,8 +846,9 @@ try {
       check(r.status === 200 && r.body.computed >= 1, `computed ${r.body?.computed}`, e);
       r = await ui(page, "POST", /\/exams\/result-batches\/[^/]+\/validate$/, () => act(page, main, "batch-validate"), e);
       check(r.status === 200, "validated — approval requested", e);
-      const b = await approve("result_batch", ids.resultBatchId, { client: admin, step: "6 Result: result approval" });
-      e(`approve(result_batch) → ${b.status} (auto-approval)`);
+      const b = await approve("result_batch", ids.resultBatchId, { client: admin, selfCheck: true, ev: e, step: "6 Result: controller approves the results (maker refused)" });
+      e(`approve(result_batch) → ${b.status}`);
+      await go(page, "/examinations/results");
       r = await ui(page, "POST", /\/exams\/result-batches\/[^/]+\/finalise$/, () => act(page, main, "batch-finalise"), e);
       check(r.status === 200, `batch finalised (${r.body?.status})`, e);
       r = await ui(page, "POST", /\/exams\/exam-sessions\/[^/]+\/publications$/, () => act(page, main, "new-publication"), e);
@@ -827,8 +856,9 @@ try {
       ids.publicationId = r.body.id;
       r = await ui(page, "POST", /\/exams\/publications\/[^/]+\/authorise$/, () => act(page, main, "publication-authorise"), e);
       check(r.status === 200, "authorisation requested", e);
-      const pub = await approve("publication", ids.publicationId, { client: admin, step: "6 Result: publication authorisation" });
-      e(`approve(publication) → ${pub.status} (auto-approval)`);
+      const pub = await approve("publication", ids.publicationId, { client: admin, selfCheck: true, ev: e, step: "6 Result: controller authorises publication (maker refused)" });
+      e(`approve(publication) → ${pub.status}`);
+      await go(page, "/examinations/results");
       r = await ui(page, "POST", /\/exams\/publications\/[^/]+\/publish$/, () => act(page, main, "publication-publish"), e);
       check(r.status === 200 && r.body.published >= 1, `published ${r.body?.published}`, e);
       e(`admin sees published results (${await snap(page, "6-admin-results-published")})`);
@@ -839,7 +869,10 @@ try {
       // Results are audited per command on their batch and publication (exams results repo:
       // result_batch.compute / validate / finalise, publication.authorise / publish with counts).
       audit(e, ids.resultBatchId, ["exams.result_batch.compute", "exams.result_batch.create", "exams.result_batch.finalise", "exams.result_batch.validate"], "result batch");
-      audit(e, ids.publicationId, ["exams.publication.authorise", "exams.publication.create", "exams.publication.publish"], "publication");
+      const pa = audit(e, ids.publicationId, ["exams.publication.authorise", "exams.publication.create", "exams.publication.publish"], "publication");
+      check(pa.actors.includes(CHECKERS.exam_controller.subject) && !pa.actors.some((a) => a.startsWith("system:")), "publication decided by the controller of examinations (no auto-approval actor)", e);
+      const ba = audit(e, ids.resultBatchId, [], "result batch actors");
+      check(ba.actors.includes(CHECKERS.exam_controller.subject) && !ba.actors.some((a) => a.startsWith("system:")), "result batch approved by the controller of examinations (no auto-approval actor)", e);
       R.snapshot.results = psql(`SELECT r.status || '|' || coalesce(r.sgpa::text, '') || '|' || string_agg(l.grade || ':' || coalesce(l.total_marks::text, ''), ',') FROM exams.term_result r JOIN exams.term_result_line l ON l.result_id = r.id WHERE r.id = ${q(ids.termResultId)} GROUP BY r.status, r.sgpa`);
     });
 

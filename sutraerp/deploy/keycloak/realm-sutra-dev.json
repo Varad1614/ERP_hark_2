@@ -15,6 +15,26 @@
       },
       {
         "name": "student"
+      },
+      {
+        "name": "finance_approver",
+        "description": "Checker: finance decisions (refunds, adjustments, write-offs, fee structures)"
+      },
+      {
+        "name": "exam_controller",
+        "description": "Checker: controller of examinations (exam setup, marks, results, publication)"
+      },
+      {
+        "name": "registrar",
+        "description": "Checker: admission decisions"
+      },
+      {
+        "name": "payroll_approver",
+        "description": "Checker: payroll runs, adjustments, final settlements"
+      },
+      {
+        "name": "procurement_approver",
+        "description": "Checker: requisitions, purchase orders, vendor invoices"
       }
     ]
   },
@@ -188,6 +208,111 @@
           "value": "sutra",
           "temporary": false
         }
+      ]
+    },
+    {
+      "username": "finance.approver@sutra.dev",
+      "email": "finance.approver@sutra.dev",
+      "firstName": "Kavita",
+      "lastName": "Rao",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "finance_approver"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "exam.controller@sutra.dev",
+      "email": "exam.controller@sutra.dev",
+      "firstName": "Anil",
+      "lastName": "Menon",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "exam_controller"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "registrar@sutra.dev",
+      "email": "registrar@sutra.dev",
+      "firstName": "Sunita",
+      "lastName": "Kulkarni",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "registrar"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "payroll.approver@sutra.dev",
+      "email": "payroll.approver@sutra.dev",
+      "firstName": "Rahul",
+      "lastName": "Iyer",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "payroll_approver"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "procurement.approver@sutra.dev",
+      "email": "procurement.approver@sutra.dev",
+      "firstName": "Farah",
+      "lastName": "Siddiqui",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "procurement_approver"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
       ]
     }
   ],
