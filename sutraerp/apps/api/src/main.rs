@@ -13,7 +13,14 @@ use sutra_api::{app, config::Config, openapi, shutdown, telemetry};
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    let _ = dotenvy::dotenv();
+    // A missing `.env` is normal; a malformed one used to be ignored silently, leaving every
+    // variable after the bad line unset (DEF-P1-DEMO-002) — refuse to start instead.
+    if let Err(e) = dotenvy::dotenv() {
+        if !e.not_found() {
+            eprintln!(".env: {e}");
+            return ExitCode::FAILURE;
+        }
+    }
     // Batch 9 (contract §5): secrets rendered by the OpenBao agent as a dotenv file
     // (`/vault/secrets/sutra.env`); never overrides variables already in the environment.
     if let Some(path) = std::env::var_os("SUTRA_ENV_FILE") {
