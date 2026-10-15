@@ -1771,7 +1771,8 @@ pub async fn reorganisation_decision(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::OfferingLifecycle)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "offering reorganisation").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "offering reorganisation")
+        .await?;
     let v = expect_version!(headers);
     let reason = clean_reason(d.reason, d.decision == StepDecision::Reject)?;
     let mut c = begin(&st, ctx, id, None).await?;

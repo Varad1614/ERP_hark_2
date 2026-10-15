@@ -184,7 +184,8 @@ pub async fn completion_decision(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::QualificationConfer)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "qualification completion").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "qualification completion")
+        .await?;
     let v = expect_version!(headers);
     let c = qualification::decide(&st, ctx, id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&c, c.version))
@@ -398,7 +399,13 @@ pub async fn conferred_decision(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::QualificationConfer)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &correction_id, "qualification correction").await?;
+    sutra_persistence::approval::guard_decision(
+        &st.pool,
+        ctx,
+        &correction_id,
+        "qualification correction",
+    )
+    .await?;
     let v = expect_version!(headers);
     let q = qualification::decide_case(&st, ctx, id, correction_id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&q, q.version))

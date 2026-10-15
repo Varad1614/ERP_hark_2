@@ -520,7 +520,8 @@ pub async fn config_decide(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::CampusApprove)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "governance configuration").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "governance configuration")
+        .await?;
     let v = expected!(headers);
     let reason = clean(b.reason.clone());
     if !b.approve() && reason.is_none() {

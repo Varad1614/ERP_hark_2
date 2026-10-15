@@ -583,7 +583,8 @@ pub async fn policy_decision(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FlexibleLearningManage)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "flexible learning policy").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "flexible learning policy")
+        .await?;
     let v = expect_version!(headers);
     let (approve, reason) = decision(&cmd);
     let p = policy::decide(&st, ctx, id, v, approve, reason, &actor(ctx)).await?;
@@ -694,7 +695,8 @@ pub async fn exception_decision(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FlexibleLearningManage)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "flexible learning exception").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "flexible learning exception")
+        .await?;
     let v = expect_version!(headers);
     let (approve, reason) = decision(&cmd);
     let c = exception::decide(&st, ctx, id, v, approve, reason, &actor(ctx)).await?;

@@ -545,7 +545,8 @@ pub async fn requisition_decide(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::PeopleApprove)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "recruitment requisition").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "recruitment requisition")
+        .await?;
     let v = expected!(headers);
     let reason = clean(b.reason);
     if b.decision == Decision::Reject && reason.is_none() {

@@ -127,7 +127,8 @@ pub async fn cert_decision(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FlexibleLearningManage)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "certificate verification").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "certificate verification")
+        .await?;
     let v = expect_version!(headers);
     let c = certificate::decide(&st, ctx, id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&c, c.version))

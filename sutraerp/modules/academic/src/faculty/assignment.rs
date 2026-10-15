@@ -1322,7 +1322,8 @@ pub async fn change_decision(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FacultyAssignmentDecide)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "faculty assignment change").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "faculty assignment change")
+        .await?;
     let v = expect_version!(headers);
     let reason = clean_reason(d.reason, d.decision == StepDecision::Reject)?;
     let mut c = begin_assignment(&st, ctx, id, None).await?;

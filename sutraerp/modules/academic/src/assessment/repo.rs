@@ -1324,6 +1324,16 @@ pub async fn decide_moderation(
             "the requester cannot decide their own moderation".into(),
         ));
     }
+    // Part 1 · S3-appr (DEF-X-002): also no system actor, and not who asked for the moderation.
+    sutra_persistence::approval::guard_decision_by(
+        &state.pool,
+        tenant.as_uuid(),
+        actor.id.as_deref(),
+        &m.submission_id,
+        &[m.requested_by.as_deref()],
+        "moderation",
+    )
+    .await?;
     let out = apply_moderation(&mut tx, &c, &m, approve, reason.as_deref(), actor).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(out)
@@ -1614,6 +1624,21 @@ pub async fn decide_finalization(
             "no internal assessment of this section is awaiting a finalisation decision".into(),
         ));
     }
+    // Part 1 · S3-appr (DEF-X-002): whoever asked for the finalisation never decides it.
+    let mut blueprints: Vec<Uuid> = pending.iter().map(|r| r.blueprint_id).collect();
+    blueprints.sort();
+    blueprints.dedup();
+    for bp in blueprints {
+        sutra_persistence::approval::guard_decision_by(
+            &state.pool,
+            tenant.as_uuid(),
+            actor.id.as_deref(),
+            &bp,
+            &[],
+            "internal assessment finalisation",
+        )
+        .await?;
+    }
     if approve {
         finalize_rows(&mut tx, &c, pending, actor).await?;
     } else {
@@ -1869,6 +1894,16 @@ pub async fn decide_correction(
             corr.status
         )));
     }
+    // Part 1 · S3-appr (DEF-X-002): the requester of the correction never decides it.
+    sutra_persistence::approval::guard_decision_by(
+        &state.pool,
+        tenant.as_uuid(),
+        actor.id.as_deref(),
+        &corr.result_id,
+        &[corr.requested_by.as_deref()],
+        "assessment correction",
+    )
+    .await?;
     let out = apply_correction(&mut tx, &c, &corr, approve, reason.as_deref(), actor).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(out)

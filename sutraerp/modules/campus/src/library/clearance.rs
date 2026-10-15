@@ -461,6 +461,14 @@ pub async fn decide(
     let scope = institution_scope(ctx, institution);
     require_institution_writable(&st, &scope, institution).await?;
     let check = verify(&st, &scope, pre.membership_id).await?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the clearance never decides it.
+    sutra_persistence::approval::guard_decision(
+        &st.pool,
+        ctx,
+        &pre.membership_id,
+        "library clearance",
+    )
+    .await?;
     let actor = actor(ctx);
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let k = load(&mut tx, t, id, true).await?;

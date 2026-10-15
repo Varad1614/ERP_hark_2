@@ -1412,6 +1412,16 @@ pub async fn decide_correction(
             "the requester cannot decide their own attendance correction".into(),
         ));
     }
+    // Part 1 · S3-appr (DEF-X-002): also no system actor / ledger requester of the record.
+    sutra_persistence::approval::guard_decision_by(
+        &state.pool,
+        tenant.as_uuid(),
+        Some(&auth.subject),
+        &cur.record_id,
+        &[cur.requested_by.as_deref()],
+        "attendance correction",
+    )
+    .await?;
     let s: TeachingSession = kit::fetch(&state.pool, TS, TS_ENTITY, tenant, cur.session_id).await?;
     let c = kit::section_ctx(state, auth, s.section_id).await?;
     require_institution_writable(state, &c.scope, c.section.institution_id).await?;

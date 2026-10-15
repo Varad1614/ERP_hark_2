@@ -771,7 +771,8 @@ pub async fn http_decide(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::OrganisationManage)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "organisation restructure").await?;
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "organisation restructure")
+        .await?;
     let expected = expect_version!(headers);
     Ok(respond(
         StatusCode::OK,
