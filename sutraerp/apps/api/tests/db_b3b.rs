@@ -294,9 +294,11 @@ async fn decide(app: &Router, admin: &Login, sid: Uuid, body: Value) -> Value {
 }
 
 fn state(pool: &sqlx::PgPool) -> StudentState {
-    sutra_api::app::student_deps(
+    sutra_api::app::student_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state()
 }

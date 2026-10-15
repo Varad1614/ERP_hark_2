@@ -2670,6 +2670,7 @@ async fn app_with_env(
         ("SUTRA_DEV_TENANT_ID", tenant),
         ("SUTRA_SWEEPERS", "false"),
         ("SUTRA_INBOX_CONSUMER", "false"),
+        ("SUTRA_APPROVAL_MODE", "auto"), // Part 1: explicit dev opt-in (subject is not approval)
     ]);
     src.extend(extra.iter().copied());
     let cfg = sutra_api::config::Config::load(&src).expect("config");

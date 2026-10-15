@@ -1692,6 +1692,11 @@ async fn approvals_await_a_decision() {
         &pool,
         auth("dev|admin@sutra.dev", Role::Administrator, tenant),
     );
+    // Part 1 (DEF-X-002): an independent checker decides (finance approver persona).
+    let checker = await_app(
+        &pool,
+        auth("dev|finance.approver@sutra.dev", Role::FinanceApprover, tenant),
+    );
 
     direct(&api, "POST", &format!("/student-accounts/{acc}/payments"), json!({"channel": "cash", "amount": "4000.00", "allocations": [{"chargeId": charge.charge_id, "amount": "1000.00"}]}), None, StatusCode::CREATED).await;
     let r = direct(
@@ -1721,7 +1726,7 @@ async fn approvals_await_a_decision() {
     )
     .await;
     direct(
-        &api,
+        &checker,
         "POST",
         &format!("/refunds/{rid}/decision"),
         json!({"decision": "reject"}),
@@ -1730,7 +1735,7 @@ async fn approvals_await_a_decision() {
     )
     .await;
     direct(
-        &api,
+        &checker,
         "POST",
         &format!("/refunds/{rid}/decision"),
         json!({"decision": "maybe"}),
@@ -1738,8 +1743,18 @@ async fn approvals_await_a_decision() {
         StatusCode::UNPROCESSABLE_ENTITY,
     )
     .await;
-    let r = direct(
+    // The requester cannot approve their own refund (separation of duties).
+    direct(
         &api,
+        "POST",
+        &format!("/refunds/{rid}/decision"),
+        json!({"decision": "approve", "reason": "mine"}),
+        Some(ver(&r)),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    let r = direct(
+        &checker,
         "POST",
         &format!("/refunds/{rid}/decision"),
         json!({"decision": "approve", "reason": "verified"}),
@@ -1748,7 +1763,7 @@ async fn approvals_await_a_decision() {
     )
     .await;
     assert_eq!(r["status"], "approved");
-    assert_eq!(r["decidedBy"], "dev|admin@sutra.dev");
+    assert_eq!(r["decidedBy"], "dev|finance.approver@sutra.dev");
     assert_eq!(
         balance(&pool, &setup, "refunds_payable").await,
         amount("-1200")
@@ -1763,7 +1778,7 @@ async fn approvals_await_a_decision() {
     )
     .await;
     let r2 = direct(
-        &api,
+        &checker,
         "POST",
         &format!("/refunds/{}/decision", id(&r2)),
         json!({"decision": "reject", "reason": "not eligible"}),
@@ -1774,7 +1789,7 @@ async fn approvals_await_a_decision() {
     assert_eq!(r2["status"], "rejected");
     assert!(r2["journalEntryId"].is_null());
     direct(
-        &api,
+        &checker,
         "POST",
         &format!("/refunds/{}/decision", id(&r2)),
         json!({"decision": "approve"}),
@@ -1829,7 +1844,7 @@ async fn approvals_await_a_decision() {
     )
     .await;
     let rec = direct(
-        &api,
+        &checker,
         "POST",
         &format!("/receivables/{rec_id}/write-off/decision"),
         json!({"decision": "reject", "reason": "pursue"}),
@@ -1847,8 +1862,17 @@ async fn approvals_await_a_decision() {
         StatusCode::OK,
     )
     .await;
-    let rec = direct(
+    direct(
         &api,
+        "POST",
+        &format!("/receivables/{rec_id}/write-off/decision"),
+        json!({"decision": "approve"}),
+        Some(ver(&rec)),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    let rec = direct(
+        &checker,
         "POST",
         &format!("/receivables/{rec_id}/write-off/decision"),
         json!({"decision": "approve"}),

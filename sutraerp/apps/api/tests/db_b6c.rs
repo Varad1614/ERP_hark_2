@@ -1292,9 +1292,11 @@ async fn reopening_and_pre_publication_replacement() {
         Some("60"),
     )
     .await;
-    let st = sutra_api::app::exams_deps(
+    let st = sutra_api::app::exams_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let t = setup.tenant();

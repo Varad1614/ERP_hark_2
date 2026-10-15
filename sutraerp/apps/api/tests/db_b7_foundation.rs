@@ -51,9 +51,11 @@ async fn people_foundation_tables_helpers_ports_and_directory_api() {
     let setup = b7::people_setup(&app, &admin, &pool, TENANT, "People University").await;
     let (t, scope) = (setup.tenant(), setup.scope());
     let inst = setup.institution().as_uuid();
-    let state = sutra_api::app::people_deps(
+    let state = sutra_api::app::people_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
 

@@ -92,9 +92,11 @@ async fn leave_lifecycle_attendance_and_workload() {
     let setup = b7::people_setup(&app, &admin, &pool, TENANT, "Leave University").await;
     let inst = setup.institution().as_uuid();
     let scope = setup.scope();
-    let state = sutra_api::app::people_deps(
+    let state = sutra_api::app::people_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let ms = b7::seed_staff(

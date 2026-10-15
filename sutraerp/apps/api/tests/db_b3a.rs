@@ -379,13 +379,18 @@ impl FinanceClearancePort for OutstandingFinance {
 /// Domain C router with a hand-built state (e.g. `AwaitDecision`) and an administrator session
 /// injected directly (no cookie / CSRF layer: this tests the handlers, not the session layer).
 fn custom_app(st: StudentState, tenant: &str) -> Router {
+    custom_app_as(st, tenant, "admin@sutra.dev", Role::Administrator)
+}
+
+/// [`custom_app`] signed in as another dev persona (Part 1: an independent checker).
+fn custom_app_as(st: StudentState, tenant: &str, login: &str, role: Role) -> Router {
     let (router, _) = sutra_student::router_with_state(st).split_for_parts();
     let ctx = AuthContext {
         session_id: uuid::Uuid::now_v7(),
-        subject: "dev|admin@sutra.dev".into(),
-        login_id: "admin@sutra.dev".into(),
-        display_name: "Admin".into(),
-        roles: vec![Role::Administrator],
+        subject: format!("dev|{login}"),
+        login_id: login.into(),
+        display_name: login.into(),
+        roles: vec![role],
         scope: ExecutionScope::tenant(tenant.parse::<TenantId>().unwrap()),
         csrf_token: "x".into(),
         expires_at: chrono::Utc::now() + chrono::Duration::hours(1),
@@ -1008,6 +1013,13 @@ async fn admission_approval_await_decision_and_finance_evidence() {
     let admin = login(&app, "admin@sutra.dev").await;
     let setup = b3::academic_setup(&app, &admin, t, "Awaiting College").await;
     let waiting = custom_app(state(&pool, ApprovalMode::AwaitDecision), t);
+    // Part 1 (DEF-X-002): admissions are decided by an independent registrar.
+    let registrar = custom_app_as(
+        state(&pool, ApprovalMode::AwaitDecision),
+        t,
+        "registrar@sutra.dev",
+        Role::Registrar,
+    );
     let inj = injected();
 
     // Bring two admissions to verification_completed through the normal app.
@@ -1110,7 +1122,7 @@ async fn admission_approval_await_decision_and_finance_evidence() {
     assert_eq!(s, StatusCode::CONFLICT);
     // Reject without a reason → 422; with a reason → cancelled.
     let (s, _) = call(
-        &waiting,
+        &registrar,
         &inj,
         "POST",
         &format!("{API}/admissions/{}/decision", id(a1)),
@@ -1120,7 +1132,7 @@ async fn admission_approval_await_decision_and_finance_evidence() {
     .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
     let r1 = ok(
-        &waiting,
+        &registrar,
         &inj,
         "POST",
         &format!("{API}/admissions/{}/decision", id(a1)),
@@ -1136,7 +1148,7 @@ async fn admission_approval_await_decision_and_finance_evidence() {
         .contains(&ev("admission.cancelled")));
     // Decide again → 409.
     let (s, _) = call(
-        &waiting,
+        &registrar,
         &inj,
         "POST",
         &format!("{API}/admissions/{}/decision", id(a1)),
@@ -1158,8 +1170,18 @@ async fn admission_approval_await_decision_and_finance_evidence() {
         StatusCode::OK,
     )
     .await;
-    let ap2 = ok(
+    let (s, _) = call(
         &waiting,
+        &inj,
+        "POST",
+        &format!("{API}/admissions/{}/decision", id(a2)),
+        json!({"decision": "approve"}),
+        Some(ver(&p2)),
+    )
+    .await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "the requester cannot decide the admission");
+    let ap2 = ok(
+        &registrar,
         &inj,
         "POST",
         &format!("{API}/admissions/{}/decision", id(a2)),
@@ -1169,7 +1191,7 @@ async fn admission_approval_await_decision_and_finance_evidence() {
     )
     .await;
     assert_eq!(ap2["status"], "approved");
-    assert_eq!(ap2["approvedBy"], "dev|admin@sutra.dev");
+    assert_eq!(ap2["approvedBy"], "dev|registrar@sutra.dev");
     assert_eq!(ap2["processInstanceId"], p2["processInstanceId"]);
 
     // Outstanding Finance evidence blocks the clearance decision.

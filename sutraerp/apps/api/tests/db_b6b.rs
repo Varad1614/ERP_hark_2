@@ -383,9 +383,11 @@ async fn marks_collection_import_entry_approval_and_gradebook() {
     ] {
         assert_eq!(outbox_count(&pool, t, &sheet_id).await, 1, "{t}");
     }
-    let marks = sutra_api::app::exams_deps(
+    let marks = sutra_api::app::exams_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state()
     .marks
