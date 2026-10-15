@@ -22,9 +22,9 @@ Findings table: [`security/auth.md`](security/auth.md). Work log: [`tracker/s3-a
 ### Route sweep allow-lists (each with its reason)
 
 * **Public** (no session by design): `/health/live`, `/health/ready` (probes); `GET /auth/csrf`, `POST /auth/login`, `POST /auth/mfa/verify`, `POST /auth/mfa/webauthn/{challenge,verify}` (pre-session sign-in steps, protected by the pre-session CSRF token, lockout and ingress limit); `GET /auth/oidc/{start,callback}` (OIDC code flow, state/nonce/PKCE checked); `POST /auth/oidc/backchannel-logout` (signed logout token from the IdP); `POST /auth/logout` (idempotent, ends only the caller's own cookie); `POST /finance/gateway/webhook` (authenticated by the gateway signature, not a session); `GET /platform/modules`, `GET /platform/workspaces[/{key}]` (static navigation metadata, no tenant data).
-* **Own session only** (session required, no role permission — they act on the caller's own session / second factors): `GET /auth/session`, `GET /auth/mfa`, TOTP enrol/confirm/delete, `POST /auth/mfa/step-up`, WebAuthn registration/assertion/step-up/credential delete, `GET /auth/sessions`, `POST /auth/sessions/revoke-others`, `DELETE /auth/sessions/{id}`.
+* **Own session only** (session required, no role permission — they act on the caller's own session / second factors): `GET /auth/session`, `GET /auth/mfa`, TOTP enrol/confirm/delete, `POST /auth/mfa/step-up`, WebAuthn registration/assertion/step-up/credential delete, `GET /auth/sessions`, `POST /auth/sessions/revoke-others`, `DELETE /auth/sessions/{id}`; `GET /services/me/dashboards` (boards published to the caller's own roles — the query filters by the session's roles, a role-less session gets an empty list).
 
-No other route is allow-listed. Routes the sweep flagged were fixed in code (role pre-check before the first row read), not allow-listed.
+No other route is allow-listed. Routes the sweep flagged — 24 academic (assessment, attendance, syllabus, course-resource) and finance (charge, instalment, dispute) operations that read the row before the permission check — were fixed in code (permission pre-check before the first read), not allow-listed.
 
 ### Already verified (no change needed)
 
