@@ -126,6 +126,7 @@ jobs:
           E2E_STATE: ${{ runner.temp }}/journey-state.json
           # Open defects owned by other Stage 2 branches: their failing negative check is reported
           # in the summary but does not fail this job (the integrator removes the id once merged).
+          # DEF-C-003 (duplicate admission accepted at offer) is fixed on part1/s2-acad.
           E2E_KNOWN_DEFECTS: DEF-C-003
         run: timeout 2400 node apps/web/e2e/journey.e2e.mjs
 
