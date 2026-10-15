@@ -1,0 +1,29 @@
+# GitHub Codespaces / dev container override — used ONLY by .devcontainer/start.sh:
+#   docker compose --env-file .env.codespaces -f docker-compose.yml -f docker-compose.codespaces.yml …
+# start.sh writes .env.codespaces from CODESPACE_NAME + GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN
+# (falls back to http://localhost:3000 outside Codespaces). Production defaults are untouched:
+# this file only adds the forwarded browser origin to development settings.
+services:
+  # Keycloak SSO is not started in Codespaces (dev sign-in is the default; its issuer and redirect
+  # URIs are localhost-only). Opt in with:  sutra-compose --profile sso up -d keycloak
+  keycloak:
+    profiles: ["sso"]
+
+  # Use all 4 codespace cores for the one-off Rust build (the base default of 2 is for 8 GB PCs).
+  migrate:
+    build:
+      args: { CARGO_BUILD_JOBS: "${SUTRA_CS_BUILD_JOBS:-4}" }
+
+  api:
+    build:
+      args: { CARGO_BUILD_JOBS: "${SUTRA_CS_BUILD_JOBS:-4}" }
+    environment:
+      # The browser reaches the web proxy at https://<codespace>-3000.<forwarding domain>.
+      # The forwarding proxy may rewrite Host, so the origin is allow-listed explicitly for the
+      # Origin guard instead of relying on Origin == Host.
+      SUTRA_ALLOWED_ORIGINS: ${SUTRA_CS_ORIGIN:?run .devcontainer/start.sh}
+      SUTRA_PUBLIC_URL: ${SUTRA_CS_ORIGIN:?run .devcontainer/start.sh}
+      # Dev passkeys: relying party = the forwarded host (the RP id must match the page's host).
+      SUTRA_WEBAUTHN_RP_ID: ${SUTRA_CS_HOST:?run .devcontainer/start.sh}
+      SUTRA_WEBAUTHN_ORIGINS: ${SUTRA_CS_ORIGIN:?run .devcontainer/start.sh}
+      # Sessions stay Secure / __Host- (Codespaces serves https); nothing is relaxed here.

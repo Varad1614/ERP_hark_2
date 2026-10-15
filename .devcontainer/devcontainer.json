@@ -1,0 +1,27 @@
+{
+  // SutraERP in GitHub Codespaces: Code → Codespaces → Create codespace.
+  // postCreate builds and starts the Docker compose stack (app profile, no Keycloak, no
+  // observability), waits for the API and seeds the demo college; port 3000 opens the web app.
+  // See sutraerp/README.md "Run in GitHub Codespaces".
+  "name": "SutraERP (Docker compose stack)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": { "moby": true, "dockerDashComposeVersion": "v2" }
+  },
+  // Full build + start + demo seed, once, when the codespace is created.
+  "postCreateCommand": "bash .devcontainer/start.sh --build",
+  // After a stop/resume the images are already there: just start the stack again.
+  "postStartCommand": "bash .devcontainer/start.sh --resume",
+  "forwardPorts": [3000, 8025],
+  "portsAttributes": {
+    "3000": { "label": "SutraERP", "onAutoForward": "openBrowser" },
+    "8025": { "label": "Mailpit", "onAutoForward": "silent" },
+    "8080": { "label": "API (use the web proxy on 3000)", "onAutoForward": "ignore" }
+  },
+  // Postgres, Valkey, NATS, SMTP … stay inside the codespace.
+  "otherPortsAttributes": { "onAutoForward": "ignore" },
+  "customizations": {
+    "codespaces": { "openFiles": ["sutraerp/README.md"] }
+  }
+}
