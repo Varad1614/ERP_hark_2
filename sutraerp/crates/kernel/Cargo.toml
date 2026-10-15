@@ -24,6 +24,5 @@ sha2.workspace = true
 hmac.workspace = true
 subtle.workspace = true
 getrandom.workspace = true
-
-[dev-dependencies]
+# Part 1 · S3-appr: task-local request identity (`approval::with_requester`).
 tokio.workspace = true

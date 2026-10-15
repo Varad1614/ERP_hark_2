@@ -266,8 +266,11 @@ pub async fn authenticate(
             }
         }
     }
+    // Part 1 · S3-appr: the authenticated subject is visible to the request's governed
+    // `request_approval` calls, which record who asked for each decision (separation of duties).
+    let requester = Some(ctx.subject.clone());
     req.extensions_mut().insert(ctx);
-    next.run(req).await
+    sutra_kernel::approval::with_requester(requester, next.run(req)).await
 }
 
 /// Allow-list for [`origin_guard`]: origins (`scheme://host[:port]`) that may send unsafe
