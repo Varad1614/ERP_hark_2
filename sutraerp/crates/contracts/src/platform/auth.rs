@@ -198,6 +198,7 @@ impl Session {
             mfa_level: self.mfa_level,
             amr: self.amr.clone(),
             step_up_enforced: false,
+            privileged_mfa_enforced: false,
         }
     }
 }

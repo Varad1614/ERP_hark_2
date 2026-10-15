@@ -268,6 +268,8 @@ impl InMemorySessionStore {
 pub struct StoreSessionResolver {
     pub store: Arc<dyn SessionStore>,
     pub step_up_enforced: bool,
+    /// SEC-P1-AUTH-001: privileged roles need an MFA session for their permissions.
+    pub privileged_mfa_enforced: bool,
 }
 
 #[async_trait::async_trait]
@@ -276,6 +278,7 @@ impl SessionResolver for StoreSessionResolver {
         Ok(self.store.get(token).await?.map(|s| {
             let mut ctx = s.auth_context();
             ctx.step_up_enforced = self.step_up_enforced;
+            ctx.privileged_mfa_enforced = self.privileged_mfa_enforced;
             ctx
         }))
     }
@@ -453,10 +456,12 @@ mod tests {
         let r = StoreSessionResolver {
             store,
             step_up_enforced: true,
+            privileged_mfa_enforced: true,
         };
         let ctx = r.resolve(&issued.token).await.unwrap().unwrap();
         assert_eq!(ctx.session_id, issued.session.id);
         assert!(ctx.step_up_enforced);
+        assert!(ctx.privileged_mfa_enforced);
         assert_eq!(ctx.mfa_level, MfaLevel::None);
         assert_eq!(ctx.amr, vec!["pwd".to_owned()]);
         assert_eq!(ctx.csrf_token, issued.session.csrf_token);

@@ -1573,6 +1573,7 @@ fn auth(subject: &str, tenant: TenantId) -> AuthContext {
         mfa_level: MfaLevel::None,
         amr: vec!["pwd".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     }
 }
 

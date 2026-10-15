@@ -91,6 +91,7 @@ fn auth(subject: &str, role: Role, tenant: TenantId, mfa: MfaLevel, enforced: bo
         mfa_level: mfa,
         amr: vec!["pwd".into()],
         step_up_enforced: enforced,
+        privileged_mfa_enforced: false,
     }
 }
 

@@ -21,6 +21,18 @@ pub enum TeachingAccess {
     AssignedFaculty,
 }
 
+/// SEC-P1-AUTH-005: role pre-check run **before** any row is read, so a caller who holds
+/// neither `manage` nor `academic.teach` gets `403` instead of learning from a `404` / `409`
+/// whether a record exists. The section-level check ([`require_teaching`]) still follows once
+/// the row (and therefore its section) is known.
+pub fn require_teaching_role(ctx: &AuthContext, manage: Permission) -> Result<(), KernelError> {
+    if ctx.has_permission(manage) {
+        ctx.require(manage)
+    } else {
+        ctx.require(Permission::AcademicTeach)
+    }
+}
+
 /// Allows `manage` holders on any section, and `academic.teach` holders only on sections they
 /// actively teach (403 otherwise). Step-up of `manage` is enforced by `AuthContext::require`.
 pub async fn require_teaching(

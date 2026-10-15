@@ -319,6 +319,7 @@ async fn load(
     id: Uuid,
     expected: Version,
 ) -> Result<(CourseResource, sutra_kernel::scope::ExecutionScope), KernelError> {
+    crate::shared::faculty::require_teaching_role(ctx, Permission::CourseResourceManage)?;
     let r = get(st, ctx.scope.tenant_id, id).await?;
     require_manage(st, ctx, r.section_id).await?;
     check_version(r.version, expected)?;

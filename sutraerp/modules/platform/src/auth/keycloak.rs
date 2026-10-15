@@ -6,9 +6,12 @@
 //! (confidential client, `client_secret_basic`) and validates the ID token:
 //!
 //! * signature against the realm JWKS (cached for `jwks_ttl`, refreshed once on an unknown
-//!   `kid`), asymmetric algorithms only;
+//!   `kid`, failed refreshes rate-limited), asymmetric algorithms only and pinned to the
+//!   configured list (`SUTRA_OIDC_ALGS`, default `RS256`); the JWK must be a signature key
+//!   (`use` = `sig` when present) whose own `alg` (when present) equals the token's;
 //! * `iss` = configured issuer, `aud` ∋ client id (and `azp` = client id when present), `exp` /
-//!   `nbf` with a small leeway, `nonce` = the one stored for this `state` (constant time).
+//!   `nbf` / `iat` (not in the future) with a small leeway, a non-empty `sub`, `nonce` = the one
+//!   stored for this `state` (constant time).
 //!
 //! Claims are then mapped to a [`Principal`]: `sub` → subject, `preferred_username` (or `email`)
 //! → login id, `name` → display name, realm roles → [`Role`] (unknown roles grant nothing; no
@@ -61,6 +64,8 @@ pub struct KeycloakSettings {
     /// `acr_values` requested on step-up (with `prompt=login`, `max_age=0`).
     pub step_up_acr: Option<String>,
     pub jwks_ttl: Duration,
+    /// Accepted JWS algorithms (subset of the asymmetric [`ALLOWED_ALGS`]; SEC-P1-AUTH-002).
+    pub allowed_algs: Vec<Algorithm>,
     pub leeway_secs: u64,
     pub http_timeout: Duration,
     /// Honour `HTTP(S)_PROXY` / `NO_PROXY` for back-channel calls (default `true`).
@@ -83,10 +88,36 @@ impl KeycloakSettings {
             mfa_acr_values: vec!["2".into(), "mfa".into()],
             step_up_acr: Some("mfa".into()),
             jwks_ttl: Duration::from_secs(300),
+            allowed_algs: vec![Algorithm::RS256],
             leeway_secs: 30,
             http_timeout: Duration::from_secs(5),
             system_proxy: true,
         }
+    }
+
+    /// Pins the accepted algorithms (names as in `SUTRA_OIDC_ALGS`). Only asymmetric algorithms
+    /// are accepted; `none` and every HMAC algorithm are refused.
+    pub fn set_algorithms(&mut self, names: &[String]) -> Result<(), String> {
+        let mut algs = Vec::with_capacity(names.len());
+        for n in names {
+            let alg: Algorithm = n
+                .trim()
+                .parse()
+                .map_err(|_| format!("unknown JWS algorithm {n:?}"))?;
+            if !ALLOWED_ALGS.contains(&alg) {
+                return Err(format!(
+                    "JWS algorithm {n:?} is not allowed (asymmetric algorithms only)"
+                ));
+            }
+            if !algs.contains(&alg) {
+                algs.push(alg);
+            }
+        }
+        if algs.is_empty() {
+            return Err("at least one JWS algorithm is required".into());
+        }
+        self.allowed_algs = algs;
+        Ok(())
     }
 
     /// Rewrites an IdP URL onto the back-channel base when one is configured.
@@ -157,6 +188,8 @@ impl From<TokenError> for KernelError {
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct IdTokenClaims {
     pub sub: String,
+    #[serde(default)]
+    pub iat: Option<i64>,
     #[serde(default)]
     pub nonce: Option<String>,
     #[serde(default)]
@@ -351,6 +384,26 @@ pub struct KeycloakAuthenticator {
     http: reqwest::Client,
     discovery: RwLock<Option<Discovery>>,
     jwks: RwLock<Option<(JwkSet, Instant)>>,
+    /// Last failed JWKS fetch: forced refreshes are not retried within [`JWKS_MIN_REFRESH`]
+    /// (tokens with random `kid`s cannot turn the API into a request amplifier against the IdP).
+    jwks_failed_at: RwLock<Option<Instant>>,
+}
+
+/// Whether `jwk` may verify a token signed with `alg`: a signature key (`use` absent or
+/// `sig`, `key_ops` absent or containing `verify`) whose own `alg`, when present, is exactly
+/// `alg` (SEC-P1-AUTH-002: no encryption keys, no RS256 key reused for PS256 or vice versa).
+fn jwk_usable_for(jwk: &jsonwebtoken::jwk::Jwk, alg: Algorithm) -> bool {
+    use jsonwebtoken::jwk::{KeyOperations, PublicKeyUse};
+    let c = &jwk.common;
+    let use_ok = matches!(c.public_key_use, None | Some(PublicKeyUse::Signature));
+    let ops_ok = c
+        .key_operations
+        .as_ref()
+        .is_none_or(|ops| ops.iter().any(|o| matches!(o, KeyOperations::Verify)));
+    let alg_ok = c
+        .key_algorithm
+        .is_none_or(|ka| format!("{ka:?}") == format!("{alg:?}"));
+    use_ok && ops_ok && alg_ok
 }
 
 impl KeycloakAuthenticator {
@@ -367,6 +420,7 @@ impl KeycloakAuthenticator {
             http,
             discovery: RwLock::new(None),
             jwks: RwLock::new(None),
+            jwks_failed_at: RwLock::new(None),
         })
     }
 
@@ -403,6 +457,15 @@ impl KeycloakAuthenticator {
     }
 
     async fn fetch_jwks(&self) -> Result<JwkSet, TokenError> {
+        let res = self.fetch_jwks_once().await;
+        *self.jwks_failed_at.write().await = match &res {
+            Ok(_) => None,
+            Err(_) => Some(Instant::now()),
+        };
+        res
+    }
+
+    async fn fetch_jwks_once(&self) -> Result<JwkSet, TokenError> {
         let d = self.discovery().await?;
         let set: JwkSet = self
             .http
@@ -421,11 +484,26 @@ impl KeycloakAuthenticator {
     /// JWKS from cache (within TTL) or the IdP; `force` refetches unless the cache is younger
     /// than [`JWKS_MIN_REFRESH`] (bounded refresh on unknown `kid`).
     async fn jwks(&self, force: bool) -> Result<JwkSet, TokenError> {
-        if let Some((set, at)) = self.jwks.read().await.clone() {
+        let cached = self.jwks.read().await.clone();
+        if let Some((set, at)) = &cached {
             let age = at.elapsed();
             if (!force && age < self.settings.jwks_ttl) || (force && age < JWKS_MIN_REFRESH) {
-                return Ok(set);
+                return Ok(set.clone());
             }
+        }
+        let recently_failed = self
+            .jwks_failed_at
+            .read()
+            .await
+            .is_some_and(|t| t.elapsed() < JWKS_MIN_REFRESH);
+        if recently_failed {
+            // Serve a stale set rather than hammering an IdP that just failed.
+            return match cached {
+                Some((set, _)) => Ok(set),
+                None => Err(TokenError::Unavailable(
+                    "JWKS unavailable (recent fetch failed)".into(),
+                )),
+            };
         }
         self.fetch_jwks().await
     }
@@ -438,13 +516,22 @@ impl KeycloakAuthenticator {
     ) -> Result<(jsonwebtoken::Header, DecodingKey), TokenError> {
         let header =
             jsonwebtoken::decode_header(token).map_err(|e| TokenError::Malformed(e.to_string()))?;
-        if !ALLOWED_ALGS.contains(&header.alg) {
+        if !ALLOWED_ALGS.contains(&header.alg) || !self.settings.allowed_algs.contains(&header.alg)
+        {
             return Err(TokenError::AlgorithmNotAllowed(header.alg));
         }
-        let find = |set: &JwkSet| match &header.kid {
-            Some(kid) => set.find(kid).cloned(),
-            None if set.keys.len() == 1 => set.keys.first().cloned(),
-            None => None,
+        let alg = header.alg;
+        let find = |set: &JwkSet| {
+            let usable: Vec<&jsonwebtoken::jwk::Jwk> =
+                set.keys.iter().filter(|k| jwk_usable_for(k, alg)).collect();
+            match &header.kid {
+                Some(kid) => usable
+                    .into_iter()
+                    .find(|k| k.common.key_id.as_deref() == Some(kid.as_str()))
+                    .cloned(),
+                None if usable.len() == 1 => usable.first().map(|k| (*k).clone()),
+                None => None,
+            }
         };
         let jwk = match find(&self.jwks(false).await?) {
             Some(k) => k,
@@ -542,6 +629,16 @@ impl KeycloakAuthenticator {
         let data = jsonwebtoken::decode::<IdTokenClaims>(token, &key, &v)
             .map_err(|e| map_jwt_error(&e, header.alg))?;
         let claims = data.claims;
+        if claims.sub.trim().is_empty() {
+            return Err(TokenError::Claims("empty sub".into()));
+        }
+        let leeway = i64::try_from(self.settings.leeway_secs).unwrap_or(0);
+        if claims
+            .iat
+            .is_some_and(|iat| iat > chrono::Utc::now().timestamp() + leeway)
+        {
+            return Err(TokenError::NotYetValid);
+        }
         if let Some(azp) = &claims.azp {
             if azp != &self.settings.client_id {
                 return Err(TokenError::WrongAudience);
@@ -695,6 +792,8 @@ pub(crate) mod test_idp {
         pub last_auth: Mutex<Option<String>>,
         pub jwks_fetches: AtomicUsize,
         pub token_status: Mutex<u16>,
+        /// Status the JWKS endpoint answers (`0` = 200 with the set).
+        pub jwks_status: Mutex<u16>,
     }
 
     pub struct TestIdp {
@@ -728,7 +827,14 @@ pub(crate) mod test_idp {
                     "/realms/test/protocol/openid-connect/certs",
                     get(|State(s): State<Arc<IdpState>>| async move {
                         s.jwks_fetches.fetch_add(1, Ordering::SeqCst);
-                        Json(s.jwks.lock().unwrap().clone())
+                        let status = match *s.jwks_status.lock().unwrap() {
+                            0 => 200,
+                            other => other,
+                        };
+                        (
+                            axum::http::StatusCode::from_u16(status).unwrap(),
+                            Json(s.jwks.lock().unwrap().clone()),
+                        )
                     }),
                 )
                 .route(
@@ -814,6 +920,18 @@ pub(crate) mod test_idp {
 
         pub fn sign(claims: &serde_json::Value) -> String {
             Self::sign_with(claims, KEY_A, Some("test-key-a"))
+        }
+
+        /// Signs with key A under an explicit JWS algorithm.
+        pub fn sign_alg(claims: &serde_json::Value, alg: Algorithm) -> String {
+            let mut h = Header::new(alg);
+            h.kid = Some("test-key-a".into());
+            jsonwebtoken::encode(
+                &h,
+                claims,
+                &EncodingKey::from_rsa_pem(KEY_A.as_bytes()).unwrap(),
+            )
+            .unwrap()
         }
     }
 }
@@ -1034,6 +1152,112 @@ mod tests {
         let logout = a.end_session_url(Some("sid")).await.unwrap().unwrap();
         assert!(logout.contains("/protocol/openid-connect/logout?client_id=sutra-web"));
         assert!(logout.contains("post_logout_redirect_uri="));
+    }
+
+    /// SEC-P1-AUTH-002 attack: a token signed under an algorithm the deployment did not pin
+    /// (here PS256 with the realm's RSA key, a valid signature) and a token whose JWK is not a
+    /// signature key or declares another algorithm must be refused.
+    #[tokio::test]
+    async fn algorithm_pinning_and_jwk_use_are_enforced() {
+        let idp = TestIdp::start().await;
+        let c = idp.claims("n");
+        // Default pin RS256: PS256 refused before any key lookup.
+        let a = idp.adapter();
+        assert_eq!(
+            a.validate_id_token(&TestIdp::sign_alg(&c, Algorithm::PS256), "n")
+                .await
+                .unwrap_err(),
+            TokenError::AlgorithmNotAllowed(Algorithm::PS256)
+        );
+        // PS256 allowed by configuration, but the JWK says alg=RS256: no usable key.
+        let mut s = idp.settings();
+        s.set_algorithms(&["RS256".into(), "PS256".into()]).unwrap();
+        let a = KeycloakAuthenticator::new(s).unwrap();
+        assert!(matches!(
+            a.validate_id_token(&TestIdp::sign_alg(&c, Algorithm::PS256), "n")
+                .await
+                .unwrap_err(),
+            TokenError::UnknownKey(_)
+        ));
+        a.validate_id_token(&TestIdp::sign(&c), "n").await.unwrap();
+        // The realm publishes key A as an encryption key only: not usable for signatures.
+        let mut jwks: serde_json::Value = serde_json::from_str(JWKS_A).unwrap();
+        jwks["keys"][0]["use"] = "enc".into();
+        *idp.state.jwks.lock().unwrap() = jwks;
+        let a = idp.adapter();
+        assert!(matches!(
+            a.validate_id_token(&TestIdp::sign(&c), "n")
+                .await
+                .unwrap_err(),
+            TokenError::UnknownKey(_)
+        ));
+        // Configuration refuses `none`, HMAC and unknown names.
+        let mut s = idp.settings();
+        for bad in ["none", "HS256", "HS512", "XX1"] {
+            assert!(s.set_algorithms(&[bad.into()]).is_err(), "{bad}");
+        }
+        assert!(s.set_algorithms(&[]).is_err());
+        assert_eq!(s.allowed_algs, vec![Algorithm::RS256], "unchanged on error");
+    }
+
+    /// SEC-P1-AUTH-002: `iat` in the future (beyond the leeway) and an empty `sub` are refused.
+    #[tokio::test]
+    async fn rejects_future_iat_and_empty_sub() {
+        let idp = TestIdp::start().await;
+        let a = idp.adapter();
+        let now = chrono::Utc::now().timestamp();
+        let mut future = idp.claims("n");
+        future["iat"] = (now + 3600).into();
+        future["exp"] = (now + 7200).into();
+        assert_eq!(
+            a.validate_id_token(&TestIdp::sign(&future), "n")
+                .await
+                .unwrap_err(),
+            TokenError::NotYetValid
+        );
+        let mut skew = idp.claims("n");
+        skew["iat"] = (now + 10).into(); // inside the 30 s leeway
+        a.validate_id_token(&TestIdp::sign(&skew), "n")
+            .await
+            .unwrap();
+        let mut empty = idp.claims("n");
+        empty["sub"] = "".into();
+        assert!(matches!(
+            a.validate_id_token(&TestIdp::sign(&empty), "n")
+                .await
+                .unwrap_err(),
+            TokenError::Claims(_)
+        ));
+    }
+
+    /// SEC-P1-AUTH-002 attack: tokens with random `kid`s while the IdP's JWKS endpoint fails
+    /// must not make the API refetch the JWKS on every request (amplification / self-DoS).
+    #[tokio::test]
+    async fn failed_jwks_refresh_is_rate_limited() {
+        let idp = TestIdp::start().await;
+        let a = idp.adapter();
+        a.validate_id_token(&TestIdp::sign(&idp.claims("n")), "n")
+            .await
+            .unwrap();
+        assert_eq!(idp.state.jwks_fetches.load(Ordering::SeqCst), 1);
+        *idp.state.jwks_status.lock().unwrap() = 500;
+        // Age the cache past the refresh floor so an unknown kid may force one refetch.
+        if let Some((_, at)) = a.jwks.write().await.as_mut() {
+            *at = Instant::now() - JWKS_MIN_REFRESH - Duration::from_secs(1);
+        }
+        for i in 0..20 {
+            let t = TestIdp::sign_with(&idp.claims("n"), KEY_B, Some(&format!("random-{i}")));
+            assert!(a.validate_id_token(&t, "n").await.is_err());
+        }
+        assert_eq!(
+            idp.state.jwks_fetches.load(Ordering::SeqCst),
+            2,
+            "one failed refresh, then the stale set is served"
+        );
+        // Known-key tokens keep validating from the stale set while the IdP is failing.
+        a.validate_id_token(&TestIdp::sign(&idp.claims("n")), "n")
+            .await
+            .unwrap();
     }
 
     #[test]

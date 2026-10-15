@@ -13,6 +13,7 @@
 
 use super::keycloak::{pkce_challenge, pkce_verifier};
 use super::mfa::MfaService;
+use super::throttle::{too_many_attempts, AuthThrottle};
 use super::CookieSettings;
 use crate::PlatformDeps;
 use axum::extract::{Query, State};
@@ -56,6 +57,8 @@ pub struct AuthState {
     pub replay: Arc<dyn ReplayGuard>,
     /// Refreshes the user's profile row at every sign-in (best effort; `None` without a DB).
     pub sign_in_hook: Option<Arc<dyn SignInHook>>,
+    /// Failed-attempt lockout for password sign-in and TOTP checks (SEC-9D-005).
+    pub throttle: Arc<AuthThrottle>,
 }
 
 /// Called after a session was established (profile refresh, last sign-in time).
@@ -362,6 +365,15 @@ pub(crate) fn mfa_service(state: &AuthState) -> Result<&MfaService, KernelError>
     ))
 }
 
+/// Counts a wrong / replayed second-factor code against the subject (infrastructure errors
+/// and "no enrolment in progress" do not count).
+pub(crate) fn record_factor_failure(state: &AuthState, key: &str, e: &KernelError) {
+    let counts = matches!(e, KernelError::Unauthenticated | KernelError::Validation(_));
+    if counts && state.throttle.failure(key).is_some() {
+        tracing::warn!("second factor locked after repeated failed codes");
+    }
+}
+
 pub(crate) fn require_code(code: &str) -> Result<(), KernelError> {
     let c = code.trim();
     if c.len() == 6 && c.bytes().all(|b| b.is_ascii_digit()) {
@@ -472,6 +484,11 @@ pub async fn login(
         return Err(KernelError::Validation(violations).into());
     }
     let login_hint = req.login_id.clone();
+    let throttle_key = AuthThrottle::login_key(&req.login_id);
+    if let Err(retry_after) = state.throttle.check(&throttle_key) {
+        tracing::warn!(login = %login_hint, "login refused: account temporarily locked");
+        return Ok(too_many_attempts(retry_after));
+    }
     let principal = match state
         .authenticator
         .authenticate(Credentials {
@@ -484,9 +501,15 @@ pub async fn login(
         Err(e) => {
             // Attributable internal evidence without leaking which factor failed.
             tracing::warn!(login = %login_hint, code = e.code(), "login rejected");
+            if matches!(e, KernelError::Unauthenticated)
+                && state.throttle.failure(&throttle_key).is_some()
+            {
+                tracing::warn!(login = %login_hint, "account locked after repeated failed sign-ins");
+            }
             return Err(e.into());
         }
     };
+    state.throttle.success(&throttle_key);
     // Principals the policy requires MFA for are challenged for any enrolled second factor
     // (TOTP and/or passkey); without one they get a single-factor session flagged for enrolment.
     if state.mfa.is_some() && state.mfa_policy.requires_mfa(&principal) {
@@ -570,7 +593,12 @@ pub async fn verify_mfa(
         tracing::warn!("MFA challenge presented by another browser");
         return Err(KernelError::Unauthenticated.into());
     }
+    let throttle_key = AuthThrottle::factor_key(&payload.principal.subject);
+    if let Err(retry_after) = state.throttle.check(&throttle_key) {
+        return Ok(too_many_attempts(retry_after));
+    }
     if let Err(e) = mfa.verify_totp(&payload.principal, &req.code).await {
+        record_factor_failure(&state, &throttle_key, &e);
         audit(
             &state,
             &payload.principal,
@@ -581,6 +609,7 @@ pub async fn verify_mfa(
         .await;
         return Err(e.into());
     }
+    state.throttle.success(&throttle_key);
     establish(
         &state,
         &headers,
@@ -747,8 +776,18 @@ pub async fn totp_confirm(
 ) -> ApiResult<Response> {
     let mfa = mfa_service(&state)?;
     require_code(&req.code)?;
-    mfa.confirm_totp_enrolment(&Principal::from(&ctx), &req.code)
-        .await?;
+    let throttle_key = AuthThrottle::factor_key(&ctx.subject);
+    if let Err(retry_after) = state.throttle.check(&throttle_key) {
+        return Ok(too_many_attempts(retry_after));
+    }
+    if let Err(e) = mfa
+        .confirm_totp_enrolment(&Principal::from(&ctx), &req.code)
+        .await
+    {
+        record_factor_failure(&state, &throttle_key, &e);
+        return Err(e.into());
+    }
+    state.throttle.success(&throttle_key);
     elevate(&state, &headers, &ctx, "otp", "platform.auth.mfa.enrolled").await
 }
 
@@ -777,7 +816,12 @@ pub async fn step_up(
     let mfa = mfa_service(&state)?;
     require_code(&req.code)?;
     let p = Principal::from(&ctx);
+    let throttle_key = AuthThrottle::factor_key(&ctx.subject);
+    if let Err(retry_after) = state.throttle.check(&throttle_key) {
+        return Ok(too_many_attempts(retry_after));
+    }
     if let Err(e) = mfa.verify_totp(&p, &req.code).await {
+        record_factor_failure(&state, &throttle_key, &e);
         audit(
             &state,
             &p,
@@ -788,6 +832,7 @@ pub async fn step_up(
         .await;
         return Err(e.into());
     }
+    state.throttle.success(&throttle_key);
     elevate(&state, &headers, &ctx, "otp", "platform.auth.mfa.step_up").await
 }
 
@@ -964,6 +1009,7 @@ pub fn router(deps: PlatformDeps) -> OpenApiRouter {
         pre_session: deps.pre_session,
         replay: deps.replay,
         sign_in_hook: deps.sign_in_hook,
+        throttle: deps.throttle,
     };
     OpenApiRouter::new()
         .routes(routes!(csrf))

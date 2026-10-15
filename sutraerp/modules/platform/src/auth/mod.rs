@@ -10,6 +10,7 @@ pub mod preauth;
 pub mod replay;
 pub mod session;
 pub mod session_pg;
+pub mod throttle;
 pub mod webauthn;
 
 use std::sync::Arc;
@@ -26,17 +27,20 @@ pub const PRE_SESSION_PATHS: [&str; 4] = [
 ];
 
 /// State for the global `sutra_web::auth::authenticate` middleware, backed by this module's
-/// session store. `step_up_enforced` is stamped onto every resolved `AuthContext`.
+/// session store. `step_up_enforced` and `privileged_mfa_enforced` are stamped onto every
+/// resolved `AuthContext`.
 pub fn session_auth(
     sessions: Arc<dyn SessionStore>,
     cookie: &CookieSettings,
     pre_session: PreSessionCsrf,
     step_up_enforced: bool,
+    privileged_mfa_enforced: bool,
 ) -> SessionAuth {
     SessionAuth::new(
         Arc::new(session::StoreSessionResolver {
             store: sessions,
             step_up_enforced,
+            privileged_mfa_enforced,
         }),
         cookie.name(),
         PRE_SESSION_PATHS,

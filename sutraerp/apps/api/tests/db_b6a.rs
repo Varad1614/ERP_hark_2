@@ -1797,6 +1797,7 @@ fn admin_ctx() -> AuthContext {
         mfa_level: MfaLevel::Mfa,
         amr: vec!["pwd".into(), "otp".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     }
 }
 

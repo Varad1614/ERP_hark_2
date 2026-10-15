@@ -344,6 +344,27 @@
         },
         "annotations": {
           "type": "object"
+        },
+        "authRateLimit": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "rpm": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "burstMultiplier": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "connections": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": true

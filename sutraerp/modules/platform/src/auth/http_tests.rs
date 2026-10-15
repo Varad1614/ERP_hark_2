@@ -23,6 +23,8 @@ use tower::ServiceExt;
 
 const LOGIN_CSRF_COOKIE: &str = "__Host-sutra_login_csrf";
 const WEBAUTHN_ORIGIN: &str = "http://localhost:5173";
+/// Failed attempts per account before the harness's lockout (SEC-9D-005).
+const THROTTLE_MAX: u32 = 8;
 
 struct Harness {
     app: axum::Router,
@@ -39,7 +41,8 @@ fn harness(enforce_mfa: bool, oidc: Option<Arc<dyn OidcIdentityProvider>>) -> Ha
         max_age_secs: 3600,
     };
     let pre_session = PreSessionCsrf::new([1u8; 32], true, 1800);
-    let auth = crate::auth::session_auth(sessions.clone(), &cookie, pre_session.clone(), true);
+    let auth =
+        crate::auth::session_auth(sessions.clone(), &cookie, pre_session.clone(), true, true);
     let clock = Arc::new(AtomicI64::new(1_900_000_000));
     let c = clock.clone();
     let mfa = MfaService::with_clock(
@@ -84,6 +87,11 @@ fn harness(enforce_mfa: bool, oidc: Option<Arc<dyn OidcIdentityProvider>>) -> Ha
         pre_session,
         replay: Arc::new(InMemoryReplayGuard::default()),
         sign_in_hook: None,
+        throttle: Arc::new(crate::auth::throttle::AuthThrottle::new(
+            THROTTLE_MAX,
+            900,
+            900,
+        )),
     };
     let app = axum::Router::from(router(deps)).layer(axum::middleware::from_fn_with_state(
         auth,
@@ -1719,4 +1727,134 @@ async fn backchannel_logout_and_passkeys_are_mode_specific() {
     .await;
     assert_eq!(status["managedBy"], "keycloak");
     assert_eq!(status["webauthnAvailable"], false);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Part 1 S3 (SEC-9D-005): failed-attempt lockout of password sign-in and TOTP checks
+// ---------------------------------------------------------------------------------------------
+
+/// Attack: online password guessing against one account. After `THROTTLE_MAX` wrong passwords
+/// the account is locked: even the correct password is refused with `429` + `Retry-After`
+/// (so a lucky guess during the lockout is not accepted), while other accounts are unaffected.
+#[tokio::test]
+async fn password_guessing_locks_the_account() {
+    let app = app(false);
+    let csrf = login_csrf(&app).await;
+    for i in 0..THROTTLE_MAX {
+        let res = app
+            .clone()
+            .oneshot(login_req(
+                "Meera.Shah@sutra.dev",
+                &format!("guess-{i}"),
+                &csrf,
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED, "guess {i}");
+    }
+    let res = app
+        .clone()
+        .oneshot(login_req("meera.shah@sutra.dev", "sutra", &csrf, None))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::TOO_MANY_REQUESTS);
+    let retry: i64 = res.headers()[header::RETRY_AFTER]
+        .to_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert!(retry > 0 && retry <= 900, "{retry}");
+    assert!(
+        res.headers().get(header::SET_COOKIE).is_none(),
+        "no session"
+    );
+    assert_eq!(json(res).await["errorCode"], "too-many-attempts");
+    // Another account still signs in.
+    let (_, _, body) = login(&app, "aarav.desai@sutra.dev").await;
+    assert_eq!(body["outcome"], "authenticated");
+}
+
+/// A success clears the counter: failures below the limit never accumulate across successes.
+#[tokio::test]
+async fn successful_sign_in_resets_the_failure_count() {
+    let app = app(false);
+    let csrf = login_csrf(&app).await;
+    for round in 0..3 {
+        for i in 0..THROTTLE_MAX - 1 {
+            let res = app
+                .clone()
+                .oneshot(login_req(
+                    "aarav.desai@sutra.dev",
+                    &format!("x{round}{i}"),
+                    &csrf,
+                    None,
+                ))
+                .await
+                .unwrap();
+            assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+        }
+        let (_, _, body) = login(&app, "aarav.desai@sutra.dev").await;
+        assert_eq!(body["outcome"], "authenticated", "round {round}");
+    }
+}
+
+/// Attack: brute-forcing the six-digit step-up code with a stolen aal1 session. After
+/// `THROTTLE_MAX` wrong codes the subject's second factor is locked: the *correct* code is
+/// refused with `429` and the session stays single-factor.
+#[tokio::test]
+async fn step_up_code_guessing_is_locked_out() {
+    let h = harness(false, None);
+    let (cookie, csrf, _) = login(&h.app, "admin@sutra.dev").await;
+    let (secret, _, _) = enrol(&h, &cookie, &csrf).await;
+    let (cookie, csrf, _) = login(&h.app, "admin@sutra.dev").await;
+    let now = h.clock.load(Ordering::SeqCst) + 60;
+    h.clock.store(now, Ordering::SeqCst);
+    let good = totp_code(&secret, totp_step(now));
+    let mut tried = 0;
+    let mut guess: u32 = 0;
+    // (`enrol`'s wrong confirmation code was cleared by its successful confirmation.)
+    while tried < THROTTLE_MAX {
+        let code = format!("{guess:06}");
+        guess += 1;
+        if code == good {
+            continue;
+        }
+        let res = h
+            .app
+            .clone()
+            .oneshot(request(
+                "POST",
+                "/api/v1/auth/mfa/step-up",
+                serde_json::json!({"code": code}),
+                &[&cookie],
+                Some(&csrf),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED, "guess {code}");
+        tried += 1;
+    }
+    let res = h
+        .app
+        .clone()
+        .oneshot(request(
+            "POST",
+            "/api/v1/auth/mfa/step-up",
+            serde_json::json!({"code": good}),
+            &[&cookie],
+            Some(&csrf),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::TOO_MANY_REQUESTS);
+    let me = json(
+        h.app
+            .clone()
+            .oneshot(get("/api/v1/auth/session", &cookie))
+            .await
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(me["mfaLevel"], "none", "the session was not elevated");
 }

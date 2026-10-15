@@ -31,6 +31,16 @@ data:
   {{- if not .Values.flowable.enabled }}{{ fail "flowable.enabled=false (SUTRA_WORKFLOW=noop) is not allowed when global.environment=production" }}{{ end }}
   {{- if $flowableAuto }}{{ fail "flowable.autoApprove=true is not allowed when global.environment=production" }}{{ end }}
   {{- end }}
+  {{- /* Part 1 S3 (auth): production never disables MFA enforcement, the sign-in lockout or
+  Keycloak (the API refuses these at start-up too). */}}
+  {{- if eq .Values.global.environment "production" }}
+  {{- $xe := .Values.api.extraEnv | default dict }}
+  {{- if eq .Values.api.authMode "dev" }}{{ fail "api.authMode=dev is not allowed when global.environment=production" }}{{ end }}
+  {{- range $k := list "SUTRA_PRIVILEGED_MFA" "SUTRA_MFA_STEP_UP" "SUTRA_SESSION_COOKIE_SECURE" }}
+  {{- if and (hasKey $xe $k) (eq (toString (index $xe $k)) "false") }}{{ fail (printf "api.extraEnv.%s=false is not allowed when global.environment=production" $k) }}{{ end }}
+  {{- end }}
+  {{- if and (hasKey $xe "SUTRA_AUTH_MAX_FAILURES") (eq (toString (index $xe "SUTRA_AUTH_MAX_FAILURES")) "0") }}{{ fail "api.extraEnv.SUTRA_AUTH_MAX_FAILURES=0 is not allowed when global.environment=production" }}{{ end }}
+  {{- end }}
   SUTRA_APPROVAL_MODE: {{ $approvalMode | quote }}
   SUTRA_WORKFLOW: {{ ternary "flowable" "noop" .Values.flowable.enabled | quote }}
   {{- if .Values.flowable.enabled }}
