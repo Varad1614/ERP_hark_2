@@ -70,6 +70,7 @@ export interface ResourcesApi {
   postInvoice(id: string, version: number): Promise<VendorInvoice>;
   payments(institutionId: string): Promise<VendorPayment[]>;
   createPayment(institutionId: string, input: { supplierId: string; paymentDate: string; reference?: string; allocations: Array<{ vendorInvoiceId: string; amount: string }> }): Promise<VendorPayment>;
+  decidePayment(id: string, version: number, decision: Decision, reason?: string): Promise<VendorPayment>;
   postPayment(id: string, version: number): Promise<VendorPayment>;
   items(institutionId: string): Promise<Item[]>;
   createItem(institutionId: string, input: ItemInput): Promise<Item>;
@@ -132,6 +133,7 @@ export const PATHS = {
   invoiceDecision: `${B}/vendor-invoices/{id}/decision`,
   invoicePost: `${B}/vendor-invoices/{id}/post`,
   payments: `${B}/institutions/{id}/vendor-payments`,
+  paymentDecision: `${B}/vendor-payments/{id}/decision`,
   paymentPost: `${B}/vendor-payments/{id}/post`,
   items: `${B}/institutions/{id}/items`,
   itemActivate: `${B}/items/{id}/activate`,
@@ -238,6 +240,7 @@ export function createHttpResourcesApi(fetchImpl: Fetch = (i, init) => fetch(i, 
     postInvoice: (i, v) => command(PATHS.invoicePost, i, v),
     payments: (i) => items(fill(PATHS.payments, id(i))),
     createPayment: (i, input) => create(PATHS.payments, i, input),
+    decidePayment: (i, v, d, reason) => decide(PATHS.paymentDecision, i, v, d, reason),
     postPayment: (i, v) => command(PATHS.paymentPost, i, v),
     items: (i) => items(fill(PATHS.items, id(i))),
     createItem: (i, input) => create(PATHS.items, i, input),

@@ -198,8 +198,11 @@ export interface VendorPayment {
   supplierNumber: string;
   paymentDate: string;
   amount: string;
+  /** `pending_approval | approved | rejected | posted` (Part 1 DEF-J-003). */
   status: string;
   entryNumber?: string | null;
+  decidedBy?: string | null;
+  decisionReason?: string | null;
   version: number;
 }
 

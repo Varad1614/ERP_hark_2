@@ -37,6 +37,8 @@ pub mod process {
     pub const STOCK_ADJUSTMENT_APPROVAL: &str = "resources.stock_adjustment_approval";
     pub const VENDOR_INVOICE_APPROVAL: &str = "resources.vendor_invoice_approval";
     pub const ASSET_RETIREMENT: &str = "resources.asset_retirement";
+    // Part 1 (DEF-J-003): a vendor payment posts only after an independent approval.
+    pub const VENDOR_PAYMENT_APPROVAL: &str = "resources.vendor_payment_approval";
 
     /// Every key (unit-tested unique).
     pub const ALL: &[&str] = &[
@@ -47,6 +49,7 @@ pub mod process {
         STOCK_ADJUSTMENT_APPROVAL,
         VENDOR_INVOICE_APPROVAL,
         ASSET_RETIREMENT,
+        VENDOR_PAYMENT_APPROVAL,
     ];
 }
 

@@ -1591,7 +1591,16 @@ async fn library_await_decision_policy_fine_waiver_and_clearance() {
     .into_state();
     st.approvals = sutra_campus::shared::approval::ApprovalMode::AwaitDecision;
     let (router, _) = sutra_campus::router_with_state(st).split_for_parts();
-    let admin = router.layer(axum::Extension(auth(ADMIN, Role::Administrator, t)));
+    let admin = router
+        .clone()
+        .layer(axum::Extension(auth(ADMIN, Role::Administrator, t)));
+    // Part 1 (DEF-G-002): fine waivers are decided by a different user holding
+    // `library.fine.waive.approve` (finance checker); the requesting librarian gets 403.
+    let checker = router.layer(axum::Extension(auth(
+        "dev|finance.approver@sutra.dev",
+        Role::FinanceApprover,
+        t,
+    )));
     let student = b8::seed_student(&pool, &setup, "Ishaan", None).await;
 
     // ---- policy approval stays pending until decided.
@@ -1781,13 +1790,26 @@ async fn library_await_decision_policy_fine_waiver_and_clearance() {
         &admin,
         "POST",
         &format!("{C}/library-fines/{}/decision", sid(&f1)),
+        json!({"decision": "approve", "reason": "Certificate seen"}),
+        Some(ver(&f1)),
+    )
+    .await;
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "the requesting librarian never decides the waiver"
+    );
+    let (s, _) = hit(
+        &checker,
+        "POST",
+        &format!("{C}/library-fines/{}/decision", sid(&f1)),
         json!({"decision": "approve"}),
         Some(ver(&f1) - 1),
     )
     .await;
     assert_eq!(s, StatusCode::PRECONDITION_FAILED);
     let (s, f1) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{C}/library-fines/{}/decision", sid(&f1)),
         json!({"decision": "approve", "reason": "Certificate seen"}),
@@ -1809,7 +1831,7 @@ async fn library_await_decision_policy_fine_waiver_and_clearance() {
     )
     .await;
     let (s, f2) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{C}/library-fines/{}/decision", sid(&f2)),
         json!({"decision": "reject", "reason": "No ground"}),

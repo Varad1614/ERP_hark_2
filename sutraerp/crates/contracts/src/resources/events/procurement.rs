@@ -54,6 +54,15 @@ event_type!(
 event_type!(
     /// Vendor payment posted to Finance (F-045).
     VENDOR_PAYMENT_POSTED, VENDOR_PAYMENT_POSTED_SCHEMA, "vendor_payment.posted");
+event_type!(
+    /// Part 1 (DEF-J-003): vendor payment awaiting `VENDOR_PAYMENT_APPROVAL`.
+    VENDOR_PAYMENT_SUBMITTED, VENDOR_PAYMENT_SUBMITTED_SCHEMA, "vendor_payment.submitted");
+event_type!(
+    /// Part 1 (DEF-J-003): vendor payment approved by an independent approver (may now post).
+    VENDOR_PAYMENT_APPROVED, VENDOR_PAYMENT_APPROVED_SCHEMA, "vendor_payment.approved");
+event_type!(
+    /// Part 1 (DEF-J-003): vendor payment rejected (never posts; its allocations are released).
+    VENDOR_PAYMENT_REJECTED, VENDOR_PAYMENT_REJECTED_SCHEMA, "vendor_payment.rejected");
 
 /// Event types of this file (keep in sync; `all_event_types` collects them).
 pub const EVENT_TYPES: &[&str] = &[
@@ -73,4 +82,7 @@ pub const EVENT_TYPES: &[&str] = &[
     ASSET_RETIRED,
     VENDOR_INVOICE_POSTED,
     VENDOR_PAYMENT_POSTED,
+    VENDOR_PAYMENT_SUBMITTED,
+    VENDOR_PAYMENT_APPROVED,
+    VENDOR_PAYMENT_REJECTED,
 ];

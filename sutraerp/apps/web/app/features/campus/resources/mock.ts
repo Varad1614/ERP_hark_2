@@ -326,15 +326,22 @@ export function createMockResourcesApi(): ResourcesApi {
         if (inv.status !== "posted") throw conflict(`vendor invoice ${inv.number} is ${inv.status}`);
         if (milli(a.amount) > milli(inv.totalAmount) - milli(inv.paidAmount)) throw problem(422, "exceeds outstanding", "validation");
       }
-      const p: VendorPayment = { id: nextId("vpay"), number: `VPAY-${pad(payments.length + 1)}`, supplierId: s.id, supplierNumber: s.number, paymentDate: input.paymentDate, amount: fromMilli(input.allocations.reduce((sum, a) => sum + milli(a.amount), 0), 2), status: "draft", version: 1 };
+      const p: VendorPayment = { id: nextId("vpay"), number: `VPAY-${pad(payments.length + 1)}`, supplierId: s.id, supplierNumber: s.number, paymentDate: input.paymentDate, amount: fromMilli(input.allocations.reduce((sum, a) => sum + milli(a.amount), 0), 2), status: "pending_approval", version: 1 };
       paymentAllocations.set(p.id, input.allocations);
       payments.push(p);
       return { ...p };
     },
+    decidePayment: async (id, v, d, reason) => {
+      const p = find(payments, id);
+      check(p, v);
+      if (p.status !== "pending_approval") throw conflict(`vendor payment ${p.number} is ${p.status}; it cannot be decided`);
+      return { ...touch(p, { status: d === "approve" ? "approved" : "rejected", decisionReason: reason ?? null }) };
+    },
     postPayment: async (id, v) => {
       const p = find(payments, id);
       check(p, v);
-      if (p.status !== "draft") throw conflict(`vendor payment ${p.number} is ${p.status}`);
+      // Part 1 (DEF-J-003): only an approved payment posts.
+      if (p.status !== "approved") throw conflict(`vendor payment ${p.number} is ${p.status}; only an approved payment posts`);
       for (const a of paymentAllocations.get(id) ?? []) {
         const inv = find(invoices, a.vendorInvoiceId);
         const paid = milli(inv.paidAmount) + milli(a.amount);

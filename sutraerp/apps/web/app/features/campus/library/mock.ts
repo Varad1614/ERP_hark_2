@@ -224,7 +224,8 @@ export function createMockLibraryApi(): LibraryApi {
         if (f.personKind !== "student") throw conflict("only students are billed through Finance; staff fines stay on the library record");
         return bump(f, { status: "billed", chargeNumber: "CHG-000101", statusReason: null });
       }
-      return bump(f, { status: "waived", statusReason: reason ?? null });
+      // Part 1 (DEF-G-002): a waiver is only requested here; another user decides it.
+      return bump(f, { status: "waiver_requested", statusReason: reason ?? null });
     },
     decideFine: async (id, v, decision, reason) => {
       const f = find(fines, id, v);

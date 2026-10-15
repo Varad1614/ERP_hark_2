@@ -161,6 +161,7 @@ pub const PROCESS_KEYS: &[&str] = &[
     "resources.stock_adjustment_approval",
     "resources.supplier_approval",
     "resources.vendor_invoice_approval",
+    "resources.vendor_payment_approval",
     "services.accreditation_decision",
     "services.accreditation_framework_approval",
     "services.accreditation_plan_approval",

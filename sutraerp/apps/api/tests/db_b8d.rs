@@ -1210,7 +1210,9 @@ async fn procure_to_pay_end_to_end() {
         StatusCode::CREATED,
     )
     .await;
-    assert_eq!(p1["status"], "draft");
+    // Part 1 (DEF-J-003): a payment starts VENDOR_PAYMENT_APPROVAL; this suite opts in to
+    // auto-approval, so it is approved (by the system) on create and may post.
+    assert_eq!(p1["status"], "approved");
     assert_eq!(p1["number"], "VPAY-000001");
     let (s, _) = call(
         &app,
@@ -1224,7 +1226,7 @@ async fn procure_to_pay_end_to_end() {
     assert_eq!(
         s,
         StatusCode::UNPROCESSABLE_ENTITY,
-        "draft allocations count"
+        "allocations of approved, unposted payments count"
     );
     let p1_id = id(&p1);
     let p1 = ok(
