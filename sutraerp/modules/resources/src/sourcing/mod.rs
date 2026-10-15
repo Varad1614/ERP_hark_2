@@ -55,6 +55,20 @@ fn direct_limit() -> Decimal {
     Decimal::from_str(DIRECT_SOURCING_LIMIT).unwrap_or(Decimal::ZERO)
 }
 
+/// Part 1 (DEF-J-005): the direct-purchase limit applies to the **actual** value of what is bought
+/// — the quotation, the award and the purchase order total — not only to the requester's
+/// estimate. `Err(409)` when `total` is above [`DIRECT_SOURCING_LIMIT`]: the purchase must take the
+/// competitive route (an RFQ, evaluated, awarded and approved).
+pub fn ensure_within_direct_limit(what: &str, total: Decimal) -> Result<(), KernelError> {
+    if total > direct_limit() {
+        return Err(KernelError::Conflict(format!(
+            "{what} totals {total}; above the direct-purchase limit of {DIRECT_SOURCING_LIMIT} it \
+             must be sourced competitively (RFQ, evaluation, approved award)"
+        )));
+    }
+    Ok(())
+}
+
 slice_status!(
     /// Sourcing event lifecycle (L3-J-004 / 007).
     SourcingStatus {
@@ -695,6 +709,13 @@ pub async fn quote(
         priced.push((l.line_no, price, line_amount(d.quantity, price)));
     }
     let total: Decimal = priced.iter().map(|p| p.2).sum();
+    if e.method == "direct" {
+        // Part 1 (DEF-J-005): a direct event cannot take a quotation above the limit.
+        ensure_within_direct_limit(
+            &format!("the quotation on direct event {}", e.number),
+            total,
+        )?;
+    }
     let qid: Uuid = sqlx::query_scalar(
         "INSERT INTO resources.quotation (tenant_id, institution_id, sourcing_event_id, supplier_id, \
          reference, total_amount, delivery_days, valid_until) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) \
@@ -868,6 +889,13 @@ pub async fn award(
         .map(|x| x.total_amount)
         .min()
         .unwrap_or(q.total_amount);
+    if e.method == "direct" {
+        // Part 1 (DEF-J-005): defence in depth — never award a direct event above the limit.
+        ensure_within_direct_limit(
+            &format!("the quotation awarded on direct event {}", e.number),
+            q.total_amount,
+        )?;
+    }
     if q.total_amount > lowest && reason.is_none() {
         return Err(invalid(
             "reason",
@@ -1084,6 +1112,12 @@ mod tests {
         assert!(Open.can_transition(Awarded), "direct sourcing");
         assert!(!Cancelled.can_transition(Open));
         assert_eq!(direct_limit().to_string(), "100000.00");
+        let at = Decimal::from_str("100000.00").unwrap_or_default();
+        assert!(ensure_within_direct_limit("x", at).is_ok());
+        assert!(matches!(
+            ensure_within_direct_limit("x", at + Decimal::new(1, 2)),
+            Err(KernelError::Conflict(_))
+        ));
         assert_eq!(
             QuotationStatus::parse("accepted"),
             Some(QuotationStatus::Accepted)

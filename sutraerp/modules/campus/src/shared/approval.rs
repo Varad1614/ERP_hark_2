@@ -127,6 +127,38 @@ pub async fn request_approval(
     })
 }
 
+/// Part 1 (DEF-X-002 / DEF-G-002): separation of duties on a campus decision path. Refuses
+/// (`403`) a decision by an unidentified / system actor or by one of the request's makers: whoever
+/// created the aggregate or moved it into one of `pending` statuses (from `campus.status_history`),
+/// plus `also`. `what` names the governed kind in the problem detail.
+#[allow(clippy::too_many_arguments)]
+pub async fn ensure_independent_decider(
+    conn: &mut sqlx::PgConnection,
+    tenant: sutra_kernel::scope::TenantId,
+    aggregate_type: &str,
+    aggregate_id: uuid::Uuid,
+    pending: &[&str],
+    also: &[Option<&str>],
+    decider: Option<&str>,
+    what: &str,
+) -> Result<(), KernelError> {
+    let mut makers = sutra_persistence::approval::requesters(
+        conn,
+        sutra_persistence::approval::HistoryTable::Campus,
+        tenant.as_uuid(),
+        aggregate_type,
+        aggregate_id,
+        pending,
+    )
+    .await?;
+    makers.extend(also.iter().flatten().map(|s| (*s).to_owned()));
+    sutra_kernel::approval::ensure_independent_decider(
+        decider,
+        makers.iter().map(String::as_str),
+        what,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

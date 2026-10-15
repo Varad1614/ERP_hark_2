@@ -486,12 +486,14 @@ pub async fn create(
         active_location(&mut tx, t, institution, "deliveryLocationId", loc).await?;
     }
     // (requisition, supplier, sourcing event, quotation, price per requisition line)
-    let (req_id, supplier_id, event_id, quotation_id, prices): (
+    // `direct`: no competitive award behind the order (Part 1 DEF-J-005 caps its total).
+    let (req_id, supplier_id, event_id, quotation_id, prices, direct): (
         Uuid,
         Uuid,
         Option<Uuid>,
         Option<Uuid>,
         Vec<(i32, Decimal)>,
+        bool,
     ) = match (b.sourcing_event_id, b.requisition_id) {
         (Some(eid), _) => {
             let e = match sourcing::load(&mut tx, t, eid, true).await {
@@ -525,7 +527,8 @@ pub async fn create(
                 .into_iter()
                 .map(|l| (l.line_no, l.unit_price))
                 .collect();
-            (e.requisition_id, s, Some(eid), Some(q), prices)
+            let direct = e.method == "direct";
+            (e.requisition_id, s, Some(eid), Some(q), prices, direct)
         }
         (None, Some(rid)) => {
             let Some(sid) = b.supplier_id else {
@@ -571,7 +574,7 @@ pub async fn create(
                 };
                 prices.push((d.line_no, price));
             }
-            (rid, sid, None, None, prices)
+            (rid, sid, None, None, prices, true)
         }
         (None, None) => {
             return Err(invalid(
@@ -661,6 +664,11 @@ pub async fn create(
         .execute(&mut *tx)
         .await
         .map_err(map_db_error)?;
+    }
+    if direct {
+        // Part 1 (DEF-J-005): the limit binds the ordered value (caller-supplied prices), not
+        // only the requisition's estimate.
+        sourcing::ensure_within_direct_limit(&format!("direct purchase order {number}"), total)?;
     }
     sqlx::query("UPDATE resources.purchase_order SET total_amount = $2 WHERE id = $1")
         .bind(po)
@@ -1061,17 +1069,30 @@ pub async fn amend(
         .await
         .map_err(map_db_error)?;
     }
-    sqlx::query(
+    let new_total: Decimal = sqlx::query_scalar(
         "UPDATE resources.purchase_order SET revision = revision + 1, \
          expected_delivery = COALESCE($2, expected_delivery), \
          total_amount = (SELECT COALESCE(sum(amount), 0) FROM resources.purchase_order_line \
-                         WHERE purchase_order_id = $1) WHERE id = $1",
+                         WHERE purchase_order_id = $1) WHERE id = $1 RETURNING total_amount",
     )
     .bind(id)
     .bind(b.expected_delivery)
-    .execute(&mut *tx)
+    .fetch_one(&mut *tx)
     .await
     .map_err(map_db_error)?;
+    // Part 1 (DEF-J-005): an amendment never lifts a direct order above the direct-purchase
+    // limit (that needs the competitive route); any amendment goes back to `draft`, so the
+    // changed order is issued again only through `PURCHASE_ORDER_APPROVAL` (re-approval).
+    let direct = match o.sourcing_event_id {
+        None => true,
+        Some(eid) => sourcing::load(&mut tx, t, eid, false).await?.method == "direct",
+    };
+    if direct && new_total > o.total_amount {
+        sourcing::ensure_within_direct_limit(
+            &format!("amended direct purchase order {}", o.number),
+            new_total,
+        )?;
+    }
     change_status(
         &mut tx,
         t,
@@ -1088,7 +1109,8 @@ pub async fn amend(
         "purchase_order",
         id,
         "resources.purchase_order.amend",
-        serde_json::json!({ "number": o.number, "revision": o.revision + 1, "reason": reason }),
+        serde_json::json!({ "number": o.number, "revision": o.revision + 1, "reason": reason,
+            "previousTotal": o.total_amount.to_string(), "total": new_total.to_string() }),
         &actor,
     )
     .await?;

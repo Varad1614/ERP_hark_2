@@ -49,6 +49,16 @@ describe("8C library API (mock)", () => {
     await expect(api.fineCommand(billed.id, billed.version, "waiver", "Hardship")).rejects.toThrow();
   });
 
+  it("only requests a waiver; it is waived once another user decides it (DEF-G-002)", async () => {
+    const api = createMockLibraryApi();
+    const [fine] = await api.fines("i", "assessed");
+    const requested = await api.fineCommand(fine!.id, fine!.version, "waiver", "Medical leave");
+    expect(requested.status).toBe("waiver_requested");
+    expect(fineActions(requested)).toEqual(["approve", "reject"]);
+    const waived = await api.decideFine(requested.id, requested.version, "approve");
+    expect(waived.status).toBe("waived");
+  });
+
   it("marks an issued copy lost with a replacement charge, and blocks clearance while loans are out", async () => {
     const api = createMockLibraryApi();
     const [record] = await api.catalogue("i");

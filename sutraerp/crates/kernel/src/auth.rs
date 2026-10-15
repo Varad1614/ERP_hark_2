@@ -354,8 +354,10 @@ pub enum Permission {
     TransportManage,
     /// 8C: library policy, memberships, catalogue, copies, circulation, reservations, fines and waivers, clearance.
     LibraryManage,
-    /// Batch 8: decide governed campus approvals — infrastructure decommissioning, hostel admission, policy activation, fine waivers, library clearance (step-up).
+    /// Batch 8: decide governed campus approvals — infrastructure decommissioning, hostel admission, policy activation, library clearance (step-up).
     CampusApprove,
+    /// Part 1 (DEF-G-002): decide a library fine waiver requested by someone else (checker; step-up). Fine waivers are a financial concession, so this sits with the finance checker, never with the librarian's `campus.library.manage`.
+    LibraryFineWaiveApprove,
     /// Batch 8 (Domain H): read dashboards, operational metrics and regulatory reporting cycles (administrators).
     ReportRead,
     /// 8C: dashboards, widgets, assignments, reporting frameworks, cycles and snapshots.
@@ -382,7 +384,7 @@ pub enum Permission {
 }
 
 impl Permission {
-    pub const ALL: [Permission; 112] = [
+    pub const ALL: [Permission; 113] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -484,6 +486,7 @@ impl Permission {
         Permission::TransportManage,
         Permission::LibraryManage,
         Permission::CampusApprove,
+        Permission::LibraryFineWaiveApprove,
         Permission::ReportRead,
         Permission::ReportManage,
         Permission::ReportApprove,
@@ -600,6 +603,7 @@ impl Permission {
             Permission::TransportManage => "campus.transport.manage",
             Permission::LibraryManage => "campus.library.manage",
             Permission::CampusApprove => "campus.approve",
+            Permission::LibraryFineWaiveApprove => "library.fine.waive.approve",
             Permission::ReportRead => "services.report.read",
             Permission::ReportManage => "services.report.manage",
             Permission::ReportApprove => "services.report.approve",
@@ -641,6 +645,7 @@ impl Permission {
                 | Permission::PayrollApprove
                 | Permission::PeopleApprove
                 | Permission::CampusApprove
+                | Permission::LibraryFineWaiveApprove
                 | Permission::ReportApprove
                 | Permission::ResourcesApprove
         )
@@ -757,6 +762,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             TransportManage,
             LibraryManage,
             CampusApprove,
+            // Part 1 (DEF-G-002): an administrator may decide a fine waiver someone else asked for.
+            LibraryFineWaiveApprove,
             ReportRead,
             ReportManage,
             ReportApprove,
@@ -819,6 +826,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             StudentRead,
             FinanceRead,
             FinanceApprove,
+            // Part 1 (DEF-G-002): library fine waivers are decided by a finance checker.
+            LibraryFineWaiveApprove,
         ],
         Role::ExamController => &[
             InstitutionRead,
@@ -1389,12 +1398,13 @@ mod tests {
         for (role, approve, manage) in [
             (
                 Role::FinanceApprover,
-                &[FinanceApprove][..],
+                &[FinanceApprove, LibraryFineWaiveApprove][..],
                 &[
                     RefundManage,
                     AdjustmentManage,
                     ReceivableManage,
                     ChargeManage,
+                    LibraryManage,
                 ][..],
             ),
             (

@@ -4,6 +4,7 @@
 //! | Event | Projection |
 //! |-------|------------|
 //! | `purchase_requisition.submitted` | emitted only while `REQUISITION_APPROVAL` awaits a decision: notification → administrators + to-do for the submitter "Decide PR-…" (link `/campus/procurement`) |
+//! | `vendor_payment.submitted` | Part 1 (DEF-J-003): notification → procurement approvers and finance approvers "Vendor payment VPAY-… awaits approval" (link `/campus/procurement`); the maker gets no decide to-do (they may not decide it) |
 //! | `replenishment_need.raised` | notification → administrators + to-do for whoever ran the reorder-level check "Replenish …" (link `/campus/inventory`) |
 //!
 //! Notifications are idempotent on the event id (category `institution`); to-dos skip system
@@ -15,7 +16,7 @@ use crate::inbox::notifications::{Recipient, Severity};
 use crate::inbox::todos::SystemTodo;
 use chrono::Duration;
 use sutra_contracts::resources::events::procurement::{
-    PURCHASE_REQUISITION_SUBMITTED, REPLENISHMENT_NEEDED,
+    PURCHASE_REQUISITION_SUBMITTED, REPLENISHMENT_NEEDED, VENDOR_PAYMENT_SUBMITTED,
 };
 use sutra_contracts::resources::events::StatusChangedV1;
 use sutra_kernel::auth::Role;
@@ -23,7 +24,11 @@ use sutra_kernel::events::EventEnvelope;
 use sutra_kernel::scope::TenantId;
 
 /// Event types projected by these rules.
-pub const EVENT_TYPES: &[&str] = &[PURCHASE_REQUISITION_SUBMITTED, REPLENISHMENT_NEEDED];
+pub const EVENT_TYPES: &[&str] = &[
+    PURCHASE_REQUISITION_SUBMITTED,
+    REPLENISHMENT_NEEDED,
+    VENDOR_PAYMENT_SUBMITTED,
+];
 
 const PROCUREMENT: &str = "/campus/procurement";
 const INVENTORY: &str = "/campus/inventory";
@@ -76,6 +81,27 @@ pub fn plan(env: &EventEnvelope) -> Result<Vec<InboxAction>, String> {
                 PROCUREMENT,
             ));
             v
+        }
+        VENDOR_PAYMENT_SUBMITTED => {
+            let d: StatusChangedV1 = data(env)?;
+            let number = d.number.clone().unwrap_or_default();
+            let body = d
+                .reason
+                .clone()
+                .unwrap_or_else(|| "A vendor payment was requested.".into());
+            [Role::ProcurementApprover, Role::FinanceApprover]
+                .into_iter()
+                .map(|r| {
+                    notify(
+                        env,
+                        Recipient::Role(r),
+                        Severity::Info,
+                        format!("Vendor payment {number} awaits approval"),
+                        body.clone(),
+                        Some(PROCUREMENT),
+                    )
+                })
+                .collect()
         }
         REPLENISHMENT_NEEDED => {
             let d: StatusChangedV1 = data(env)?;
@@ -154,6 +180,31 @@ mod tests {
             }
             InboxAction::Notify(_) => panic!("to-do second"),
         }
+    }
+
+    #[test]
+    fn vendor_payments_awaiting_approval_reach_the_checkers() {
+        let a = plan(&env(
+            VENDOR_PAYMENT_SUBMITTED,
+            payload("VPAY-000001"),
+            Some("dev|admin@sutra.dev"),
+        ))
+        .unwrap_or_default();
+        assert_eq!(a.len(), 2, "no decide to-do for the maker");
+        let roles: Vec<_> = a
+            .iter()
+            .filter_map(|x| match x {
+                InboxAction::Notify(n) => Some(n.recipient.clone()),
+                InboxAction::Todo(_) => None,
+            })
+            .collect();
+        assert_eq!(
+            roles,
+            vec![
+                Recipient::Role(Role::ProcurementApprover),
+                Recipient::Role(Role::FinanceApprover)
+            ]
+        );
     }
 
     #[test]
