@@ -11,7 +11,8 @@
 //! * `await_decision_keeps_disbursement_batches_pending` — `ApprovalMode::AwaitDecision`: the
 //!   batch waits for a decision (no file, no payment while pending), rejection needs a reason
 //!   and frees the run for a new batch, approval → file → paid; two concurrent mark-paid
-//!   commands post exactly one journal entry and one of them is refused.
+//!   commands post exactly one journal entry and one of them is refused; the batch's maker (and
+//!   a system actor) cannot decide it (DEF-X-002 separation of duties → 403).
 #![cfg(feature = "db-tests")]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -796,6 +797,34 @@ async fn await_decision_keeps_disbursement_batches_pending() {
         pd::mark_paid(&a, b.id, b.version, "UTR1", None).await,
         Err(KernelError::Conflict(_))
     ));
+    // Separation of duties (DEF-X-002): the maker of the batch can neither approve nor reject
+    // it, and a system actor is never a decider; the batch stays pending.
+    for approve in [true, false] {
+        assert!(
+            matches!(
+                pd::decide_disbursement(&c, b.id, b.version, approve, Some("self")).await,
+                Err(KernelError::Forbidden(_))
+            ),
+            "maker decided its own disbursement (approve={approve})"
+        );
+    }
+    let system = Actor {
+        id: Some("system:auto-approval".into()),
+        correlation_id: None,
+    };
+    let sys = Cmd {
+        st: &st,
+        tenant: t,
+        actor: &system,
+    };
+    assert!(matches!(
+        pd::decide_disbursement(&sys, b.id, b.version, true, None).await,
+        Err(KernelError::Forbidden(_))
+    ));
+    assert_eq!(
+        pd::get_disbursement(&st, t, b.id).await.unwrap().status,
+        PayrollDisbursementStatus::PendingApproval
+    );
     // Rejection needs a reason, then frees the run for a new batch.
     assert!(matches!(
         pd::decide_disbursement(&a, b.id, b.version, false, None).await,

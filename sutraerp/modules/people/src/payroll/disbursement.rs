@@ -646,6 +646,19 @@ pub async fn decide_disbursement(
             d.status.as_str()
         )));
     }
+    // Part 1 (DEF-X-002): whoever created the batch never approves or rejects it (maker-checker,
+    // same shared decision path as the other payroll decisions).
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        c.tenant,
+        DISBURSEMENT,
+        id,
+        &[PayrollDisbursementStatus::PendingApproval.as_str()],
+        &[d.created_by.as_deref()],
+        c.actor.id.as_deref(),
+        "payroll disbursement",
+    )
+    .await?;
     let to = if approve {
         PayrollDisbursementStatus::Approved
     } else {
