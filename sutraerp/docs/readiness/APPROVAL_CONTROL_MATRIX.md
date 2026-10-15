@@ -12,14 +12,15 @@ whether separation of duties (SoD) and an audit trail are enforced. Branch `part
   `SUTRA_WORKFLOW=noop` (also the unset default) and `SUTRA_FLOWABLE_AUTO_APPROVE=true` all stop
   start-up with `ConfigError::Forbidden`. The Helm chart refuses to render the same values when
   `global.environment=production` (`templates/core/configmap.yaml`) and production values run
-  Flowable with `autoApprove: false` (`values.yaml`, `values-pilot.yaml`; kind runs human +
-  bundled Flowable).
+  Flowable with `autoApprove: false` (`values.yaml`, `values-pilot.yaml`). The kind CI install
+  (development) runs bundled Flowable with `approvals.mode: auto` because its seed stages walk every
+  governed setup step; compose defaults to human (`SUTRA_COMPOSE_APPROVAL_MODE`).
 * **Flowable** starts every process with `autoApprove=false` unless the adapter is explicitly
   allowed (`SUTRA_FLOWABLE_AUTO_APPROVE=true`, dev/test only) **and** the caller asks for it.
 * **Dev/test opt-in.** Suites that test domain flows rather than approval set
   `SUTRA_APPROVAL_MODE=auto` explicitly: `apps/api/tests/support/mod.rs`, e2e `lib/harness.mjs`,
-  `student.e2e.mjs`, `passkey.e2e.mjs`, the pilot / data / observability / quality workflows and
-  `deploy/perf/run.sh`.
+  `student.e2e.mjs`, `passkey.e2e.mjs`, the pilot / data / observability / quality workflows,
+  `deploy/perf/run.sh`, the kind values and the compose boot job (demo seed).
 
 ## Separation of duties (DEF-X-002)
 
