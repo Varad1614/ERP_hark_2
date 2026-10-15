@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use sutra_api::app::{router, AppContext};
 use sutra_api::config::{Config, DEV_TENANT_ID};
-use sutra_contracts::platform::auth::{NewSession, Principal, SessionStore};
+use sutra_contracts::platform::auth::{NewSession, Principal};
 use sutra_kernel::scope::ExecutionScope;
 use tower::ServiceExt;
 
