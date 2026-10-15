@@ -72,6 +72,9 @@ pub struct TransportRouteView {
     /// `draft | active | suspended | retired`.
     pub status: String,
     pub status_reason: Option<String>,
+    /// 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+    /// rejected`, contract batch9 §6.4), derived from the status.
+    pub approval_state: String,
     pub current_version_id: Option<Uuid>,
     pub current_version_no: Option<i32>,
     /// Pass fee of the current version.
@@ -94,7 +97,8 @@ pub(crate) const ROUTE_SELECT: &str = "SELECT x.id, x.institution_id, x.code, x.
     cv.capacity, cv.effective_from, \
     (SELECT count(*) FROM campus.transport_allocation ta WHERE ta.route_id = x.id AND ta.status = 'active') AS passengers, \
     EXISTS (SELECT 1 FROM campus.route_version d WHERE d.route_id = x.id AND d.status = 'draft') AS has_draft, \
-    x.process_instance_id, x.version FROM campus.transport_route x \
+    x.process_instance_id, x.version, \
+    CASE WHEN x.status = 'draft' AND x.process_instance_id IS NOT NULL THEN 'pending' WHEN x.status = 'draft' THEN 'not_requested' ELSE 'approved' END AS approval_state /* 9E: approvalState */ FROM campus.transport_route x \
     LEFT JOIN campus.route_version cv ON cv.id = x.current_version_id";
 
 /// Routes of an institution.

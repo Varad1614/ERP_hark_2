@@ -24,6 +24,7 @@
 //! The kernel must never depend on Axum, SQLx or any domain module.
 
 pub mod audit;
+pub mod audit_chain;
 pub mod auth;
 pub mod cache;
 pub mod concurrency;

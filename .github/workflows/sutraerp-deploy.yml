@@ -1,0 +1,241 @@
+# Batch 9 · owned by slice 9B (sutraerp/docs/batch9-contracts.md §2, §10).
+# Helm lint + template + kubeconform; a real install on a throwaway kind cluster (OpenBao dev +
+# injector, chart with bundled postgres / nats / valkey, migrate Job, NetworkPolicies) running the
+# four stage scripts; and the docker compose `--profile app` boot test. Job names are stable (the
+# pinger and b9-ci.sh read them).
+name: SutraERP deploy (Helm · kind)
+
+on:
+  push:
+    branches: [main, erp_merge, "batch9/**"]
+    tags: ["v*"]
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-deploy.yml"]
+  workflow_dispatch:
+  pull_request:
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-deploy.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sutraerp-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HELM_VERSION: v3.16.4
+  KUBECONFORM_VERSION: v0.7.0
+  KIND_VERSION: v0.31.0
+  KIND_NODE_IMAGE: kindest/node:v1.31.14@sha256:6f86cf509dbb42767b6e79debc3f2c32e4ee01386f0489b3b2be24b0a55aac2b
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+jobs:
+  helm:
+    name: Helm (lint · template)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - name: kubeconform
+        run: |
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | sudo tar xz -C /usr/local/bin kubeconform
+          kubeconform -v
+      - name: helm lint (default · kind · pilot)
+        run: |
+          helm lint --strict deploy/helm/sutraerp
+          helm lint --strict deploy/helm/sutraerp -f deploy/helm/sutraerp/ci/kind.yaml
+          helm lint --strict deploy/helm/sutraerp -f deploy/helm/sutraerp/values-pilot.yaml
+      - name: helm template + kubeconform -strict (k8s 1.31.0)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/rendered
+          for v in default kind pilot; do
+            case $v in default) f=() ;; kind) f=(-f deploy/helm/sutraerp/ci/kind.yaml) ;; pilot) f=(-f deploy/helm/sutraerp/values-pilot.yaml) ;; esac
+            helm template sutraerp deploy/helm/sutraerp -n sutraerp "${f[@]}" > /tmp/rendered/$v.yaml
+            echo "== $v: $(grep -c '^kind:' /tmp/rendered/$v.yaml) objects"
+            kubeconform -strict -kubernetes-version 1.31.0 -skip ServiceMonitor,PrometheusRule -summary -output text /tmp/rendered/$v.yaml
+          done
+      - name: chart invariants (no credentials in values, secrets mode, image by digest)
+        run: |
+          set -euo pipefail
+          # No §5 credential is ever a Helm value / rendered object.
+          if grep -nE 'postgres://[^:"]+:[^$@"][^@"]*@|(PASSWORD|_KEY|CLIENT_SECRET)"?: *"?[0-9a-f]{16,}' /tmp/rendered/*.yaml; then
+            echo "credential-looking value rendered by the chart" >&2; exit 1
+          fi
+          if grep -n '^kind: Secret' /tmp/rendered/*.yaml; then echo "chart renders a Secret" >&2; exit 1; fi
+          check() { if eval "$2"; then echo "ok $1"; else echo "FAIL $1" >&2; exit 1; fi; }
+          check image-by-digest "helm template sutraerp deploy/helm/sutraerp --set image.api.digest=sha256:$(printf '%064d' 0) | grep -q 'ghcr.io/varad1614/sutraerp-api@sha256:0000'"
+          helm template sutraerp deploy/helm/sutraerp --set secrets.mode=kubernetes --set secrets.existingSecret=sutraerp-env > /tmp/k8s.yaml
+          check secrets-mode-kubernetes "grep -q 'name: sutraerp-env$' /tmp/k8s.yaml && ! grep -q 'vault.hashicorp.com/agent-inject' /tmp/k8s.yaml"
+          check values-schema-rejects-unknown-mode "! helm template sutraerp deploy/helm/sutraerp --set secrets.mode=plain >/dev/null 2>&1"
+          check migrate-hook-with-external-db "grep -A14 '^kind: Job' /tmp/rendered/default.yaml | grep -q 'helm.sh/hook: pre-install,pre-upgrade'"
+          check migrate-plain-job-with-bundled-db "grep -q 'name: sutraerp-migrate-r1' /tmp/rendered/kind.yaml"
+          check openbao-annotations "grep -q 'vault.hashicorp.com/agent-inject-template-sutra.env' /tmp/rendered/kind.yaml"
+          check api-env-excludes-pg-superuser "grep -A2 'agent-inject-template-sutra.env' /tmp/rendered/kind.yaml | grep -q POSTGRES_PASSWORD"
+          check default-deny-netpol "grep -q 'name: sutraerp-default-deny' /tmp/rendered/default.yaml"
+          check hpa-pilot "grep -q '^kind: HorizontalPodAutoscaler' /tmp/rendered/pilot.yaml"
+          check ingress-tls-pilot "grep -q '^kind: Ingress' /tmp/rendered/pilot.yaml"
+          # INT: two templates rendering the same kind/name make `helm install` fail ("already exists").
+          check unique-resource-names "python3 deploy/helm/check-unique.py /tmp/rendered/*.yaml"
+      - name: shellcheck (stage + deploy scripts)
+        run: shellcheck -S warning deploy/ci/smoke.sh deploy/openbao/seed-dev.sh deploy/kind/up.sh deploy/docker/sign-verify.sh
+
+  kind:
+    name: Kind (install · migrate · smoke · telemetry · DR)
+    runs-on: ubuntu-24.04
+    needs: [helm]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        working-directory: /
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo docker image prune -af >/dev/null || true
+          df -h / ; free -m
+      - uses: docker/setup-buildx-action@v3
+      - name: Build api image (CARGO_PROFILE=docker)
+        uses: docker/build-push-action@v6
+        with:
+          context: sutraerp
+          file: sutraerp/deploy/docker/api.Dockerfile
+          build-args: |
+            CARGO_PROFILE=docker
+            CARGO_BUILD_JOBS=4
+            SUTRA_GIT_SHA=${{ github.sha }}
+          tags: ghcr.io/varad1614/sutraerp-api:ci
+          load: true
+          push: false
+          cache-from: type=gha,scope=kind-api
+          cache-to: type=gha,scope=kind-api,mode=max
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: sutraerp
+          file: sutraerp/deploy/docker/web.Dockerfile
+          build-args: |
+            SUTRA_GIT_SHA=${{ github.sha }}
+          tags: ghcr.io/varad1614/sutraerp-web:ci
+          load: true
+          push: false
+          cache-from: type=gha,scope=kind-web
+          cache-to: type=gha,scope=kind-web,mode=max
+      - uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - name: Install kind
+        run: |
+          curl -sSfLo /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+          kind version; kubectl version --client
+      # INT: the DR drill dumps / restores the in-cluster PostgreSQL 18 through a port-forward from
+      # the runner, whose stock client is 16 (pg_dump refuses a newer server).
+      - name: PostgreSQL 18 client (pg_dump / pg_restore must match the server)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-18 >/dev/null
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/18/bin/pg_dump --version
+      - name: kind up (cluster · OpenBao · seed · helm install + upgrade · stages)
+        run: bash deploy/kind/up.sh
+      - name: Resource headroom
+        if: always()
+        run: |
+          {
+            echo "### kind resource headroom"
+            echo '```'
+            free -m
+            df -h /
+            docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}' || true
+            kubectl get pods -A -o custom-columns='NS:.metadata.namespace,POD:.metadata.name,REQ_MEM:.spec.containers[*].resources.requests.memory,LIM_MEM:.spec.containers[*].resources.limits.memory' 2>/dev/null || true
+            kubectl describe node 2>/dev/null | sed -n '/Allocated resources/,/Events/p' || true
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Diagnostics
+        if: failure()
+        run: |
+          mkdir -p /tmp/kind-diagnostics
+          cd /tmp/kind-diagnostics
+          kubectl get all,netpol,pvc,secrets,sa,jobs -A -o wide > get-all.txt 2>&1 || true
+          kubectl get events -A --sort-by=.lastTimestamp > events.txt 2>&1 || true
+          for ns in sutraerp openbao; do
+            kubectl -n $ns describe pods > describe-pods-$ns.txt 2>&1 || true
+            for p in $(kubectl -n $ns get pods -o name 2>/dev/null); do
+              kubectl -n $ns logs "$p" --all-containers --tail=300 --prefix > "logs-$ns-${p#pod/}.txt" 2>&1 || true
+              kubectl -n $ns logs "$p" --all-containers --tail=300 --prefix --previous > "logs-$ns-${p#pod/}-previous.txt" 2>&1 || true
+            done
+          done
+          helm -n sutraerp get manifest sutraerp > helm-manifest.yaml 2>&1 || true
+          cp /tmp/pf-*.log . 2>/dev/null || true
+          kind export logs ./kind-logs --name sutraerp >/dev/null 2>&1 || true
+          tail -n 40 events.txt || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: kind-diagnostics
+          path: /tmp/kind-diagnostics
+          retention-days: 7
+
+  compose:
+    name: Compose boot (docker compose --profile app)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        working-directory: /
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+      - name: docker compose --profile app up -d --build
+        env:
+          COMPOSE_PROGRESS: plain
+        run: |
+          # api and migrate share deploy/docker/api.Dockerfile: build it once first so `up --build`
+          # reuses the layers instead of running two cargo builds side by side.
+          docker compose --profile app build migrate
+          docker compose --profile app up -d --build
+      - name: wait for api health
+        run: |
+          for i in $(seq 1 120); do
+            curl -fs http://localhost:8080/health/ready >/dev/null && { echo "api ready after $((i*5))s"; exit 0; }
+            sleep 5
+          done
+          echo "api never became ready" >&2; exit 1
+      - name: smoke (SUTRA_CI_MODE=compose)
+        env:
+          SUTRA_CI_MODE: compose
+          SUTRA_CI_API_URL: http://localhost:8080
+          SUTRA_CI_WEB_URL: http://localhost:3000
+        run: bash deploy/ci/smoke.sh
+      - name: demo seed (docker compose --profile demo run --rm demo-seed)
+        env:
+          COMPOSE_PROGRESS: plain
+        run: docker compose --profile demo run --rm --build demo-seed
+      - name: demo seed is idempotent
+        run: docker compose --profile demo run --rm demo-seed
+      - name: smoke again (stage idempotent)
+        env:
+          SUTRA_CI_MODE: compose
+        run: bash deploy/ci/smoke.sh
+      - name: logs on failure
+        if: failure()
+        run: |
+          docker compose --profile app --profile demo ps -a || true
+          docker compose --profile app --profile demo logs --tail=200 > /tmp/compose-logs.txt 2>&1 || true
+          tail -n 300 /tmp/compose-logs.txt
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: compose-logs
+          path: /tmp/compose-logs.txt
+          retention-days: 7
+      - name: down
+        if: always()
+        run: docker compose --profile app --profile demo down -v || true

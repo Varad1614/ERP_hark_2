@@ -1,0 +1,18 @@
+# open-telemetry/opentelemetry-collector values for SutraERP. `config` mirrors
+# deploy/observability/otel-collector.yaml (keep both in sync; CI validates the YAML of both).
+mode: deployment
+replicaCount: 2
+image:
+  repository: otel/opentelemetry-collector-contrib
+fullnameOverride: otel-collector
+extraEnvs:
+  - name: CLUSTER_NAME
+    value: production
+ports:
+  otlp: { enabled: true }
+  otlp-http: { enabled: true }
+  jaeger-compact: { enabled: false }
+  jaeger-thrift: { enabled: false }
+  jaeger-grpc: { enabled: false }
+  zipkin: { enabled: false }
+# config: paste deploy/observability/otel-collector.yaml here (the chart merges it over its defaults).

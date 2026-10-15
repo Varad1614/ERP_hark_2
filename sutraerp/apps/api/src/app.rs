@@ -96,6 +96,12 @@ pub struct AppContext {
     pub workflow: Arc<dyn WorkflowPort>,
     /// Outbox relay + sweepers; started by `serve` via [`AppContext::take_background`].
     pub background: BackgroundTasks,
+    /// 9A: audit anchor key handed to the audit chain API (`SUTRA_AUDIT_ANCHOR_KEY`).
+    pub audit_anchor: Option<sutra_persistence::audit_chain::AnchorKey>,
+    /// OpenSearch projections (`GET /api/v1/platform/search`); disabled unless `SUTRA_SEARCH=opensearch`.
+    pub search: sutra_platform::search::SearchState, // 9C
+    /// INT: SEC-9D-003 — payment gateway of the finance routes (`SUTRA_PAYMENT_GATEWAY`).
+    pub payment_gateway: Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort>,
 }
 
 /// Long-running workers that run next to the HTTP server.
@@ -105,6 +111,8 @@ pub struct BackgroundTasks {
     pub scheduler: Option<Scheduler>,
     /// Inbox consumer + notification e-mail delivery (Batch 1D).
     pub consumers: Option<Scheduler>,
+    /// 9A: audit sealer / anchor jobs, `/metrics` listener + gauges, OTLP flush on shutdown.
+    pub observability: Option<ObservabilityTasks>,
 }
 
 impl BackgroundTasks {
@@ -120,6 +128,9 @@ impl BackgroundTasks {
         if let Some(s) = &self.consumers {
             v.extend(s.job_names().into_iter().map(str::to_owned));
         }
+        if let Some(o) = &self.observability {
+            v.extend(o.describe()); // 9A
+        }
         v
     }
 
@@ -134,6 +145,9 @@ impl BackgroundTasks {
         }
         if let Some(s) = self.consumers {
             handles.extend(s.spawn(cancel.clone()));
+        }
+        if let Some(o) = self.observability {
+            handles.extend(o.spawn(cancel)); // 9A
         }
         handles
     }
@@ -155,6 +169,8 @@ pub enum BuildError {
     Cache(String),
     #[error("mail configuration: {0}")]
     Mail(String),
+    #[error("data platform configuration: {0}")]
+    DataPlatform(String), // 9C
 }
 
 impl AppContext {
@@ -179,6 +195,9 @@ impl AppContext {
             .inbox
             .consumer
             .then(|| build_consumers(cfg, &pool, mailer.clone()));
+        // ---- 9C ---- workflow adapter + decision sync, search projector / rebuild (see wire_9c)
+        let (workflow, search, consumers) = wire_9c(cfg, &pool, consumers)?;
+        // ---- end 9C ----
         let mfa = PrivilegedRoleMfaPolicy {
             enforce: cfg.dev_mfa_enforced,
         };
@@ -303,6 +322,7 @@ impl AppContext {
             pre_session.clone(),
             cfg.mfa_step_up,
         );
+        let observability = Some(build_observability(cfg, &pool)); // 9A
         Ok(Self {
             pool,
             readiness,
@@ -326,12 +346,16 @@ impl AppContext {
             idempotency,
             request_timeout: cfg.request_timeout,
             cache,
-            workflow: Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+            workflow,                      // 9C: noop unless SUTRA_WORKFLOW=flowable
+            audit_anchor: anchor_key(cfg), // 9A
             background: BackgroundTasks {
                 relay,
                 scheduler,
                 consumers,
+                observability, // 9A
             },
+            search,                                // 9C
+            payment_gateway: payment_gateway(cfg), // INT: SEC-9D-003
         })
     }
 
@@ -522,6 +546,126 @@ fn build_scheduler(cfg: &Config, pool: &PgPool) -> Scheduler {
         }))
 }
 
+// ---- 9A ----
+// Observability + tamper-evident audit chain wiring (docs/batch9-contracts.md §3 / §4): the
+// `audit_seal` / `audit_anchor` jobs (when `SUTRA_AUDIT_CHAIN=true` and audit rows go to
+// PostgreSQL), the `/metrics` listener + its gauges (`SUTRA_METRICS`), `sutra_build_info`, and the
+// OTLP flush when `serve` cancels its workers.
+
+/// 9A background work started by `serve`.
+pub struct ObservabilityTasks {
+    pub audit: Option<Scheduler>,
+    /// `SUTRA_METRICS_ADDR` when `SUTRA_METRICS=true`.
+    pub metrics_addr: Option<std::net::SocketAddr>,
+    pub pool: PgPool,
+}
+
+impl ObservabilityTasks {
+    pub fn describe(&self) -> Vec<String> {
+        let mut v: Vec<String> = self
+            .audit
+            .as_ref()
+            .map(|s| s.job_names().into_iter().map(str::to_owned).collect())
+            .unwrap_or_default();
+        if let Some(addr) = self.metrics_addr {
+            v.push(format!("metrics({addr})"));
+        }
+        v.push("telemetry-flush".into());
+        v
+    }
+
+    pub fn spawn(self, cancel: &CancellationToken) -> Vec<JoinHandle<()>> {
+        let mut handles = vec![];
+        if let Some(s) = self.audit {
+            handles.extend(s.spawn(cancel.clone()));
+        }
+        if let Some(addr) = self.metrics_addr {
+            handles.push(tokio::spawn(crate::metrics::serve(addr, cancel.clone())));
+            handles.push(tokio::spawn(crate::metrics::collect(
+                self.pool.clone(),
+                Duration::from_secs(15),
+                cancel.clone(),
+            )));
+        }
+        handles.push(tokio::spawn(crate::telemetry::flush_on_shutdown(
+            cancel.clone(),
+        )));
+        handles
+    }
+}
+
+/// `SUTRA_AUDIT_ANCHOR_KEY` / `_KEY_ID` as the persistence anchor key.
+/// INT: SEC-9D-003 — `SUTRA_PAYMENT_GATEWAY` → adapter (production default: disabled → 503).
+fn payment_gateway(cfg: &Config) -> Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort> {
+    use crate::config_b9::PaymentGatewayMode;
+    let p = &cfg.hardening.payments;
+    match p.gateway {
+        PaymentGatewayMode::Disabled => {
+            tracing::info!("payments: online gateway disabled (checkout + webhook answer 503)");
+            Arc::new(sutra_finance::DisabledPaymentGateway)
+        }
+        PaymentGatewayMode::Mock => {
+            tracing::warn!(
+                "payments: MOCK gateway (development / CI only; captures without money)"
+            );
+            match &p.webhook_secret {
+                Some(s) => Arc::new(sutra_finance::MockPaymentGateway::new(s.0.clone())),
+                None => Arc::new(sutra_finance::MockPaymentGateway::default()),
+            }
+        }
+    }
+}
+
+fn anchor_key(cfg: &Config) -> Option<sutra_persistence::audit_chain::AnchorKey> {
+    let a = &cfg.hardening.audit_chain;
+    a.anchor_key
+        .as_ref()
+        .map(|k| sutra_persistence::audit_chain::AnchorKey {
+            key: k.0,
+            key_id: a.anchor_key_id.clone(),
+        })
+}
+
+fn build_observability(cfg: &Config, pool: &PgPool) -> ObservabilityTasks {
+    let t = &cfg.hardening.telemetry;
+    let a = &cfg.hardening.audit_chain;
+    crate::metrics::set_build_info(&t.git_sha);
+    crate::metrics_bridge::install(); // INT: 9C metrics into the 9A /metrics registry
+    let audit = (a.enabled && cfg.audit_sink == StoreBackend::Postgres).then(|| {
+        let mut s = Scheduler::new(pool.clone()).with(Arc::new(
+            sutra_persistence::audit_chain::AuditSeal {
+                pool: pool.clone(),
+                batch: a.seal_batch,
+                interval: a.seal_interval,
+            },
+        ));
+        match anchor_key(cfg) {
+            Some(key) if !a.anchor_interval.is_zero() => {
+                s = s.with(Arc::new(sutra_persistence::audit_chain::AuditAnchor {
+                    pool: pool.clone(),
+                    key,
+                    interval: a.anchor_interval,
+                }));
+            }
+            Some(_) => tracing::info!("SUTRA_AUDIT_ANCHOR_SECS=0: audit anchors are off"),
+            None if !a.anchor_interval.is_zero() => tracing::warn!(
+                "SUTRA_AUDIT_ANCHOR_KEY is not set: the audit chain is sealed but not anchored"
+            ),
+            None => {}
+        }
+        for job in s.job_names() {
+            crate::metrics::prime_job(job);
+        }
+        s
+    });
+    ObservabilityTasks {
+        audit,
+        metrics_addr: t.metrics_enabled.then_some(t.metrics_addr),
+        pool: pool.clone(),
+    }
+}
+// ---- end 9A ----
+
 /// Domain C (Batch 3) adapters: Domain B reference reads, the real Finance clearance reader
 /// (Batch 5 foundation), the real Exams results reader (Batch 6 foundation),
 /// no-op ABC and external-scholarship adapters. Tests reuse it to build a `StudentState` with
@@ -696,6 +840,7 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
+        .merge(sutra_platform::search::router(ctx.search.clone())) // 9C
         .merge(sutra_institution::router(
             sutra_institution::InstitutionDeps {
                 pool: ctx.pool.clone(),
@@ -715,10 +860,12 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.pool.clone(),
             ctx.workflow.clone(),
         )))
-        .merge(sutra_finance::router(finance_deps(
-            ctx.pool.clone(),
-            ctx.workflow.clone(),
-        )))
+        .merge(sutra_finance::router({
+            // INT: SEC-9D-003 — the configured gateway, not the dev mock.
+            let mut deps = finance_deps(ctx.pool.clone(), ctx.workflow.clone());
+            deps.gateway = ctx.payment_gateway.clone();
+            deps
+        }))
         .merge(sutra_campus::router(campus_deps(
             ctx.pool.clone(),
             ctx.workflow.clone(),
@@ -752,7 +899,13 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
 /// Final Axum application with the full middleware stack (outermost last).
 pub fn router(ctx: AppContext) -> Router {
     let timeout = ctx.request_timeout;
+    let audit_anchor = ctx.audit_anchor.clone(); // 9A
     let (router, api) = build(ctx).split_for_parts();
+    // 9A: the audit chain API checks anchor MACs with this key when it is configured.
+    let router = match audit_anchor {
+        Some(key) => router.layer(axum::Extension(key)),
+        None => router,
+    };
     let api = Arc::new(api);
     router
         .route(
@@ -769,6 +922,7 @@ pub fn router(ctx: AppContext) -> Router {
         ))
         .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
         .layer(CatchPanicLayer::new())
+        .layer(axum::middleware::from_fn(crate::metrics::track_http)) // 9A
         .layer(TraceLayer::new_for_http().make_span_with(crate::telemetry::make_span))
         .layer(SetSensitiveRequestHeadersLayer::new([
             header::AUTHORIZATION,
@@ -777,3 +931,199 @@ pub fn router(ctx: AppContext) -> Router {
         ]))
         .layer(axum::middleware::from_fn(sutra_web::request_id::request_id))
 }
+
+// ---- 9C ---- Flowable workflow adapter, decision sync, OpenSearch projections
+// (docs/batch9-contracts.md §7 / §8). Settings come only from `Config::hardening`.
+
+/// Workflow port, search state and the consumer scheduler extended with the 9C jobs.
+type Wired9c = (
+    Arc<dyn WorkflowPort>,
+    sutra_platform::search::SearchState,
+    Option<Scheduler>,
+);
+
+/// `SUTRA_WORKFLOW=flowable` → `FlowableWorkflowAdapter` + job `workflow_decision_sync`;
+/// `SUTRA_SEARCH=opensearch` → `OpenSearchIndex` + the three module sources + jobs
+/// `search_project` / `search_rebuild`. Defaults (noop / off) add nothing.
+fn wire_9c(
+    cfg: &Config,
+    pool: &PgPool,
+    consumers: Option<Scheduler>,
+) -> Result<Wired9c, BuildError> {
+    use crate::config_b9::{SearchMode, WorkflowMode};
+    use sutra_contracts::platform::search::{SearchIndex, SearchSource};
+    use sutra_persistence::jobs::SweepJob;
+    use sutra_platform::search::projector::{SearchProjector, SearchRebuild};
+    use sutra_platform::workflow_flowable::{
+        DecisionSync, FlowableSettings, FlowableWorkflowAdapter,
+    };
+    let h = &cfg.hardening;
+    let mut jobs: Vec<Arc<dyn SweepJob>> = vec![];
+    let workflow: Arc<dyn WorkflowPort> = match h.workflow.mode {
+        WorkflowMode::Noop => Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        WorkflowMode::Flowable => {
+            let w = &h.workflow;
+            let adapter = Arc::new(
+                FlowableWorkflowAdapter::new(FlowableSettings {
+                    url: w.flowable_url.clone(),
+                    user: w.flowable_user.clone(),
+                    password: w.flowable_password.as_ref().map(|p| p.0.clone()),
+                    timeout: w.timeout,
+                    deploy_on_start: w.deploy_on_start,
+                })
+                .map_err(BuildError::DataPlatform)?,
+            );
+            tracing::info!(url = %w.flowable_url, "workflow: Flowable REST adapter");
+            jobs.push(Arc::new(DecisionSync {
+                adapter: adapter.clone(),
+                interval: cfg.inbox.poll_interval,
+                lookback: cfg.inbox.lookback,
+                batch_size: cfg.inbox.batch_size,
+            }));
+            adapter
+        }
+    };
+    let search = match h.search.mode {
+        SearchMode::Off => sutra_platform::search::SearchState::disabled(),
+        SearchMode::OpenSearch => {
+            let s = &h.search;
+            let client = sutra_infra::opensearch::OpenSearchClient::new(
+                sutra_infra::opensearch::OpenSearchSettings {
+                    url: s.url.clone(),
+                    user: s.user.clone(),
+                    password: s.password.as_ref().map(|p| p.0.clone()),
+                    index_prefix: s.index_prefix.clone(),
+                    timeout: Duration::from_secs(15),
+                },
+            )
+            .map_err(BuildError::DataPlatform)?;
+            let index: Arc<dyn SearchIndex> = Arc::new(OpenSearchIndex(client));
+            let sources: Vec<Arc<dyn SearchSource>> = search_sources(pool.clone());
+            let state = sutra_platform::search::SearchState::enabled(index, sources);
+            if let Some(rt) = state.runtime() {
+                jobs.push(Arc::new(SearchProjector {
+                    runtime: rt.clone(),
+                    interval: s.poll_interval,
+                    batch_size: s.batch_size,
+                }));
+                jobs.push(Arc::new(SearchRebuild::new(rt, s.poll_interval)));
+            }
+            tracing::info!(url = %s.url, prefix = %s.index_prefix, "search: OpenSearch projections");
+            state
+        }
+    };
+    let consumers = if jobs.is_empty() {
+        consumers
+    } else {
+        let mut sched = consumers.unwrap_or_else(|| Scheduler::new(pool.clone()));
+        for j in jobs {
+            sched = sched.with(j);
+        }
+        Some(sched)
+    };
+    Ok((workflow, search, consumers))
+}
+
+/// The three v1 projection sources, each implemented by its owning module.
+pub fn search_sources(
+    pool: PgPool,
+) -> Vec<Arc<dyn sutra_contracts::platform::search::SearchSource>> {
+    let student: Arc<dyn sutra_contracts::platform::search::SearchSource> = Arc::new(
+        sutra_student::search_source::PgStudentSearchSource::new(pool.clone()),
+    );
+    let staff: Arc<dyn sutra_contracts::platform::search::SearchSource> = Arc::new(
+        sutra_people::search_source::PgStaffSearchSource::new(pool.clone()),
+    );
+    let catalogue: Arc<dyn sutra_contracts::platform::search::SearchSource> = Arc::new(
+        sutra_campus::search_source::PgCatalogueSearchSource::new(pool),
+    );
+    vec![student, staff, catalogue]
+}
+
+/// `SearchIndex` port over the OpenSearch REST client (`sutra-infra` may only depend on the
+/// kernel, so the composition root adapts its plain-JSON API to the contract types).
+pub struct OpenSearchIndex(pub sutra_infra::opensearch::OpenSearchClient);
+
+#[async_trait::async_trait]
+impl sutra_contracts::platform::search::SearchIndex for OpenSearchIndex {
+    async fn ready(&self) -> Result<(), sutra_kernel::error::KernelError> {
+        self.0.health().await
+    }
+
+    async fn ensure(&self, projection: &str) -> Result<(), sutra_kernel::error::KernelError> {
+        self.0.ensure_index(projection).await
+    }
+
+    async fn recreate(&self, projection: &str) -> Result<(), sutra_kernel::error::KernelError> {
+        self.0.delete_index(projection).await?;
+        self.0.ensure_index(projection).await
+    }
+
+    async fn upsert(
+        &self,
+        projection: &str,
+        docs: &[sutra_contracts::platform::search::SearchDocument],
+    ) -> Result<u64, sutra_kernel::error::KernelError> {
+        let bulk: Vec<sutra_infra::opensearch::BulkDoc> = docs
+            .iter()
+            .map(|d| sutra_infra::opensearch::BulkDoc {
+                id: d.id.to_string(),
+                version: d.version,
+                source: d.body.clone(),
+            })
+            .collect();
+        self.0.bulk_index(projection, &bulk).await
+    }
+
+    async fn delete(
+        &self,
+        projection: &str,
+        ids: &[uuid::Uuid],
+    ) -> Result<u64, sutra_kernel::error::KernelError> {
+        let ids: Vec<String> = ids.iter().map(ToString::to_string).collect();
+        self.0.bulk_delete(projection, &ids).await
+    }
+
+    async fn refresh(&self, projection: &str) -> Result<(), sutra_kernel::error::KernelError> {
+        self.0.refresh(projection).await
+    }
+
+    async fn search(
+        &self,
+        projection: &str,
+        tenant: uuid::Uuid,
+        q: &str,
+        limit: u32,
+    ) -> Result<sutra_contracts::platform::search::SearchResults, sutra_kernel::error::KernelError>
+    {
+        let (total, hits) = self
+            .0
+            .search(projection, &tenant.to_string(), q, limit)
+            .await?;
+        Ok(sutra_contracts::platform::search::SearchResults {
+            projection: projection.to_owned(),
+            total,
+            items: hits
+                .into_iter()
+                .filter_map(|h| {
+                    Some(sutra_contracts::platform::search::SearchHit {
+                        id: uuid::Uuid::parse_str(&h.id).ok()?,
+                        projection: projection.to_owned(),
+                        score: h.score,
+                        document: h.source,
+                    })
+                })
+                .collect(),
+        })
+    }
+
+    async fn count(
+        &self,
+        projection: &str,
+        tenant: Option<uuid::Uuid>,
+    ) -> Result<u64, sutra_kernel::error::KernelError> {
+        let t = tenant.map(|t| t.to_string());
+        self.0.count(projection, t.as_deref()).await
+    }
+}
+// ---- end 9C ----

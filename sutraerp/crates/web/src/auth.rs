@@ -399,6 +399,11 @@ impl<S: Send + Sync> FromRequestParts<S> for Authenticated {
             .cloned()
             .ok_or(KernelError::Unauthenticated)?;
         check_scope_headers(&parts.headers, &ctx.scope)?;
+        // 9A: record the tenant on the request span (contract §3.2; never user names / e-mails).
+        tracing::Span::current().record(
+            "sutra.tenant_id",
+            tracing::field::display(&ctx.scope.tenant_id),
+        );
         Ok(Authenticated(ctx))
     }
 }

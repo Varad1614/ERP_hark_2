@@ -1,0 +1,4 @@
+SutraERP {{ .Chart.AppVersion }} ({{ .Values.global.environment }}) installed as {{ include "sutraerp.fullname" . }}.
+API image: {{ include "sutraerp.image" (dict "root" . "img" .Values.image.api) }}
+Web image: {{ include "sutraerp.image" (dict "root" . "img" .Values.image.web) }}
+Runbook: sutraerp/docs/runbooks/pilot-go-live.md

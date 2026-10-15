@@ -1,0 +1,65 @@
+{{- /* 9B: bundled single-node Valkey (advisory cache only: no persistence). */ -}}
+{{- if eq .Values.valkey.mode "bundled" }}
+{{- $name := include "sutraerp.componentName" (dict "root" . "component" "valkey") -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "valkey") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sutraerp.selectorLabels" (dict "root" . "component" "valkey") | nindent 4 }}
+  ports:
+    - { name: redis, port: 6379, targetPort: redis, protocol: TCP }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "valkey") | nindent 4 }}
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "valkey") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.componentLabels" (dict "root" . "component" "valkey") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: valkey
+          image: {{ .Values.valkey.bundled.image | quote }}
+          args: ["valkey-server", "--save", "", "--appendonly", "no", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru"]
+          ports:
+            - { name: redis, containerPort: 6379, protocol: TCP }
+          readinessProbe:
+            exec: { command: ["valkey-cli", "ping"] }
+            periodSeconds: 5
+          livenessProbe:
+            exec: { command: ["valkey-cli", "ping"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.valkey.bundled.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: data
+          emptyDir: {}
+{{- end }}

@@ -1,0 +1,37 @@
+{{- /* 9B: API PodDisruptionBudget + HorizontalPodAutoscaler. */ -}}
+{{- if .Values.api.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "sutraerp.componentName" (dict "root" . "component" "api") }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "api") | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.api.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "api") | nindent 6 }}
+{{- end }}
+{{- if .Values.api.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "sutraerp.componentName" (dict "root" . "component" "api") }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "api") | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "sutraerp.componentName" (dict "root" . "component" "api") }}
+  minReplicas: {{ .Values.api.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.api.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

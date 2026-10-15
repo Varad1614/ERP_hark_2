@@ -481,7 +481,7 @@ pub async fn submit(
     check_version(v, pre.version)?;
     let open = matches!(
         pre.approval_state,
-        LibraryApprovalState::NotSubmitted | LibraryApprovalState::Rejected
+        LibraryApprovalState::NotRequested | LibraryApprovalState::Rejected
     );
     if pre.status != LibraryPolicyStatus::Draft || !open {
         return Err(KernelError::Conflict(format!(

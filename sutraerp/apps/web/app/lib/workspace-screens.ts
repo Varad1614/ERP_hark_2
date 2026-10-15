@@ -8,7 +8,7 @@ import type { Role } from "./roles";
 type Routes = Partial<Record<Role, string>>;
 const all = (to: string): Routes => ({ administrator: to, faculty: to, student: to });
 
-/** Built screens per workspace key and role (Batches 1–8). */
+/** Built screens per workspace key and role (Batches 1–9). */
 export const WORKSPACE_SCREENS: Record<string, Routes> = {
   // A · Platform (Batch 1)
   "W-A02": all("/profile"),
@@ -87,11 +87,14 @@ export const WORKSPACE_SCREENS: Record<string, Routes> = {
   "W-J06": { administrator: "/campus/inventory" },
   "W-J07": { administrator: "/campus/inventory" },
   "W-J08": { administrator: "/campus/assets" },
+  // G00 governance · H09 accreditation (Batch 9 carry-overs)
+  "W-G00": { administrator: "/campus/governance" },
+  "W-H09": { administrator: "/reports/accreditation" },
 };
 
 /** Delivery batch by domain letter of the workspace key (W-<letter>NN). */
 export function workspaceBatch(key: string): number {
-  if (key === "W-H09") return 9;
+  if (key === "W-H09" || key === "W-G00") return 9;
   const letter = key.charAt(2);
   return ({ A: 1, B: 2, C: 3, D: 4, F: 5, I: 6, E: 7, G: 8, H: 8, J: 8 } as Record<string, number>)[letter] ?? 9;
 }

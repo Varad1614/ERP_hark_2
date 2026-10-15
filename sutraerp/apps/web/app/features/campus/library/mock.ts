@@ -102,7 +102,7 @@ export function createMockLibraryApi(): LibraryApi {
   return {
     policies: async () => [...policies],
     createPolicy: async (_inst, input) => {
-      const p: LibraryPolicy = { ...input, id: uid(), institutionId: INST, status: "draft", approvalState: "not_submitted", version: 1 };
+      const p: LibraryPolicy = { ...input, id: uid(), institutionId: INST, status: "draft", approvalState: "not_requested", version: 1 };
       policies.unshift(p);
       return p;
     },

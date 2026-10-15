@@ -14,7 +14,8 @@ services_enum!(
 );
 services_enum!(
     /// Approval state of a framework draft (`REPORTING_FRAMEWORK_APPROVAL`).
-    ReportingApprovalState { NotSubmitted => "none", Pending => "pending", Approved => "approved", Rejected => "rejected" }
+    /// 9E: approvalState — wire `not_requested` (contract batch9 §6.4); the stored value stays `none`.
+    ReportingApprovalState { NotRequested => "none", Pending => "pending", Approved => "approved", Rejected => "rejected" }
 );
 services_enum!(
     /// Reporting cycle (L3-H-056…060).

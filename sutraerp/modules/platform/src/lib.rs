@@ -22,11 +22,14 @@
 //!   notices, to-do inbox, the outbox-driven inbox consumer and their sweepers; dev-mode
 //!   WebAuthn ([`auth::webauthn`]), session list / revoke, OIDC back-channel logout.
 
+pub mod audit; // 9A
 pub mod auth;
 pub mod catalog;
 pub mod inbox;
+pub mod search; // 9C
 pub mod sweep;
 pub mod workflow;
+pub mod workflow_flowable; // 9C
 
 use std::sync::Arc;
 use sutra_contracts::platform::auth::{
@@ -77,5 +80,6 @@ pub fn router(deps: PlatformDeps, pool: sqlx::PgPool) -> OpenApiRouter {
     OpenApiRouter::new()
         .merge(auth::http::router(deps))
         .merge(catalog::router(modules))
+        .merge(audit::router(pool.clone())) // 9A
         .merge(inbox::router(pool))
 }

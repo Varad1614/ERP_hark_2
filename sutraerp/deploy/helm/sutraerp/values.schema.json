@@ -1,0 +1,594 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "SutraERP chart values (docs/batch9-contracts.md \u00a710.1; 9B constrains its own sections only)",
+  "type": "object",
+  "required": [
+    "global",
+    "image",
+    "api",
+    "web",
+    "migrations",
+    "secrets",
+    "postgres",
+    "nats",
+    "valkey",
+    "networkPolicy"
+  ],
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "enum": [
+            "development",
+            "dev",
+            "test",
+            "production",
+            "prod"
+          ],
+          "description": "SUTRA_ENV (config.rs accepts exactly these) and the OpenBao path segment"
+        },
+        "imageRegistry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verifyImages": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "certificateIdentityRegexp": {
+              "type": "string"
+            },
+            "certificateOidcIssuer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "environment",
+        "imageRegistry"
+      ],
+      "additionalProperties": true
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "api": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^(|sha256:[a-f0-9]{64})$"
+            },
+            "pullPolicy": {
+              "enum": [
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
+            }
+          },
+          "required": [
+            "repository"
+          ],
+          "additionalProperties": true
+        },
+        "web": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^(|sha256:[a-f0-9]{64})$"
+            },
+            "pullPolicy": {
+              "enum": [
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
+            }
+          },
+          "required": [
+            "repository"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "api",
+        "web"
+      ],
+      "additionalProperties": true
+    },
+    "api": {
+      "type": "object",
+      "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "metricsPort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "authMode": {
+          "enum": [
+            "dev",
+            "keycloak"
+          ]
+        },
+        "publicUrl": {
+          "type": "string"
+        },
+        "extraEnv": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "resources": {
+          "type": "object"
+        },
+        "probes": {
+          "type": "object",
+          "properties": {
+            "liveness": {
+              "type": "string"
+            },
+            "readiness": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "autoscaling": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minReplicas": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxReplicas": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "targetCPUUtilizationPercentage": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": true
+        },
+        "podDisruptionBudget": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minAvailable": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          "additionalProperties": true
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "startupProbe": {
+          "type": "object",
+          "properties": {
+            "failureThreshold": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "periodSeconds": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "terminationGracePeriodSeconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "port",
+        "metricsPort",
+        "authMode"
+      ],
+      "additionalProperties": true
+    },
+    "web": {
+      "type": "object",
+      "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "resources": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "podDisruptionBudget": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minAvailable": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "additionalProperties": true
+    },
+    "migrations": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "backoffLimit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runtimeUser": {
+          "type": "string"
+        },
+        "hook": {
+          "enum": [
+            "auto",
+            true,
+            false,
+            "true",
+            "false"
+          ]
+        },
+        "ttlSecondsAfterFinished": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resources": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "className": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "secretName": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "annotations": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "secrets": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "openbao",
+            "kubernetes"
+          ]
+        },
+        "existingSecret": {
+          "type": "string"
+        },
+        "openbao": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "type": "string"
+            },
+            "authPath": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "kvMount": {
+              "type": "string"
+            },
+            "pathPrefix": {
+              "type": "string"
+            },
+            "annotationPrefix": {
+              "type": "string"
+            },
+            "prePopulateOnly": {
+              "type": "boolean"
+            },
+            "groups": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "database",
+                  "app",
+                  "oidc",
+                  "smtp",
+                  "audit",
+                  "flowable",
+                  "opensearch",
+                  "backup",
+                  "payments"
+                ]
+              }
+            },
+            "agent": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "additionalProperties": true
+    },
+    "postgres": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "external",
+            "bundled"
+          ]
+        },
+        "external": {
+          "type": "object",
+          "properties": {
+            "host": {
+              "type": "string"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "database": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sslmode": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "bundled": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string"
+            },
+            "storage": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object"
+            },
+            "user": {
+              "type": "string"
+            },
+            "storageClass": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "additionalProperties": true
+    },
+    "nats": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "external",
+            "bundled"
+          ]
+        },
+        "url": {
+          "type": "string"
+        },
+        "stream": {
+          "type": "string"
+        },
+        "bundled": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string"
+            },
+            "storage": {
+              "type": "string"
+            },
+            "storageClass": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "additionalProperties": true
+    },
+    "valkey": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "external",
+            "bundled"
+          ]
+        },
+        "url": {
+          "type": "string"
+        },
+        "bundled": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "additionalProperties": true
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "ingressNamespaceSelector": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "metricsNamespaceSelector": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "openbaoNamespace": {
+          "type": "string"
+        },
+        "externalCidrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "extraEgress": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "observability": {
+      "type": "object",
+      "description": "9A section (not constrained here)"
+    },
+    "flowable": {
+      "type": "object",
+      "description": "9C section (not constrained here)"
+    },
+    "opensearch": {
+      "type": "object",
+      "description": "9C section (not constrained here)"
+    },
+    "backup": {
+      "type": "object",
+      "description": "9C section (not constrained here)"
+    }
+  },
+  "additionalProperties": true
+}

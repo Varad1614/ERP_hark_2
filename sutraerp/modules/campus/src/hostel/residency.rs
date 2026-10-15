@@ -96,6 +96,9 @@ pub struct ResidentLeaveView {
     /// `requested | approved | rejected | out | returned | overdue`.
     pub status: String,
     pub status_reason: Option<String>,
+    /// 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+    /// rejected`, contract batch9 §6.4), derived from the status.
+    pub approval_state: String,
     pub process_instance_id: Option<String>,
     pub departed_at: Option<DateTime<Utc>>,
     pub returned_at: Option<DateTime<Utc>>,
@@ -107,7 +110,8 @@ pub struct ResidentLeaveView {
 pub(crate) const LEAVE_SELECT: &str =
     "SELECT x.id, x.institution_id, x.allocation_id, a.person_number, \
     a.person_name, x.from_date, x.to_date, x.destination, x.reason, x.status, x.status_reason, \
-    x.process_instance_id, x.departed_at, x.returned_at, x.returned_late, x.version \
+    x.process_instance_id, x.departed_at, x.returned_at, x.returned_late, x.version, \
+    CASE WHEN x.status = 'requested' THEN 'pending' WHEN x.status = 'rejected' THEN 'rejected' ELSE 'approved' END AS approval_state /* 9E: approvalState */ \
     FROM campus.resident_leave x JOIN campus.hostel_allocation a ON a.id = x.allocation_id";
 
 /// Resident leaves.
@@ -144,6 +148,9 @@ pub struct RoomTransferView {
     /// `requested | approved | rejected | completed`.
     pub status: String,
     pub status_reason: Option<String>,
+    /// 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+    /// rejected`, contract batch9 §6.4), derived from the status.
+    pub approval_state: String,
     pub process_instance_id: Option<String>,
     pub completed_at: Option<DateTime<Utc>>,
     pub version: i64,
@@ -152,7 +159,8 @@ pub struct RoomTransferView {
 const TRANSFER_SELECT: &str = "SELECT x.id, x.institution_id, x.allocation_id, a.person_number, \
     x.from_bed_id, fb.bed_code AS from_bed_code, fr.code AS from_room_code, x.to_bed_id, \
     tb.bed_code AS to_bed_code, tn.code AS to_room_code, x.reason, x.status, x.status_reason, \
-    x.process_instance_id, x.completed_at, x.version FROM campus.room_transfer x \
+    x.process_instance_id, x.completed_at, x.version, \
+    CASE WHEN x.status = 'requested' THEN 'pending' WHEN x.status = 'rejected' THEN 'rejected' ELSE 'approved' END AS approval_state /* 9E: approvalState */ FROM campus.room_transfer x \
     JOIN campus.hostel_allocation a ON a.id = x.allocation_id \
     JOIN campus.hostel_bed fb ON fb.id = x.from_bed_id \
     JOIN campus.infrastructure_node fr ON fr.id = fb.room_node_id \

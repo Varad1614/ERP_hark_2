@@ -13,6 +13,17 @@ use sutra_api::{app, config::Config, openapi, shutdown, telemetry};
 #[tokio::main]
 async fn main() -> ExitCode {
     let _ = dotenvy::dotenv();
+    // Batch 9 (contract §5): secrets rendered by the OpenBao agent as a dotenv file
+    // (`/vault/secrets/sutra.env`); never overrides variables already in the environment.
+    if let Some(path) = std::env::var_os("SUTRA_ENV_FILE") {
+        if let Err(e) = dotenvy::from_path(&path) {
+            eprintln!(
+                "SUTRA_ENV_FILE {}: {e}",
+                std::path::Path::new(&path).display()
+            );
+            return ExitCode::FAILURE;
+        }
+    }
     let cmd = std::env::args().nth(1).unwrap_or_else(|| "serve".into());
     if cmd == "openapi" {
         return match openapi::spec_json() {

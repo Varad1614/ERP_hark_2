@@ -1,0 +1,28 @@
+# Prometheus config for the grafana/otel-lgtm all-in-one used by the CI observability job
+# (mounted over /otel-lgtm/prometheus.yaml by deploy/observability/compose.yaml). Keeps the
+# image's OTLP receiver settings and adds the scrape of the API's /metrics listener plus the
+# SutraERP alert rules (so a broken rule file fails the stack start, not only promtool).
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+  scrape_native_histograms: true
+otlp:
+  keep_identifying_resource_attributes: true
+  promote_resource_attributes:
+    - service.instance.id
+    - service.name
+    - service.namespace
+    - service.version
+    - deployment.environment
+    - deployment.environment.name
+storage:
+  tsdb:
+    out_of_order_time_window: 10m
+rule_files:
+  - /otel-lgtm/sutra-rules/*.yaml
+scrape_configs:
+  - job_name: sutra-api
+    metrics_path: /metrics
+    static_configs:
+      # The API runs on the CI runner host (`cargo build` + `sutra-api serve`), SUTRA_METRICS_ADDR=0.0.0.0:9464.
+      - targets: ["host.docker.internal:9464"]

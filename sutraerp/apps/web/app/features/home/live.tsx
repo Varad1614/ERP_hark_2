@@ -4,7 +4,7 @@
  * A figure whose backend has not landed yet renders as a pending tile ("Arrives in Batch N"),
  * never as an invented number. Sparklines only draw real series.
  */
-import { ChevronRight, GraduationCap, Inbox, Megaphone, PencilLine, Presentation, UserCheck, Users, Wallet, Award } from "lucide-react";
+import { ChevronRight, GraduationCap, Inbox, Megaphone, PencilLine, Presentation, UserCheck, Users, Wallet, Award, Wrench } from "lucide-react";
 import { BentoTile, IconChip, StatTile } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
@@ -12,9 +12,9 @@ import { useDeliveryApi, dkeys } from "../academic/delivery/hooks";
 import type { TimetableSlot } from "../academic/delivery/types";
 import { formatInr } from "../finance";
 import { pkeys, usePaymentsApi } from "../finance/payments/hooks";
+import { akeys, useAnalyticsApi } from "../reports/analytics/hooks";
 import { useInstitutions } from "../institution/hooks";
 import { useWorkforceApi, wkeys } from "../people/workforce/hooks";
-import { rkeys, useRecordApi } from "../student/record/hooks";
 import { mkeys, useMarksApi } from "../exams/marks/hooks";
 import { toReviewCount } from "../exams/marks";
 import { rkeys as resultKeys, useResultsApi } from "../exams/results/hooks";
@@ -137,26 +137,48 @@ export function RightNowTile({ role }: { role: Role }) {
 
 /* ------------------------------------------------------------------ KPIs */
 
+/** Figure value of `key` from the services metrics catalogue (decimal string), `undefined` when not reported. */
+export function metricValue(items: readonly { key: string; value: string }[] | undefined, key: string): string | undefined {
+  return items?.find((m) => m.key === key)?.value;
+}
+
+/** `12345` → `12,345` (whole numbers; anything else unchanged). */
+const count = (v: string) => (/^-?\d+(\.0+)?$/.test(v) ? Number(v).toLocaleString("en-IN") : v);
+
+/**
+ * 9E: administrator KPIs from `GET /api/v1/services/institutions/{id}/metrics` (every domain's
+ * `OperationalMetricsPort`) — students enrolled, fee collection, open work orders — plus faculty
+ * on roll from the staff records. A figure no domain reports renders as a pending tile.
+ */
 export function AdminKpis({ go }: { go: Go }) {
   const { current: institution, query: instQ } = useInstitutions();
   const inst = institution?.id ?? "-";
-  const record = useRecordApi();
-  const payments = usePaymentsApi();
-  const students = useQuery({ queryKey: rkeys.scoped(inst, "directory", ""), queryFn: () => record.directory(institution!.id), enabled: !!institution });
-  const recv = useQuery({ queryKey: pkeys.scoped(inst, "receivables"), queryFn: () => payments.receivables(institution!.id), enabled: !!institution });
+  const analytics = useAnalyticsApi();
+  const metrics = useQuery({ queryKey: akeys(inst, "metrics"), queryFn: () => analytics.metrics(institution!.id), enabled: !!institution });
   const workforce = useWorkforceApi();
   const staff = useQuery({ queryKey: wkeys.scoped(inst, "staff:"), queryFn: () => workforce.staff(institution!.id), enabled: !!institution });
   const faculty = (staff.data ?? []).filter((s) => s.staffCategory === "teaching" && s.engagement?.status === "active");
   const pendingStaff = (staff.data ?? []).filter((s) => s.engagement?.status === "pending").length;
   const noInst = !instQ.isLoading && !institution;
+  const m = metrics.data;
+  const enrolled = metricValue(m, "student.enrolled_students") ?? metricValue(m, "student.active_students");
+  const active = metricValue(m, "student.active_students");
+  const collected = metricValue(m, "finance.payments_collected");
+  const outstanding = metricValue(m, "finance.receivables_outstanding");
+  const workOrders = metricValue(m, "campus.open_work_orders");
+  const pastSla = metricValue(m, "campus.tickets_past_sla");
+  const loadingOr = (v: string | undefined, f: (x: string) => string) => (v !== undefined ? f(v) : noInst ? "—" : metrics.isLoading ? "…" : "—");
+  const pendingIf = (v: string | undefined) => (m && v === undefined ? "Not reported yet" : undefined);
+  const inr = (v: string) => formatInr(v).replace(/\.00$/, "");
   return (
     <>
       <StatTile
         icon={GraduationCap}
         tone="orange"
-        label="Students"
-        value={students.data ? students.data.length.toLocaleString("en-IN") : noInst ? "—" : "…"}
-        hint={noInst ? "No institution yet" : students.isError ? "Directory unavailable" : "In the student directory"}
+        label="Students enrolled"
+        value={loadingOr(enrolled, count)}
+        hint={noInst ? "No institution yet" : metrics.isError ? "Figures unavailable" : active ? `${count(active)} active student records` : "Student records"}
+        pending={pendingIf(enrolled)}
         onClick={() => go("students")}
         data-kpi="students"
       />
@@ -172,13 +194,23 @@ export function AdminKpis({ go }: { go: Go }) {
       <StatTile
         icon={Wallet}
         tone="violet"
-        label="Fees outstanding"
-        value={recv.data ? formatInr(recv.data.totalOutstanding).replace(/\.00$/, "") : noInst ? "—" : "…"}
-        hint={recv.data ? `${formatInr(recv.data.totalOverdue).replace(/\.00$/, "")} overdue` : recv.isError ? "Receivables unavailable" : "Receivables"}
+        label="Fee collection"
+        value={loadingOr(collected, inr)}
+        hint={outstanding !== undefined ? `${inr(outstanding)} outstanding` : metrics.isError ? "Figures unavailable" : "Payments collected"}
+        pending={pendingIf(collected)}
         onClick={() => go("finance/receivables")}
         data-kpi="fees"
       />
-      <StatTile icon={UserCheck} tone="blue" label="Attendance today" value="—" hint="Campus-wide" pending="Arrives in Batch 9" onClick={() => go("reports")} data-kpi="attendance" />
+      <StatTile
+        icon={Wrench}
+        tone="blue"
+        label="Open work orders"
+        value={loadingOr(workOrders, count)}
+        hint={pastSla !== undefined ? `${count(pastSla)} service ticket(s) past SLA` : "Campus maintenance"}
+        pending={pendingIf(workOrders)}
+        onClick={() => go("campus/facilities")}
+        data-kpi="work-orders"
+      />
     </>
   );
 }

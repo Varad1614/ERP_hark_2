@@ -105,8 +105,12 @@ pub struct SupplierView {
     /// `prospective | registered | approved | active | suspended | merged | inactive`.
     pub status: String,
     pub status_reason: Option<String>,
-    /// Submitted for `SUPPLIER_APPROVAL`, awaiting a decision.
+    /// Submitted for `SUPPLIER_APPROVAL`, awaiting a decision. Deprecated (Batch 9 §6.4): read
+    /// `approvalState`; kept for existing clients.
     pub approval_pending: bool,
+    /// 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+    /// rejected`, contract batch9 §6.4), derived from the status + `approvalPending`.
+    pub approval_state: String,
     pub canonical_supplier_id: Option<Uuid>,
     pub process_instance_id: Option<String>,
     pub registered_at: Option<DateTime<Utc>>,
@@ -136,7 +140,10 @@ pub struct SupplierList {
 const SELECT: &str = "SELECT id, institution_id, number, legal_name, trade_name, category, gstin, \
     pan, email, phone, address, bank_account_name, bank_account_number, bank_ifsc, status, \
     status_reason, approval_pending, canonical_supplier_id, process_instance_id, registered_at, \
-    approved_at, version, created_at FROM resources.supplier";
+    approved_at, version, created_at, \
+    CASE WHEN approval_pending THEN 'pending' \
+         WHEN approved_at IS NOT NULL OR status IN ('approved', 'active', 'suspended') THEN 'approved' \
+         ELSE 'not_requested' END AS approval_state FROM resources.supplier"; // 9E: approvalState
 
 /// A supplier of the tenant (404 when missing); `lock` takes the row lock. The bank account
 /// number is **not** masked here (internal use); views mask it.

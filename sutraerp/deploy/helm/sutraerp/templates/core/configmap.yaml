@@ -1,0 +1,38 @@
+{{- /* Foundation: non-secret API environment shared by the api Deployment and the migrate Job (9B extends). */ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sutraerp.fullname" . }}-env
+  labels:
+    {{- include "sutraerp.labels" . | nindent 4 }}
+data:
+  SUTRA_ENV: {{ .Values.global.environment | quote }}
+  SUTRA_LOG_FORMAT: "json"
+  SUTRA_HTTP_ADDR: {{ printf "0.0.0.0:%v" .Values.api.port | quote }}
+  SUTRA_METRICS_ADDR: {{ printf "0.0.0.0:%v" .Values.api.metricsPort | quote }}
+  SUTRA_AUTH_MODE: {{ .Values.api.authMode | quote }}
+  SUTRA_PUBLIC_URL: {{ .Values.api.publicUrl | quote }}
+  SUTRA_OUTBOX_RELAY: "nats"
+  SUTRA_NATS_URL: {{ .Values.nats.url | quote }}
+  SUTRA_NATS_STREAM: {{ .Values.nats.stream | quote }}
+  SUTRA_CACHE: "valkey"
+  SUTRA_VALKEY_URL: {{ .Values.valkey.url | quote }}
+  OTEL_SERVICE_NAME: "sutra-api"
+  {{- if .Values.observability.enabled }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.observability.otlpEndpoint | quote }}
+  OTEL_EXPORTER_OTLP_PROTOCOL: {{ .Values.observability.otlpProtocol | quote }}
+  OTEL_TRACES_SAMPLER_ARG: {{ .Values.observability.sampleRatio | quote }}
+  {{- end }}
+  SUTRA_WORKFLOW: {{ ternary "flowable" "noop" .Values.flowable.enabled | quote }}
+  {{- if .Values.flowable.enabled }}
+  SUTRA_FLOWABLE_URL: {{ .Values.flowable.url | quote }}
+  SUTRA_FLOWABLE_USER: {{ .Values.flowable.user | quote }}
+  {{- end }}
+  SUTRA_SEARCH: {{ ternary "opensearch" "off" .Values.opensearch.enabled | quote }}
+  {{- if .Values.opensearch.enabled }}
+  SUTRA_OPENSEARCH_URL: {{ .Values.opensearch.url | quote }}
+  SUTRA_OPENSEARCH_INDEX_PREFIX: {{ default (printf "sutra-%s" .Values.global.environment) .Values.opensearch.indexPrefix | quote }}
+  {{- end }}
+  {{- range $k, $v := .Values.api.extraEnv }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}

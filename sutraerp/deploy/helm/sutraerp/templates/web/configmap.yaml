@@ -1,0 +1,41 @@
+{{- /* 9B: nginx site config for the web image (same as deploy/docker/nginx.conf, upstream = the
+release's API Service instead of the compose host `api`). */ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sutraerp.componentName" (dict "root" . "component" "web") }}-nginx
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "web") | nindent 4 }}
+data:
+  default.conf: |
+    server {
+      listen {{ .Values.web.port }};
+      server_name _;
+      root /usr/share/nginx/html;
+
+      add_header X-Content-Type-Options nosniff always;
+      add_header Referrer-Policy strict-origin-when-cross-origin always;
+      add_header X-Frame-Options DENY always;
+
+      location /api/ {
+        proxy_pass http://{{ include "sutraerp.componentName" (dict "root" . "component" "api") }}:{{ .Values.api.port }};
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+
+      location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+      }
+
+      location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+      }
+
+      location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+      }
+    }

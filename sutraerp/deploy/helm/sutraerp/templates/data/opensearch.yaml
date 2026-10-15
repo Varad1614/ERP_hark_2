@@ -1,0 +1,100 @@
+{{- /* 9C: bundled single-node OpenSearch (docs/batch9-contracts.md §8) — StatefulSet + Service
+<fullname>-opensearch:9200. opensearch.securityDisabled=true (CI only) runs plain http without auth;
+otherwise the security plugin's initial admin password is SUTRA_OPENSEARCH_PASSWORD (OpenBao group
+`opensearch`, or secrets.existingSecret). Index templates + aliases are created by the API. */ -}}
+{{- if and .Values.opensearch.enabled .Values.opensearch.bundled }}
+{{- $name := include "sutraerp.data.name" (dict "root" . "component" "opensearch") -}}
+{{- $openbao := and (include "sutraerp.data.openbao" .) (not .Values.opensearch.securityDisabled) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.data.labels" (dict "root" . "component" "opensearch") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sutraerp.selectorLabels" (dict "root" . "component" "opensearch") | nindent 4 }}
+  ports:
+    - { name: http, port: 9200, targetPort: http, protocol: TCP }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.data.labels" (dict "root" . "component" "opensearch") | nindent 4 }}
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "opensearch") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.data.labels" (dict "root" . "component" "opensearch") | nindent 8 }}
+      {{- if $openbao }}
+      annotations:
+        {{- $tpl := printf "{{ with secret %q }}OPENSEARCH_INITIAL_ADMIN_PASSWORD='{{ .Data.data.SUTRA_OPENSEARCH_PASSWORD }}'\n{{ end }}" (include "sutraerp.openbaoPath" (dict "root" . "name" "opensearch")) }}
+        {{- include "sutraerp.data.openbaoAnnotations" (dict "root" . "file" "opensearch.env" "group" "opensearch" "template" $tpl) | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if $openbao }}
+      serviceAccountName: {{ include "sutraerp.data.serviceAccount" . }}
+      {{- end }}
+      automountServiceAccountToken: {{ ternary true false (not (empty $openbao)) }}
+      securityContext:
+        {{- include "sutraerp.data.podSecurity" (dict "uid" 1000) | nindent 8 }}
+      containers:
+        - name: opensearch
+          image: {{ .Values.opensearch.image | quote }}
+          {{- if $openbao }}
+          command: ["bash", "-c", "set -a; . /vault/secrets/opensearch.env; set +a; exec /usr/share/opensearch/opensearch-docker-entrypoint.sh"]
+          {{- end }}
+          env:
+            - { name: discovery.type, value: single-node }
+            - { name: bootstrap.memory_lock, value: "false" }
+            - { name: OPENSEARCH_JAVA_OPTS, value: {{ .Values.opensearch.javaOpts | quote }} }
+            {{- if .Values.opensearch.securityDisabled }}
+            - { name: DISABLE_SECURITY_PLUGIN, value: "true" }
+            - { name: DISABLE_INSTALL_DEMO_CONFIG, value: "true" }
+            {{- else if eq .Values.secrets.mode "kubernetes" }}
+            - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Values.secrets.existingSecret | quote }}, key: SUTRA_OPENSEARCH_PASSWORD } }
+            {{- end }}
+          ports:
+            - { name: http, containerPort: 9200, protocol: TCP }
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            {{- if .Values.opensearch.securityDisabled }}
+            httpGet: { path: /_cluster/health, port: http }
+            {{- else }}
+            tcpSocket: { port: http }
+            {{- end }}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            timeoutSeconds: 5
+          securityContext:
+            {{- include "sutraerp.data.containerSecurity" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.opensearch.resources | nindent 12 }}
+          volumeMounts:
+            - { name: data, mountPath: /usr/share/opensearch/data }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "sutraerp.selectorLabels" (dict "root" . "component" "opensearch") | nindent 10 }}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: {{ .Values.opensearch.storage }}
+{{- end }}

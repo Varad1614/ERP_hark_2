@@ -1,0 +1,78 @@
+{{- /* 9B: `sutra-api migrate` as the schema owner (SUTRA_MIGRATION_DATABASE_URL from the OpenBao
+`database` group); provisions the runtime role SUTRA_DB_RUNTIME_USER. A pre-install/pre-upgrade hook
+with external PostgreSQL; with the bundled StatefulSet a plain Job per revision that first waits
+for the database (see migrations.hook). */ -}}
+{{- if .Values.migrations.enabled }}
+{{- $hook := include "sutraerp.migrateHook" . -}}
+{{- $openbao := include "sutraerp.openbaoEnabled" . -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "sutraerp.migrateJobName" . }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "migrate") | nindent 4 }}
+  annotations:
+    {{- if $hook }}
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation
+    {{- end }}
+    sutraerp.io/release-revision: {{ .Release.Revision | quote }}
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.componentLabels" (dict "root" . "component" "migrate") | nindent 8 }}
+      {{- if $openbao }}
+      annotations:
+        {{- include "sutraerp.openbaoAnnotations" (dict "root" . "file" "sutra.env" "template" (include "sutraerp.openbaoDotenv" (dict "root" . "exclude" (list "POSTGRES_PASSWORD")))) | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "sutraerp.componentName" (dict "root" . "component" "migrate") }}
+      automountServiceAccountToken: {{ ternary true false (eq .Values.secrets.mode "openbao") }}
+      {{- include "sutraerp.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- toYaml .Values.api.podSecurityContext | nindent 8 }}
+      {{- if eq .Values.postgres.mode "bundled" }}
+      initContainers:
+        - name: wait-for-postgres
+          image: {{ .Values.postgres.bundled.image | quote }}
+          command: ["sh", "-c", "until pg_isready -q -h {{ include "sutraerp.componentName" (dict "root" . "component" "postgres") }} -p 5432; do echo waiting for postgres; sleep 2; done"]
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            {{- toYaml .Values.api.securityContext | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 64Mi }
+      {{- end }}
+      containers:
+        - name: migrate
+          image: {{ include "sutraerp.image" (dict "root" . "img" .Values.image.api) | quote }}
+          imagePullPolicy: {{ .Values.image.api.pullPolicy }}
+          args: ["migrate"]
+          env:
+            - { name: SUTRA_ENV, value: {{ .Values.global.environment | quote }} }
+            - { name: SUTRA_LOG_FORMAT, value: "json" }
+            {{- if $openbao }}
+            - { name: SUTRA_ENV_FILE, value: /vault/secrets/sutra.env }
+            {{- end }}
+          {{- if eq .Values.secrets.mode "kubernetes" }}
+          envFrom:
+            - secretRef:
+                name: {{ required "secrets.existingSecret is required when secrets.mode=kubernetes" .Values.secrets.existingSecret }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.migrations.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.api.securityContext | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+{{- end }}

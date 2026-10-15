@@ -363,7 +363,7 @@ pub async fn submit(
     check_version(v, pre.version)?;
     let open = matches!(
         pre.approval_state,
-        ReportingApprovalState::NotSubmitted | ReportingApprovalState::Rejected
+        ReportingApprovalState::NotRequested | ReportingApprovalState::Rejected
     );
     if pre.status != ReportingFrameworkStatus::Draft || !open {
         return Err(KernelError::Conflict(format!(

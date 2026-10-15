@@ -1,0 +1,150 @@
+{{- /* 9A: CI / pilot all-in-one grafana/otel-lgtm (collector + Prometheus + Loki + Tempo + Grafana) as `<release>-lgtm`. */ -}}
+{{- if and .Values.observability.enabled .Values.observability.lgtm.enabled }}
+{{- $fullname := include "sutraerp.fullname" . }}
+{{- $l := .Values.observability.lgtm }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-lgtm
+  labels:
+    {{- include "sutraerp.labels" . | nindent 4 }}
+data:
+  prometheus.yaml: |
+    global:
+      scrape_interval: 10s
+      evaluation_interval: 15s
+      scrape_native_histograms: true
+    otlp:
+      keep_identifying_resource_attributes: true
+      promote_resource_attributes: [service.instance.id, service.name, service.version, deployment.environment]
+    storage:
+      tsdb:
+        out_of_order_time_window: 10m
+    rule_files:
+      - /otel-lgtm/sutra-rules/*.yaml
+    scrape_configs:
+      - job_name: sutra-api
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["{{ $fullname }}-api-metrics:{{ .Values.api.metricsPort }}"]
+  sutra.rules.yaml: |-
+    {{- include "sutraerp.observability.rules" . | b64dec | nindent 4 }}
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: SutraERP
+        type: file
+        folder: SutraERP
+        options:
+          path: /otel-lgtm/sutra-dashboards
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-lgtm
+  labels:
+    {{- include "sutraerp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: lgtm
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "lgtm") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.selectorLabels" (dict "root" . "component" "lgtm") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include "sutraerp.observability.rules" . | sha256sum | trunc 16 }}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: lgtm
+          image: {{ $l.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: grafana, containerPort: 3000 }
+            - { name: otlp-grpc, containerPort: 4317 }
+            - { name: otlp-http, containerPort: 4318 }
+            - { name: prometheus, containerPort: 9090 }
+            - { name: loki, containerPort: 3100 }
+            - { name: tempo, containerPort: 3200 }
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "test -f /tmp/ready"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 60
+          resources:
+            {{- toYaml ($l.resources | default (dict "requests" (dict "cpu" "250m" "memory" "1Gi") "limits" (dict "memory" "3Gi"))) | nindent 12 }}
+          volumeMounts:
+            - { name: config, mountPath: /otel-lgtm/prometheus.yaml, subPath: prometheus.yaml, readOnly: true }
+            - { name: config, mountPath: /otel-lgtm/sutra-rules/sutra.rules.yaml, subPath: sutra.rules.yaml, readOnly: true }
+            - { name: config, mountPath: /otel-lgtm/grafana/conf/provisioning/dashboards/sutra.yaml, subPath: dashboards.yaml, readOnly: true }
+            - { name: dashboards, mountPath: /otel-lgtm/sutra-dashboards, readOnly: true }
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $fullname }}-lgtm
+        - name: dashboards
+          projected:
+            sources:
+              {{- range $name := splitList "," (include "sutraerp.observability.dashboards" .) }}
+              - configMap:
+                  name: {{ $fullname }}-dashboard-{{ trimPrefix "sutra-" $name }}
+              {{- end }}
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-lgtm
+  labels:
+    {{- include "sutraerp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: lgtm
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sutraerp.selectorLabels" (dict "root" . "component" "lgtm") | nindent 4 }}
+  ports:
+    - { name: grafana, port: 3000, targetPort: 3000 }
+    - { name: otlp-grpc, port: 4317, targetPort: 4317 }
+    - { name: otlp-http, port: 4318, targetPort: 4318 }
+    - { name: prometheus, port: 9090, targetPort: 9090 }
+    - { name: loki, port: 3100, targetPort: 3100 }
+    - { name: tempo, port: 3200, targetPort: 3200 }
+{{- if .Values.networkPolicy.enabled }}
+---
+# Additive policy: pods of the release (the API exporting OTLP) and port-forwards reach lgtm;
+# lgtm may scrape the API metrics port.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  # INT: 9B's core policies own `<fullname>-lgtm`; this additive scrape policy needs its own name.
+  name: {{ $fullname }}-lgtm-scrape
+  labels:
+    {{- include "sutraerp.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "lgtm") | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "sutraerp.selectorLabels" (dict "root" . "component" "api") | nindent 14 }}
+      ports:
+        - port: {{ .Values.api.metricsPort }}
+          protocol: TCP
+    - ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+{{- end }}
+{{- end }}

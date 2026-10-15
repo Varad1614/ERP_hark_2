@@ -1,0 +1,213 @@
+# Batch 9 · owned by slice 9A (sutraerp/docs/batch9-contracts.md §3, §4, §10). Keep the job name
+# stable (the pinger and b9-ci.sh read it).
+#
+# Proof: the API (debug build) runs on the runner with OTLP export to grafana/otel-lgtm
+# (deploy/observability/compose.yaml) and deploy/ci/check-telemetry.sh (SUTRA_CI_MODE=compose)
+# asserts a trace in Tempo, the HTTP metrics in Prometheus, a log line with that trace_id in Loki,
+# the /metrics families, a sealed + verified audit chain, the loaded alert rules and the Grafana
+# dashboards. Static gates first: generated files in sync, promtool check + test, dashboard
+# contract, collector / values YAML, helm render of the observability templates.
+name: SutraERP observability (OTel · LGTM · audit chain)
+
+on:
+  push:
+    branches: [main, erp_merge, "batch9/**"]
+    tags: ["v*"]
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-observability.yml"]
+  workflow_dispatch:
+  pull_request:
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-observability.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sutraerp-observability-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+env:
+  PROMETHEUS_IMAGE: prom/prometheus:v3.13.4
+  HELM_VERSION: v3.16.4
+
+jobs:
+  telemetry:
+    name: Observability (OTel → Prometheus · Loki · Tempo)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- static gates -------------------------------------------------------------------
+      - name: Generated rules / tests / dashboards / chart embed are in sync (gen.py)
+        run: |
+          (cd deploy/observability && python3 gen.py)
+          git diff --exit-code -- deploy/observability deploy/helm/sutraerp/templates/observability \
+            || { echo "::error::run python3 gen.py in sutraerp/deploy/observability and commit"; exit 1; }
+
+      - name: Alert rules (promtool check rules + test rules)
+        run: |
+          docker run --rm -v "$PWD/deploy/observability/alerts:/rules:ro" --entrypoint promtool \
+            "$PROMETHEUS_IMAGE" check rules /rules/sutra.rules.yaml
+          docker run --rm -v "$PWD/deploy/observability/alerts:/rules:ro" -w /rules/tests --entrypoint promtool \
+            "$PROMETHEUS_IMAGE" test rules sutra.rules.test.yaml
+          docker run --rm -v "$PWD/deploy/observability/lgtm:/cfg:ro" \
+            -v "$PWD/deploy/observability/alerts:/otel-lgtm/sutra-rules:ro" --entrypoint promtool \
+            "$PROMETHEUS_IMAGE" check config /cfg/prometheus.yaml
+
+      - name: Dashboards follow the contract (uid, datasource variables, sutra_* metrics)
+        run: |
+          python3 - <<'EOF'
+          import json, re, glob, sys
+          contract = {"sutra_http_requests_total", "sutra_http_request_duration_seconds_bucket",
+                      "sutra_http_requests_in_flight", "sutra_db_pool_connections", "sutra_outbox_pending",
+                      "sutra_outbox_published_total", "sutra_outbox_failed_total", "sutra_job_runs_total",
+                      "sutra_audit_unsealed", "sutra_audit_chain_verify_failures_total", "sutra_build_info",
+                      "sutra_process_start_time_seconds", "sutra_workflow_calls_total",
+                      "sutra_search_projection_lag_seconds"}
+          want = {"api-red", "database", "outbox-jobs", "audit-chain", "workflow-search"}
+          seen, errors = set(), []
+          for path in sorted(glob.glob("deploy/observability/dashboards/*.json")):
+              d = json.load(open(path))
+              name = path.rsplit("/", 1)[1][len("sutra-"):-len(".json")]
+              seen.add(name)
+              if d.get("uid") != f"sutra-{name}": errors.append(f"{path}: uid {d.get('uid')}")
+              names = {v["name"] for v in d["templating"]["list"]}
+              if not {"DS_PROMETHEUS", "DS_LOKI", "DS_TEMPO"} <= names: errors.append(f"{path}: datasource variables {names}")
+              if not d.get("panels"): errors.append(f"{path}: no panels")
+              for p in d["panels"]:
+                  if p["datasource"]["uid"] not in ("${DS_PROMETHEUS}", "${DS_LOKI}", "${DS_TEMPO}"):
+                      errors.append(f"{path}: panel {p['title']} datasource {p['datasource']}")
+                  for t in p.get("targets", []):
+                      for m in re.findall(r"\bsutra_[a-z_]+", t.get("expr", "")):
+                          if m not in contract: errors.append(f"{path}: {m} is not a contract metric")
+          if seen != want: errors.append(f"dashboards {sorted(seen)} != {sorted(want)}")
+          print("\n".join(errors) or f"dashboards ok: {sorted(seen)}")
+          sys.exit(1 if errors else 0)
+          EOF
+
+      - name: Collector, compose and upstream chart values parse
+        run: |
+          python3 - <<'EOF'
+          import yaml, glob
+          files = ["deploy/observability/otel-collector.yaml", "deploy/observability/compose.yaml",
+                   "deploy/observability/lgtm/prometheus.yaml", *glob.glob("deploy/observability/helm/*.yaml")]
+          for f in files:
+              list(yaml.safe_load_all(open(f)))
+          c = yaml.safe_load(open("deploy/observability/otel-collector.yaml"))
+          assert set(c["service"]["pipelines"]) == {"traces", "logs"}, c["service"]["pipelines"]
+          print("yaml ok:", len(files), "files")
+          EOF
+          docker compose -f deploy/observability/compose.yaml config -q
+
+      - name: Helm render of the observability templates (kind + production flags)
+        run: |
+          curl -sSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" | tar xz -C "$RUNNER_TEMP"
+          H="$RUNNER_TEMP/linux-amd64/helm"
+          $H lint deploy/helm/sutraerp -f deploy/helm/sutraerp/ci/kind.yaml
+          $H template sutraerp deploy/helm/sutraerp -n sutraerp -f deploy/helm/sutraerp/ci/kind.yaml > "$RUNNER_TEMP/kind.yaml"
+          $H template sutraerp deploy/helm/sutraerp -n sutraerp \
+            --set observability.serviceMonitor.enabled=true --set observability.prometheusRule.enabled=true \
+            --set observability.grafanaDashboards.enabled=true > "$RUNNER_TEMP/prod.yaml"
+          python3 - "$RUNNER_TEMP/kind.yaml" "$RUNNER_TEMP/prod.yaml" <<'EOF'
+          import json, sys, yaml
+          kind = [d for d in yaml.safe_load_all(open(sys.argv[1])) if d]
+          prod = [d for d in yaml.safe_load_all(open(sys.argv[2])) if d]
+          names = {(d["kind"], d["metadata"]["name"]) for d in kind}
+          for need in [("Deployment", "sutraerp-lgtm"), ("Service", "sutraerp-lgtm"), ("Service", "sutraerp-api-metrics"),
+                       ("ConfigMap", "sutraerp-lgtm"), ("ConfigMap", "sutraerp-dashboard-api-red")]:
+              assert need in names, f"kind render lacks {need}"
+          for d in kind:
+              if d["kind"] == "ConfigMap" and "-dashboard-" in d["metadata"]["name"]:
+                  for v in d["data"].values(): json.loads(v)
+          rule = next(d for d in prod if d["kind"] == "PrometheusRule")
+          assert len(rule["spec"]["groups"][0]["rules"]) == 7
+          assert any(d["kind"] == "ServiceMonitor" for d in prod)
+          print("helm render ok:", len(kind), "kind docs,", len(prod), "prod docs")
+          EOF
+
+      # ---- live proof ---------------------------------------------------------------------
+      - name: Start PostgreSQL 18 + grafana/otel-lgtm
+        run: docker compose -f deploy/observability/compose.yaml up -d --wait --wait-timeout 300
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: e2e-api
+          save-if: false
+
+      - name: Build the API (debug)
+        run: cargo build -p sutra-api --locked
+
+      - name: Migrate
+        run: SUTRA_ENV=development target/debug/sutra-api migrate
+
+      - name: Serve with OTLP export → lgtm
+        run: |
+          export SUTRA_ENV=development SUTRA_LOG_FORMAT=json RUST_LOG=info,tower_http=info,sqlx=warn
+          export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+          export OTEL_SERVICE_NAME=sutra-api OTEL_RESOURCE_ATTRIBUTES=ci.run=${{ github.run_id }}
+          export SUTRA_METRICS=true SUTRA_METRICS_ADDR=0.0.0.0:9464 SUTRA_GIT_SHA="${GITHUB_SHA::12}"
+          export SUTRA_AUDIT_CHAIN=true SUTRA_AUDIT_SEAL_SECS=2 SUTRA_AUDIT_ANCHOR_SECS=5
+          export SUTRA_AUDIT_ANCHOR_KEY="$(openssl rand -hex 32)" SUTRA_AUDIT_ANCHOR_KEY_ID=ci
+          nohup target/debug/sutra-api serve > "$RUNNER_TEMP/api.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/api.pid"
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/health/ready >/dev/null && exit 0
+            sleep 2
+          done
+          echo "::error::API not ready"; tail -n 100 "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: check-telemetry (SUTRA_CI_MODE=compose)
+        env:
+          SUTRA_CI_MODE: compose
+          SUTRA_CI_API_URL: http://localhost:8080
+          SUTRA_CI_TELEMETRY_TIMEOUT: "180"
+          SUTRA_CI_TRACE_OUT: ${{ runner.temp }}/trace-id
+        run: bash deploy/ci/check-telemetry.sh
+
+      - name: JSON logs carry trace_id / span_id; anchors written; graceful shutdown flushes
+        run: |
+          TRACE="$(cat "$RUNNER_TEMP/trace-id")"
+          grep -F "\"trace_id\":\"$TRACE\"" "$RUNNER_TEMP/api.log" | head -n 3
+          grep -F "\"trace_id\":\"$TRACE\"" "$RUNNER_TEMP/api.log" | grep -q '"span_id":"' \
+            || { echo "::error::no stdout JSON log line with trace_id $TRACE and a span_id"; exit 1; }
+          for i in $(seq 1 30); do
+            n="$(docker compose -f deploy/observability/compose.yaml exec -T postgres \
+                  psql -U sutra -d sutra -tAc 'SELECT count(*) FROM platform.audit_anchor')"
+            [ "${n:-0}" -gt 0 ] && break
+            sleep 2
+          done
+          echo "anchors: $n"; [ "${n:-0}" -gt 0 ] || { echo "::error::audit_anchor job wrote no anchor"; exit 1; }
+          kill -TERM "$(cat "$RUNNER_TEMP/api.pid")"
+          for i in $(seq 1 30); do
+            kill -0 "$(cat "$RUNNER_TEMP/api.pid")" 2>/dev/null || break
+            sleep 1
+          done
+          grep -q '"shutdown complete"' "$RUNNER_TEMP/api.log" \
+            || { echo "::error::API did not shut down cleanly"; tail -n 50 "$RUNNER_TEMP/api.log"; exit 1; }
+          echo "shutdown complete (OTLP flushed)"
+
+      - name: Diagnostics
+        if: failure()
+        run: |
+          mkdir -p "$RUNNER_TEMP/diag"
+          cp "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/diag/" 2>/dev/null || true
+          docker compose -f deploy/observability/compose.yaml ps > "$RUNNER_TEMP/diag/ps.txt" 2>&1 || true
+          docker compose -f deploy/observability/compose.yaml logs --tail=400 > "$RUNNER_TEMP/diag/compose.log" 2>&1 || true
+          curl -s http://localhost:9464/metrics > "$RUNNER_TEMP/diag/metrics.txt" || true
+          curl -s http://localhost:9090/api/v1/targets > "$RUNNER_TEMP/diag/targets.json" || true
+          tail -n 200 "$RUNNER_TEMP/api.log" || true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: observability-diagnostics
+          path: ${{ runner.temp }}/diag
+          retention-days: 7

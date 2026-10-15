@@ -330,10 +330,17 @@ pub enum Permission {
     AssetManage,
     /// Batch 8: decide governed resource approvals — supplier approval, requisitions, awards, purchase orders, adjustments, vendor invoice posting, asset retirement (step-up).
     ResourcesApprove,
+    // ---- Batch 9 (production hardening + Domain G00 / H09 carry-overs, docs/batch9-contracts.md §6). ----
+    /// 9A: read the tamper-evident audit chain, verify it and list anchors (administrators).
+    AuditVerify,
+    /// 9E (Domain G00): campus governance — policies, standards, compliance obligations, risk register, reviews.
+    GovernanceManage,
+    /// 9E (Domain H09): accreditation — frameworks, cycles, criteria, evidence, self-study, peer visits, outcomes.
+    AccreditationManage,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 109] = [
+    pub const ALL: [Permission; 112] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -443,6 +450,9 @@ impl Permission {
         Permission::InventoryManage,
         Permission::AssetManage,
         Permission::ResourcesApprove,
+        Permission::AuditVerify,
+        Permission::GovernanceManage,
+        Permission::AccreditationManage,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -556,6 +566,9 @@ impl Permission {
             Permission::InventoryManage => "resources.inventory.manage",
             Permission::AssetManage => "resources.asset.manage",
             Permission::ResourcesApprove => "resources.approve",
+            Permission::AuditVerify => "platform.audit.verify",
+            Permission::GovernanceManage => "campus.governance.manage",
+            Permission::AccreditationManage => "services.accreditation.manage",
         }
     }
 
@@ -710,6 +723,10 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             InventoryManage,
             AssetManage,
             ResourcesApprove,
+            // Batch 9: audit verification, campus governance (G00), accreditation (H09).
+            AuditVerify,
+            GovernanceManage,
+            AccreditationManage,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -1191,6 +1208,20 @@ mod tests {
         }
         assert!(!Permission::CampusSelfService.requires_step_up());
         assert!(!Permission::LibraryManage.requires_step_up());
+    }
+
+    #[test]
+    fn batch9_grants() {
+        for p in [
+            Permission::AuditVerify,
+            Permission::GovernanceManage,
+            Permission::AccreditationManage,
+        ] {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
+            assert!(!p.requires_step_up(), "{p:?}");
+        }
+        assert_eq!(Permission::AuditVerify.as_str(), "platform.audit.verify");
     }
 
     #[test]

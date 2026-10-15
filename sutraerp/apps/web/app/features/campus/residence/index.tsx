@@ -18,6 +18,7 @@ import { Actions, fmtDate, REASON, todayIso, useAsk, type FieldSpec, type RowAct
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { rkeys, useResidenceApi } from "./hooks";
+import { kindOf, personField, usePeople, type PersonOption } from "../PersonPicker"; // 9E
 import type { HostelAllocation, HostelApplication, HostelBed, HostelPolicy, Mess, ResidentLeave, RoomInspection, RouteVersion, TransportAllocation, TransportPass, TransportRoute, TransportStop, Trip, Vehicle } from "./types";
 import { formatInr } from "../../finance";
 
@@ -41,9 +42,10 @@ const VEHICLE_STATES = [
   { value: "under_maintenance", label: "Under maintenance" },
   { value: "retired", label: "Retired" },
 ];
-const PERSON_FIELDS: FieldSpec[] = [
+// 9E: PersonPicker — people are chosen by number + name from the directories, not by record id.
+const personFields = (people: readonly PersonOption[]): FieldSpec[] => [
   { name: "personKind", label: "Person", type: "select", options: PERSON_KINDS, initial: "student" },
-  { name: "personId", label: "Student / staff record id", required: true, placeholder: "UUID of the Domain C / E record", wide: true },
+  personField(people),
 ];
 const APPLICATION_FILTERS = ["under_review", "approved", "waitlisted", "allocated", ""] as const;
 const OPTIONAL_REASON: FieldSpec = { name: "reason", label: "Reason", wide: true };
@@ -228,6 +230,7 @@ function ApplicationsTile({ inst }: { inst: string }) {
   const { ask, prompt } = useAsk();
   const [filter, setFilter] = useState<string>("under_review");
   const { beds } = useHostel(inst);
+  const { people } = usePeople(inst); // 9E
   const apps = useQuery({ queryKey: rkeys(inst, `applications:${filter}`), queryFn: () => api.applications(inst, filter || undefined) }).data;
   const freeBeds = (beds ?? []).filter((b) => b.status === "available").map((b) => ({ value: b.id, label: `${b.roomCode} · bed ${b.bedCode}` }));
   const actions = (a: HostelApplication): RowAction[] => {
@@ -267,9 +270,9 @@ function ApplicationsTile({ inst }: { inst: string }) {
             ask({
               title: "Apply on behalf of a student or staff member",
               name: "hostel-application",
-              fields: [...PERSON_FIELDS, { name: "preference", label: "Preference", wide: true }],
+              fields: [...personFields(people), { name: "preference", label: "Preference", wide: true }],
               submitLabel: "Submit application",
-              onSubmit: (v) => submit(() => api.apply(inst, { personKind: v.personKind, personId: v.personId?.trim(), preference: v.preference || undefined }), (r) => `Application ${r.number} ${statusLabel(r.status).toLowerCase()}`),
+              onSubmit: (v) => submit(() => api.apply(inst, { personKind: kindOf(people, v.personId, v.personKind), personId: v.personId?.trim(), preference: v.preference || undefined }), (r) => `Application ${r.number} ${statusLabel(r.status).toLowerCase()}`),
             })
           }
         >
@@ -916,6 +919,7 @@ function DriversTile({ inst }: { inst: string }) {
   const { submit, dialog } = useCommand();
   const { ask, prompt } = useAsk();
   const { routes } = useTransport(inst);
+  const { people: staff } = usePeople(inst, ["staff"]); // 9E
   const [selected, setSelected] = useState<string | null>(null);
   const route = routes?.find((r) => r.id === selected) ?? routes?.[0];
   const drivers = useQuery({ queryKey: rkeys(inst, `drivers:${route?.id ?? ""}`), queryFn: () => api.drivers(route!.id), enabled: !!route }).data;
@@ -935,7 +939,7 @@ function DriversTile({ inst }: { inst: string }) {
               title: `Assign a driver to ${route.code}`,
               name: "driver",
               fields: [
-                { name: "staffId", label: "Staff record id", required: true, wide: true, placeholder: "UUID of the Domain E staff record" },
+                personField(staff, { name: "staffId", label: "Driver (staff member)", kind: "staff" }),
                 { name: "licenceNo", label: "Licence no.", required: true },
                 { name: "validFrom", label: "Valid from", type: "date", required: true, initial: todayIso() },
               ],
@@ -976,6 +980,7 @@ function PassengersTile({ inst }: { inst: string }) {
   const { run, submit, busy, dialog } = useCommand();
   const { ask, prompt } = useAsk();
   const { passengers, routes, stops } = useTransport(inst);
+  const { people } = usePeople(inst); // 9E
   const routeOptions = (routes ?? []).filter((r) => r.status === "active").map((r) => ({ value: r.id, label: `${r.code} · ${r.name}` }));
   const stopOptions = (stops ?? []).filter((s) => s.status === "active").map((s) => ({ value: s.id, label: `${s.code} · ${s.name}` }));
   const actions = (p: TransportAllocation): RowAction[] => {
@@ -1035,12 +1040,12 @@ function PassengersTile({ inst }: { inst: string }) {
               title: "Allocate a passenger",
               name: "passenger",
               fields: [
-                ...PERSON_FIELDS,
+                ...personFields(people),
                 { name: "routeId", label: "Route", type: "select", options: routeOptions, required: true, initial: routeOptions[0]?.value },
                 { name: "stopId", label: "Boarding stop", type: "select", options: stopOptions, required: true, initial: stopOptions[0]?.value },
               ],
               submitLabel: "Allocate",
-              onSubmit: (v) => submit(() => api.allocatePassenger(inst, { personKind: v.personKind, personId: v.personId?.trim(), routeId: v.routeId, stopId: v.stopId }), (r) => (r.status === "active" ? "Seat allocated" : "Route full — request waiting for a seat")),
+              onSubmit: (v) => submit(() => api.allocatePassenger(inst, { personKind: kindOf(people, v.personId, v.personKind), personId: v.personId?.trim(), routeId: v.routeId, stopId: v.stopId }), (r) => (r.status === "active" ? "Seat allocated" : "Route full — request waiting for a seat")),
             })
           }
         >

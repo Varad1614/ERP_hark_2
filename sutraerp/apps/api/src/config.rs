@@ -278,6 +278,8 @@ pub struct Config {
     pub mail: MailConfig,
     pub inbox: InboxConfig,
     pub webauthn: WebauthnConfig,
+    /// Batch 9: telemetry export, audit chain, Flowable, OpenSearch (`config_b9`, contract §1).
+    pub hardening: crate::config_b9::HardeningConfig,
 }
 
 /// A secret string whose `Debug` is redacted.
@@ -695,6 +697,7 @@ impl Config {
             mail,
             inbox,
             webauthn,
+            hardening: crate::config_b9::HardeningConfig::load(src, env)?,
         };
         cfg.validate()?;
         Ok(cfg)
@@ -744,6 +747,11 @@ impl Config {
                     "SUTRA_OUTBOX_RELAY=off is not allowed in production unless \
                      SUTRA_OUTBOX_RELAY_ALLOW_OFF=true (another deployment relays the outbox)",
                 ));
+            }
+            // 9A: a sealed audit chain must be anchorable (contract §4.3).
+            if self.hardening.audit_chain.enabled && self.hardening.audit_chain.anchor_key.is_none()
+            {
+                return Err(ConfigError::RequiredInProduction("SUTRA_AUDIT_ANCHOR_KEY"));
             }
         }
         if self.relay.batch_size == 0 || self.relay.batch_size > 10_000 {
@@ -969,12 +977,28 @@ mod tests {
             Config::load(&dev_key),
             Err(ConfigError::Forbidden(_))
         ));
+        let no_anchor_key = HashMap::from([
+            ("SUTRA_ENV", "production"),
+            ("DATABASE_URL", "postgres://x"),
+            ("SUTRA_OIDC_CLIENT_SECRET", "s"),
+            ("SUTRA_CSRF_KEY", KEY),
+            ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
+        ]);
+        // 9A: the audit chain is on by default in production and needs its anchor key.
+        assert!(matches!(
+            Config::load(&no_anchor_key),
+            Err(ConfigError::RequiredInProduction("SUTRA_AUDIT_ANCHOR_KEY"))
+        ));
+        let mut chain_off = no_anchor_key.clone();
+        chain_off.insert("SUTRA_AUDIT_CHAIN", "false");
+        assert!(Config::load(&chain_off).is_ok(), "chain off needs no key");
         let ok = HashMap::from([
             ("SUTRA_ENV", "production"),
             ("DATABASE_URL", "postgres://x"),
             ("SUTRA_OIDC_CLIENT_SECRET", "s"),
             ("SUTRA_CSRF_KEY", KEY),
             ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
+            ("SUTRA_AUDIT_ANCHOR_KEY", KEY), // 9A
         ]);
         let c = Config::load(&ok).unwrap();
         assert_eq!(c.relay.mode, OutboxRelayMode::Nats, "relay on by default");
@@ -1074,6 +1098,7 @@ mod tests {
                 ("SUTRA_OIDC_CLIENT_SECRET", "s"),
                 ("SUTRA_CSRF_KEY", KEY),
                 ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
+                ("SUTRA_AUDIT_ANCHOR_KEY", KEY), // 9A
                 ("SUTRA_OUTBOX_RELAY", "off"),
                 extra,
             ]))

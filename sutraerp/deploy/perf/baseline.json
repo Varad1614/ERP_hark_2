@@ -1,0 +1,38 @@
+{
+  "_comment": "p95 baselines of the \u00a79 gates (docs/batch9-contracts.md). Filled from the first green CI run of each gate (artifact perf-results / perf-results-capacity); capacity regressions > 25 % on any p95 fail the Capacity (k6) job. Update only from a green CI run, never by hand-tuning.",
+  "smoke": {
+    "source": "CI run 38559184098 (fc1b377d), first green perf-smoke",
+    "requests": 7686,
+    "rps": 127.7,
+    "failedRate": 0,
+    "p95": {
+      "read": 26.9,
+      "write": 9.8,
+      "overall": 25.6
+    },
+    "p99": {
+      "read": 31.5,
+      "write": 11.9,
+      "overall": 30.5
+    },
+    "students": 2004
+  },
+  "capacity": {
+    "source": "CI runs 38645104974 + 38647826036 (workflow_dispatch, e1043a46), mean of 2; re-baselined 2026-10-15 after the audit-sealer fix fc785ffd and synchronous_commit=off on CI PG; Batch 9 telemetry/audit overhead accepted, profiling is a pre-pilot follow-up",
+    "requests": 209445,
+    "rps": 436.1,
+    "failedRate": 0,
+    "vusMax": 100,
+    "p95": {
+      "read": 61.5,
+      "write": 34.2,
+      "overall": 47.3
+    },
+    "p99": {
+      "read": 153.0,
+      "write": 51.6,
+      "overall": 132.3
+    },
+    "students": 2004
+  }
+}

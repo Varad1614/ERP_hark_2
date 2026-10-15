@@ -22,6 +22,7 @@ export const CAMPUS_OPS_TABS = [
   { key: "procurement", label: "Procurement", slice: "8D" },
   { key: "inventory", label: "Inventory", slice: "8D" },
   { key: "assets", label: "Assets", slice: "8D" },
+  { key: "governance", label: "Governance", slice: "9E" }, // 9E: G00 campus governance
 ] as const;
 
 /** Every tab of Admin → Campus (first = default: the Batch 2 institution tab). */
@@ -31,6 +32,7 @@ export const CAMPUS_TABS = [...CAMPUS_SETUP_TABS, ...CAMPUS_OPS_TABS] as const;
 export const REPORTS_TABS = [
   { key: "dashboards", label: "Dashboards", slice: "8C" },
   { key: "regulatory", label: "Regulatory reporting", slice: "8C" },
+  { key: "accreditation", label: "Accreditation", slice: "9E" }, // 9E: H09 accreditation
 ] as const;
 
 /** Role-facing Batch 8 screens: route path → the slices that render panels on it and the roles that may open it. */

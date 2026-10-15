@@ -146,7 +146,11 @@ pub struct VendorInvoiceView {
     #[schema(value_type = Vec<VendorInvoiceFinding>)]
     pub match_findings: serde_json::Value,
     pub matched_at: Option<DateTime<Utc>>,
+    /// Deprecated (Batch 9 §6.4): read `approvalState`; kept for existing clients.
     pub approval_pending: bool,
+    /// 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+    /// rejected`, contract batch9 §6.4), derived from the status + `approvalPending`.
+    pub approval_state: String,
     pub process_instance_id: Option<String>,
     /// Finance journal entry of the posting.
     pub journal_entry_id: Option<Uuid>,
@@ -210,7 +214,10 @@ const SELECT: &str = "SELECT v.id, v.institution_id, v.number, v.supplier_id, \
     o.number AS purchase_order_number, v.supplier_invoice_number, v.is_credit_note, v.invoice_date, \
     v.due_date, v.inventory_amount, v.expense_amount, v.total_amount, v.paid_amount, v.status, \
     v.status_reason, v.match_findings, v.matched_at, v.approval_pending, v.process_instance_id, \
-    v.journal_entry_id, v.entry_number, v.posted_at, v.version, v.created_at \
+    v.journal_entry_id, v.entry_number, v.posted_at, v.version, v.created_at, \
+    CASE WHEN v.approval_pending THEN 'pending' \
+         WHEN v.status IN ('approved', 'posted', 'paid') THEN 'approved' \
+         ELSE 'not_requested' END AS approval_state /* 9E: approvalState */ \
     FROM resources.vendor_invoice v JOIN resources.supplier s ON s.id = v.supplier_id \
     JOIN resources.purchase_order o ON o.id = v.purchase_order_id";
 

@@ -68,6 +68,9 @@ pub struct HostelPolicyView {
     /// `draft | approved | active | superseded` (a draft with a `processInstanceId` awaits a decision).
     pub status: String,
     pub status_reason: Option<String>,
+    /// 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+    /// rejected`, contract batch9 §6.4), derived from the status.
+    pub approval_state: String,
     pub process_instance_id: Option<String>,
     pub activated_at: Option<DateTime<Utc>>,
     pub version: i64,
@@ -75,7 +78,8 @@ pub struct HostelPolicyView {
 
 const POLICY_SELECT: &str = "SELECT x.id, x.institution_id, x.name, x.fee_per_term::text AS fee_per_term, \
     x.deposit::text AS deposit, x.curfew_time, x.eligibility_note, x.max_stay_terms, x.effective_from, \
-    x.status, x.status_reason, x.process_instance_id, x.activated_at, x.version FROM campus.hostel_policy x";
+    x.status, x.status_reason, x.process_instance_id, x.activated_at, x.version, \
+    CASE WHEN x.status = 'draft' AND x.process_instance_id IS NOT NULL THEN 'pending' WHEN x.status = 'draft' THEN 'not_requested' ELSE 'approved' END AS approval_state /* 9E: approvalState */ FROM campus.hostel_policy x";
 
 /// Policy versions of an institution.
 #[derive(Debug, Clone, Serialize, ToSchema)]

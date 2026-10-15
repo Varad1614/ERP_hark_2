@@ -11,6 +11,9 @@
 
 pub mod app;
 pub mod config;
+pub mod config_b9;
+pub mod metrics; // 9A
+pub mod metrics_bridge; // INT: 9C `metrics` facade → 9A registry
 pub mod openapi;
 pub mod shutdown;
 pub mod telemetry;

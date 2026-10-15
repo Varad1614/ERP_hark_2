@@ -1,0 +1,12 @@
+apiVersion: v2
+name: sutraerp
+description: SutraERP modular monolith (API, web, migrations) with optional bundled dependencies for CI / pilot (Batch 9, docs/batch9-contracts.md §3).
+type: application
+version: 0.9.0
+appVersion: "0.9.0"
+kubeVersion: ">=1.29.0-0"
+home: https://github.com/Varad1614/ERP_hark_2
+sources:
+  - https://github.com/Varad1614/ERP_hark_2/tree/erp_merge/sutraerp
+maintainers:
+  - name: Varad1614

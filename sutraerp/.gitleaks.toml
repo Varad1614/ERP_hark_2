@@ -1,0 +1,30 @@
+# Gitleaks configuration (Batch 9 · slice 9D, docs/security/findings.md SEC-9D-007).
+# Scanned in CI over the FULL git history: `gitleaks git --config sutraerp/.gitleaks.toml .`
+# (job `Security (cargo-deny · cargo-audit · pnpm audit · gitleaks)` in
+# .github/workflows/sutraerp-quality.yml). The default rule set stays on; the allow-list below names
+# only documented, non-production material — every entry is listed in docs/security/findings.md.
+title = "SutraERP gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Throwaway RSA keys used only by the OIDC ID-token validation unit tests (never deployed)"
+paths = [
+  '''^sutraerp/modules/platform/tests/fixtures/oidc-test-key-[ab]\.pem$''',
+]
+
+[[allowlists]]
+description = "False positives in architecture prose (the word lists 'authenticated shell, Institution/academic …' and 'APIs, idempotency/retries …' match generic-api-key)"
+paths = [
+  '''^architecture/L6_UI_UX_Architecture/README\.md$''',
+  '''^architecture/L3_Business_Scenario_Architecture/05_Phase5_Parallel_Authoring_and_Verification/01_Scenario_Documents/section-d/L3-D-039_[^/]+\.md$''',
+]
+
+[[allowlists]]
+description = "Documented local-development defaults (docker-compose.yml, README, e2e harness): never valid outside a developer machine or a CI job"
+regexTarget = "match"
+regexes = [
+  '''dev-only-change-me''',
+  '''sutra-api-dev-only''',
+]

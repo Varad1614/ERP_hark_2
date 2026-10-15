@@ -1001,6 +1001,10 @@ pub async fn gateway_webhook(
     headers: HeaderMap,
     body: Bytes,
 ) -> ApiResult<Json<WebhookAck>> {
+    // INT: SEC-9D-003 — feature off: 503 before any signature handling.
+    if st.gateway.name() == crate::payments::gateway::DISABLED_GATEWAY {
+        return Err(KernelError::Unavailable("online payments are disabled".into()).into());
+    }
     let signature = headers
         .get("x-razorpay-signature")
         .and_then(|v| v.to_str().ok())

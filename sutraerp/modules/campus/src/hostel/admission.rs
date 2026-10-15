@@ -82,6 +82,9 @@ pub struct HostelApplicationView {
     /// `submitted | under_review | approved | waitlisted | rejected | withdrawn | allocated`.
     pub status: String,
     pub status_reason: Option<String>,
+    /// 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+    /// rejected`, contract batch9 §6.4), derived from the status.
+    pub approval_state: String,
     pub process_instance_id: Option<String>,
     pub waitlisted_at: Option<DateTime<Utc>>,
     pub decided_at: Option<DateTime<Utc>>,
@@ -94,7 +97,8 @@ pub(crate) const APPLICATION_SELECT: &str =
     "SELECT x.id, x.institution_id, x.number, x.person_kind, \
     x.person_id, x.person_number, x.person_name, x.policy_id, x.preference, x.channel, x.status, \
     x.status_reason, x.process_instance_id, x.waitlisted_at, x.decided_at, x.allocation_id, \
-    x.created_at, x.version FROM campus.hostel_application x";
+    x.created_at, x.version, \
+    CASE WHEN x.status IN ('submitted', 'under_review') THEN 'pending' WHEN x.status IN ('approved', 'waitlisted', 'allocated') THEN 'approved' WHEN x.status = 'rejected' THEN 'rejected' ELSE 'not_requested' END AS approval_state /* 9E: approvalState */ FROM campus.hostel_application x";
 
 /// Applications of an institution.
 #[derive(Debug, Clone, Serialize, ToSchema)]

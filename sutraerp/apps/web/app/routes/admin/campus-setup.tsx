@@ -4,6 +4,7 @@ import { FacilitiesAdminTab, InfrastructureAdminTab, LabsAdminTab } from "../../
 import { LibraryAdminTab } from "../../features/campus/library";
 import { HostelAdminTab, TransportAdminTab } from "../../features/campus/residence";
 import { AssetsAdminTab, InventoryAdminTab, ProcurementAdminTab } from "../../features/campus/resources";
+import { GovernanceAdminTab } from "../../features/campus/governance"; // 9E
 import { AdminScreen } from "../../features/institution/AdminScreen";
 import { CampusesTab } from "../../features/institution/CampusesTab";
 import { InstitutionTab } from "../../features/institution/InstitutionTab";
@@ -57,6 +58,8 @@ export default function CampusSetup() {
             return <InventoryAdminTab institution={institution} />;
           case "assets":
             return <AssetsAdminTab institution={institution} />;
+          case "governance": // 9E
+            return <GovernanceAdminTab institution={institution} />;
           default:
             return <InstitutionTab institution={institution} />;
         }

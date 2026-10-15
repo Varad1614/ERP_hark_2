@@ -1,0 +1,49 @@
+# Security findings register (Batch 9 · slice 9D)
+
+One row per finding. **Severity** = judgement for this deployment (Critical / High / Medium / Low /
+Info). **Status**: `open` (owner named), `fixed` (fix sha), `accepted` (reason + expiry: on expiry
+the item re-enters triage, runbook §2). Accepted scanner ignores are mirrored in `deny.toml`, the
+`cargo-audit --ignore` flags of `.github/workflows/sutraerp-quality.yml`, `.trivyignore` and
+`.zap/rules.tsv` — keep them in sync. Threat model: [`threat-model.md`](threat-model.md).
+
+| Id | Severity | Component | Finding | Status | Owner / fix | Expiry |
+|----|----------|-----------|---------|--------|-------------|--------|
+| SEC-9D-003 | **High** | finance payments (`modules/finance/src/payments`, `apps/api/src/app.rs::finance_deps`) | The only payment adapter is `MockPaymentGateway`, wired in **every** environment: (a) its checkout captures any payment the student confirms (`/api/v1/finance/me/payments` → confirm), so fees can be marked paid without money; (b) the webhook HMAC secret is the public constant `sutra-dev-gateway-secret` (`DEV_WEBHOOK_SECRET`), so anyone who knows an order ref can forge `payment.captured`. | fixed (integration) | `batch9/integrate` — `SUTRA_PAYMENT_GATEWAY=disabled\|mock` (`config_b9.rs`; production default `disabled`, dev / test `mock`); disabled = `DisabledPaymentGateway` → online checkout, recovery polling, gateway refunds and the webhook answer 503 `dependency-unavailable` (webhook checked before any signature handling); `SUTRA_PAYMENT_WEBHOOK_SECRET` from OpenBao `payments`, production refuses unset / the dev constant / < 32 chars when `mock`; pilot values set `disabled`; go-live checklist line added. Unit tests `config_b9::payment_gateway_defaults_and_production_rules`, `gateway::disabled_gateway_refuses_everything`. A real gateway adapter stays a follow-up. | — |
+| SEC-9D-015 | **High** | api image runtime (`deploy/docker/api.Dockerfile`) | `gcr.io/distroless/cc-debian12:nonroot` ships `libssl3 3.0.20-1~deb12u2`: CVE-2026-75803 (Critical — AEAD tag not verified on empty ciphertext via `EVP_Cipher`), CVE-2026-63076 / -63072 / -54874 (High) + 2 Medium, all fixed in bookworm-security `3.0.22-1~deb12u1` (DSA-6465 / DLA-4795) but not yet in the distroless image. Found by **Grype** (CI run 38559184098); Trivy 0.75.0 did not report them (scanner DB difference — the reason both scanners gate). The API links OpenSSL through webauthn-rs. | fixed | 9D commit after `fc1b377d` (`# 9D: security`): build `rust:1-trixie`, runtime `gcr.io/distroless/cc-debian13:nonroot` (trixie OpenSSL 3.5.7, fixed); proved by the Trivy + Grype steps | — |
+| SEC-9D-016 | **High** | web image runtime (`deploy/docker/web.Dockerfile`) | `nginxinc/nginx-unprivileged:1.30-alpine` (built 2026-10-12) contains `zlib 1.3.2-r0`, CVE-2026-85091 (High), fixed in `1.3.2-r1`. Found by Grype (run 38559184098). | fixed | 9D commit after `fc1b377d`: `apk upgrade --no-cache` in the runtime stage (as root, back to UID 101) | — |
+| SEC-9D-004 | Medium | persistence / every module | Tenant isolation is enforced only by `WHERE tenant_id = $1` predicates in application SQL (no PostgreSQL row-level security). The session-bound scope and the per-module institution guards are correct, but one missing predicate in a new query leaks data across tenants. | open | Foundation (next batch): RLS policies on tenant tables keyed by `SET LOCAL sutra.tenant_id` per transaction, plus an architecture test that flags tenant-table queries without a tenant predicate | — |
+| SEC-9D-005 | Medium | API auth endpoints, ingress | No rate limiting / attempt throttling in the API or the web nginx: dev sign-in, pending-MFA verification and session step-up (TOTP) are not throttled per account or IP. Pending-MFA challenges are single-use (`auth/preauth.rs`), which bounds guessing per challenge; production passwords are Keycloak's (realm brute-force detection, design). | open | 9B: ingress rate limits on `/api/v1/auth/*` (pilot values); platform: per-session step-up attempt counter in a later batch | — |
+| SEC-9D-009 | Medium | web nginx (`deploy/docker/nginx.conf`) | Security headers were dropped on `/` and `/assets/`: nginx discards server-level `add_header` in any location with its own `add_header` (the per-location `Cache-Control`). Server version disclosed (`Server: nginx/1.x`). | fixed | `fc1b377d` (`# 9D: security`: Cache-Control via `map`, headers inherited everywhere, `server_tokens off`, + Permissions-Policy, COOP, CORP); proved by the header step of `Image scan + ZAP baseline` | — |
+| SEC-9D-010 | Medium | web nginx | No Content-Security-Policy. | fixed | `fc1b377d` — `default-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, same-origin `connect-src` | — |
+| SEC-9D-006 | Low | API responses | The API itself sets no generic browser-hardening headers (`X-Content-Type-Options`, `Cache-Control: no-store` except on auth responses); they come from the web nginx. If the ingress routes `/api` straight to the API service, JSON responses lose them. | open | 9B: route `/api` through `sutraerp-web` or add the headers via ingress annotations | — |
+| SEC-9D-011 | Low | web CSP | CSP `script-src` / `style-src` keep `'unsafe-inline'`: the React Router SPA build puts its bootstrap scripts inline in `index.html`. XSS is still limited to same-origin sources (no remote script, no framing, no plugins). ZAP rule 10055 stays WARN. | accepted | web: hash-based CSP generated at build time (`sha256-…` of the inline scripts) | 2027-04-14 |
+| SEC-9D-012 | Low | ingress / TLS | No `Strict-Transport-Security`: the web container serves plain http behind the TLS-terminating ingress, where HSTS belongs. | open | 9B: HSTS (`max-age=31536000; includeSubDomains`) on the pilot ingress | — |
+| SEC-9D-013 | Low | web image base | `nginxinc/nginx-unprivileged:1.27-alpine` had not been rebuilt since 2025-06 (stale Alpine packages). Bumped to the maintained stable branch `1.30-alpine`. | fixed | `fc1b377d` (`deploy/docker/web.Dockerfile`, `# 9D: security`) | — |
+| SEC-9D-017 | Low | web nginx | ZAP 90004: no `Cross-Origin-Embedder-Policy`. COOP + CORP are set; `COEP: require-corp` is left out until it is tested in a browser against the SPA (no cross-origin resources today, so it is expected to be safe). | accepted | web: add `require-corp` with a browser e2e check | 2027-04-14 |
+| SEC-9D-001 | Low | Rust deps (`rsa` via `sqlx-mysql`) | RUSTSEC-2023-0071 (Marvin timing side channel, no fixed `rsa` release). `rsa` is in `Cargo.lock` only through the optional `sqlx-mysql` driver; SutraERP enables the postgres driver only and cargo-deny's feature-resolved graph confirms it is not compiled (`advisory-not-detected`). `cargo-audit` reads the lockfile, so it needs the explicit ignore. | accepted | `deny.toml` + `cargo-audit --ignore` | 2027-04-14 |
+| SEC-9D-002 | Info | Rust deps (`paste` via `utoipa-axum`) | RUSTSEC-2024-0436: `paste` unmaintained (not a vulnerability); proc-macro only. | accepted | re-check when `utoipa-axum` drops it | 2027-04-14 |
+| SEC-9D-007 | Info | gitleaks allow-list | Allowed: the two throwaway RSA keys of the OIDC unit tests (`modules/platform/tests/fixtures/oidc-test-key-[ab].pem`), two false positives in architecture prose, and the documented compose dev defaults (`dev-only-change-me`, `sutra-api-dev-only`). Nothing else. | accepted | `.gitleaks.toml` | 2027-04-14 |
+| SEC-9D-008 | Info | Rust deps | ~20 crates resolved in two versions (e.g. `syn`, `thiserror`, `hashbrown`, `nom`, `webpki-roots`) — `bans.multiple-versions = "warn"`; build size / audit surface only. | accepted | dependency hygiene during regular updates | 2027-04-14 |
+| SEC-9D-014 | Info | dev auth | Seeded personas share the password `sutra` (dev auth). Production refuses `SUTRA_AUTH_MODE=dev` at start-up (`config.rs::validate`, unit-tested). | accepted (by design) | — | — |
+
+## Scanner results (CI)
+
+| Gate | First run (`fc1b377d`, run 38559184098) |
+|------|------------------------------------------|
+| cargo-deny | advisories ok, bans ok (duplicates = warnings, SEC-9D-008), licenses ok, sources ok |
+| cargo-audit | 364 crates; only SEC-9D-001 (ignored) and SEC-9D-002 (warning) |
+| pnpm audit --prod | no known vulnerabilities |
+| gitleaks | full history (2 767 commits), no leaks beyond SEC-9D-007 |
+| Trivy (api, web) | no fixable CRITICAL/HIGH reported |
+| Grype (api, web) | SEC-9D-015 (api: libssl3, 1 Critical + 3 High), SEC-9D-016 (web: zlib, 1 High) → fixed |
+| ZAP baseline | not reached in the first run (step condition bug, fixed) |
+| perf-smoke | 7 686 requests, 127.7 req/s, 0 % failed, checks 100 %, p95 read 26.9 ms / write 9.8 ms (2 004 students) |
+
+| Gate | After the fixes (`c6ae5964`, runs 38561480232 push + 38561496109 dispatch) |
+|------|------------------------------------------|
+| cargo-deny / cargo-audit / pnpm audit / gitleaks | green (unchanged) |
+| Trivy + Grype (api on distroless cc-debian13, web with `apk upgrade`) | no fixable CRITICAL/HIGH |
+| Stack boot + security headers | green on `/`, `/assets/*.js`, `/students`, `/api/v1/auth/csrf` |
+| ZAP baseline web + API | **no High**; Medium: 10055 CSP unsafe-inline (SEC-9D-011, accepted); Low: 90004 COEP (SEC-9D-017), 10096 timestamp disclosure (informational); rest informational |
+| perf-smoke | green |
+| capacity (dispatch) | 223 181 requests, 464.7 req/s, 0 % failed, p95 read 15.1 / write 9.6 / overall 14.4 ms at 100 VU → committed as the capacity baseline |

@@ -1,0 +1,60 @@
+# cargo-deny policy (Batch 9 · slice 9D; docs/security/findings.md, docs/runbooks/security.md).
+# CI: job `Security (cargo-deny · cargo-audit · pnpm audit · gitleaks)` in
+# .github/workflows/sutraerp-quality.yml runs `cargo deny --all-features check` with this file.
+# Every ignore below carries a reason and an expiry date that is mirrored in findings.md; an
+# expired ignore is a triage item (runbook §2), not something to extend silently.
+
+[graph]
+all-features = true
+
+[advisories]
+# Vulnerability advisories always fail. Unmaintained crates fail only when a workspace crate
+# depends on them directly (transitive ones are tracked in findings.md).
+unmaintained = "workspace"
+unsound = "all"
+yanked = "deny"
+ignore = [
+  # SEC-9D-001 · expires 2027-04-14 · rsa (Marvin timing side channel) is only reachable through
+  # sqlx-mysql, which sits in Cargo.lock as an optional sqlx driver; SutraERP enables the
+  # postgres driver only, so rsa is never compiled into sutra-api. No fixed rsa release exists.
+  { id = "RUSTSEC-2023-0071", reason = "SEC-9D-001: rsa only via unused sqlx-mysql driver; no fix upstream; expires 2027-04-14" },
+  # SEC-9D-002 · expires 2027-04-14 · paste is unmaintained (not vulnerable); proc-macro only,
+  # pulled in by utoipa-axum. Re-check when utoipa-axum drops it.
+  { id = "RUSTSEC-2024-0436", reason = "SEC-9D-002: paste unmaintained, proc-macro via utoipa-axum; expires 2027-04-14" },
+]
+
+[licenses]
+# Allow-list matching the dependency tree at batch9/foundation (each entry is used by at least
+# one crate: e.g. MPL-2.0 webauthn-rs, BSD-3-Clause redis/subtle, ISC ring/rustls-webpki,
+# CDLA-Permissive-2.0 webpki-roots, Zlib foldhash, 0BSD quoted_printable, BSL-1.0 xxhash-rust,
+# Unicode-3.0 icu_*). A new licence is a review item: add it here only with the crate named.
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "ISC",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "CDLA-Permissive-2.0",
+  "Zlib",
+  "0BSD",
+  "BSL-1.0",
+]
+confidence-threshold = 0.93
+unused-allowed-license = "warn"
+
+[licenses.private]
+# Workspace crates are `publish = false` / `license = "UNLICENSED"` (proprietary).
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+highlight = "all"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

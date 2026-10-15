@@ -45,7 +45,8 @@ library_enum!(
 );
 library_enum!(
     /// Approval state of a governed draft (`LIBRARY_POLICY_APPROVAL`).
-    LibraryApprovalState { NotSubmitted => "none", Pending => "pending", Approved => "approved", Rejected => "rejected" }
+    /// 9E: approvalState — wire `not_requested` (contract batch9 §6.4); the stored value stays `none`.
+    LibraryApprovalState { NotRequested => "none", Pending => "pending", Approved => "approved", Rejected => "rejected" }
 );
 library_enum!(
     /// Library membership (L3-G-124…126).

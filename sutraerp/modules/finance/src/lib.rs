@@ -61,6 +61,7 @@ pub use clearance::PgFinanceClearance;
 pub use directory::{PgChargeDirectory, PgPostingPort, PgReceivableReader};
 pub use exam_fees::PgExamFees;
 pub use metrics::PgFinanceMetrics;
+pub use payments::gateway::DisabledPaymentGateway; // INT: SEC-9D-003
 pub use payments::gateway::MockPaymentGateway;
 pub use payroll_postings::PgPayrollPostings;
 pub use procurement_postings::PgProcurementPostings;

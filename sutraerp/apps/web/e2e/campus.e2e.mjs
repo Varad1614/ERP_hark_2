@@ -495,6 +495,45 @@ try {
     await shot(page, "8-admin-regulatory-acknowledged");
   });
 
+  // ------------------------------------------------------------ 9E: governance + accreditation (integration)
+  await step(page, "admin: Campus → Governance — readiness assessment and a campus risk (G00)", async () => {
+    await admin.call("POST", `${C}/institutions/${inst}/governance-cases`, {
+      kind: "readiness_assessment",
+      title: "Campus readiness for the academic year",
+      dueOn: plusDays(30),
+    });
+    await admin.call("POST", `${C}/institutions/${inst}/governance-cases`, {
+      kind: "risk",
+      title: "Hostel fire-safety audit overdue",
+      severity: "high",
+      likelihood: 3,
+      impact: 4,
+      dueOn: plusDays(14),
+    });
+    await go(page, "/campus/governance");
+    const cases = tile(page, "Governance cases");
+    await row(page, "Hostel fire-safety audit overdue", cases).waitFor();
+    await row(page, "Campus readiness for the academic year", cases).waitFor();
+    await shot(page, "9-admin-governance");
+  });
+
+  await step(page, "admin: Reports → Accreditation — NAAC framework with weighted criteria (H09)", async () => {
+    await admin.call("POST", `/api/v1/services/institutions/${inst}/accreditation-frameworks`, {
+      code: "NAAC",
+      name: "NAAC Revised Accreditation Framework",
+      body: "NAAC",
+      criteria: [
+        { code: "C1", title: "Curricular aspects", weight: 40, metricKeys: [] },
+        { code: "C2", title: "Teaching-learning and evaluation", weight: 35, metricKeys: [] },
+        { code: "C3", title: "Infrastructure and learning resources", weight: 25, metricKeys: [] },
+      ],
+    });
+    await go(page, "/reports/accreditation");
+    const fw = tile(page, "Accreditation frameworks");
+    await row(page, "NAAC", fw).waitFor();
+    await shot(page, "9-admin-accreditation");
+  });
+
   // ------------------------------------------------------------ student: library
   await signOut(page);
   await signIn(page, "student");

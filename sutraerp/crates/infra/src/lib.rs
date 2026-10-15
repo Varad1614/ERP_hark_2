@@ -12,5 +12,6 @@
 //!   e-mail channel (lettre, rustls; Mailpit in development).
 
 pub mod nats;
+pub mod opensearch; // 9C
 pub mod smtp;
 pub mod valkey;

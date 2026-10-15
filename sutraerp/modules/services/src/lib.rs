@@ -20,6 +20,7 @@ pub mod shared;
 pub mod directory;
 
 // ---- slice areas (router mount points are pre-registered in `router_with_state`) ----
+pub mod accreditation; // 9E
 pub mod dashboards; // 8C
 pub mod regulatory; // 8C
 
@@ -79,6 +80,7 @@ pub fn router_with_state(st: ServicesState) -> OpenApiRouter {
     OpenApiRouter::new()
         .merge(directory::router(st.clone())) // foundation
         .merge(dashboards::router(st.clone())) // 8C
+        .merge(accreditation::router(st.clone())) // 9E
         .merge(regulatory::router(st)) // 8C
 }
 

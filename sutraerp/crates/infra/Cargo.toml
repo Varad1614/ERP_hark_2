@@ -18,6 +18,10 @@ tracing.workspace = true
 async-nats.workspace = true
 redis.workspace = true
 lettre.workspace = true
+# 9C: OpenSearch REST client
+reqwest.workspace = true
+serde_json.workspace = true
+url.workspace = true
 
 [dev-dependencies]
 uuid.workspace = true

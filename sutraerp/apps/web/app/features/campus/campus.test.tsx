@@ -24,7 +24,7 @@ describe("Batch 8 tabs and screens", () => {
     expect(CAMPUS_TABS.slice(0, CAMPUS_SETUP_TABS.length).map((t) => t.key)).toEqual(CAMPUS_SETUP_TABS.map((t) => t.key));
     expect(activeTab(CAMPUS_TABS, "library").key).toBe("library");
     expect(new Set(CAMPUS_TABS.map((t) => t.key)).size).toBe(CAMPUS_TABS.length);
-    expect(new Set(CAMPUS_OPS_TABS.map((t) => t.slice))).toEqual(new Set(["8A", "8B", "8C", "8D"]));
+    expect(new Set(CAMPUS_OPS_TABS.map((t) => t.slice))).toEqual(new Set(["8A", "8B", "8C", "8D", "9E"])); // 9E: governance tab
     expect(activeTab(REPORTS_TABS, undefined).key).toBe("dashboards");
     expect(campusPath("hostel")).toBe("/campus/hostel");
     expect(reportsPath()).toBe("/reports");
@@ -41,6 +41,10 @@ describe("Batch 8 tabs and screens", () => {
     expect(workspaceScreen("W-H08", "administrator")).toBe("/reports/regulatory");
     expect(workspaceScreen("W-J08", "administrator")).toBe("/campus/assets");
     expect(workspaceScreen("W-G06", "administrator")).toBeNull();
+    // Batch 9 carry-overs (integration).
+    expect(workspaceScreen("W-G00", "administrator")).toBe("/campus/governance");
+    expect(workspaceScreen("W-H09", "administrator")).toBe("/reports/accreditation");
+    expect(workspaceScreen("W-G00", "student")).toBeNull();
     expect(workspaceBatch("W-J05")).toBe(8);
   });
 });

@@ -20,6 +20,7 @@
 
 pub mod directory;
 pub mod metrics; // Batch 8 foundation: Domain H figures
+pub mod search_source; // 9C
 pub mod shared;
 pub mod staff;
 pub mod staff_port;

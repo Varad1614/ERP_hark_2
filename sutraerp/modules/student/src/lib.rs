@@ -22,7 +22,8 @@ pub mod adapters;
 pub mod directory;
 pub mod finance_ports; // Batch 5 foundation: ports Domain F calls
 pub mod metrics; // Batch 8 foundation: Domain H figures
-pub mod shared;
+pub mod search_source;
+pub mod shared; // 9C
 
 // ---- slice areas (router mount points are pre-registered in `router`) ----
 pub mod admission; // 3A

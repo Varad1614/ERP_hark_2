@@ -16,6 +16,7 @@
 
 use uuid::Uuid;
 
+pub mod accreditation; // 9E
 pub mod reporting;
 
 pub const SOURCE: &str = "/sutraerp/services";
@@ -71,6 +72,7 @@ pub fn all_event_types() -> Vec<&'static str> {
     let mut v = Vec::new();
     v.extend_from_slice(EVENT_TYPES);
     v.extend_from_slice(reporting::EVENT_TYPES);
+    v.extend_from_slice(accreditation::EVENT_TYPES); // 9E
     v
 }
 

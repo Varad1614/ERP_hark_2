@@ -1,0 +1,74 @@
+{{- /* 9B: bundled single-node NATS with JetStream (file storage) for the outbox relay (ADR-L5-0022). */ -}}
+{{- if eq .Values.nats.mode "bundled" }}
+{{- $name := include "sutraerp.componentName" (dict "root" . "component" "nats") -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "nats") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sutraerp.selectorLabels" (dict "root" . "component" "nats") | nindent 4 }}
+  ports:
+    - { name: client, port: 4222, targetPort: client, protocol: TCP }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "nats") | nindent 4 }}
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "nats") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.componentLabels" (dict "root" . "component" "nats") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: nats
+          image: {{ .Values.nats.bundled.image | quote }}
+          args: ["-js", "-sd", "/data", "-m", "8222"]
+          ports:
+            - { name: client, containerPort: 4222, protocol: TCP }
+            - { name: monitor, containerPort: 8222, protocol: TCP }
+          readinessProbe:
+            httpGet: { path: "/healthz?js-enabled-only=true", port: monitor }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: monitor }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.nats.bundled.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.nats.bundled.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.nats.bundled.storage }}
+{{- end }}

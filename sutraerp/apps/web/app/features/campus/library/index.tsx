@@ -21,6 +21,7 @@ import { Actions, fmtDate, REASON, todayIso, useAsk, type RowAction } from "../.
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { lkeys, useLibraryApi } from "./hooks";
+import { kindOf, personField, usePeople } from "../PersonPicker"; // 9E
 import type { CatalogueRecord, Clearance, Copy, CopyCondition, Fine, LibraryPolicy, LibraryReservation, Loan, Membership } from "./types";
 import { formatInr } from "../../finance";
 
@@ -120,6 +121,7 @@ const dueText = (l: Loan) => (l.status === "returned" ? `Returned ${fmtDate(l.re
 // ================================================================== Admin → Campus → Library
 
 function LibraryScreen({ institutionId }: { institutionId: string }) {
+  const { people } = usePeople(institutionId); // 9E
   const api = useLibraryApi();
   const { run, submit, busy, dialog } = useCommand();
   const { ask, prompt } = useAsk();
@@ -206,10 +208,10 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
       name: "library-member",
       fields: [
         { name: "personKind", label: "Member", type: "select", required: true, options: [{ value: "student", label: "Student" }, { value: "staff", label: "Staff" }], initial: "student" },
-        { name: "personId", label: "Student / staff record id", required: true, placeholder: "UUID of the Domain C / E record", wide: true },
+        personField(people), // 9E: PersonPicker
       ],
       submitLabel: "Add",
-      onSubmit: (v) => submit(() => api.createMembership(institutionId, { personKind: v.personKind as Membership["personKind"], personId: v.personId!.trim() }), (m) => `${m.number} ${statusLabel(m.status).toLowerCase()}`),
+      onSubmit: (v) => submit(() => api.createMembership(institutionId, { personKind: kindOf(people, v.personId, v.personKind) as Membership["personKind"], personId: v.personId!.trim() }), (m) => `${m.number} ${statusLabel(m.status).toLowerCase()}`),
     });
 
   const memberRowActions = (m: Membership): RowAction[] =>

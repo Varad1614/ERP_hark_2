@@ -4780,6 +4780,295 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campus/governance-cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One governance case with its items (`campus.governance.manage`). */
+        get: operations["campus_governance_case_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-cases/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a draft or open case (`campus.governance.manage`; reason required). */
+        post: operations["campus_governance_case_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-cases/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a submitted case (`campus.approve`, step-up): approve → closed with its outcome;
+         *     reject (reason required) → open again, outcome cleared.
+         */
+        post: operations["campus_governance_case_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-cases/{id}/escalate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Escalate an open / pending case to executive resolution (G-012; `campus.governance.manage`;
+         *     Idempotency-Key): opens an `escalation` case (severity at least high) linked to it and emits
+         *     `governance_case.escalated`. Returns the new escalation case.
+         */
+        post: operations["campus_governance_case_escalate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-cases/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an item to a draft / open case (`campus.governance.manage`; Idempotency-Key). The kind
+         *     must fit the case (criteria for assessments, recommendations for executive reviews, corrective
+         *     actions for findings, actions elsewhere); action-plan actions name one of the plan's domains.
+         */
+        post: operations["campus_governance_item_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-cases/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-read the figures behind an SLA deviation or KPI review (`campus.governance.manage`;
+         *     draft / open only): the SLA snapshot keeps its tickets and refreshes their status, the KPI
+         *     snapshot is recomputed against the same targets.
+         */
+        post: operations["campus_governance_case_refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-cases/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start work on a draft case (`campus.governance.manage`): draft → open. */
+        post: operations["campus_governance_case_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-cases/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit an open case with its proposed outcome for decision (`campus.governance.manage`;
+         *     `GOVERNANCE_DECISION`). 422 with every closure rule the outcome breaks; auto-approval closes
+         *     the case at once (`governance_case.decided`).
+         */
+        post: operations["campus_governance_case_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One configuration version (`campus.governance.manage`). */
+        get: operations["campus_governance_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-configs/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a submitted version (`campus.approve`, step-up): approve → effective (supersedes the
+         *     previous one); reject (reason required) → stays draft, approval `rejected`.
+         */
+        post: operations["campus_governance_config_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-configs/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft version (`campus.governance.manage`; `GOVERNANCE_CONFIG_APPROVAL`):
+         *     auto-approval makes it effective at once.
+         */
+        post: operations["campus_governance_config_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-evidence/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One piece of governance evidence (`campus.governance.manage`). */
+        get: operations["campus_governance_evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-evidence/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish draft evidence for accreditation (`campus.governance.manage`): emits
+         *     `governance_evidence.published`; publishing twice is a 409.
+         */
+        post: operations["campus_governance_evidence_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-items/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Progress an item (`campus.governance.manage`; If-Match = the item's version): move it to
+         *     `in_progress` / `done` / `cancelled` and / or rate a criterion. Returns the case.
+         */
+        post: operations["campus_governance_item_progress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/governance-items/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify a done item (`campus.governance.manage`; If-Match = the item's version): an evidence
+         *     reference is required (on the item or in the body) — verified closure. Returns the case.
+         */
+        post: operations["campus_governance_item_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campus/hostel-allocations/{id}": {
         parameters: {
             query?: never;
@@ -5318,6 +5607,90 @@ export interface paths {
          *     duplicate ISBN.
          */
         post: operations["campus_library_catalogue_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/governance-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Governance cases of an institution (`campus.governance.manage`). */
+        get: operations["campus_governance_case_list"];
+        put?: never;
+        /**
+         * Open a governance case (`campus.governance.manage`; Idempotency-Key). SLA deviations snapshot
+         *     the open SLA-breached tickets of their domains (422 `no_breach` without one); KPI reviews
+         *     snapshot the campus figures against their targets.
+         */
+        post: operations["campus_governance_case_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/governance-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Configuration versions of an institution (`campus.governance.manage`). */
+        get: operations["campus_governance_config_list"];
+        put?: never;
+        /**
+         * Draft a configuration version (`campus.governance.manage`; Idempotency-Key): version n + 1
+         *     of the key; 422 for invalid settings.
+         */
+        post: operations["campus_governance_config_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/governance-evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Governance evidence of an institution (`campus.governance.manage`; `?status=published` lists
+         *     what accreditation can cite).
+         */
+        get: operations["campus_governance_evidence_list"];
+        put?: never;
+        /**
+         * Build governance evidence from a closed case (`campus.governance.manage`; Idempotency-Key):
+         *     409 unless the case is closed (approved outcome). Snapshots the campus operations figures.
+         */
+        post: operations["campus_governance_evidence_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/governance-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The effective governance policy of an institution (`campus.governance.manage`). */
+        get: operations["campus_governance_policy_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -19551,6 +19924,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/audit/anchors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Newest anchors of the session tenant's chain. */
+        get: operations["platform_audit_anchor_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/audit/chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Head, sealed / unsealed counts and the last anchor of the session tenant's audit chain. */
+        get: operations["platform_audit_chain_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/audit/chain/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recomputes the session tenant's chain (or a `seq` range) from the audit log and reports the
+         *     first broken entry. The verification itself is audited.
+         */
+        post: operations["platform_audit_chain_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/modules": {
         parameters: {
             query?: never;
@@ -19560,6 +19987,23 @@ export interface paths {
         };
         /** Modules composed into this modular-monolith build. */
         get: operations["list_modules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Full-text search over one projection of the caller's tenant. */
+        get: operations["platform_search_query"];
         put?: never;
         post?: never;
         delete?: never;
@@ -20975,6 +21419,331 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/accreditation-cycles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One cycle with its plan and record counts (`services.accreditation.manage`). */
+        get: operations["services_accreditation_cycle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-cycles/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a submitted cycle (`services.accreditation.manage`): only after the self-study report
+         *     was handed off.
+         */
+        post: operations["services_accreditation_cycle_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-cycles/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a submitted plan (`services.report.approve`, step-up): approve → cycle active; reject
+         *     (reason required) → planning, approval `rejected`.
+         */
+        post: operations["services_accreditation_cycle_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-cycles/{id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the assessment plan of a planning cycle (`services.accreditation.manage`): every
+         *     criterion exactly once with an owner and a due date inside the period (422 otherwise). A
+         *     rejected plan returns to `not_requested`.
+         */
+        post: operations["services_accreditation_cycle_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-cycles/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the assessment plan (`services.accreditation.manage`; `ACCREDITATION_PLAN_APPROVAL`):
+         *     auto-approval activates the cycle (`accreditation_cycle.plan_approved`).
+         */
+        post: operations["services_accreditation_cycle_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-frameworks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One framework version (`services.accreditation.manage`). */
+        get: operations["services_accreditation_framework_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-frameworks/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a submitted framework version (`services.report.approve`, step-up): approve → active
+         *     (supersedes the previous version); reject (reason required) → draft, approval `rejected`.
+         */
+        post: operations["services_accreditation_framework_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-frameworks/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft framework version (`services.accreditation.manage`;
+         *     `ACCREDITATION_FRAMEWORK_APPROVAL`): auto-approval activates it at once.
+         */
+        post: operations["services_accreditation_framework_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-items/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Progress an item (`services.accreditation.manage`; If-Match = the item's version). Returns
+         *     the record.
+         */
+        post: operations["services_accreditation_item_progress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-items/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify a done item (`services.accreditation.manage`; evidence reference required). Returns
+         *     the record.
+         */
+        post: operations["services_accreditation_item_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-records/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One record with its items (`services.accreditation.manage`). */
+        get: operations["services_accreditation_record_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-records/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a draft / open record (`services.accreditation.manage`; reason required). */
+        post: operations["services_accreditation_record_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-records/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a submitted record (`services.report.approve`, step-up): approve → closed with its
+         *     outcome; reject (reason required) → open, outcome cleared.
+         */
+        post: operations["services_accreditation_record_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-records/{id}/handoff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hand an approved self-study report off to the accrediting body (H-071;
+         *     `services.accreditation.manage`): records the portal reference once, moves the cycle to
+         *     `submitted` and emits `accreditation_record.handed_off`.
+         */
+        post: operations["services_accreditation_record_handoff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-records/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add an item to a draft / open record (`services.accreditation.manage`; Idempotency-Key). */
+        post: operations["services_accreditation_item_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-records/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start work on a draft record (`services.accreditation.manage`): draft → open. */
+        post: operations["services_accreditation_record_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/accreditation-records/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit an open record with its proposed outcome (`services.accreditation.manage`;
+         *     `ACCREDITATION_DECISION`): 422 with every rule the outcome breaks; auto-approval closes it at
+         *     once (`accreditation_record.decided`).
+         */
+        post: operations["services_accreditation_record_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services/dashboards/{id}": {
         parameters: {
             query?: never;
@@ -21149,6 +21918,71 @@ export interface paths {
         get: operations["services_dashboard_render"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/accreditation-cycles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cycles of an institution (`services.accreditation.manage`). */
+        get: operations["services_accreditation_cycle_list"];
+        put?: never;
+        /**
+         * Open a cycle on the active version of a framework (`services.accreditation.manage`;
+         *     Idempotency-Key).
+         */
+        post: operations["services_accreditation_cycle_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/accreditation-frameworks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Framework versions of an institution (`services.accreditation.manage`). */
+        get: operations["services_accreditation_framework_list"];
+        put?: never;
+        /**
+         * Draft a framework version (`services.accreditation.manage`; Idempotency-Key). 422 for invalid
+         *     criteria, weights that do not add up to 100 or unknown figures.
+         */
+        post: operations["services_accreditation_framework_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/institutions/{id}/accreditation-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Records of an institution (`services.accreditation.manage`). */
+        get: operations["services_accreditation_record_list"];
+        put?: never;
+        /**
+         * Open an accreditation record (`services.accreditation.manage`; Idempotency-Key). Evidence
+         *     names a criterion of the cycle's framework and may cite validated regulatory snapshots,
+         *     published governance evidence ids and a source URL; improvements snapshot their figure's
+         *     baseline through the metrics port.
+         */
+        post: operations["services_accreditation_record_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -25945,6 +26779,228 @@ export interface components {
          */
         AcademicYearStatus: "planned" | "open" | "closing" | "closed";
         /**
+         * @description Canonical approval state (contract §6.4).
+         * @enum {string}
+         */
+        AccreditationApprovalState: "not_requested" | "pending" | "approved" | "rejected";
+        /** @description One criterion of a framework version. */
+        AccreditationCriterion: {
+            /** @description `^[A-Z0-9][A-Z0-9_.-]{0,15}$` (`C1`, `C2.1` …). */
+            code: string;
+            /** @description Operational figures (`<domain>.<key>`) that support the criterion. */
+            metricKeys?: string[];
+            title: string;
+            /**
+             * Format: int32
+             * @description Weight in percent; the weights of a framework add up to 100.
+             */
+            weight: number;
+        };
+        /** @description Open a cycle. */
+        AccreditationCycleCreate: {
+            /** Format: uuid */
+            frameworkId: string;
+            /** @example 2027-06-30 */
+            periodEnd: string;
+            /** @example 2026-07-01 */
+            periodStart: string;
+            title: string;
+        };
+        /** @description Cycles. */
+        AccreditationCycleList: {
+            items: components["schemas"]["AccreditationCycleView"][];
+        };
+        /** @description An accreditation cycle. */
+        AccreditationCycleView: {
+            approvalState: components["schemas"]["AccreditationApprovalState"];
+            criteria: components["schemas"]["AccreditationCriterion"][];
+            frameworkCode: string;
+            /** Format: uuid */
+            frameworkId: string;
+            /** Format: int32 */
+            frameworkVersionNo: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @example AC-000001 */
+            number: string;
+            /** Format: date */
+            periodEnd: string;
+            /** Format: date */
+            periodStart: string;
+            plan: components["schemas"]["PlanEntry"][];
+            processInstanceId?: string | null;
+            records: components["schemas"]["CycleRecordCount"][];
+            status: components["schemas"]["CycleStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Define a framework version (new code or version n + 1 of a code). */
+        AccreditationFrameworkCreate: {
+            body: string;
+            code: string;
+            criteria: components["schemas"]["AccreditationCriterion"][];
+            name: string;
+        };
+        /** @description Framework versions. */
+        AccreditationFrameworkList: {
+            items: components["schemas"]["AccreditationFrameworkView"][];
+        };
+        /** @description One framework version. */
+        AccreditationFrameworkView: {
+            approvalState: components["schemas"]["AccreditationApprovalState"];
+            /** @description `NAAC`, `NBA`, `NIRF` or `OTHER`. */
+            body: string;
+            /** @example NAAC-2025 */
+            code: string;
+            criteria: components["schemas"]["AccreditationCriterion"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            /** Format: uuid */
+            predecessorId?: string | null;
+            processInstanceId?: string | null;
+            status: components["schemas"]["FrameworkStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /** @description Hand an approved self-study report off to the accrediting body. */
+        AccreditationHandoff: {
+            /** @description Portal submission / acknowledgement reference. */
+            reference: string;
+        };
+        /** @description Add an item. */
+        AccreditationItemCreate: {
+            dueOn?: string | null;
+            kind: components["schemas"]["RecordItemKind"];
+            owner?: string | null;
+            title: string;
+        };
+        /** @description Progress an item. */
+        AccreditationItemProgress: {
+            evidenceRef?: string | null;
+            note?: string | null;
+            /** @description `in_progress`, `done` or `cancelled`. */
+            status: components["schemas"]["RecordItemStatus"];
+        };
+        /** @description Verify a done item. */
+        AccreditationItemVerify: {
+            evidenceRef?: string | null;
+            note?: string | null;
+        };
+        /** @description One item of a record (requirement, checklist entry, CAPA / improvement action). */
+        AccreditationItemView: {
+            doneBy?: string | null;
+            /** Format: date */
+            dueOn?: string | null;
+            evidenceRef?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["RecordItemKind"];
+            note?: string | null;
+            owner?: string | null;
+            /** Format: uuid */
+            recordId: string;
+            status: components["schemas"]["RecordItemStatus"];
+            title: string;
+            verifiedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Replace the assessment plan of a planning cycle. */
+        AccreditationPlanBody: {
+            entries: components["schemas"]["PlanEntry"][];
+        };
+        /** @description Open a record. */
+        AccreditationRecordCreate: {
+            better?: string | null;
+            /** @description Evidence: a criterion of the cycle's framework. */
+            criterionCode?: string | null;
+            /**
+             * Format: uuid
+             * @description Required for evidence, internal audits, external assessments, readiness and self-study.
+             */
+            cycleId?: string | null;
+            description?: string | null;
+            dueOn?: string | null;
+            /** @description Evidence citations: published governance evidence (G-015 event ids). */
+            governanceEvidenceIds?: string[];
+            kind: components["schemas"]["RecordKind"];
+            /** @description Improvement: figure tracked (`<domain>.<key>`) and the better direction. */
+            metricKey?: string | null;
+            owner?: string | null;
+            /**
+             * Format: uuid
+             * @description Findings raised by an internal audit / external assessment.
+             */
+            parentId?: string | null;
+            /** @description Evidence citations: validated regulatory snapshots (8C). */
+            regulatorySnapshotIds?: string[];
+            severity?: null | components["schemas"]["RecordSeverity"];
+            sourceUrl?: string | null;
+            title: string;
+        };
+        /** @description Records. */
+        AccreditationRecordList: {
+            items: components["schemas"]["AccreditationRecordView"][];
+        };
+        /** @description An accreditation record with its items. */
+        AccreditationRecordView: {
+            allowedOutcomes: string[];
+            approvalState: components["schemas"]["AccreditationApprovalState"];
+            better?: string | null;
+            criterionCode?: string | null;
+            /** Format: uuid */
+            cycleId?: string | null;
+            decidedBy?: string | null;
+            description?: string | null;
+            /** Format: date */
+            dueOn?: string | null;
+            /** @description Computed figures (baseline / current, coverage, compliance counts, report contents). */
+            facts: Record<string, never>;
+            /** Format: date-time */
+            handedOffAt?: string | null;
+            handoffReference?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            items: components["schemas"]["AccreditationItemView"][];
+            kind: components["schemas"]["RecordKind"];
+            metricKey?: string | null;
+            /** @example ACR-000001 */
+            number: string;
+            outcome?: string | null;
+            owner?: string | null;
+            /** Format: uuid */
+            parentId?: string | null;
+            processInstanceId?: string | null;
+            rationale?: string | null;
+            /** @description `{regulatorySnapshotIds[], governanceEvidenceIds[], sourceUrl}`. */
+            refs: Record<string, never>;
+            severity: components["schemas"]["RecordSeverity"];
+            status: components["schemas"]["RecordStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Submit with the proposed outcome. */
+        AccreditationSubmit: {
+            /** @description External assessment: awarded grade / score (`A++`, `3.42` …). */
+            grade?: string | null;
+            outcome: string;
+            rationale?: string | null;
+        };
+        /**
          * @description How a leave type earns its entitlement.
          * @enum {string}
          */
@@ -26583,6 +27639,24 @@ export interface components {
          * @enum {string}
          */
         AlumniTransitionStatus: "created" | "pending_verification" | "verified" | "pending_approval" | "approved" | "transitioning" | "activated" | "completed" | "archived" | "rejected";
+        /** @description Last anchor of a chain. */
+        AnchorRef: {
+            /** Format: date-time */
+            anchoredAt: string;
+            keyId: string;
+            /** Format: int64 */
+            seq: number;
+        };
+        /** @description One anchor (HMAC-SHA-256 of the chain head). */
+        AnchorView: {
+            /** Format: date-time */
+            anchoredAt: string;
+            headHash: string;
+            keyId: string;
+            mac: string;
+            /** Format: int64 */
+            seq: number;
+        };
         /**
          * @description Append a manual ledger entry (L3-C-028). The ledger is append-only: corrections are
          *     `adjusted` or `revoked` (reversing an entry) entries.
@@ -26606,6 +27680,11 @@ export interface components {
          * @enum {string}
          */
         ApprovalDecision: "approve" | "reject";
+        /**
+         * @description Canonical approval state (contract §6.4).
+         * @enum {string}
+         */
+        ApprovalState: "not_requested" | "pending" | "approved" | "rejected";
         AssessmentBlueprint: {
             components: components["schemas"]["BlueprintComponent"][];
             /** Format: date-time */
@@ -27716,6 +28795,10 @@ export interface components {
             postalCode?: string | null;
             state?: string | null;
         };
+        /** @description Configuration versions. */
+        CampusGovernanceConfigList: {
+            items: components["schemas"]["GovernanceConfigView"][];
+        };
         /**
          * Format: uuid
          * @description Institutional campus (physical/operational site owned by Domain B).
@@ -28085,6 +29168,31 @@ export interface components {
             statusReason?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        /** @description Head and counters of the session tenant's audit chain. */
+        ChainStatusView: {
+            /** @description Hex SHA-256 of the head entry (`null` before the first seal). */
+            headHash?: string | null;
+            /**
+             * Format: int64
+             * @description `0` before the first seal.
+             */
+            headSeq: number;
+            lastAnchor?: null | components["schemas"]["AnchorRef"];
+            /** Format: date-time */
+            lastSealedAt?: string | null;
+            /**
+             * Format: int64
+             * @description Chain entries.
+             */
+            sealed: number;
+            /** Format: uuid */
+            tenantId: string;
+            /**
+             * Format: int64
+             * @description Audit rows not sealed yet (the sealer runs every `SUTRA_AUDIT_SEAL_SECS`).
+             */
+            unsealed: number;
         };
         /**
          * @description Kind of a governed engagement change.
@@ -28635,6 +29743,16 @@ export interface components {
             changeNote?: string | null;
             values: unknown;
         };
+        /**
+         * @description Configuration key (G-014).
+         * @enum {string}
+         */
+        ConfigKey: "readiness_threshold" | "risk_appetite" | "review_cadence" | "kpi_thresholds";
+        /**
+         * @description Configuration version lifecycle.
+         * @enum {string}
+         */
+        ConfigStatus: "draft" | "effective" | "superseded" | "withdrawn";
         /** @description One validation finding. */
         Conflict: {
             /**
@@ -29315,6 +30433,18 @@ export interface components {
             recordedAt: string;
             relationshipId: components["schemas"]["GuardianRelationshipId"];
         };
+        /** @description Records of one kind / status in a cycle. */
+        CycleRecordCount: {
+            /** Format: int64 */
+            count: number;
+            kind: string;
+            status: string;
+        };
+        /**
+         * @description Accreditation cycle (H-062, H-071).
+         * @enum {string}
+         */
+        CycleStatus: "planning" | "active" | "submitted" | "closed";
         /** @description Make a dashboard available to a role. */
         DashboardAssignmentCreate: {
             /** Format: uuid */
@@ -31274,6 +32404,11 @@ export interface components {
             resolutionEvidence: string;
         };
         /**
+         * @description Exception type (G-013).
+         * @enum {string}
+         */
+        ExceptionType: "evidence" | "dependency";
+        /**
          * @description The validated scope a protected operation executes in. Must be carried across every
          *     synchronous, asynchronous, workflow and persistence hand-off.
          */
@@ -31971,6 +33106,11 @@ export interface components {
             reason?: string | null;
         };
         /**
+         * @description Framework version (H-061).
+         * @enum {string}
+         */
+        FrameworkStatus: "draft" | "active" | "superseded";
+        /**
          * @description Gender as recorded on the profile (optional).
          * @enum {string}
          */
@@ -32118,6 +33258,83 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Open a governance case. */
+        GovernanceCaseCreate: {
+            description?: string | null;
+            domains?: string[];
+            dueOn?: string | null;
+            exceptionType?: null | components["schemas"]["ExceptionType"];
+            expiresOn?: string | null;
+            /** Format: int32 */
+            impact?: number | null;
+            kind: components["schemas"]["GovernanceKind"];
+            /** @description KPI reviews: targets (default: the effective `kpi_thresholds` configuration). */
+            kpiTargets?: components["schemas"]["KpiTarget"][];
+            /**
+             * Format: int32
+             * @description Risks: 1..5.
+             */
+            likelihood?: number | null;
+            owner?: string | null;
+            severity?: null | components["schemas"]["GovernanceSeverity"];
+            title: string;
+        };
+        /** @description Cases. */
+        GovernanceCaseList: {
+            items: components["schemas"]["GovernanceCaseView"][];
+        };
+        /** @description A governance case with its items. */
+        GovernanceCaseView: {
+            /** @description Outcomes this kind may close with. */
+            allowedOutcomes: string[];
+            approvalState: components["schemas"]["ApprovalState"];
+            /**
+             * Format: double
+             * @description Average criterion rating (assessments).
+             */
+            averageScore?: number | null;
+            decidedBy?: string | null;
+            description?: string | null;
+            domains: string[];
+            /** Format: date */
+            dueOn?: string | null;
+            exceptionType?: null | components["schemas"]["ExceptionType"];
+            /** Format: date */
+            expiresOn?: string | null;
+            /** @description Computed figures (SLA breach / KPI snapshot, assessment score). */
+            facts: Record<string, never>;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            impact?: number | null;
+            /**
+             * Format: int32
+             * @description Inherent score likelihood × impact (risks).
+             */
+            inherentScore?: number | null;
+            /** Format: uuid */
+            institutionId: string;
+            items: components["schemas"]["GovernanceItemView"][];
+            kind: components["schemas"]["GovernanceKind"];
+            /** Format: int32 */
+            likelihood?: number | null;
+            /** @example GOV-000001 */
+            number: string;
+            outcome?: string | null;
+            owner?: string | null;
+            /** Format: uuid */
+            parentId?: string | null;
+            processInstanceId?: string | null;
+            rationale?: string | null;
+            /** Format: int32 */
+            residualScore?: number | null;
+            severity: components["schemas"]["GovernanceSeverity"];
+            status: components["schemas"]["GovernanceStatus"];
+            statusReason?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description Governance configuration revision of a unit. */
         GovernanceConfig: {
             /** Format: date-time */
@@ -32147,6 +33364,15 @@ export interface components {
             updatedAt: string;
             version: components["schemas"]["Version"];
         };
+        /** @description Draft a configuration version. */
+        GovernanceConfigCreate: {
+            key: components["schemas"]["ConfigKey"];
+            /**
+             * @description `readiness_threshold` `{minCriterionScore 1..5}`, `risk_appetite` `{maxResidualScore 1..25}`,
+             *     `review_cadence` `{operationalDays, executiveDays}`, `kpi_thresholds` `{<campus figure>: number}`.
+             */
+            settings: Record<string, never>;
+        };
         /**
          * Format: uuid
          * @description Governance configuration of an organisation unit (heads, committees, delegations).
@@ -32155,6 +33381,141 @@ export interface components {
         /** @description Governance revisions of a unit. */
         GovernanceConfigList: {
             items: components["schemas"]["GovernanceConfig"][];
+        };
+        /** @description One configuration version. */
+        GovernanceConfigView: {
+            approvalState: components["schemas"]["ApprovalState"];
+            /** Format: date-time */
+            effectiveAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            key: components["schemas"]["ConfigKey"];
+            /** Format: uuid */
+            predecessorId?: string | null;
+            processInstanceId?: string | null;
+            settings: Record<string, never>;
+            status: components["schemas"]["ConfigStatus"];
+            statusReason?: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            versionNo: number;
+        };
+        /** @description Escalate a case to executive resolution (G-012). */
+        GovernanceEscalate: {
+            owner?: string | null;
+            reason: string;
+            title: string;
+        };
+        /** @description Build evidence from a closed case. */
+        GovernanceEvidenceCreate: {
+            /** Format: uuid */
+            caseId: string;
+            summary?: string | null;
+            /** @description Default: the case title. */
+            title?: string | null;
+        };
+        /** @description Evidence list. */
+        GovernanceEvidenceList: {
+            items: components["schemas"]["GovernanceEvidenceView"][];
+        };
+        /**
+         * @description Governance evidence lifecycle.
+         * @enum {string}
+         */
+        GovernanceEvidenceStatus: "draft" | "published";
+        /** @description One piece of governance evidence. */
+        GovernanceEvidenceView: {
+            /** @description Published evidence can be cited by accreditation evidence records. */
+            accreditationReady: boolean;
+            /** Format: uuid */
+            caseId: string;
+            caseKind: components["schemas"]["GovernanceKind"];
+            caseNumber: string;
+            caseOutcome?: string | null;
+            /** @description Campus operations figures + the case decision at creation time. */
+            facts: Record<string, never>;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            status: components["schemas"]["GovernanceEvidenceStatus"];
+            summary?: string | null;
+            title: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Add an item to a case. */
+        GovernanceItemCreate: {
+            domain?: string | null;
+            dueOn?: string | null;
+            kind: components["schemas"]["ItemKind"];
+            owner?: string | null;
+            /** Format: int32 */
+            score?: number | null;
+            title: string;
+        };
+        /** @description Progress an item (status and / or criterion rating). */
+        GovernanceItemProgress: {
+            evidenceRef?: string | null;
+            note?: string | null;
+            /** Format: int32 */
+            score?: number | null;
+            status?: null | components["schemas"]["ItemStatus"];
+        };
+        /** @description Verify a done item (evidence reference required). */
+        GovernanceItemVerify: {
+            evidenceRef?: string | null;
+            note?: string | null;
+        };
+        /** @description One item of a case (criterion, recommendation, action, corrective action). */
+        GovernanceItemView: {
+            /** Format: uuid */
+            caseId: string;
+            domain?: string | null;
+            doneBy?: string | null;
+            /** Format: date */
+            dueOn?: string | null;
+            evidenceRef?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["ItemKind"];
+            note?: string | null;
+            owner?: string | null;
+            /** Format: int32 */
+            score?: number | null;
+            status: components["schemas"]["ItemStatus"];
+            title: string;
+            verifiedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description What a governance case is (one per G00 scenario family).
+         * @enum {string}
+         */
+        GovernanceKind: "readiness_assessment" | "health_assessment" | "maturity_assessment" | "operational_review" | "executive_review" | "risk" | "action_plan" | "sla_deviation" | "kpi_review" | "finding" | "escalation" | "exception";
+        /** @description Effective governance policy (G-014 configuration, defaults when no version is effective). */
+        GovernancePolicy: {
+            /**
+             * Format: int32
+             * @description Highest residual score (1..25) a `mitigated` risk may close with (`risk_appetite`).
+             */
+            maxResidualScore: number;
+            /**
+             * Format: int32
+             * @description Lowest criterion rating (1..5) for `ready` / `healthy` (`readiness_threshold`).
+             */
+            minCriterionScore: number;
+        };
+        /** @description The effective policy and the versions behind it. */
+        GovernancePolicyView: {
+            effective: components["schemas"]["GovernanceConfigView"][];
+            policy: components["schemas"]["GovernancePolicy"];
         };
         GovernanceReview: {
             /** Format: date */
@@ -32182,6 +33543,26 @@ export interface components {
              * @description Decision quorum of the governing body (1–50), if any.
              */
             quorum?: number | null;
+        };
+        /**
+         * @description Severity of a case.
+         * @enum {string}
+         */
+        GovernanceSeverity: "low" | "medium" | "high" | "critical";
+        /**
+         * @description Case lifecycle: draft → open → pending_decision → closed (rejection → open); cancelled.
+         * @enum {string}
+         */
+        GovernanceStatus: "draft" | "open" | "pending_decision" | "closed" | "cancelled";
+        /** @description Submit a case with its proposed outcome. */
+        GovernanceSubmit: {
+            outcome: string;
+            rationale?: string | null;
+            /**
+             * Format: int32
+             * @description Risks: residual score 1..25 after mitigation.
+             */
+            residualScore?: number | null;
         };
         /** @description One band of a grading scheme (decimals as strings). */
         GradeBandView: {
@@ -32553,6 +33934,11 @@ export interface components {
         HostelApplicationView: {
             /** Format: uuid */
             allocationId?: string | null;
+            /**
+             * @description 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+             *     rejected`, contract batch9 §6.4), derived from the status.
+             */
+            approvalState: string;
             /** @description `self_service | office`. */
             channel: string;
             /** Format: date-time */
@@ -32637,6 +34023,11 @@ export interface components {
         HostelPolicyView: {
             /** Format: date-time */
             activatedAt?: string | null;
+            /**
+             * @description 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+             *     rejected`, contract batch9 §6.4), derived from the status.
+             */
+            approvalState: string;
             /** @description `HH:MM`. */
             curfewTime?: string | null;
             /** @example 5000.00 */
@@ -33112,6 +34503,16 @@ export interface components {
          */
         ItemId: string;
         /**
+         * @description Child item of a case.
+         * @enum {string}
+         */
+        ItemKind: "criterion" | "recommendation" | "action" | "corrective_action";
+        /**
+         * @description Item lifecycle: open → in_progress → done → verified; cancelled.
+         * @enum {string}
+         */
+        ItemStatus: "open" | "in_progress" | "done" | "verified" | "cancelled";
+        /**
          * Format: uuid
          * @description Posted, balanced, append-only journal entry of the general ledger (L2-F05).
          */
@@ -33200,6 +34601,15 @@ export interface components {
          * @enum {string}
          */
         KeyDateKind: "holiday" | "instruction_start" | "instruction_end" | "exam_window" | "registration_window" | "break" | "event";
+        /** @description One KPI target of a KPI review (G-009). */
+        KpiTarget: {
+            /** @description `lower` (default) or `higher` is better. */
+            better?: string | null;
+            /** @description Campus figure key (`campus.tickets_past_sla` …). */
+            key: string;
+            /** @description Decimal string. */
+            target: string;
+        };
         /** @description Allocate a batch of students to a session. */
         LabBatchAllocationCreate: {
             batchLabel?: string | null;
@@ -34042,9 +35452,10 @@ export interface components {
         LedgerReconciliationId: string;
         /**
          * @description Approval state of a governed draft (`LIBRARY_POLICY_APPROVAL`).
+         *     9E: approvalState — wire `not_requested` (contract batch9 §6.4); the stored value stays `none`.
          * @enum {string}
          */
-        LibraryApprovalState: "not_submitted" | "pending" | "approved" | "rejected";
+        LibraryApprovalState: "not_requested" | "pending" | "approved" | "rejected";
         /** @description One item a bulk command could not process. */
         LibraryBulkFailure: {
             /** Format: uuid */
@@ -37741,6 +39152,13 @@ export interface components {
          * @enum {string}
          */
         PlanApprovalState: "not_requested" | "pending" | "approved" | "rejected";
+        /** @description One entry of a cycle's assessment plan (H-062). */
+        PlanEntry: {
+            criterionCode: string;
+            /** @example 2027-01-31 */
+            dueOn: string;
+            owner: string;
+        };
         /** @description An institutional policy. */
         Policy: {
             /** Format: date-time */
@@ -38644,7 +40062,13 @@ export interface components {
             /** Format: date-time */
             acknowledgedAt?: string | null;
             acknowledgementRef?: string | null;
+            /** @description Deprecated (Batch 9 §6.4): read `approvalState`; kept for existing clients. */
             approvalPending: boolean;
+            /**
+             * @description 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+             *     rejected`, contract batch9 §6.4), derived from the status + `approvalPending`.
+             */
+            approvalState: string;
             /** Format: date-time */
             closedAt?: string | null;
             /** Format: date-time */
@@ -39245,6 +40669,21 @@ export interface components {
             sourceTotal: string;
             status: components["schemas"]["ReconciliationStatus"];
         };
+        /**
+         * @description Child item of a record.
+         * @enum {string}
+         */
+        RecordItemKind: "requirement" | "checklist" | "action";
+        /**
+         * @description Item lifecycle: open → in_progress → done → verified; cancelled.
+         * @enum {string}
+         */
+        RecordItemStatus: "open" | "in_progress" | "done" | "verified" | "cancelled";
+        /**
+         * @description Record kinds (H-063…071).
+         * @enum {string}
+         */
+        RecordKind: "obligation" | "evidence" | "internal_audit" | "external_assessment" | "finding" | "improvement" | "readiness" | "compliance_review" | "self_study";
         /** @description Faculty record for a student without a submission (offline test, absence). */
         RecordOutcome: {
             absent?: boolean;
@@ -39274,6 +40713,16 @@ export interface components {
              */
             receivedOn?: string | null;
         };
+        /**
+         * @description Severity of a finding / record.
+         * @enum {string}
+         */
+        RecordSeverity: "low" | "medium" | "high" | "critical";
+        /**
+         * @description Record lifecycle: draft → open → pending_decision → closed (rejection → open); cancelled.
+         * @enum {string}
+         */
+        RecordStatus: "draft" | "open" | "pending_decision" | "closed" | "cancelled";
         /** @description Money received without a known payer. */
         RecordUnidentifiedRequest: {
             /** @example 15000.00 */
@@ -39793,9 +41242,10 @@ export interface components {
         };
         /**
          * @description Approval state of a framework draft (`REPORTING_FRAMEWORK_APPROVAL`).
+         *     9E: approvalState — wire `not_requested` (contract batch9 §6.4); the stored value stays `none`.
          * @enum {string}
          */
-        ReportingApprovalState: "not_submitted" | "pending" | "approved" | "rejected";
+        ReportingApprovalState: "not_requested" | "pending" | "approved" | "rejected";
         /** @description Reporting manager (L3-E-018); `null` removes it. */
         ReportingBody: {
             reason?: string | null;
@@ -40073,6 +41523,11 @@ export interface components {
         ResidentLeaveView: {
             /** Format: uuid */
             allocationId: string;
+            /**
+             * @description 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+             *     rejected`, contract batch9 §6.4), derived from the status.
+             */
+            approvalState: string;
             /** Format: date-time */
             departedAt?: string | null;
             destination?: string | null;
@@ -40540,6 +41995,11 @@ export interface components {
         RoomTransferView: {
             /** Format: uuid */
             allocationId: string;
+            /**
+             * @description 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+             *     rejected`, contract batch9 §6.4), derived from the status.
+             */
+            approvalState: string;
             /** Format: date-time */
             completedAt?: string | null;
             fromBedCode: string;
@@ -40990,6 +42450,26 @@ export interface components {
          * @enum {string}
          */
         ScopeKind: "institution" | "campus" | "org_unit" | "programme";
+        /** @description One search hit. */
+        SearchHit: {
+            /** @description The projected document (`_source`). */
+            document: Record<string, never>;
+            /** Format: uuid */
+            id: string;
+            projection: string;
+            /** Format: double */
+            score: number;
+        };
+        /** @description Search response (`GET /api/v1/platform/search`). */
+        SearchResults: {
+            items: components["schemas"]["SearchHit"][];
+            projection: string;
+            /**
+             * Format: int64
+             * @description Total matching documents of the caller's tenant.
+             */
+            total: number;
+        };
         SeatAllocation: {
             allocatedBy?: string | null;
             /** Format: date-time */
@@ -42436,8 +43916,16 @@ export interface components {
         /** @description A supplier (bank account masked). */
         SupplierView: {
             address?: string | null;
-            /** @description Submitted for `SUPPLIER_APPROVAL`, awaiting a decision. */
+            /**
+             * @description Submitted for `SUPPLIER_APPROVAL`, awaiting a decision. Deprecated (Batch 9 §6.4): read
+             *     `approvalState`; kept for existing clients.
+             */
             approvalPending: boolean;
+            /**
+             * @description 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+             *     rejected`, contract batch9 §6.4), derived from the status + `approvalPending`.
+             */
+            approvalState: string;
             /** Format: date-time */
             approvedAt?: string | null;
             bankAccountName?: string | null;
@@ -43137,6 +44625,11 @@ export interface components {
         /** @description A transport route with its current version. */
         TransportRouteView: {
             /**
+             * @description 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+             *     rejected`, contract batch9 §6.4), derived from the status.
+             */
+            approvalState: string;
+            /**
              * Format: int32
              * @description Seats of the current version.
              */
@@ -43649,7 +45142,13 @@ export interface components {
         };
         /** @description A vendor invoice / credit note (header; signed amounts, credit notes negative). */
         VendorInvoiceView: {
+            /** @description Deprecated (Batch 9 §6.4): read `approvalState`; kept for existing clients. */
             approvalPending: boolean;
+            /**
+             * @description 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+             *     rejected`, contract batch9 §6.4), derived from the status + `approvalPending`.
+             */
+            approvalState: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date */
@@ -43787,6 +45286,35 @@ export interface components {
          * @enum {string}
          */
         VerifyOutcome: "verified" | "rejected";
+        /** @description Range to verify (default: the whole chain). */
+        VerifyRequest: {
+            /**
+             * Format: int64
+             * @description First `seq` (≥ 1, default 1).
+             */
+            fromSeq?: number | null;
+            /**
+             * Format: int64
+             * @description Last `seq` (default: the head).
+             */
+            toSeq?: number | null;
+        };
+        /** @description Verification outcome (200 even when the chain is broken). */
+        VerifyResult: {
+            /**
+             * Format: int64
+             * @description Entries recomputed.
+             */
+            checked: number;
+            /** Format: int64 */
+            firstBrokenSeq?: number | null;
+            headHash?: string | null;
+            /** Format: int64 */
+            headSeq: number;
+            ok: boolean;
+            /** @description `hash_mismatch` | `link_broken` | `missing_row` | `anchor_mismatch`. */
+            reason?: string | null;
+        };
         /** @description Body of `…/documents/{documentId}/verify`. */
         VerifyStudentDocument: {
             note?: string | null;
@@ -57318,6 +58846,540 @@ export interface operations {
             };
         };
     };
+    campus_governance_case_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_case_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_case_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_case_escalate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceEscalate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_item_add: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceItemCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_case_refresh: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_case_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_case_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the case */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceSubmit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_config_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_config_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_evidence_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceEvidenceView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_evidence_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the evidence */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceEvidenceView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_item_progress: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the item */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceItemProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_item_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag (version) of the item */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceItemVerify"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     campus_hostel_allocation_get: {
         parameters: {
             query?: never;
@@ -58519,6 +60581,243 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CatalogueRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_case_list: {
+        parameters: {
+            query?: {
+                kind?: string;
+                status?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_case_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceCaseCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceCaseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_config_list: {
+        parameters: {
+            query?: {
+                key?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusGovernanceConfigList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_config_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceConfigCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceConfigView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_evidence_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceEvidenceList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_evidence_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernanceEvidenceCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceEvidenceView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_governance_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernancePolicyView"];
                 };
             };
             "4XX": {
@@ -93744,6 +96043,130 @@ export interface operations {
             };
         };
     };
+    platform_audit_anchor_list: {
+        parameters: {
+            query?: {
+                /** @description Newest first, 1–500 (default 50). */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnchorView"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.audit.verify` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_audit_chain_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainStatusView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.audit.verify` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_audit_chain_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Verification ran (`ok` false when the chain is broken) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyResult"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.audit.verify` or CSRF token */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     list_modules: {
         parameters: {
             query?: never;
@@ -93759,6 +96182,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModuleDescriptor"][];
+                };
+            };
+        };
+    };
+    platform_search_query: {
+        parameters: {
+            query: {
+                /** @description Free text (prefix match on names / numbers / titles); empty = every document. */
+                q?: string;
+                /** @description `students` | `staff` | `library-catalogue`. */
+                projection: string;
+                /** @description Page size (1–100, default 20). */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing the projection's read permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unknown projection or bad query */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `search_disabled` (SUTRA_SEARCH=off) or OpenSearch unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -96936,6 +99420,600 @@ export interface operations {
             };
         };
     };
+    services_accreditation_cycle_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationCycleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_cycle_close: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationCycleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_cycle_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationCycleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_cycle_plan: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationPlanBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationCycleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_cycle_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationCycleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_framework_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_framework_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_framework_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_item_progress: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationItemProgress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_item_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationItemVerify"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_record_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_record_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_record_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_record_handoff: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationHandoff"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_item_add: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationItemCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_record_start: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_record_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationSubmit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     services_dashboard_get: {
         parameters: {
             query?: never;
@@ -97294,6 +100372,211 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardRenderView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_cycle_list: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationCycleList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_cycle_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationCycleCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationCycleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_framework_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationFrameworkList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_framework_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationFrameworkCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationFrameworkView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_record_list: {
+        parameters: {
+            query?: {
+                kind?: string;
+                status?: string;
+                cycleId?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    services_accreditation_record_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccreditationRecordCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccreditationRecordView"];
                 };
             };
             "4XX": {

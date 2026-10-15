@@ -2,6 +2,7 @@ import { useParams } from "react-router";
 import { AdminScreen } from "../../features/institution/AdminScreen";
 import { REPORTS_TABS } from "../../features/reports";
 import { DashboardsAdminTab, RegulatoryAdminTab } from "../../features/reports/analytics";
+import { AccreditationAdminTab } from "../../features/reports/accreditation"; // 9E
 
 export function meta() {
   return [{ title: "Reports · SutraERP" }];
@@ -15,7 +16,15 @@ export default function Reports() {
   const { tab } = useParams();
   return (
     <AdminScreen title="Reports" base="/reports" tabs={REPORTS_TABS} tab={tab}>
-      {(institution, current) => (current.key === "regulatory" ? <RegulatoryAdminTab institution={institution} /> : <DashboardsAdminTab institution={institution} />)}
+      {(institution, current) =>
+        current.key === "regulatory" ? (
+          <RegulatoryAdminTab institution={institution} />
+        ) : current.key === "accreditation" ? ( // 9E
+          <AccreditationAdminTab institution={institution} />
+        ) : (
+          <DashboardsAdminTab institution={institution} />
+        )
+      }
     </AdminScreen>
   );
 }

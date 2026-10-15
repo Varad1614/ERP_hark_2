@@ -189,7 +189,7 @@ async fn library_policy_membership_catalogue_circulation_fines_and_clearance() {
     assert_eq!(s, StatusCode::CREATED, "{p1}");
     assert_eq!(
         (p1["status"].as_str(), p1["approvalState"].as_str()),
-        (Some("draft"), Some("not_submitted"))
+        (Some("draft"), Some("not_requested")) // 9E: approvalState (§6.4)
     );
     assert_eq!(p1["lostChargeFactor"], "1.5000");
     let p1id = sid(&p1);

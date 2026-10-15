@@ -1,0 +1,43 @@
+# kind CI values (9B owns; 9A/9C append in their sections). Everything bundled, dev auth, one replica.
+global:
+  environment: development
+image:
+  api: { tag: ci, pullPolicy: Never }
+  web: { tag: ci, pullPolicy: Never }
+api:
+  replicas: 1
+  authMode: dev
+  publicUrl: http://localhost:8080
+  podDisruptionBudget: { enabled: false }
+  # 9B: plain-http port-forwards in CI.
+  extraEnv:
+    SUTRA_SESSION_COOKIE_SECURE: "false"
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 768Mi }
+web:
+  replicas: 1
+  podDisruptionBudget: { enabled: false }
+secrets:
+  mode: openbao
+  openbao:
+    address: http://openbao.openbao.svc:8200
+    # 9B: only the groups the kind run needs (deploy/openbao/seed-dev.sh writes exactly these).
+    groups: [database, app, audit, flowable]
+postgres:
+  mode: bundled
+  bundled:
+    storage: 2Gi
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 1Gi }
+nats: { mode: bundled, url: "nats://sutraerp-nats:4222", bundled: { storage: 1Gi } }
+valkey: { mode: bundled, url: "redis://sutraerp-valkey:6379" }
+observability:
+  enabled: true
+  otlpEndpoint: http://sutraerp-lgtm:4317
+  lgtm: { enabled: true }
+  grafanaDashboards: { enabled: true }  # 9A: dashboards provisioned into the lgtm Grafana
+flowable: { enabled: true }
+opensearch: { enabled: true, securityDisabled: true }  # 9C: plain http in CI
+backup: { enabled: true, target: { kind: pvc, pvcSize: 2Gi } }

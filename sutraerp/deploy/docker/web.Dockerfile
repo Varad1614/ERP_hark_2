@@ -17,7 +17,19 @@ ENV VITE_AUTH_MODE=$VITE_AUTH_MODE
 RUN pnpm --filter @sutra/web build
 
 # ---- runtime: unprivileged nginx, SPA fallback + /api reverse proxy ----
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+# 9D: security (SEC-9D-013) — 1.27-alpine stopped receiving rebuilds in 2025-06 (stale
+# Alpine packages); 1.30 is the maintained nginx stable branch.
+FROM nginxinc/nginx-unprivileged:1.30-alpine
+# 9D: security (SEC-9D-016) — pick up Alpine security fixes released after the base image was
+# built (zlib 1.3.2-r1, found by Grype); the base runs as UID 101, so upgrade as root and drop back.
+USER root
+RUN apk upgrade --no-cache
+USER 101
+# 9B: OCI metadata (docs/batch9-contracts.md §10.2).
+ARG SUTRA_GIT_SHA=unknown
+LABEL org.opencontainers.image.source="https://github.com/Varad1614/ERP_hark_2" \
+      org.opencontainers.image.title="sutraerp-web" \
+      org.opencontainers.image.revision="${SUTRA_GIT_SHA}"
 COPY deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /src/apps/web/build/client /usr/share/nginx/html
 EXPOSE 8080

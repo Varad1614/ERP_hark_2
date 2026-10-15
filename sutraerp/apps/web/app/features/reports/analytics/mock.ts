@@ -24,6 +24,7 @@ const metric = (domain: string, key: string, label: string, value: string, unit 
 export function createMockAnalyticsApi(): AnalyticsApi {
   const metrics: MetricValue[] = [
     metric("student", "active_students", "Active students", "1240"),
+    metric("student", "enrolled_students", "Enrolled students", "1198"), // 9E: home KPIs
     metric("people", "working_staff", "Working staff", "186"),
     metric("people", "teaching_staff", "Teaching staff", "112"),
     metric("finance", "receivables_outstanding", "Receivables outstanding", "1845000.00", "inr"),
@@ -34,6 +35,7 @@ export function createMockAnalyticsApi(): AnalyticsApi {
     metric("campus", "seating_capacity", "Seating capacity", "5320"),
     metric("campus", "open_tickets", "Open service tickets", "14"),
     metric("campus", "tickets_past_sla", "Tickets past SLA", "2"),
+    metric("campus", "open_work_orders", "Open work orders", "9"), // 9E: home KPIs
     metric("campus", "library_members", "Library members", "980"),
     metric("campus", "library_titles", "Catalogued titles", "4210"),
     metric("campus", "library_loans_active", "Loans", "312"),
@@ -220,7 +222,7 @@ export function createMockAnalyticsApi(): AnalyticsApi {
       const prev = frameworks.filter((f) => f.code === input.code);
       const f: Framework = {
         id: uid(), institutionId: INST, code: input.code, name: input.name, regulator: input.regulator, metricKeys: input.metricKeys, manualFields: input.manualFields ?? [],
-        versionNo: prev.length + 1, predecessorId: prev.find((p) => p.status === "active")?.id ?? null, status: "draft", approvalState: "not_submitted", version: 1,
+        versionNo: prev.length + 1, predecessorId: prev.find((p) => p.status === "active")?.id ?? null, status: "draft", approvalState: "not_requested", version: 1,
       };
       frameworks.unshift(f);
       return f;

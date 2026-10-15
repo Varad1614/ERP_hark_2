@@ -43,6 +43,9 @@ pub mod process {
     pub const LIBRARY_POLICY_APPROVAL: &str = "campus.library_policy_approval";
     pub const FINE_WAIVER: &str = "campus.fine_waiver";
     pub const LIBRARY_CLEARANCE: &str = "campus.library_clearance";
+    // 9E: governance case decisions (G-001…013) and configuration changes (G-014)
+    pub const GOVERNANCE_DECISION: &str = "campus.governance_decision";
+    pub const GOVERNANCE_CONFIG_APPROVAL: &str = "campus.governance_config_approval";
 
     /// Every key (unit-tested unique).
     pub const ALL: &[&str] = &[
@@ -58,6 +61,8 @@ pub mod process {
         LIBRARY_POLICY_APPROVAL,
         FINE_WAIVER,
         LIBRARY_CLEARANCE,
+        GOVERNANCE_DECISION,        // 9E
+        GOVERNANCE_CONFIG_APPROVAL, // 9E
     ];
 }
 

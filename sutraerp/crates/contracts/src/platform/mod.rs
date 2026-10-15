@@ -3,4 +3,5 @@
 pub mod auth;
 pub mod catalog;
 pub mod events;
+pub mod search; // 9C
 pub mod workflow;

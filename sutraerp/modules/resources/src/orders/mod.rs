@@ -124,7 +124,11 @@ pub struct PurchaseOrderView {
     /// `draft | issued | acknowledged | partially_received | received | closed | cancelled`.
     pub status: String,
     pub status_reason: Option<String>,
+    /// Deprecated (Batch 9 §6.4): read `approvalState`; kept for existing clients.
     pub approval_pending: bool,
+    /// 9E: approvalState — canonical approval state (`not_requested | pending | approved |
+    /// rejected`, contract batch9 §6.4), derived from the status + `approvalPending`.
+    pub approval_state: String,
     pub process_instance_id: Option<String>,
     pub issued_at: Option<DateTime<Utc>>,
     pub acknowledged_at: Option<DateTime<Utc>>,
@@ -187,7 +191,11 @@ const SELECT: &str = "SELECT o.id, o.institution_id, o.number, o.supplier_id, \
     o.sourcing_event_id, o.quotation_id, o.delivery_location_id, o.order_date, o.expected_delivery, \
     o.revision, o.total_amount, o.notes, o.status, o.status_reason, o.approval_pending, \
     o.process_instance_id, o.issued_at, o.acknowledged_at, o.acknowledgement_ref, o.closed_at, \
-    o.version, o.created_at FROM resources.purchase_order o \
+    o.version, o.created_at, \
+    CASE WHEN o.approval_pending THEN 'pending' \
+         WHEN o.status NOT IN ('draft', 'cancelled') OR o.issued_at IS NOT NULL THEN 'approved' \
+         ELSE 'not_requested' END AS approval_state /* 9E: approvalState */ \
+    FROM resources.purchase_order o \
     JOIN resources.supplier s ON s.id = o.supplier_id";
 
 /// A purchase order of the tenant (404 when missing).

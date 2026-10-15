@@ -1,0 +1,46 @@
+# grafana/grafana values for SutraERP. Datasource uids match the dashboards' variables
+# (${DS_PROMETHEUS} / ${DS_LOKI} / ${DS_TEMPO} default to these), the sidecar loads the
+# SutraERP chart's dashboard ConfigMaps (label grafana_dashboard=1).
+admin:
+  existingSecret: grafana-admin          # never a values password
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        url: http://kps-prometheus.observability.svc:9090
+        isDefault: true
+        jsonData:
+          exemplarTraceIdDestinations:
+            - name: trace_id
+              datasourceUid: tempo
+      - name: Loki
+        uid: loki
+        type: loki
+        url: http://loki-gateway.observability.svc
+        jsonData:
+          derivedFields:
+            - name: trace_id
+              matcherType: label
+              matcherRegex: trace_id
+              datasourceUid: tempo
+              url: "$${__value.raw}"
+      - name: Tempo
+        uid: tempo
+        type: tempo
+        url: http://tempo.observability.svc:3200
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: loki
+            filterByTraceID: true
+          serviceMap:
+            datasourceUid: prometheus
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    searchNamespace: ALL
+    folderAnnotation: grafana_folder

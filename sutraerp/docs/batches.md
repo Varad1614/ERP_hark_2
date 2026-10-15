@@ -155,3 +155,69 @@ Integration rules and known inconsistencies:
 - An asset assigned to a `space` is not checked against Domain G (the resources crate cannot read the
   campus schema); `TeachingSpacePort`-style validation is a follow-up.
 
+
+## Batch 9 — Production hardening (+ G00 governance, H09 accreditation)
+
+Contracts, scope, deferrals and file ownership: [`batch9-contracts.md`](batch9-contracts.md). No real
+cluster: everything is proved in GitHub Actions (kind cluster + containers on the runner); GHCR push +
+Cosign keyless signing on `erp_merge` / `v*` tags only; pilot go-live = runbook + checklist + seeded
+pilot tenant.
+
+| Slice | Scope | Status |
+|-------|-------|--------|
+| **9·F** | Foundation: `config_b9` (OTel, audit chain, Flowable, OpenSearch env), audit hash-chain contract + migration, permissions `platform.audit.verify` / `campus.governance.manage` / `services.accreditation.manage`, mount points, Helm chart skeleton, per-slice workflows + kind stage scripts, `SUTRA_ENV_FILE` | <!-- batch9:9f:status -->✅ `667b81ef` |
+| **9A** | OTLP export, Prometheus metrics, Loki / Tempo / Grafana dashboards + alerts, audit sealer + verify API + anchors | <!-- batch9:9a:status -->✅ `3133fd94` |
+| **9B** | Helm chart + k8s manifests, OpenBao secrets, GHCR push + Cosign + SBOM, kind install-and-smoke, compose boot | <!-- batch9:9b:status -->✅ `19243f4c` |
+| **9C** | Flowable deployment + REST adapter + BPMN, OpenSearch projections + search API, backup / restore + DR drill | <!-- batch9:9c:status -->✅ `a2dee3af` |
+| **9D** | k6 performance + capacity gates, security review (deny / audit / gitleaks / Trivy / Grype / ZAP), threat model, fixes | <!-- batch9:9d:status -->✅ `9f3f619e` |
+| **9E** | G00 governance (15: `campus.governance_*`, tag `campus-governance`, Admin → Campus → Governance), H09 accreditation (11: `services.accreditation_*`, tag `services-accreditation`, Admin → Reports → Accreditation), live home admin KPIs from the services metrics catalogue (fixture numbers removed), `PersonPicker` in the library / hostel / transport forms, approval-state normalisation (§6.4), pilot seed (`deploy/pilot/seed-pilot.mjs`, `deploy/ci/seed-pilot.sh`, workflow `Pilot seed (API + PostgreSQL)`) + `runbooks/pilot-go-live.md` + `runbooks/go-live-checklist.md` | <!-- batch9:9e:status -->✅ `6e5cd8a3` |
+| **Integration** | `batch9/integrate` (merge order 9A → 9C → 9B → 9D → 9E): metrics bridge (9C `metrics` facade → 9A prometheus-client registry, one `/metrics`), SEC-9D-003 fix (`SUTRA_PAYMENT_GATEWAY`), BPMN for the 9E approval keys, W-G00 / W-H09 screens, capacity noise floor, kind PG password + seed-pilot container, rustls 0.23.46, NetworkPolicy name clash fix, backup PVC as a pre-install hook (helm `--wait` no longer blocks on the WaitForFirstConsumer claim), kind fixes (PostgreSQL 18 client for the DR drill, idempotent OpenBao re-seed, DR drill re-opens the api port-forward after the restart, release-record credential check ignores `${VAR}` passwords), governance / accreditation e2e screenshots; every workflow green incl. kind with all four stages live (smoke → telemetry → pilot seed → DR; kind DR RTO 43 s against the 2 h target) on `2258a2c8` | <!-- batch9:int:status -->✅ |
+
+Integration deviations from the contract (also in [`batch9-contracts.md`](batch9-contracts.md) §14):
+
+- **Backups keep ACLs** (§11): `pg_dump -Fc --no-owner` without `--no-privileges`; `sutra-restore.sh`
+  re-creates the cluster roles from `deploy/backup/roles.sql` before `pg_restore`, so the append-only
+  audit grants (ADR-L5-0012) survive a restore.
+- **Capacity regression check** (§9) has a 10 ms absolute p95 noise floor and a throughput floor
+  (75 % of the baseline req/s).
+- **One metrics registry:** 9C's `metrics` facade families are bridged into 9A's registry
+  (`apps/api/src/metrics_bridge.rs`).
+- **SEC-9D-003 (High) fixed:** `SUTRA_PAYMENT_GATEWAY=disabled|mock` (production default `disabled`,
+  development / test `mock`); disabled → online checkout, recovery polling, gateway refunds and the
+  webhook answer 503 `dependency-unavailable`; `SUTRA_PAYMENT_WEBHOOK_SECRET` from OpenBao `payments`,
+  production refuses unset / the dev constant / < 32 characters; pilot values set `disabled`.
+
+Known gaps and deferrals (contract §1 / §14):
+
+- The kind DR drill covers PostgreSQL (dump → wipe StatefulSet + PVC → restore → grants / heads / chain
+  verify); Flowable and OpenSearch backup → restore → rebuild are proved in the `Data platform` job.
+- No real cluster: Helm, OpenBao, Flowable, OpenSearch, backup / DR and telemetry are proved in GitHub
+  Actions only (kind + containers on the runner). Real cloud / DNS / TLS / IdP federation for the
+  pilot are operator steps in `runbooks/pilot-go-live.md`.
+- GHCR push + Cosign keyless signing + SBOM attestation run only on `erp_merge` / `v*` tags; the first
+  real signed images appear on the erp_merge merge.
+- Logical backups only: no PG streaming replication, WAL-archive PITR or multi-region; pilot RPO 24 h,
+  RTO target 2 h (the DR drill records the measured RTO).
+- `NoopWorkflowAdapter` stays the default approval engine; Flowable is proved and switched on per
+  environment after the pilot.
+- OpenSearch projections cover students, staff and the library catalogue only; no global search UI.
+- Online payments stay off in production until a real payment gateway adapter exists (SEC-9D-003).
+- Every Batch 8 deferral remains (H01, H03…H06, H10, G06…G09, J09 / J10, F-046…050, F-067…075,
+  F-077…080, F-083); OLED theme and customisable home widgets not done.
+- Approval-state legacy fields: `approvalPending` stays on 8B / 8D views (deprecated).
+
+### Approval-state rule (9E, contract §6.4)
+
+Every Batch 8 / 9 aggregate view with an approval step carries the canonical wire field
+`approvalState` ∈ `not_requested | pending | approved | rejected`:
+
+- 8A maintenance plans already complied; 9E G00 cases / configuration versions and H09 frameworks /
+  cycles / records use it natively.
+- 8C library policies and reporting frameworks: the stored value `none` stays in the database and is
+  mapped to `not_requested` in the view (the old wire value `not_submitted` is gone).
+- 8B hostel / transport and 8D supplier / purchase order / vendor invoice views add `approvalState`
+  derived from their status (+ `approvalPending`); `approvalPending` stays, documented as deprecated,
+  so existing clients keep working.
+- The web reads the field only through `approvalStateLabel` / `approvalFrom` in
+  `apps/web/app/features/campus/approval.ts` (legacy `not_submitted` / `none` read as "Not submitted").
+- New aggregates with an approval step must expose `approvalState` with exactly these four values.

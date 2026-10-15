@@ -51,6 +51,18 @@ tracing-subscriber.workspace = true
 dotenvy.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
+# 9A: telemetry export + Prometheus metrics (contract §3)
+opentelemetry.workspace = true
+opentelemetry_sdk.workspace = true
+opentelemetry-otlp.workspace = true
+opentelemetry-semantic-conventions.workspace = true
+opentelemetry-appender-tracing.workspace = true
+tracing-opentelemetry.workspace = true
+prometheus-client.workspace = true
+# INT: bridge of the 9C `metrics` facade into the prometheus-client registry
+metrics.workspace = true
+# 9C: SearchIndex adapter over sutra_infra::opensearch
+async-trait.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true
@@ -64,3 +76,6 @@ rust_decimal.workspace = true
 db-tests = []
 # With db-tests: end-to-end outbox relay to a live `nats-server -js` (SUTRA_TEST_NATS_URL).
 nats-tests = []
+# 9C: with db-tests, live Flowable REST (SUTRA_TEST_FLOWABLE_URL) / OpenSearch (SUTRA_TEST_OPENSEARCH_URL).
+flowable-tests = []
+opensearch-tests = []

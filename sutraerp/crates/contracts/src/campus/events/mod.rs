@@ -19,6 +19,7 @@
 use uuid::Uuid;
 
 pub mod facilities;
+pub mod governance; // 9E
 pub mod library;
 pub mod residence;
 
@@ -81,6 +82,7 @@ pub fn all_event_types() -> Vec<&'static str> {
     v.extend_from_slice(facilities::EVENT_TYPES);
     v.extend_from_slice(residence::EVENT_TYPES);
     v.extend_from_slice(library::EVENT_TYPES);
+    v.extend_from_slice(governance::EVENT_TYPES); // 9E
     v
 }
 

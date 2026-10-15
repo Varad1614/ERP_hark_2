@@ -18,8 +18,10 @@
 //! | `infrastructure/`, `reservations/`, `labs/`, `maintenance/`, `servicedesk/` | 8A |
 //! | `hostel/`, `transport/` | 8B |
 //! | `library/` | 8C |
+//! | `governance/` | 9E (Batch 9, `docs/batch9-contracts.md`) |
 
 pub mod metrics;
+pub mod search_source; // 9C
 pub mod shared;
 pub mod spaces;
 
@@ -27,6 +29,7 @@ pub mod spaces;
 pub mod directory;
 
 // ---- slice areas (router mount points are pre-registered in `router_with_state`) ----
+pub mod governance; // 9E
 pub mod hostel; // 8B
 pub mod infrastructure; // 8A
 pub mod labs; // 8A
@@ -111,6 +114,7 @@ pub fn router_with_state(st: CampusState) -> OpenApiRouter {
         .merge(servicedesk::router(st.clone())) // 8A
         .merge(hostel::router(st.clone())) // 8B
         .merge(transport::router(st.clone())) // 8B
+        .merge(governance::router(st.clone())) // 9E
         .merge(library::router(st)) // 8C
 }
 

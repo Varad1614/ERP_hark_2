@@ -32,12 +32,19 @@ pub mod process {
     pub const DASHBOARD_PUBLICATION: &str = "services.dashboard_publication";
     pub const REPORTING_FRAMEWORK_APPROVAL: &str = "services.reporting_framework_approval";
     pub const SUBMISSION_APPROVAL: &str = "services.submission_approval";
+    // 9E: accreditation framework (H-061), assessment plan (H-062), record decisions (H-063…071)
+    pub const ACCREDITATION_FRAMEWORK_APPROVAL: &str = "services.accreditation_framework_approval";
+    pub const ACCREDITATION_PLAN_APPROVAL: &str = "services.accreditation_plan_approval";
+    pub const ACCREDITATION_DECISION: &str = "services.accreditation_decision";
 
     /// Every key (unit-tested unique).
     pub const ALL: &[&str] = &[
         DASHBOARD_PUBLICATION,
         REPORTING_FRAMEWORK_APPROVAL,
         SUBMISSION_APPROVAL,
+        ACCREDITATION_FRAMEWORK_APPROVAL, // 9E
+        ACCREDITATION_PLAN_APPROVAL,      // 9E
+        ACCREDITATION_DECISION,           // 9E
     ];
 }
 

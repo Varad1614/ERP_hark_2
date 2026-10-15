@@ -1,0 +1,10 @@
+# kind cluster for the `Kind (install · migrate · smoke · telemetry · DR)` job (9B).
+# kind v0.31.0, node image pinned by digest in .github/workflows/sutraerp-deploy.yml
+# (kindest/node:v1.31.14). One control-plane node; the default CNI (kindnet) enforces
+# NetworkPolicy, so the chart's default-deny policies are exercised for real. The CI stages reach
+# the api / web / lgtm Services through `kubectl port-forward` (no host port mappings needed).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: sutraerp
+nodes:
+  - role: control-plane

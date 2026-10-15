@@ -1,0 +1,278 @@
+{{- /*
+9B: NetworkPolicies (docs/batch9-contracts.md §10). Default deny (ingress + egress) for every pod
+of the release, then explicit allows by `app.kubernetes.io/component`:
+  DNS for all · web ← anyone :web, web → api · api ← web / ingress namespace / backup :http,
+  api ← lgtm / metrics namespace :metrics · api → postgres / nats / valkey / flowable / opensearch /
+  openbao / otel (lgtm or the collector) and, for external dependencies, the configured CIDRs ·
+  migrate → postgres / openbao · postgres ← api / migrate / flowable / backup · nats, valkey ← api ·
+  flowable (9C) ← api, → postgres · opensearch (9C) ← api / backup · backup (9C) → postgres / api /
+  opensearch / openbao / S3 · lgtm (9A) ↔ release pods.
+kubectl port-forward (the CI stages) enters the pod's own network namespace and is not filtered.
+*/ -}}
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy -}}
+{{- $inst := .Release.Name -}}
+{{- $bao := dict "namespaceSelector" (dict "matchLabels" (dict "kubernetes.io/metadata.name" $np.openbaoNamespace)) -}}
+{{ include "sutraerp.np.meta" (dict "root" . "name" "default-deny") }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $inst }}
+  policyTypes: [Ingress, Egress]
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "allow-dns") }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $inst }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "web") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "web") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports:
+        - { protocol: TCP, port: {{ .Values.web.port }} }
+  egress:
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "api") | nindent 8 }}
+      ports:
+        - { protocol: TCP, port: {{ .Values.api.port }} }
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "api") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "api") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "web") | nindent 8 }}
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "backup") | nindent 8 }}
+        {{- with $np.ingressNamespaceSelector }}
+        - namespaceSelector:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+      ports:
+        - { protocol: TCP, port: {{ .Values.api.port }} }
+    - from:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "lgtm") | nindent 8 }}
+        {{- with $np.metricsNamespaceSelector }}
+        - namespaceSelector:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+      ports:
+        - { protocol: TCP, port: {{ .Values.api.metricsPort }} }
+  egress:
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "postgres") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 5432 }]
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "nats") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 4222 }]
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "valkey") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 6379 }]
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "flowable") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 8080 }]
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "opensearch") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 9200 }]
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "lgtm") | nindent 8 }}
+        - namespaceSelector: {}
+      ports: [{ protocol: TCP, port: 4317 }, { protocol: TCP, port: 4318 }]
+    - to:
+        - {{- toYaml $bao | nindent 10 }}
+      ports: [{ protocol: TCP, port: 8200 }]
+    {{- $ext := list }}
+    {{- if eq .Values.postgres.mode "external" }}{{ $ext = append $ext 5432 }}{{ end }}
+    {{- if eq .Values.nats.mode "external" }}{{ $ext = append $ext 4222 }}{{ end }}
+    {{- if eq .Values.valkey.mode "external" }}{{ $ext = append $ext 6379 }}{{ end }}
+    {{- if $ext }}
+    - to:
+        {{- range $np.externalCidrs }}
+        - ipBlock: { cidr: {{ . }} }
+        {{- end }}
+      ports:
+        {{- range $ext }}
+        - { protocol: TCP, port: {{ . }} }
+        {{- end }}
+    {{- end }}
+    {{- with $np.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "migrate") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "migrate") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "postgres") | nindent 8 }}
+        {{- if eq .Values.postgres.mode "external" }}
+        {{- range $np.externalCidrs }}
+        - ipBlock: { cidr: {{ . }} }
+        {{- end }}
+        {{- end }}
+      ports: [{ protocol: TCP, port: 5432 }]
+    - to:
+        - {{- toYaml $bao | nindent 10 }}
+      ports: [{ protocol: TCP, port: 8200 }]
+---
+{{- /* Escape hatch for one-off database jobs of other components (e.g. a flowable-db-init Job):
+label the pod `sutraerp.io/db-client: "true"` → egress to PostgreSQL + OpenBao. */}}
+{{ include "sutraerp.np.meta" (dict "root" . "name" "db-client") }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $inst }}
+      sutraerp.io/db-client: "true"
+  policyTypes: [Egress]
+  egress:
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "postgres") | nindent 8 }}
+        {{- if eq .Values.postgres.mode "external" }}
+        {{- range $np.externalCidrs }}
+        - ipBlock: { cidr: {{ . }} }
+        {{- end }}
+        {{- end }}
+      ports: [{ protocol: TCP, port: 5432 }]
+    - to:
+        - {{- toYaml $bao | nindent 10 }}
+      ports: [{ protocol: TCP, port: 8200 }]
+{{- if eq .Values.postgres.mode "bundled" }}
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "postgres") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "postgres") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "api") | nindent 8 }}
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "migrate") | nindent 8 }}
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "flowable") | nindent 8 }}
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "backup") | nindent 8 }}
+        - podSelector:
+            matchLabels:
+              sutraerp.io/db-client: "true"
+      ports: [{ protocol: TCP, port: 5432 }]
+  egress:
+    - to:
+        - {{- toYaml $bao | nindent 10 }}
+      ports: [{ protocol: TCP, port: 8200 }]
+{{- end }}
+{{- if eq .Values.nats.mode "bundled" }}
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "nats") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "nats") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "api") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 4222 }]
+{{- end }}
+{{- if eq .Values.valkey.mode "bundled" }}
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "valkey") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "valkey") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "api") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 6379 }]
+{{- end }}
+{{- if .Values.flowable.enabled }}
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "flowable") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "flowable") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "api") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 8080 }]
+  egress:
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "postgres") | nindent 8 }}
+        {{- if eq .Values.postgres.mode "external" }}
+        {{- range $np.externalCidrs }}
+        - ipBlock: { cidr: {{ . }} }
+        {{- end }}
+        {{- end }}
+      ports: [{ protocol: TCP, port: 5432 }]
+    - to:
+        - {{- toYaml $bao | nindent 10 }}
+      ports: [{ protocol: TCP, port: 8200 }]
+{{- end }}
+{{- if .Values.opensearch.enabled }}
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "opensearch") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "opensearch") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "api") | nindent 8 }}
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "backup") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 9200 }]
+{{- end }}
+{{- if .Values.backup.enabled }}
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "backup") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "backup") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "postgres") | nindent 8 }}
+        {{- if eq .Values.postgres.mode "external" }}
+        {{- range $np.externalCidrs }}
+        - ipBlock: { cidr: {{ . }} }
+        {{- end }}
+        {{- end }}
+      ports: [{ protocol: TCP, port: 5432 }]
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "api") | nindent 8 }}
+      ports: [{ protocol: TCP, port: {{ .Values.api.port }} }]
+    - to:
+        {{- include "sutraerp.np.peer" (dict "inst" $inst "component" "opensearch") | nindent 8 }}
+      ports: [{ protocol: TCP, port: 9200 }]
+    - to:
+        - {{- toYaml $bao | nindent 10 }}
+      ports: [{ protocol: TCP, port: 8200 }]
+    - to:
+        {{- range $np.externalCidrs }}
+        - ipBlock: { cidr: {{ . }} }
+        {{- end }}
+      ports: [{ protocol: TCP, port: 443 }, { protocol: TCP, port: 9000 }]
+{{- end }}
+{{- if .Values.observability.lgtm.enabled }}
+---
+{{ include "sutraerp.np.meta" (dict "root" . "name" "lgtm") }}
+spec:
+  {{- include "sutraerp.np.select" (dict "inst" $inst "component" "lgtm") | nindent 2 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ $inst }}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ $inst }}
+{{- end }}
+{{- end }}

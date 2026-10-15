@@ -15,6 +15,7 @@
 //! All queries are runtime-checked (`sqlx::query`), so the workspace builds with no database.
 
 pub mod audit;
+pub mod audit_chain; // 9A
 pub mod backoff;
 pub mod idempotency;
 pub mod jobs;

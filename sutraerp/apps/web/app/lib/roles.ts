@@ -20,12 +20,14 @@ export interface NavEntry {
   /** Other screens that light up this pill (e.g. Academics for /academic-delivery). */
   match?: string[];
 }
+/**
+ * A home KPI tile: label, icon and destination only. 9E: the fixture numbers are gone — every
+ * value is read live in `features/home/live.tsx`, and a figure without a source renders pending.
+ */
 export interface Kpi {
   icon: LucideIcon;
   tone: Tone;
   label: string;
-  value: string;
-  hint: string;
   to: string;
 }
 export interface Todo {
@@ -79,10 +81,10 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     hero: { sub: "A clear view of your institution, and what needs you today.", cta: "Review priority work", to: "todo:0" },
     now: { time: "11:00", title: "Admissions check-in", sub: "Registrar’s office · 30 min", next: [["09:30", "Department coordinators", "Room 2"], ["14:30", "Academic planning", "45 min"]] },
     kpis: [
-      { icon: I.GraduationCap, tone: "orange", label: "Students enrolled", value: "4,812", hint: "+3.1% vs last year", to: "students" },
-      { icon: I.Users, tone: "green", label: "Faculty on roll", value: "286", hint: "4 joining this month", to: "people" },
-      { icon: I.Wallet, tone: "violet", label: "Fee collection", value: "82%", hint: "₹3.4 Cr of ₹4.1 Cr", to: "finance" },
-      { icon: I.UserCheck, tone: "blue", label: "Attendance today", value: "91%", hint: "Campus-wide", to: "reports" },
+      { icon: I.GraduationCap, tone: "orange", label: "Students enrolled", to: "students" },
+      { icon: I.Users, tone: "green", label: "Faculty on roll", to: "people" },
+      { icon: I.Wallet, tone: "violet", label: "Fee collection", to: "finance" },
+      { icon: I.Building2, tone: "blue", label: "Open work orders", to: "campus/facilities" },
     ],
     todos: [
       { title: "Admission documents to review", meta: "Students · Registrar’s office · Today, 4:00 PM", status: "attention" },
@@ -118,10 +120,10 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     hero: { sub: "Your teaching day, with the details that matter.", cta: "Open next class", to: "classes" },
     now: { time: "10:30", title: "Data Structures", sub: "CS201 · Section A · B-204", next: [["09:00", "Database Systems", "B-102"], ["14:00", "Student consultation", "60 min"]] },
     kpis: [
-      { icon: I.Presentation, tone: "orange", label: "Classes today", value: "3", hint: "Next at 10:30", to: "classes" },
-      { icon: I.Users, tone: "green", label: "My students", value: "128", hint: "Across 2 sections", to: "my-students" },
-      { icon: I.Inbox, tone: "violet", label: "To review", value: "12", hint: "Lab submissions", to: "assessments" },
-      { icon: I.UserCheck, tone: "blue", label: "Avg attendance", value: "88%", hint: "Last 30 days", to: "attendance" },
+      { icon: I.Presentation, tone: "orange", label: "Classes today", to: "classes" },
+      { icon: I.Users, tone: "green", label: "My students", to: "my-students" },
+      { icon: I.Inbox, tone: "violet", label: "To review", to: "assessments" },
+      { icon: I.UserCheck, tone: "blue", label: "Avg attendance", to: "attendance" },
     ],
     todos: [
       { title: "Take attendance · Data Structures", meta: "CS201 · Section A · B-204 · Today, 10:30 AM", status: "attention" },
@@ -157,10 +159,10 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     hero: { sub: "Make room for learning. Your day is right here.", cta: "View my timetable", to: "timetable" },
     now: { time: "10:30", title: "Data Structures", sub: "Dr. Meera Shah · B-204", next: [["09:00", "Mathematics II", "A-103"], ["13:30", "Database Systems lab", "Lab 2"]] },
     kpis: [
-      { icon: I.UserCheck, tone: "orange", label: "Attendance", value: "92%", hint: "Above the 75% minimum", to: "timetable" },
-      { icon: I.Award, tone: "green", label: "CGPA", value: "8.4", hint: "Semester 2: 8.6", to: "results" },
-      { icon: I.PencilLine, tone: "violet", label: "Due this week", value: "2", hint: "1 due today", to: "assignments" },
-      { icon: I.Wallet, tone: "blue", label: "Fees", value: "Paid", hint: "Next due 15 Jan", to: "fees" },
+      { icon: I.UserCheck, tone: "orange", label: "Attendance", to: "timetable" },
+      { icon: I.Award, tone: "green", label: "CGPA", to: "results" },
+      { icon: I.PencilLine, tone: "violet", label: "Due this week", to: "assignments" },
+      { icon: I.Wallet, tone: "blue", label: "Fees", to: "fees" },
     ],
     todos: [
       { title: "Linked lists: practice assignment", meta: "Data Structures · CS201 · Today, 5:00 PM", status: "attention" },

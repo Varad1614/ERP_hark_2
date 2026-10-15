@@ -228,6 +228,61 @@ impl PaymentGatewayPort for MockPaymentGateway {
     }
 }
 
+// INT: SEC-9D-003 — the "no gateway" adapter (`SUTRA_PAYMENT_GATEWAY=disabled`, the production
+// default until a real gateway adapter exists). Every call is `Unavailable` (HTTP 503 problem
+// `dependency-unavailable`), so student online checkout, recovery polling, gateway refunds and
+// the webhook are switched off instead of capturing without money.
+
+/// Adapter name of [`DisabledPaymentGateway`].
+pub const DISABLED_GATEWAY: &str = "disabled";
+
+/// Payment gateway switched off (feature off → 503).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DisabledPaymentGateway;
+
+fn gateway_disabled() -> KernelError {
+    KernelError::Unavailable("online payments are disabled (SUTRA_PAYMENT_GATEWAY=disabled)".into())
+}
+
+#[async_trait::async_trait]
+impl PaymentGatewayPort for DisabledPaymentGateway {
+    fn name(&self) -> &'static str {
+        DISABLED_GATEWAY
+    }
+
+    async fn create_order(
+        &self,
+        _scope: &ExecutionScope,
+        _request: GatewayOrderRequest,
+    ) -> Result<GatewayOrder, KernelError> {
+        Err(gateway_disabled())
+    }
+
+    async fn fetch_outcome(
+        &self,
+        _scope: &ExecutionScope,
+        _order_ref: &str,
+    ) -> Result<GatewayPaymentOutcome, KernelError> {
+        Err(gateway_disabled())
+    }
+
+    fn verify_webhook(
+        &self,
+        _body: &[u8],
+        _signature: &str,
+    ) -> Result<GatewayWebhook, KernelError> {
+        Err(gateway_disabled())
+    }
+
+    async fn refund(
+        &self,
+        _scope: &ExecutionScope,
+        _request: GatewayRefundRequest,
+    ) -> Result<GatewayRefund, KernelError> {
+        Err(gateway_disabled())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -299,6 +354,36 @@ mod tests {
         assert!(matches!(
             w.map(|w| w.outcome),
             Some(GatewayPaymentOutcome::Failed { .. })
+        ));
+    }
+
+    // INT: SEC-9D-003.
+    #[tokio::test]
+    async fn disabled_gateway_refuses_everything() {
+        let g = DisabledPaymentGateway;
+        let scope = ExecutionScope::tenant(TenantId(Uuid::nil()));
+        assert_eq!(g.name(), DISABLED_GATEWAY);
+        let req = GatewayOrderRequest {
+            institution_id: InstitutionId(Uuid::nil()),
+            amount: d("1500.00"),
+            currency: CurrencyCode::INR,
+            receipt_ref: "r".into(),
+            idempotency_key: "k".into(),
+        };
+        assert!(matches!(
+            g.create_order(&scope, req).await,
+            Err(KernelError::Unavailable(_))
+        ));
+        assert!(matches!(
+            g.fetch_outcome(&scope, "order_x").await,
+            Err(KernelError::Unavailable(_))
+        ));
+        let body =
+            MockPaymentGateway::webhook_body("evt", "payment.captured", "order_x", d("1.00"));
+        let sig = MockPaymentGateway::default().sign(body.as_bytes());
+        assert!(matches!(
+            g.verify_webhook(body.as_bytes(), &sig),
+            Err(KernelError::Unavailable(_))
         ));
     }
 }

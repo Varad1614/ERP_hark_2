@@ -30,6 +30,7 @@ pub mod calendar_2c;
 pub mod campus_8a;
 pub mod campus_8b;
 pub mod campus_8c;
+pub mod campus_9e; // 9E
 pub mod charges_5a;
 pub mod completion_3c;
 pub mod delivery_4b;
@@ -47,6 +48,7 @@ pub mod people_7c;
 pub mod registration_3b;
 pub mod resources_8d;
 pub mod services_8c;
+pub mod services_9e; // 9E
 pub mod structure_2b;
 pub mod student_3a;
 
@@ -81,6 +83,8 @@ pub fn event_types() -> Vec<&'static str> {
     v.extend_from_slice(campus_8c::EVENT_TYPES);
     v.extend_from_slice(services_8c::EVENT_TYPES);
     v.extend_from_slice(resources_8d::EVENT_TYPES);
+    v.extend_from_slice(campus_9e::EVENT_TYPES); // 9E
+    v.extend_from_slice(services_9e::EVENT_TYPES); // 9E
     v
 }
 
@@ -133,6 +137,12 @@ pub fn plan(env: &EventEnvelope) -> Option<Result<Vec<InboxAction>, String>> {
         Some(services_8c::plan(env))
     } else if resources_8d::EVENT_TYPES.contains(&t) {
         Some(resources_8d::plan(env))
+    } else if campus_9e::EVENT_TYPES.contains(&t) {
+        // 9E
+        Some(campus_9e::plan(env))
+    } else if services_9e::EVENT_TYPES.contains(&t) {
+        // 9E
+        Some(services_9e::plan(env))
     } else {
         None
     }
@@ -268,6 +278,12 @@ mod tests {
         assert!(own(
             resources_8d::EVENT_TYPES,
             &[sutra_contracts::resources::events::procurement::EVENT_TYPES]
+        ));
+        // 9E
+        assert!(own(campus_9e::EVENT_TYPES, &[ce::governance::EVENT_TYPES]));
+        assert!(own(
+            services_9e::EVENT_TYPES,
+            &[sutra_contracts::services::events::accreditation::EVENT_TYPES]
         ));
     }
 }

@@ -1,0 +1,111 @@
+{{- /* 9C: nightly backup (docs/batch9-contracts.md §11, docs/runbooks/backup-dr.md): PVC + CronJob
+running deploy/backup/sutra-backup.sh (ConfigMap <fullname>-backup-scripts) in the stock
+PostgreSQL 18 image. Connection: SUTRA_MIGRATION_DATABASE_URL (schema owner, OpenBao group
+`database`); the flowable database is dumped as role `flowable` (FLOWABLE_DB_PASSWORD, group
+`flowable`) when Flowable is bundled. Dumps keep their ACLs (append-only audit grants). */ -}}
+{{- if .Values.backup.enabled }}
+{{- $name := include "sutraerp.data.name" (dict "root" . "component" "backup") -}}
+{{- $openbao := include "sutraerp.data.openbao" . -}}
+{{- $groups := list "database" -}}
+{{- if and .Values.flowable.enabled .Values.flowable.bundled }}{{ $groups = append $groups "flowable" }}{{ end -}}
+{{- if ne .Values.backup.target.kind "pvc" }}
+{{- fail "backup.target.kind: only `pvc` is implemented in sutra-backup/v1 (S3 upload is a follow-up; see docs/runbooks/backup-dr.md)" }}
+{{- end }}
+{{- /* INT: an existing claim (kept across uninstall) is never re-rendered, so a reinstall cannot replace it. */ -}}
+{{- if not (lookup "v1" "PersistentVolumeClaim" .Release.Namespace $name) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.data.labels" (dict "root" . "component" "backup") | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+    # INT: a pre-install hook, so `helm --wait` does not block on it: with a WaitForFirstConsumer
+    # storage class (kind's local-path, most cloud classes) the claim stays Pending until the first
+    # backup Job mounts it. Hooks are not owned by the release, so upgrade / uninstall never delete
+    # it (the backups survive); the lookup above skips it when it already exists. Resize with kubectl.
+    helm.sh/hook: pre-install
+    helm.sh/hook-weight: "-10"
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.backup.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.backup.target.pvcSize }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.data.labels" (dict "root" . "component" "backup") | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 7200
+      template:
+        metadata:
+          labels:
+            {{- include "sutraerp.data.labels" (dict "root" . "component" "backup") | nindent 12 }}
+          annotations:
+            checksum/scripts: {{ include (print $.Template.BasePath "/data/backup-scripts.yaml") . | sha256sum | trunc 16 }}
+            {{- if $openbao }}
+            {{- include "sutraerp.data.openbaoAnnotations" (dict "root" . "file" "data.env" "group" "database" "template" (include "sutraerp.data.dotenvTemplate" (dict "root" . "groups" $groups))) | nindent 12 }}
+            {{- end }}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ include "sutraerp.data.serviceAccount" . }}
+          automountServiceAccountToken: {{ ternary true false (not (empty $openbao)) }}
+          securityContext:
+            {{- include "sutraerp.data.podSecurity" (dict "uid" 999) | nindent 12 }}
+          containers:
+            - name: backup
+              image: {{ .Values.backup.image | quote }}
+              command:
+                - bash
+                - -c
+                - |
+                  set -euo pipefail
+                  {{- include "sutraerp.data.loadEnv" . | nindent 18 }}
+                  export SUTRA_BACKUP_DATABASE_URL="${SUTRA_BACKUP_DATABASE_URL:-${SUTRA_MIGRATION_DATABASE_URL:?SUTRA_MIGRATION_DATABASE_URL missing}}"
+                  {{- if and .Values.flowable.enabled .Values.flowable.bundled }}
+                  export SUTRA_BACKUP_FLOWABLE_DATABASE_URL="postgres://flowable:${FLOWABLE_DB_PASSWORD:?FLOWABLE_DB_PASSWORD missing}@{{ include "sutraerp.data.pgHost" . }}:{{ include "sutraerp.data.pgPort" . }}/{{ .Values.flowable.database }}"
+                  {{- end }}
+                  exec bash /opt/sutra/sutra-backup.sh --out-dir /backups --retention-days {{ .Values.backup.retentionDays }}{{ if .Values.backup.tarball }} --tar{{ end }}
+              env:
+                - { name: SUTRA_ENV, value: {{ .Values.global.environment | quote }} }
+                - { name: SUTRA_GIT_SHA, value: {{ default .Chart.AppVersion .Values.image.api.tag | quote }} }
+              {{- if eq .Values.secrets.mode "kubernetes" }}
+              envFrom:
+                - secretRef: { name: {{ required "secrets.existingSecret is required with secrets.mode=kubernetes" .Values.secrets.existingSecret }} }
+              {{- end }}
+              securityContext:
+                {{- include "sutraerp.data.containerSecurity" . | nindent 16 }}
+                readOnlyRootFilesystem: true
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+              volumeMounts:
+                - { name: scripts, mountPath: /opt/sutra, readOnly: true }
+                - { name: backups, mountPath: /backups }
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: scripts
+              configMap:
+                name: {{ include "sutraerp.data.name" (dict "root" . "component" "backup-scripts") }}
+                defaultMode: 0555
+            - name: backups
+              persistentVolumeClaim:
+                claimName: {{ $name }}
+            - name: tmp
+              emptyDir: {}
+{{- end }}

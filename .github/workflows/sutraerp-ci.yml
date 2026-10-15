@@ -2,7 +2,7 @@ name: SutraERP CI
 
 on:
   push:
-    branches: [main, erp_merge, "dev/**", "batch5/**", "batch6/**", "batch7/**", "batch8/**", "ui/**"]
+    branches: [main, erp_merge, "dev/**", "batch5/**", "batch6/**", "batch7/**", "batch8/**", "batch9/**", "ui/**"]
     paths: ["sutraerp/**", ".github/workflows/sutraerp-ci.yml"]
   workflow_dispatch:
   pull_request:
@@ -211,24 +211,137 @@ jobs:
           path: ${{ runner.temp }}/shots
           retention-days: 7
 
-  # ADR-L5-0030: image build/push to GHCR + Cosign signing is wired in Batch 9 (production
-  # hardening) on ephemeral trusted runners; Batch 0 only verifies the images build.
+  # 9B (ADR-L5-0030, docs/batch9-contracts.md §10.2): buildx images with SBOM + max provenance.
+  # erp_merge / v* tags: push to ghcr.io/varad1614, Cosign keyless sign + syft SPDX attestation +
+  # verify against the workflow identity. Every other ref: push only to a throwaway local
+  # registry:2 and rehearse the same sign → attest → verify path with a generated key (nothing
+  # leaves the runner).
   images:
-    name: Container images (build only)
+    name: Container images (build · push · sign)
     runs-on: ubuntu-24.04
     needs: [rust, web]
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    services:
+      registry:
+        image: registry:2.8.3
+        ports: ["5000:5000"]
+    env:
+      RELEASE: ${{ github.ref == 'refs/heads/erp_merge' || startsWith(github.ref, 'refs/tags/v') }}
+      DOCKER_METADATA_SHORT_SHA_LENGTH: "12"
     steps:
       - uses: actions/checkout@v4
+      - name: Free disk space
+        working-directory: /
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+      - name: Registry
+        id: reg
+        run: |
+          if [ "$RELEASE" = "true" ]; then echo "prefix=ghcr.io/varad1614" >> "$GITHUB_OUTPUT"; echo "mode=keyless" >> "$GITHUB_OUTPUT"
+          else echo "prefix=localhost:5000/varad1614" >> "$GITHUB_OUTPUT"; echo "mode=key" >> "$GITHUB_OUTPUT"; fi
       - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+        with:
+          driver-opts: network=host
+      - name: Log in to GHCR
+        if: github.ref == 'refs/heads/erp_merge' || startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image tags (api)
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.reg.outputs.prefix }}/sutraerp-api
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/erp_merge' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=ci,enable=${{ env.RELEASE != 'true' }}
+      - name: Image tags (web)
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.reg.outputs.prefix }}/sutraerp-web
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/erp_merge' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=ci,enable=${{ env.RELEASE != 'true' }}
+      - name: Build + push api (CARGO_PROFILE=release)
+        id: api
+        uses: docker/build-push-action@v6
         with:
           context: sutraerp
           file: sutraerp/deploy/docker/api.Dockerfile
-          push: false
-          tags: sutraerp/api:ci
-      - uses: docker/build-push-action@v6
+          build-args: |
+            CARGO_PROFILE=release
+            CARGO_BUILD_JOBS=4
+            SUTRA_GIT_SHA=${{ github.sha }}
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=images-api
+          cache-to: type=gha,scope=images-api,mode=max
+      - name: Build + push web
+        id: web
+        uses: docker/build-push-action@v6
         with:
           context: sutraerp
           file: sutraerp/deploy/docker/web.Dockerfile
-          push: false
-          tags: sutraerp/web:ci
+          build-args: |
+            SUTRA_GIT_SHA=${{ github.sha }}
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=images-web
+          cache-to: type=gha,scope=images-web,mode=max
+      - uses: sigstore/cosign-installer@v3.10.1
+        with:
+          cosign-release: v2.6.5
+      - uses: anchore/sbom-action/download-syft@v0.24.3
+        with:
+          syft-version: v1.54.1
+      - name: Sign + attest SBOM + verify (${{ steps.reg.outputs.mode }})
+        env:
+          COSIGN_MODE: ${{ steps.reg.outputs.mode }}
+          SBOM_OUT_DIR: ${{ runner.temp }}/sbom
+          API_REF: ${{ steps.reg.outputs.prefix }}/sutraerp-api@${{ steps.api.outputs.digest }}
+          WEB_REF: ${{ steps.reg.outputs.prefix }}/sutraerp-web@${{ steps.web.outputs.digest }}
+          TAGS: ${{ steps.meta-api.outputs.tags }}
+        run: |
+          set -euo pipefail
+          for ref in "$API_REF" "$WEB_REF"; do
+            bash deploy/docker/sign-verify.sh "$ref"
+          done
+          {
+            echo "### Images ($COSIGN_MODE)"
+            echo "- api: \`$API_REF\`"
+            echo "- web: \`$WEB_REF\`"
+            echo "- api tags: $(echo "$TAGS" | tr '\n' ' ')"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Provenance + buildkit SBOM present
+        env:
+          API_REF: ${{ steps.reg.outputs.prefix }}/sutraerp-api@${{ steps.api.outputs.digest }}
+          WEB_REF: ${{ steps.reg.outputs.prefix }}/sutraerp-web@${{ steps.web.outputs.digest }}
+        run: |
+          set -euo pipefail
+          for ref in "$API_REF" "$WEB_REF"; do
+            if docker buildx imagetools inspect "$ref" --format '{{ json .Provenance }}' | jq -e '[.. | objects | select(has("SLSA"))] | length > 0' >/dev/null; then echo "ok provenance $ref"; else echo "no provenance on $ref" >&2; exit 1; fi
+            if docker buildx imagetools inspect "$ref" --format '{{ json .SBOM }}' | jq -e '[.. | objects | select(has("SPDX"))] | length > 0' >/dev/null; then echo "ok buildkit-sbom $ref"; else echo "no buildkit SBOM on $ref" >&2; exit 1; fi
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-spdx
+          path: ${{ runner.temp }}/sbom
+          retention-days: 14

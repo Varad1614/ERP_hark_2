@@ -1,0 +1,80 @@
+{{- /* 9B: web (static SPA on nginx-unprivileged) Deployment + Service + PDB. */ -}}
+{{- $name := include "sutraerp.componentName" (dict "root" . "component" "web") -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "web") | nindent 4 }}
+spec:
+  replicas: {{ .Values.web.replicas }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "web") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.componentLabels" (dict "root" . "component" "web") | nindent 8 }}
+      annotations:
+        checksum/nginx: {{ include (print $.Template.BasePath "/web/configmap.yaml") . | sha256sum }}
+        {{- with .Values.web.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- include "sutraerp.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- toYaml .Values.web.podSecurityContext | nindent 8 }}
+      containers:
+        - name: web
+          image: {{ include "sutraerp.image" (dict "root" . "img" .Values.image.web) | quote }}
+          imagePullPolicy: {{ .Values.image.web.pullPolicy }}
+          ports:
+            - { name: http, containerPort: {{ .Values.web.port }}, protocol: TCP }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.web.securityContext | nindent 12 }}
+          volumeMounts:
+            - { name: nginx-conf, mountPath: /etc/nginx/conf.d, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: {{ $name }}-nginx
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "web") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sutraerp.selectorLabels" (dict "root" . "component" "web") | nindent 4 }}
+  ports:
+    - { name: http, port: {{ .Values.web.port }}, targetPort: http, protocol: TCP }
+{{- if .Values.web.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "web") | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.web.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "web") | nindent 6 }}
+{{- end }}

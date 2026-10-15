@@ -36,7 +36,8 @@ const COMING = { administrator: [], faculty: [], student: [] };
 /** Batch 6 / 7 / 8 screens now live (real exam, people and campus / reports screens, no “Coming in Batch N” page). */
 const LIVE_B6 = { administrator: ["/examinations", "/people", "/campus", "/reports"], faculty: ["/assessments", "/leave"], student: ["/results", "/library"] };
 /** Home KPI tiles still pending per role (figures whose backend lands in a later batch). */
-const PENDING_KPIS = { administrator: 1, faculty: 0, student: 0 };
+// 9E: the admin KPIs read the services metrics catalogue (no pending tile left).
+const PENDING_KPIS = { administrator: 0, faculty: 0, student: 0 };
 
 function seedDelivery(setup, studentIds) {
   const component = psql(

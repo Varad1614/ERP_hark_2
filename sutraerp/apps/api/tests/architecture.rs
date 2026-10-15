@@ -642,6 +642,17 @@ async fn batch8_operations_follow_the_slice_prefix_and_tag_rules() {
             "resources-assets",
             &["resources_asset_"],
         ),
+        // Batch 9 · 9E carry-overs (docs/batch9-contracts.md §6.3)
+        (
+            "/api/v1/campus/",
+            "campus-governance",
+            &["campus_governance_"],
+        ),
+        (
+            "/api/v1/services/",
+            "services-accreditation",
+            &["services_accreditation_"],
+        ),
     ];
     let spec: serde_json::Value =
         serde_json::from_str(&sutra_api::openapi::spec_json().unwrap()).unwrap();
