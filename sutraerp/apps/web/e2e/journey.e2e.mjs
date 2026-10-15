@@ -384,7 +384,7 @@ try {
       db(e, "documents", `SELECT string_agg(document_type || ':' || status, ',' ORDER BY document_type) FROM student.admission_document WHERE admission_id = ${q(ids.admissionId)}`, (v) => v === "identity_proof:verified,qualifying_marksheet:verified");
       const st = db(e, "student", `SELECT status || '|' || student_number || '|' || coalesce(subject_ref, '') FROM student.student WHERE id = ${q(ids.aarav.id)}`, (v) => v.endsWith(`|${student.subject}`));
       ids.aarav.number = st.split("|")[1];
-      const au = audit(e, ids.admissionId, ["student.admission.confirm", "student.admission.create-student"], "admission");
+      const au = audit(e, ids.admissionId, ["student.admission.approve", "student.admission.confirm", "student.admission.create_student"], "admission");
       if (au.actors.some((a) => a.startsWith("system:"))) e(`auto-approval actor in the audit trail: ${au.actors.filter((a) => a.startsWith("system:")).join(",")} (DEF-X-001)`);
       // visibility
       await sees(e, "faculty", faculty, `${S}/admissions/${ids.admissionId}`, 200, (j) => j.id === ids.admissionId, "student.read: read-only");
@@ -561,7 +561,9 @@ try {
       noServerErrors(e);
       db(e, "teaching session", `SELECT status || '|' || attendance_status FROM academic.teaching_session WHERE id = ${q(ids.teachingSessionId)}`, (v) => v.endsWith("|finalised"));
       db(e, "attendance records", `SELECT string_agg(student_number || ':' || mark, ',' ORDER BY student_number) FROM academic.attendance_record WHERE session_id = ${q(ids.teachingSessionId)}`, (v) => v.includes(":present") && v.includes(":absent") && v.split(",").length === 2);
-      db(e, "attendance_audit", `SELECT count(*) FROM academic.attendance_audit a JOIN academic.attendance_record r ON r.id = a.record_id WHERE r.session_id = ${q(ids.teachingSessionId)}`, (v) => Number(v) >= 2);
+      // academic.attendance_audit is the append-only history of changes to FINALISED marks
+      // (corrections, migration 20261025000011); a fresh finalisation has none.
+      db(e, "attendance_audit (finalised-mark changes)", `SELECT count(*) FROM academic.attendance_audit a JOIN academic.attendance_record r ON r.id = a.record_id WHERE r.session_id = ${q(ids.teachingSessionId)}`, (v) => v === "0");
       audit(e, ids.teachingSessionId, [], "teaching session");
       R.snapshot.attendance = psql(`SELECT string_agg(student_id || ':' || mark, ',' ORDER BY student_id) FROM academic.attendance_record WHERE session_id = ${q(ids.teachingSessionId)}`);
       // visibility
@@ -686,9 +688,10 @@ try {
       await page.locator("[data-receipt-number]").first().waitFor();
       await page.locator('[data-action="pay-done"]').click();
       await settle(page);
-      const after = (await page.locator("[data-outstanding]").textContent())?.trim();
-      e(`student sees outstanding ${after} (${await snap(page, "4-student-fees-paid")})`);
-      check(/^₹0(\.00)?$/.test(after ?? ""), "nothing outstanding", e);
+      // With nothing due the Invoices tile swaps the amount for [data-outstanding-none].
+      const after = (await page.locator("[data-outstanding-none]").textContent({ timeout: 15000 }))?.trim();
+      e(`student sees “${after}” (${await snap(page, "4-student-fees-paid")})`);
+      check(after === "You have no dues right now" && (await page.locator("[data-outstanding]").count()) === 0, "nothing outstanding on the student's Fees screen", e);
       noServerErrors(e);
       db(e, "charge settled", `SELECT status || '|' || outstanding_amount || '|' || settled_amount FROM finance.charge WHERE id = ${q(ids.chargeId)}`, (v) => v.split("|")[1] === "0.00" && v.split("|")[2] === "90000.00");
       db(e, "payments", `SELECT string_agg(channel || ':' || amount || ':' || status, ',' ORDER BY created_at) FROM finance.payment WHERE student_account_id = ${q(ids.studentAccountId)}`, (v) => v === "cash:30000.00:completed,bank_transfer:10000.00:completed,gateway:50000.00:completed");
@@ -749,7 +752,7 @@ try {
 
     await step("5 Examination", "Negative: invalid marks (above the maximum, negative) are rejected (422) and nothing is stored", "API (faculty)", async (e) => {
       const marks = await faculty.get(`${X}/exam-papers/${need(ids.paperId, "paper")}/marks`);
-      const m = (marks.items ?? []).find((x) => x.studentId === ids.aarav.id);
+      const m = (marks.items ?? []).find((x) => x.studentNumber === need(ids.aarav?.number, "student number"));
       check(m, "the student's mark row is visible to the teaching faculty", e);
       for (const bad of ["150", "-5"]) {
         const r = await faculty.raw("PUT", `${X}/exam-papers/${ids.paperId}/marks`, { rows: [{ id: m.id, version: m.version, externalMarks: bad }] });
@@ -773,7 +776,7 @@ try {
       await input.waitFor();
       await input.fill("78");
       let r = await ui(page, "PUT", /\/exams\/exam-papers\/[^/]+\/marks$/, () => act(page, page.locator("main"), "marks-save"), e);
-      const mine = (r.body?.items ?? []).find((x) => x.studentId === ids.aarav.id);
+      const mine = (r.body?.items ?? []).find((x) => x.studentNumber === ids.aarav.number);
       check(r.status === 200 && Number(mine?.externalMarks) === 78, "78 saved (entered)", e);
       r = await ui(page, "POST", /\/exams\/mark-sheets\/[^/]+\/submit$/, () => act(page, page.locator("main"), "sheet-submit"), e);
       check(r.status === 200 && r.body.status === "evaluated", "mark sheet submitted (evaluated)", e);
@@ -882,8 +885,8 @@ try {
       check(now === snapBefore.fees, `identical to the pre-restart snapshot (${snapBefore.fees})`, e);
       await sees(e, "student", student, `${F}/me/accounts`, 200, (j) => JSON.stringify(j).includes(ids.chargeNumber));
       await go(P.student, "/fees");
-      const out = (await P.student.locator("[data-outstanding]").textContent())?.trim();
-      check(/^₹0(\.00)?$/.test(out ?? ""), `student still sees ₹0 outstanding (${out})`, e);
+      const out = (await P.student.locator("[data-outstanding-none]").textContent({ timeout: 15000 }))?.trim();
+      check(out === "You have no dues right now" && (await P.student.locator("[data-outstanding]").count()) === 0, `student still sees no dues (${out})`, e);
       e(`(${await snap(P.student, "7-student-fees-after-restart")})`);
     });
     await step("7 Persistence", "Results persist (published term result and grade)", "API + DB + browser", async (e) => {
