@@ -489,6 +489,7 @@ pub async fn update_blueprint(
     cmd: UpdateAssessmentBlueprint,
     actor: &Actor,
 ) -> Result<AssessmentBlueprint, KernelError> {
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let tenant = auth.scope.tenant_id;
     let cur = get_blueprint(state, tenant, id).await?;
     let c = teaching_ctx(state, auth, cur.section_id, Permission::AssessmentManage).await?;
@@ -717,6 +718,7 @@ pub async fn window_command(
     actor: &Actor,
 ) -> Result<AssessmentWindow, KernelError> {
     use AssessmentWindowStatus as W;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let tenant = auth.scope.tenant_id;
     let cur = get_window(state, tenant, id).await?;
     if cmd == "extend" {
@@ -979,6 +981,7 @@ pub async fn mark(
     actor: &Actor,
 ) -> Result<AssessmentSubmission, KernelError> {
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let w = get_window(state, tenant, window_id).await?;
     let c = teaching_ctx(state, auth, w.section_id, Permission::AssessmentManage).await?;
     if cmd.marks < 0.0 || cmd.marks > w.max_marks {
@@ -1045,6 +1048,7 @@ pub async fn record_outcome(
     actor: &Actor,
 ) -> Result<AssessmentSubmission, KernelError> {
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let w = get_window(state, tenant, window_id).await?;
     let c = teaching_ctx(state, auth, w.section_id, Permission::AssessmentManage).await?;
     if matches!(
@@ -1210,6 +1214,7 @@ pub async fn request_moderation(
 ) -> Result<AssessmentModeration, KernelError> {
     let tenant = auth.scope.tenant_id;
     let reason = required_text("reason", Some(&cmd.reason))?;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let w = get_window(state, tenant, window_id).await?;
     let c = teaching_ctx(state, auth, w.section_id, Permission::AssessmentManage).await?;
     if cmd.proposed_marks < 0.0 || cmd.proposed_marks > w.max_marks {

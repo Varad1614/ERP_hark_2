@@ -264,6 +264,7 @@ async fn lock_cov(
     expected: Version,
     manage: Permission,
 ) -> Result<Locked, KernelError> {
+    crate::shared::faculty::require_teaching_role(auth, manage)?;
     let tenant = auth.scope.tenant_id;
     let cur: SyllabusCoverage = kit::fetch(&state.pool, SC, SC_ENTITY, tenant, id).await?;
     require_teaching(state, auth, OfferingSectionId(cur.section_id), manage).await?;

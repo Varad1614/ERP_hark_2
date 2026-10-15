@@ -449,6 +449,7 @@ async fn lock_session(
     expected: Option<Version>,
     manage: Permission,
 ) -> Result<LockedSession, KernelError> {
+    crate::shared::faculty::require_teaching_role(auth, manage)?;
     let tenant = auth.scope.tenant_id;
     let cur: TeachingSession = kit::fetch(&state.pool, TS, TS_ENTITY, tenant, id).await?;
     require_teaching(state, auth, OfferingSectionId(cur.section_id), manage).await?;
@@ -1302,6 +1303,7 @@ pub async fn request_correction(
     cmd: NewAttendanceCorrection,
     actor: &Actor,
 ) -> Result<AttendanceCorrection, KernelError> {
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceCorrect)?;
     let tenant = auth.scope.tenant_id;
     let reason = required_text("reason", Some(&cmd.reason))?;
     let s: TeachingSession = kit::fetch(&state.pool, TS, TS_ENTITY, tenant, session_id).await?;
@@ -1445,6 +1447,7 @@ pub async fn withdraw_correction(
     reason: Option<String>,
     actor: &Actor,
 ) -> Result<AttendanceCorrection, KernelError> {
+    crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceCorrect)?;
     let tenant = auth.scope.tenant_id;
     let cur = get_correction(state, tenant, id).await?;
     let s: TeachingSession = kit::fetch(&state.pool, TS, TS_ENTITY, tenant, cur.session_id).await?;

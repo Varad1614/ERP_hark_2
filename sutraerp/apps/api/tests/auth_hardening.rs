@@ -457,16 +457,20 @@ fn probe_request(p: &Probe, session: Option<(&str, &str)>) -> Request<Body> {
     }
 }
 
-/// Status / error code of every probe, run concurrently (each DB-reaching request costs the
-/// 1 s acquire timeout).
+/// Status / error code of every probe for which `include` holds, run concurrently (each
+/// DB-reaching request costs the 1 s acquire timeout). Excluded probes are not sent.
 async fn run(
     app: &Router,
     probes: &[Probe],
     session: Option<(String, String)>,
+    include: impl Fn(&Probe) -> bool,
 ) -> Vec<(StatusCode, String)> {
     let sem = Arc::new(tokio::sync::Semaphore::new(64));
     let mut set = tokio::task::JoinSet::new();
     for (i, p) in probes.iter().enumerate() {
+        if !include(p) {
+            continue;
+        }
         let req = probe_request(p, session.as_ref().map(|(c, t)| (c.as_str(), t.as_str())));
         let app = app.clone();
         let sem = sem.clone();
@@ -526,8 +530,14 @@ async fn every_route_requires_a_session_and_a_permission() {
         list.iter().any(|(m, t)| *m == p.method && *t == p.template)
     };
 
-    let anonymous = run(&app, &probes, None).await;
-    let roleless = run(&app, &probes, Some(session)).await;
+    let anonymous = run(&app, &probes, None, |p| !is_in(&PUBLIC, p)).await;
+    // The roleless run never sends the public / own-session routes: `POST /auth/logout`,
+    // `DELETE /auth/sessions/{id}` and `revoke-others` would end the probe session mid-sweep
+    // and every later probe would (wrongly) see `401`.
+    let roleless = run(&app, &probes, Some(session), |p| {
+        !is_in(&PUBLIC, p) && !is_in(&SESSION_ONLY, p)
+    })
+    .await;
 
     let extraction = [
         StatusCode::BAD_REQUEST,
