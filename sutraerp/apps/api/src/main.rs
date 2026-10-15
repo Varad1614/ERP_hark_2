@@ -5,6 +5,7 @@
 //! sutra-api serve
 //! sutra-api migrate    # apply migrations, then exit (ADR-L5-0008: separate from serving)
 //! sutra-api openapi    # print the generated OpenAPI 3.1 document
+//! sutra-api check-config  # validate the environment configuration, then exit (0 ok, 2 invalid)
 //! ```
 
 use std::process::ExitCode;
@@ -12,7 +13,14 @@ use sutra_api::{app, config::Config, openapi, shutdown, telemetry};
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    let _ = dotenvy::dotenv();
+    // A missing `.env` is normal; a malformed one used to be ignored silently, leaving every
+    // variable after the bad line unset (DEF-P1-DEMO-002) — refuse to start instead.
+    if let Err(e) = dotenvy::dotenv() {
+        if !e.not_found() {
+            eprintln!(".env: {e}");
+            return ExitCode::FAILURE;
+        }
+    }
     // Batch 9 (contract §5): secrets rendered by the OpenBao agent as a dotenv file
     // (`/vault/secrets/sutra.env`); never overrides variables already in the environment.
     if let Some(path) = std::env::var_os("SUTRA_ENV_FILE") {
@@ -37,6 +45,30 @@ async fn main() -> ExitCode {
             }
         };
     }
+    if cmd == "check-config" {
+        // Part 1 demo: validates the effective environment (compose service env, `.env` or
+        // SUTRA_ENV_FILE) exactly as `serve` would, without touching the database. Secrets are
+        // never printed.
+        return match Config::from_env() {
+            Ok(c) => {
+                println!(
+                    "configuration ok: env={:?} auth={:?} mfa_step_up={} http_addr={} \
+                     session_cookie_secure={} public_url={}",
+                    c.env,
+                    c.auth_provider,
+                    c.mfa_step_up,
+                    c.http_addr,
+                    c.session_cookie_secure,
+                    c.public_url
+                );
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("configuration error: {e}");
+                ExitCode::from(2)
+            }
+        };
+    }
     let cfg = match Config::from_env() {
         Ok(c) => c,
         Err(e) => {
@@ -49,7 +81,7 @@ async fn main() -> ExitCode {
         "serve" => serve(cfg).await,
         "migrate" => migrate(cfg).await,
         other => Err(format!(
-            "unknown command `{other}` (expected serve | migrate | openapi)"
+            "unknown command `{other}` (expected serve | migrate | openapi | check-config)"
         )),
     };
     match result {

@@ -248,5 +248,95 @@
       "priority": 50,
       "config": {}
     }
+  ],
+  "browserFlow": "browser-sutra",
+  "authenticationFlows": [
+    {
+      "alias": "browser-sutra",
+      "description": "Built-in browser steps (cookie, password, conditional OTP) with AMR references pwd/otp, so the ID token amr shows MFA to SutraERP",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "flowAlias": "browser-sutra forms",
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "browser-sutra forms",
+      "description": "Username + password, then the conditional OTP.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorConfig": "amr-pwd",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "flowAlias": "browser-sutra conditional otp",
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "browser-sutra conditional otp",
+      "description": "OTP form when the user has an OTP credential.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorConfig": "amr-otp",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "amr-pwd",
+      "config": {
+        "default.reference.value": "pwd",
+        "default.reference.maxAge": "0"
+      }
+    },
+    {
+      "alias": "amr-otp",
+      "config": {
+        "default.reference.value": "otp",
+        "default.reference.maxAge": "0"
+      }
+    }
   ]
 }
