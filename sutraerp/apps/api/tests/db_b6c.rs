@@ -426,8 +426,13 @@ async fn results_engine_publication_and_grade_cards() {
     assert_eq!(mine["items"][0]["lines"].as_array().unwrap().len(), 2);
     let (s, _) = read(&app, &aarav, &format!("{B}/exam-sessions/{sid}/results")).await;
     assert_eq!(s, StatusCode::FORBIDDEN, "students have no staff read");
+    // Part 1 S3 (DEF-I-006): exam.read no longer exposes results to faculty (examination office only).
     let (s, _) = read(&app, &meera, &format!("{B}/exam-sessions/{sid}/results")).await;
-    assert_eq!(s, StatusCode::OK, "faculty hold exam.read");
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "faculty must not read results (DEF-I-006)"
+    );
 
     // ---- grade cards: issue, duplicate, self view.
     let (s, card) = call(

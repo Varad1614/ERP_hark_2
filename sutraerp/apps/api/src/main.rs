@@ -150,7 +150,9 @@ async fn check_runtime_role(cfg: &Config, pool: &sqlx::PgPool) -> Result<(), Str
                 "the API serves as a role that bypasses row-level security (refused in production)"
             );
         }
-        Ok(Ok(r)) => tracing::info!(role = %r.role, "runtime role is subject to row-level security"),
+        Ok(Ok(r)) => {
+            tracing::info!(role = %r.role, "runtime role is subject to row-level security")
+        }
         Ok(Err(e)) => tracing::warn!(error = %e, "could not check the runtime database role"),
         Err(_) => tracing::warn!("timed out checking the runtime database role"),
     }

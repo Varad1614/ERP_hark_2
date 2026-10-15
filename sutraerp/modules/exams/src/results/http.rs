@@ -3,7 +3,7 @@
 use super::common::{parse_opt, Decision, DecisionBody, ReasonBody};
 use super::repo::{self, CorrectionRequest};
 use super::views::*;
-use crate::shared::http::{actor, if_match, with_etag};
+use crate::shared::http::{actor, if_match, require_exam_official, with_etag};
 use crate::shared::me::my_registrations;
 use crate::shared::ExamsState;
 use axum::extract::{Path, Query, State};
@@ -95,7 +95,7 @@ pub async fn batch_list(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ResultBatchList>> {
-    let ctx = auth.require(Permission::ExamRead)?;
+    let ctx = require_exam_official(&auth)?;
     let t = ctx.scope.tenant_id;
     repo::session_of(&st, t, ExamSessionId(id)).await?;
     let items = repo::list_batches(&st, t, ExamSessionId(id))
@@ -137,7 +137,7 @@ pub async fn batch_get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::ExamRead)?;
+    let ctx = require_exam_official(&auth)?;
     let b = repo::get_batch(&st, ctx.scope.tenant_id, id).await?;
     Ok(with_etag(
         StatusCode::OK,
@@ -292,7 +292,7 @@ pub async fn result_list(
     Path(id): Path<Uuid>,
     Query(q): Query<ResultQuery>,
 ) -> ApiResult<Json<TermResultList>> {
-    let ctx = auth.require(Permission::ExamRead)?;
+    let ctx = require_exam_official(&auth)?;
     let t = ctx.scope.tenant_id;
     repo::session_of(&st, t, ExamSessionId(id)).await?;
     let items = repo::list_results(
@@ -318,7 +318,7 @@ pub async fn result_get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::ExamRead)?;
+    let ctx = require_exam_official(&auth)?;
     let r = repo::get_result(&st, ctx.scope.tenant_id, TermResultId(id)).await?;
     Ok(with_etag(
         StatusCode::OK,
@@ -828,7 +828,7 @@ pub async fn card_of_result(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::ExamRead)?;
+    let ctx = require_exam_official(&auth)?;
     let t = ctx.scope.tenant_id;
     let r = repo::get_result(&st, t, TermResultId(id)).await?;
     let card = repo::cards_of_registrations(&st, t, &[r.registration_id.as_uuid()])
@@ -878,7 +878,7 @@ pub async fn card_get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::ExamRead)?;
+    let ctx = require_exam_official(&auth)?;
     let t = ctx.scope.tenant_id;
     let c = repo::get_card(&st, t, id).await?;
     let r = repo::get_result(&st, t, c.result_id).await?;

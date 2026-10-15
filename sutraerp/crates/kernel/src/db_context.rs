@@ -97,7 +97,13 @@ mod tests {
     #[tokio::test]
     async fn spawned_tasks_do_not_inherit_the_context() {
         let s = ExecutionScope::tenant(TenantId::new());
-        let inner = scoped(s, async { tokio::spawn(async { current() }).await.unwrap() }).await;
-        assert_eq!(inner, None, "a spawned task must start without a tenant (fail closed)");
+        let inner = scoped(s, async {
+            tokio::spawn(async { current() }).await.unwrap()
+        })
+        .await;
+        assert_eq!(
+            inner, None,
+            "a spawned task must start without a tenant (fail closed)"
+        );
     }
 }

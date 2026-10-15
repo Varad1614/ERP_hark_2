@@ -30,8 +30,8 @@ use sutra_contracts::platform::events::{
     NoticeChangedV1, TodoAssignedV1, NOTICE_PUBLISHED, TODO_ASSIGNED,
 };
 use sutra_kernel::auth::Role;
-use sutra_kernel::events::EventEnvelope;
 use sutra_kernel::db_context::DbContext;
+use sutra_kernel::events::EventEnvelope;
 use sutra_kernel::scope::{ExecutionScope, TenantId};
 use sutra_persistence::jobs::SweepJob;
 
