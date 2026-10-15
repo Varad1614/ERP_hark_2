@@ -15,7 +15,9 @@
  *            account (no dues → hall ticket issued); a ten-point grading scheme (exams API).
  *   admin    policy draft → approved → active; session (term / scheme pickers) + paper (offering
  *            picker) → approved → scheduled → active; timetable + sitting + venue → approved →
- *            published; registrations from rosters; hall tickets; seating plan; conduct (API).
+ *            published; registrations from rosters; hall tickets; seating plan generated; Conduct
+ *            tab: seating published, invigilator assigned + confirmed, conduct opened → started →
+ *            attendance recorded (paper conducted), exception raised → classified → resolved → closed.
  *   admin    mark sheet opened, internal assessment imported.
  *   faculty  home "To review"; Assessments: marks entry → submit; gradebook.
  *   admin    verify → final marks approval → finalise; results: batch → compute → validate →
@@ -68,6 +70,9 @@ const FACULTY_SUBJECT = "dev|meera.shah@sutra.dev";
 const X = "/api/v1/exams";
 // The results workspace probes a session's closure; 404 means "not started yet" (api.ts maps it to null).
 expectedFailures.push((p, status, body) => status === 404 && /\/exams\/exam-sessions\/[^/]+\/closure$/.test(p) && body.includes("session closure not found"));
+// The Conduct tab probes each sitting's conduct record and seating plan; 404 means "not created yet" (conduct/api.ts maps it to null).
+expectedFailures.push((p, status, body) => status === 404 && /\/exams\/exam-sittings\/[^/]+\/conduct$/.test(p) && body.includes("conduct record not found"));
+expectedFailures.push((p, status, body) => status === 404 && /\/exams\/exam-sittings\/[^/]+\/seating$/.test(p) && body.includes("seating plan not found"));
 
 /** Every dialog form closes on success: wait for it so the next dialog mounts fresh. */
 async function fillForm(page, name, values) {
@@ -397,15 +402,62 @@ try {
     await shot(page, "6-admin-seating");
   });
 
-  await step(page, "conduct (API): sitting started and completed — Aarav present, paper conducted", async () => {
-    const regs = await admin.get(`${X}/exam-sessions/${ids.session.id}/registrations`);
-    const reg = regs.items.find((r) => r.registrationNumber === ids.regNo);
-    let c = await admin.call("POST", `${X}/exam-sittings/${ids.sittingId}/conduct`, {});
-    c = await admin.call("POST", `${X}/conduct-records/${c.id}/start`, {}, c.version);
-    c = await admin.call("POST", `${X}/conduct-records/${c.id}/complete`, { attendance: [{ registrationId: reg.id, outcome: "present" }] }, c.version);
-    check(c.status === "completed", `conduct record completed (${c.status})`);
+  // DEF-I-007: examination day runs through Admin → Examinations → Conduct, not API shortcuts.
+  await step(page, "admin: Conduct — seating plan published, invigilator assigned and confirmed", async () => {
+    await go(page, "/examinations/conduct");
+    const sittings = tile(page, "Sittings");
+    await row(page, "CS101", sittings).locator('[data-seating-status="draft"]').waitFor();
+    await rowAction(page, "CS101", "seating-publish", sittings);
+    await row(page, "CS101", sittings).locator('[data-seating-status="published"]').waitFor();
+    const plan = await admin.get(`${X}/exam-sittings/${ids.sittingId}/seating`);
+    check(plan.status === "published" && plan.seats.length === 1, `seating plan published from the screen (${plan.status}, ${plan.seats.length} seat)`);
+    await rowAction(page, "CS101", "invigilator-assign", sittings);
+    await fillForm(page, "invigilator-assign", { subjectRef: FACULTY_SUBJECT, name: "Dr. Meera Shah", role: "chief_invigilator" });
+    const duty = page.locator(`[data-duty="${FACULTY_SUBJECT}"]`);
+    await duty.waitFor();
+    await clickAction(page, duty, "duty-confirm");
+    await duty.getByText("Confirmed").waitFor();
+    const staffing = await admin.get(`${X}/exam-sittings/${ids.sittingId}/invigilation`);
+    check(staffing.duties.some((d) => d.subjectRef === FACULTY_SUBJECT && d.status === "confirmed"), "invigilation duty confirmed from the screen");
+    await shot(page, "6-admin-conduct-seating-invigilation");
+  });
+
+  await step(page, "admin: Conduct — opened, started, attendance recorded (Aarav present) → paper conducted", async () => {
+    const sittings = tile(page, "Sittings");
+    await rowAction(page, "CS101", "conduct-open", sittings);
+    await row(page, "CS101", sittings).locator('[data-conduct-status="scheduled"]').waitFor();
+    await rowAction(page, "CS101", "conduct-start", sittings);
+    await row(page, "CS101", sittings).locator('[data-conduct-status="in_progress"]').waitFor();
+    await rowAction(page, "CS101", "conduct-complete", sittings);
+    await shot(page, "6-admin-conduct-attendance");
+    await fillForm(page, "conduct-complete", { "att-S2026-0001": "present" });
+    await row(page, "CS101", sittings).locator('[data-conduct-status="completed"]').waitFor();
+    await expectRowStatus(page, "CS101", "1 present, 0 absent", sittings);
+    const c = await admin.get(`${X}/exam-sittings/${ids.sittingId}/conduct`);
+    check(c.status === "completed" && c.attendance.length === 1 && c.attendance[0].outcome === "present", `conduct record completed with attendance (${c.status})`);
     const paper = await admin.get(`${X}/exam-papers/${ids.session.papers[0].id}`);
     check(paper.status === "conducted", `paper conducted (${paper.status})`);
+    await shot(page, "6-admin-conduct-completed");
+  });
+
+  await step(page, "admin: Conduct — exception raised, classified, resolved and closed", async () => {
+    await page.click("[data-raise-exception]");
+    await fillForm(page, "exception-raise", { category: "conduct", severity: "low", sittingId: "CS101", description: "Question paper packet opened ten minutes late" });
+    const exc = page.locator("[data-exception]").first();
+    await exc.waitFor();
+    const number = (await exc.getAttribute("data-exception")) ?? "";
+    await clickAction(page, exc, "exception-classify");
+    await fillForm(page, "exception-classify", { classification: "Late start" });
+    await exc.getByText("Classified").waitFor();
+    await clickAction(page, exc, "exception-resolve");
+    await fillForm(page, "exception-resolve", { resolution: "Ten extra minutes granted to every candidate" });
+    await exc.getByText("Resolved").waitFor();
+    await clickAction(page, exc, "exception-close");
+    await exc.getByText("Closed").waitFor();
+    const list = await admin.get(`${X}/exam-sessions/${ids.session.id}/exceptions`);
+    const x = list.items.find((e) => e.number === number);
+    check(x?.status === "closed" && x.sittingId === ids.sittingId && x.classification === "Late start", `exception ${number} closed from the screen (${x?.status})`);
+    await shot(page, "6-admin-conduct-exception");
   });
 
   await step(page, "admin: mark sheet opened, internal assessment imported (Batch 4)", async () => {
@@ -521,6 +573,8 @@ try {
     check(/^\d+\.\d\d$/.test(cgpa), `CGPA tile ${cgpa}`);
     check((await page.locator(`[data-my-ticket="${ids.ticketNo}"]`).count()) === 1, `hall ticket ${ids.ticketNo} listed`);
     check((await page.locator("[data-my-timetable] [data-my-sitting]").count()) >= 1, "exam timetable listed");
+    const sittingText = (await page.locator('[data-my-timetable] [data-my-sitting^="CS101"]').first().textContent()) ?? "";
+    check(/seat \S+/.test(sittingText), `published seat number shown to the student (${sittingText.trim()})`);
     await page.locator("[data-grade-card]").first().waitFor().catch(() => {});
     await shot(page, "6-student-results");
   });

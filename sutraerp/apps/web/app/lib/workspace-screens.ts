@@ -54,6 +54,8 @@ export const WORKSPACE_SCREENS: Record<string, Routes> = {
   "W-I03": { administrator: "/examinations/schedule", student: "/results" },
   "W-I04": { administrator: "/examinations/registrations", student: "/results" },
   "W-I05": { administrator: "/examinations/registrations", student: "/results" },
+  "W-I06": { administrator: "/examinations/conduct" },
+  "W-I07": { administrator: "/examinations/conduct" },
   "W-I08": { administrator: "/examinations/marks", faculty: "/assessments" },
   "W-I09": { administrator: "/examinations/results" },
   "W-I10": { administrator: "/examinations/results", student: "/results" },
