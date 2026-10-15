@@ -357,6 +357,9 @@ pub async fn open_malpractice_cases(
     .map_err(map_db_error)
 }
 
+/// `(first published, component, credits, grade point, passed)` of one published line.
+type AttemptRow = (Option<DateTime<Utc>>, Uuid, Decimal, Option<Decimal>, bool);
+
 /// Every graded line of the student's current **published** results in sessions other than
 /// `except_session`, oldest attempt first, each with the time the student's result in that
 /// session was first published (sessions are ordered by it) — the input of [`cumulative`].
@@ -367,7 +370,7 @@ pub async fn published_attempts(
     student: StudentId,
     except_session: Option<ExamSessionId>,
 ) -> Result<Vec<(Option<DateTime<Utc>>, AttemptLine)>, KernelError> {
-    let rows: Vec<(Option<DateTime<Utc>>, Uuid, Decimal, Option<Decimal>, bool)> = sqlx::query_as(
+    let rows: Vec<AttemptRow> = sqlx::query_as(
         "SELECT fp.first_published, l.curriculum_component_id, l.credits, l.grade_point, \
              l.passed FROM exams.term_result r \
              JOIN exams.term_result_line l ON l.result_id = r.id \
