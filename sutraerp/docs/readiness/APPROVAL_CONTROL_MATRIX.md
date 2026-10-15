@@ -24,7 +24,7 @@ whether separation of duties (SoD) and an audit trail are enforced. Branches `pa
 
 ## Separation of duties (DEF-X-002, completed in Stage 3)
 
-Every governed decision endpoint of the API (124 POST operations whose path ends in `…/decision`,
+Every governed decision endpoint of the API (125 POST operations whose path ends in `…/decision`,
 `…-decision`, `/authorise` or `/approve` in `openapi/openapi.json`) is either **guarded** or
 **allowlisted with a written reason**. The fitness test `apps/api/tests/approval_matrix.rs` enforces
 it on every CI run: a new decision endpoint without a guard, a stale allowlist entry, or an
@@ -82,7 +82,7 @@ needs a reason). A direct override seat under human approval is refused (409). T
 
 ## Every decision endpoint
 
-Generated from the code by `docs/readiness/tools/approval_matrix_table.py .` (port of the fitness test; total=124 allow=26 history=16 ledger=82: ledger = approval-ledger guard, history = status-history guard, allow = allowlisted).
+Generated from the code by `docs/readiness/tools/approval_matrix_table.py .` (port of the fitness test; total=125 allow=26 history=17 ledger=82: ledger = approval-ledger guard, history = status-history guard, allow = allowlisted).
 Maker permission = the manage permission(s) the slice's create/submit handlers require (where the
 checker permission equals it, the guard is what separates maker and checker). Tests always include
 the fitness test plus the DB / e2e tests that call the endpoint.
@@ -200,6 +200,7 @@ the fitness test plus the DB / e2e tests that call the endpoint.
 | `resources_sourcing_decide` | `POST /resources/sourcing-events/{id}/decision` | ProcurementManage | ResourcesApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/resources/src/sourcing/mod.rs` |
 | `resources_stock_adjustment_decide` | `POST /resources/stock-adjustments/{id}/decision` | InventoryManage | ResourcesApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8d::governed_decisions_await_a_decision` | `modules/resources/src/inventory/stock.rs` |
 | `resources_stock_issue_decide` | `POST /resources/stock-issues/{id}/decision` | same slice manage permission | InventoryManage | N — allowlisted: internal issue of stocked consumables to a department (inventory.manage); no supplier payment; stock value changes by adjustment are guarded | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8_integration::campus_services_resources_end_to_end`; `db_b8d::inventory_documents_and_replenishment` | `modules/resources/src/inventory/stock.rs` |
+| `resources_supplier_bank_change_decide` | `POST /resources/suppliers/{id}/bank-change/decision` | ProcurementManage | FinanceApprove, ResourcesApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/resources/src/suppliers/mod.rs` |
 | `resources_supplier_decide` | `POST /resources/suppliers/{id}/decision` | ProcurementManage | ResourcesApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8d::governed_decisions_await_a_decision` | `modules/resources/src/suppliers/mod.rs` |
 | `scholarship_eligibility_recommendation_decision` | `POST /student/scholarship-eligibilities/{id}/recommendation-decision` | same slice manage permission | ScholarshipManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/scholarship/http.rs` |
 | `scholarship_policy_decision` | `POST /student/scholarship-policies/{id}/decision` | ScholarshipManage | ScholarshipPublish | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/scholarship/http.rs` |
