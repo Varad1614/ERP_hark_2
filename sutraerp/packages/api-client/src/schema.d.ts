@@ -1160,6 +1160,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic/institutions/{id}/attendance-corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Attendance corrections of an institution: the HOD / administrator decision queue
+         *     (`attendance.correct`).
+         */
+        get: operations["attendance_correction_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/academic/institutions/{id}/attendance-policies": {
         parameters: {
             query?: never;
@@ -15997,8 +16017,9 @@ export interface paths {
         /**
          * Submit the activation request (`configured → pending_approval`).
          * @description Refused with 409 while a required activation-readiness item is unmet (the detail lists the
-         *     blocking keys). The approval step runs through the WorkflowPort; in the Batch 2 auto-approval
-         *     mode the response already shows the decided (`active`) institution. Requires
+         *     blocking keys). The approval step runs through the WorkflowPort; the institution stays
+         *     `pending_approval` until the Institution Activation Authority decides (`/decision`,
+         *     `institution.activation.decide` + MFA step-up). Submitting never activates. Requires
          *     `institution.manage`.
          */
         post: operations["institution_submit"];
@@ -28123,6 +28144,49 @@ export interface components {
         AttendanceCorrectionList: {
             items: components["schemas"]["AttendanceCorrection"][];
         };
+        AttendanceCorrectionQueue: {
+            items: components["schemas"]["AttendanceCorrectionQueueItem"][];
+        };
+        /**
+         * @description A correction in an institution's decision queue, with the student, session and section it
+         *     touches (DEF-D-003: the HOD / administrator decision screen).
+         */
+        AttendanceCorrectionQueueItem: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            displayName: string;
+            evidence?: string | null;
+            fromMark: components["schemas"]["AttendanceMark"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            offeringCode: string;
+            reason: string;
+            /** Format: uuid */
+            recordId: string;
+            requestedBy?: string | null;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: date */
+            sessionDate: string;
+            /** Format: uuid */
+            sessionId: string;
+            /** @description `HH:MM`. */
+            startsAt: string;
+            status: components["schemas"]["ChangeRequestStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            toMark: components["schemas"]["AttendanceMark"];
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * Format: uuid
          * @description One staff attendance day (payroll input).
@@ -29890,6 +29954,7 @@ export interface components {
             curriculumVersionId?: string | null;
             /** Format: date */
             dateOfBirth?: string | null;
+            duplicateOverride?: null | components["schemas"]["DuplicateOverride"];
             email?: string | null;
             familyName?: string | null;
             gender?: string | null;
@@ -30977,6 +31042,15 @@ export interface components {
         /** @description Collection. */
         DuplicateCaseList: {
             items: components["schemas"]["DuplicateCase"][];
+        };
+        /** @description Override of duplicate-applicant detection (DEF-C-003). */
+        DuplicateOverride: {
+            /**
+             * Format: uuid
+             * @description One of the candidates the 409 reported.
+             */
+            candidateId: string;
+            reason: string;
         };
         /**
          * @description Eligibility commands (L3-E-029).
@@ -48821,6 +48895,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FlexibleLearningPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_correction_queue: {
+        parameters: {
+            query?: {
+                /** @description `requested` lists the corrections awaiting a decision. */
+                status?: components["schemas"]["ChangeRequestStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrectionQueue"];
                 };
             };
             "4XX": {
