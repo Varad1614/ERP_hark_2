@@ -69,6 +69,43 @@ describe("7C payroll API", () => {
     expect((calls[1]?.init.headers as Record<string, string>)["Idempotency-Key"]).toBeTruthy();
   });
 
+  it("disburses a posted run once: file first, then mark paid (mock, DEF-E-007)", async () => {
+    const api = createMockPayrollApi();
+    let [run] = await api.runs("per-1");
+    for (const cmd of ["validate", "submit", "finalise", "post"] as const) run = await api.runCommand(run!.id, run!.version, cmd);
+    expect(run?.status).toBe("posted");
+    const batch = await api.createDisbursement(run!.id, "net_pay");
+    expect(batch.totalAmount).toBe("41800.00");
+    expect(batch.bankSubmission).toBe("BLOCKED_EXTERNAL");
+    expect((await api.createDisbursement(run!.id, "net_pay")).id).toBe(batch.id);
+    await expect(api.markDisbursementPaid(batch.id, batch.version, "UTR1")).rejects.toThrow();
+    const file = await api.disbursementFile(batch.id);
+    expect(file.content.startsWith(`H,${batch.number},`)).toBe(true);
+    const paid = await api.markDisbursementPaid(batch.id, batch.version, "UTR1");
+    expect(paid.status).toBe("paid");
+    await expect(api.markDisbursementPaid(paid.id, paid.version, "UTR2")).rejects.toThrow();
+  });
+
+  it("downloads the bank file as text and marks paid with If-Match (HTTP)", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchImpl = async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      if (url.endsWith("/file")) return new Response("H,PD-000001\r\n", { status: 200, headers: { "Content-Disposition": 'attachment; filename="PD-000001-neft.csv"' } });
+      return new Response(JSON.stringify({ id: "d1", status: "paid", version: 4 }), { status: 200 });
+    };
+    const api = createHttpPayrollApi(fetchImpl, "");
+    const f = await api.disbursementFile("d1");
+    expect(f).toEqual({ fileName: "PD-000001-neft.csv", content: "H,PD-000001\r\n" });
+    expect(calls[0]?.url).toBe(PATHS.disbursementFile.replace("{id}", "d1"));
+    await api.markDisbursementPaid("d1", 3, "UTR1");
+    expect(calls[1]?.url).toBe(PATHS.disbursementPaid.replace("{id}", "d1"));
+    expect((calls[1]?.init.headers as Record<string, string>)["If-Match"]).toBe('"3"');
+    expect(JSON.parse(String(calls[1]?.init.body)).reference).toBe("UTR1");
+    await api.createDisbursement("r1", "statutory_dues");
+    expect(calls[2]?.url).toBe(PATHS.runDisbursements.replace("{id}", "r1"));
+    expect((calls[2]?.init.headers as Record<string, string>)["Idempotency-Key"]).toBeTruthy();
+  });
+
   it("turns a problem response into an error", async () => {
     const fetchImpl = async () =>
       new Response(JSON.stringify({ type: "about:blank", title: "Conflict", status: 409, errorCode: "conflict" }), { status: 409 });
@@ -94,6 +131,14 @@ describe("7C screens (mock API)", () => {
     });
     fireEvent.click(validate);
     await waitFor(() => expect(document.querySelector("[data-action='run-submit']")).toBeTruthy());
+  });
+
+  it("shows the disbursements tile with the BLOCKED_EXTERNAL bank submission note", async () => {
+    const renderScreen = await harness();
+    const { PayrollAdminTab } = await import("./index");
+    await renderScreen(<PayrollAdminTab institution={institution} />);
+    expect(await screen.findByText("No disbursements")).toBeTruthy();
+    expect(document.querySelector("[data-bank-submission='BLOCKED_EXTERNAL']")).toBeTruthy();
   });
 
   it("asks for an institution first", async () => {

@@ -5,7 +5,7 @@
  */
 import { ApiProblem } from "@sutra/api-client";
 import type { PayrollApi } from "./api";
-import type { FinalSettlement, PayrollConfig, PayrollPeriod, PayrollResult, PayrollRun, Payslip, RunCommand, SalaryAssignment, SalaryStructure } from "./types";
+import type { BankAccount, FinalSettlement, PayrollConfig, PayrollDisbursement, PayrollPeriod, PayrollResult, PayrollRun, Payslip, RunCommand, SalaryAssignment, SalaryStructure } from "./types";
 
 const conflict = (title: string) =>
   new ApiProblem({ type: "about:blank", title, status: 409, errorCode: "conflict" } as ConstructorParameters<typeof ApiProblem>[0]);
@@ -95,6 +95,8 @@ export function createMockPayrollApi(): PayrollApi {
   const settlements: FinalSettlement[] = [];
   const structures: SalaryStructure[] = [{ id: "sst-1", institutionId: "inst-1", code: "AP-1", name: "Assistant Professor 1", grade: "AP-1", status: "active", lines: [{ componentCode: "BASIC", amount: "30000.00" }], version: 1 }];
   const assignments: SalaryAssignment[] = [];
+  let disbursements: PayrollDisbursement[] = [];
+  const banks = new Map<string, BankAccount>();
   let n = 2;
   const bump = <T extends { version: number }>(x: T, patch: Partial<T>): T => ({ ...x, ...patch, version: x.version + 1 });
   const find = <T extends { id: string }>(xs: T[], id: string): T => {
@@ -214,6 +216,47 @@ export function createMockPayrollApi(): PayrollApi {
       check(f, v);
       Object.assign(f, { status: decision === "approve" ? "approved" : "rejected", version: f.version + 1 });
       return { ...f };
+    },
+    disbursements: async () => disbursements,
+    createDisbursement: async (runId, kind) => {
+      const r = find(runs, runId);
+      if (!["posted", "closed"].includes(r.status)) throw conflict(`payroll run ${r.number} is ${r.status}; only a posted run can be disbursed`);
+      const live = disbursements.find((d) => d.payrollRunId === runId && d.kind === kind && d.status !== "rejected");
+      if (live) return live;
+      const total = kind === "net_pay" ? r.netPay : (Number(r.employeeDeductions) + Number(r.employerContributions)).toFixed(2);
+      const d: PayrollDisbursement = { id: `pd-${n}`, institutionId: "inst-1", payrollRunId: runId, payrollRunNumber: r.number, number: `PD-${String(n++).padStart(6, "0")}`, kind, status: "approved", lineCount: kind === "net_pay" ? r.headcount : 1, totalAmount: total, bankSubmission: "BLOCKED_EXTERNAL", version: 2 };
+      disbursements = [d, ...disbursements];
+      return d;
+    },
+    decideDisbursement: async (id, v, decision) => {
+      const d = find(disbursements, id);
+      check(d, v);
+      if (d.status !== "pending_approval") throw conflict("only a pending batch can be decided");
+      const next = bump(d, { status: decision === "approve" ? "approved" : "rejected" });
+      disbursements = disbursements.map((x) => (x.id === id ? next : x));
+      return next;
+    },
+    disbursementFile: async (id) => {
+      const d = find(disbursements, id);
+      if (!["approved", "paid"].includes(d.status)) throw conflict("the file is available once the batch is approved");
+      disbursements = disbursements.map((x) => (x.id === id ? { ...x, fileGeneratedAt: x.fileGeneratedAt ?? new Date().toISOString() } : x));
+      return { fileName: `${d.number}-neft.csv`, content: `H,${d.number},${d.payrollRunNumber},01-01-2026,${d.lineCount},${d.totalAmount},INR\r\nT,${d.lineCount},${d.totalAmount}\r\n` };
+    },
+    markDisbursementPaid: async (id, v, reference, paidOn) => {
+      const d = find(disbursements, id);
+      check(d, v);
+      if (d.status === "paid") throw conflict(`payroll disbursement ${d.number} is already paid`);
+      if (d.status !== "approved") throw conflict(`payroll disbursement ${d.number} is ${d.status}`);
+      if (d.kind === "net_pay" && !d.fileGeneratedAt) throw conflict("generate the bank transfer file first");
+      const next = bump(d, { status: "paid", paymentReference: reference, paidOn: paidOn ?? new Date().toISOString().slice(0, 10), journalEntryNumber: `JE-${String(n++).padStart(6, "0")}` });
+      disbursements = disbursements.map((x) => (x.id === id ? next : x));
+      return next;
+    },
+    putBankAccount: async (staffId, input) => {
+      const digits = input.accountNumber.replace(/\s/g, "");
+      const b: BankAccount = { staffId, accountHolderName: input.accountHolderName, accountNumberMasked: digits.replace(/.(?=.{4})/g, "X"), ifsc: input.ifsc.toUpperCase(), bankName: input.bankName ?? null, version: (banks.get(staffId)?.version ?? 0) + 1 };
+      banks.set(staffId, b);
+      return b;
     },
   };
 }

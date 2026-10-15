@@ -167,3 +167,47 @@ export interface BulkSummary {
 
 export type RunCommand = "calculate" | "validate" | "submit" | "finalise" | "post" | "close" | "reprocess";
 export type Decision = "approve" | "reject";
+
+/** DEF-E-007: a payroll disbursement batch (net pay bank transfer or statutory remittance). */
+export type DisbursementKind = "net_pay" | "statutory_dues";
+
+export interface PayrollDisbursement {
+  id: string;
+  institutionId: string;
+  payrollRunId: string;
+  payrollRunNumber: string;
+  number: string;
+  kind: DisbursementKind;
+  status: string;
+  statusReason?: string | null;
+  lineCount: number;
+  totalAmount: string;
+  /** Always `BLOCKED_EXTERNAL`: no bank API, the file is uploaded to the bank portal by hand. */
+  bankSubmission: string;
+  fileGeneratedAt?: string | null;
+  paymentReference?: string | null;
+  paidOn?: string | null;
+  journalEntryNumber?: string | null;
+  version: number;
+}
+
+export interface DisbursementFile {
+  fileName: string;
+  content: string;
+}
+
+export interface BankAccountInput {
+  accountHolderName: string;
+  accountNumber: string;
+  ifsc: string;
+  bankName?: string;
+}
+
+export interface BankAccount {
+  staffId: string;
+  accountHolderName: string;
+  accountNumberMasked: string;
+  ifsc: string;
+  bankName?: string | null;
+  version: number;
+}

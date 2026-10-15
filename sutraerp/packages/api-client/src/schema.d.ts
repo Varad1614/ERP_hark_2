@@ -17683,6 +17683,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/institutions/{id}/payroll-disbursements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disbursement batches of an institution, newest first (`people.payroll.manage`). */
+        get: operations["people_payroll_disbursement_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/institutions/{id}/payroll-periods": {
         parameters: {
             query?: never;
@@ -18694,6 +18711,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/payroll-disbursements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One disbursement batch with its lines (`people.payroll.manage`). */
+        get: operations["people_payroll_disbursement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-disbursements/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending disbursement batch (`people.payroll.approve`, step-up). */
+        post: operations["people_payroll_disbursement_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-disbursements/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the batch's file (`people.payroll.manage`; approved or paid batches): the generic
+         *     NEFT bulk transfer CSV for net pay, the remittance advice CSV for statutory dues. Bank
+         *     submission is BLOCKED_EXTERNAL (no bank API): upload the file to the bank portal.
+         */
+        get: operations["people_payroll_disbursement_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-disbursements/{id}/mark-paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an approved batch paid with the bank / challan reference (`people.payroll.approve`,
+         *     step-up): posts Dr salaries payable (or statutory dues payable) / Cr bank in Finance. A paid
+         *     batch cannot be paid again (409).
+         */
+        post: operations["people_payroll_disbursement_mark_paid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/payroll-periods/{id}/runs": {
         parameters: {
             query?: never;
@@ -18812,6 +18905,28 @@ export interface paths {
         put?: never;
         /** Decide a pending run (`people.payroll.approve`, step-up). */
         post: operations["people_payroll_run_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/disbursements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disbursement batches of a payroll run (`people.payroll.manage`). */
+        get: operations["people_payroll_disbursement_list_for_run"];
+        put?: never;
+        /**
+         * Create the disbursement batch of a posted payroll run (`people.payroll.manage`). Idempotent:
+         *     201 with the new batch, or 200 with the live batch of that run and kind. Requests approval
+         *     (`people.payroll_disbursement_approval`).
+         */
+        post: operations["people_payroll_disbursement_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -19532,6 +19647,27 @@ export interface paths {
         /** Attendance days of a staff member (`people.read`). */
         get: operations["people_attendance_staff_list"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/bank-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A staff member's salary bank account (`people.payroll.manage`; 404 when none is recorded). */
+        get: operations["people_pay_bank_account_get"];
+        /**
+         * Record or replace a staff member's salary bank account (`people.payroll.manage`). Batches
+         *     already created keep the details they snapshotted.
+         */
+        put: operations["people_pay_bank_account_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -38811,6 +38947,32 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Bank account body (`PUT /staff/{id}/bank-account`). */
+        PayrollBankAccountPut: {
+            accountHolderName: string;
+            /** @example 001234567890 */
+            accountNumber: string;
+            bankName?: string | null;
+            /** @example HDFC0001234 */
+            ifsc: string;
+        };
+        /** @description A staff member's salary bank account (the account number is masked). */
+        PayrollBankAccountView: {
+            accountHolderName: string;
+            /** @example XXXXXXXX7890 */
+            accountNumberMasked: string;
+            bankName?: string | null;
+            /** @example HDFC0001234 */
+            ifsc: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            staffId: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
         PayrollBulkFailure: {
             /** Format: uuid */
             id: string;
@@ -38885,6 +39047,99 @@ export interface components {
         PayrollDecisionBody: {
             decision: components["schemas"]["PayrollDecision"];
             reason?: string | null;
+        };
+        /** @description Create body (`POST /payroll-runs/{id}/disbursements`). */
+        PayrollDisbursementCreate: {
+            kind: components["schemas"]["PayrollDisbursementKind"];
+        };
+        /** @description A batch with its lines. */
+        PayrollDisbursementDetail: {
+            batch: components["schemas"]["PayrollDisbursementView"];
+            lines: components["schemas"]["PayrollDisbursementLineView"][];
+        };
+        /**
+         * @description Wire name of a payout kind (`net_pay` / `statutory_dues`).
+         * @enum {string}
+         */
+        PayrollDisbursementKind: "net_pay" | "statutory_dues";
+        /** @description One payee or due of a batch (the account number is masked). */
+        PayrollDisbursementLineView: {
+            accountHolderName?: string | null;
+            /** @example XXXXXXXX7890 */
+            accountNumberMasked?: string | null;
+            /** @example 43800.00 */
+            amount: string;
+            componentCode?: string | null;
+            componentName?: string | null;
+            displayName?: string | null;
+            ifsc?: string | null;
+            /** Format: int32 */
+            lineNo: number;
+            /** Format: uuid */
+            staffId?: string | null;
+            staffNumber?: string | null;
+        };
+        PayrollDisbursementList: {
+            items: components["schemas"]["PayrollDisbursementView"][];
+        };
+        /** @description Mark-paid body: the bank transaction reference (UTR) or the challan reference. */
+        PayrollDisbursementMarkPaid: {
+            /**
+             * Format: date
+             * @description Payment value date (default: today in the institution's timezone; never in the future).
+             */
+            paidOn?: string | null;
+            /** @example UTR2026113000123 */
+            reference: string;
+        };
+        /**
+         * @description Status of a disbursement batch.
+         * @enum {string}
+         */
+        PayrollDisbursementStatus: "pending_approval" | "approved" | "rejected" | "paid";
+        /** @description A payroll disbursement batch (net pay transfer or statutory remittance). */
+        PayrollDisbursementView: {
+            /** Format: date-time */
+            approvedAt?: string | null;
+            /**
+             * @description `BLOCKED_EXTERNAL`: no bank API is integrated; upload the file to the bank portal.
+             * @example BLOCKED_EXTERNAL
+             */
+            bankSubmission: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string | null;
+            /** Format: date-time */
+            fileGeneratedAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            journalEntryNumber?: string | null;
+            kind: components["schemas"]["PayrollDisbursementKind"];
+            /** Format: int32 */
+            lineCount: number;
+            /** @example PD-000001 */
+            number: string;
+            /** Format: date-time */
+            paidAt?: string | null;
+            paidBy?: string | null;
+            /** Format: date */
+            paidOn?: string | null;
+            paymentReference?: string | null;
+            /** Format: uuid */
+            payrollRunId: string;
+            /** @example PR-000001 */
+            payrollRunNumber: string;
+            processInstanceId?: string | null;
+            status: components["schemas"]["PayrollDisbursementStatus"];
+            statusReason?: string | null;
+            /** @example 43800.00 */
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description A business exception found by calculation (blocks validation). */
         PayrollException: {
@@ -91094,6 +91349,35 @@ export interface operations {
             };
         };
     };
+    people_payroll_disbursement_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_payroll_period_list: {
         parameters: {
             query?: never;
@@ -93300,6 +93584,139 @@ export interface operations {
             };
         };
     };
+    people_payroll_disbursement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_mark_paid: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDisbursementMarkPaid"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_payroll_run_list: {
         parameters: {
             query?: never;
@@ -93585,6 +94002,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_list_for_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDisbursementCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementView"];
+                };
+            };
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementView"];
                 };
             };
             "4XX": {
@@ -95100,6 +95592,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceDayList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_pay_bank_account_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollBankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_pay_bank_account_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollBankAccountPut"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollBankAccountView"];
                 };
             };
             "4XX": {
