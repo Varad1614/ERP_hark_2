@@ -390,18 +390,18 @@ pub fn validate_production(cfg: &Config) -> Result<(), ConfigError> {
     if let Some(k) = cfg.hardening.audit_chain.anchor_key {
         keys.push(("SUTRA_AUDIT_ANCHOR_KEY", k.0));
     }
-    for (i, (name, k)) in keys.iter().enumerate() {
-        if Some(*k) == dev_key || low_entropy(k) {
+    for (i, &(name, k)) in keys.iter().enumerate() {
+        if Some(k) == dev_key || low_entropy(&k) {
             return Err(ConfigError::Invalid {
-                key: *name,
+                key: name,
                 value: "<the published development key or a low-entropy key; generate 32 random \
                         bytes: openssl rand -hex 32>"
                     .into(),
             });
         }
-        if keys.iter().skip(i + 1).any(|(_, other)| other == k) {
+        if keys.iter().skip(i + 1).any(|(_, other)| *other == k) {
             return Err(ConfigError::Invalid {
-                key: *name,
+                key: name,
                 value: "<the same key is used for another purpose; each key must be distinct>"
                     .into(),
             });
