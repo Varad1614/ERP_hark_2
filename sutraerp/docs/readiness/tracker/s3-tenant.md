@@ -1,0 +1,10 @@
+# S3-tenant tracker
+
+| ID | issue | root cause | files changed | status | tests | CI result + run id | blockers | commit |
+|---|---|---|---|---|---|---|---|---|
+| DEF-X-003 / SEC-9D-004 (+C-011, E-008, F-010, G-009, H-006, I-015, J-009) | no DB-level tenant isolation; id-only SQL could cross tenants | isolation relied on per-query predicates only | migrations/20261230000100_platform_tenant_rls.sql; crates/kernel/src/db_context.rs; crates/persistence/src/{pool,lib,jobs,outbox_relay}.rs; crates/web/src/auth.rs; modules/platform/src/{auth/http,inbox/consumer}.rs; modules/finance/src/payments/http.rs; apps/api/src/{main,app,config}.rs; deploy/ci/db-integrity.sql | FIXED | db_p1_s3_tenant (6 tests); db, db_b9a updated to run runtime writes in context | CI 38772242990 @ 9681db3 green | — | da4864a1, 25db273f, c059cf5, 9681db3 |
+| SEC-P1-TENANT-002 | API / e2e / pilot served as superuser (RLS bypassed) | harness & pilot used the owner URL | apps/api/src/main.rs (refuse in prod); apps/web/e2e/lib/harness.mjs, student.e2e.mjs, passkey.e2e.mjs; .github/workflows/sutraerp-pilot.yml | FIXED | rls_catalog_covers_every_tenant_table; 8 e2e + pilot as runtime role | CI 38772242990 @ 9681db3, pilot 38772335139 @ 9681db3 green | — | 205f704 |
+| DEF-C-010 / B-004 / A-004 | institution scope from URL path; dev sessions pinned by realm claim | no session pinning in DB | RLS institution clause; auth.rs pinning from OIDC claim; .env.example, realm-sutra-dev.json (claim removed) | FIXED (pinned sessions) | pinned_campus_session_cannot_reach_another_campus | CI 38772242990 @ 9681db3 green | — | da4864a1, d6603c42 |
+| DEF-I-006 | faculty read unpublished results / malpractice | exam.read alone authorised | modules/exams/src/{shared,results,integrity}/http.rs | FIXED | db_b6c, db_b6b (updated to assert 403), db_p1_s3_tenant API test | CI 38772242990 @ 9681db3 green | — | b1036482, 9681db3 |
+
+Accepted risks: see security/tenant.md (system-scope setting switchable by SQL, backup role needs BYPASSRLS, two parent-scoped child tables, non-tenant platform tables).
