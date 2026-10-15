@@ -3,12 +3,12 @@
 import { readFileSync } from "node:fs";
 const r = JSON.parse(readFileSync(process.argv[2], "utf8"));
 const esc = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, "<br>");
-const icon = { pass: "✅ pass", fail: "❌ fail", gap: "⚠️ gap", skip: "⏭️ skip" };
+const icon = { pass: "✅ pass", fail: "❌ fail", known: "❌ fail (known open defect — not counted)", gap: "⚠️ gap", skip: "⏭️ skip" };
 const lines = [];
 lines.push(`## SutraERP Part 1 — full-stack journey (${r.auth ?? "?"} auth)`);
 const steps = r.steps ?? [];
 const n = (s) => steps.filter((x) => x.status === s).length;
-lines.push("", `**${n("pass")} passed · ${n("fail")} failed · ${n("gap")} gap(s)** — commit \`${(r.sha ?? process.env.GITHUB_SHA ?? "").slice(0, 12)}\`, run ${process.env.GITHUB_RUN_ID ?? r.runId ?? "local"}`, "");
+lines.push("", `**${n("pass")} passed · ${n("fail")} failed · ${n("known")} known open defect(s)** · ${(r.gaps ?? []).length} step(s) via API — commit \`${(r.sha ?? process.env.GITHUB_SHA ?? "").slice(0, 12)}\`, run ${process.env.GITHUB_RUN_ID ?? r.runId ?? "local"}`, "");
 lines.push("| # | Phase | Step | Driven by | Result | Evidence |", "|---|---|---|---|---|---|");
 steps.forEach((s, i) => lines.push(`| ${i + 1} | ${esc(s.phase ?? "")} | ${esc(s.name)} | ${esc(s.via ?? "")} | ${icon[s.status] ?? s.status} | ${esc((s.evidence ?? []).slice(0, 12).join("\n"))} |`));
 if (r.gaps?.length) {
