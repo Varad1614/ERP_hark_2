@@ -24,13 +24,15 @@
  *   admin    Payroll: configuration (BASIC fixed + HRA 40 % of basic) → submitted → active;
  *            salary structure AP-1 + Meera's assignment; period → regular run → calculate (LOP
  *            1 day from 7B through LeaveReader) → validate → submit (approved) → finalise → post
- *            (Finance journal) → payslips issued.
+ *            (Finance journal) → payslips issued → disbursement (DEF-E-007): Meera's salary bank
+ *            account, net-pay batch, NEFT file downloaded, marked paid with a UTR → salaries payable
+ *            back to zero (Dr 2410 / Cr bank).
  *   faculty  My HR → Payslips lists the payslip; Leave tab shows the balance; dark mode.
  *
  * Screenshots: $E2E_SHOTS (default /workspace/work/out/b7-shots), prefixed `7-`. Every console
  * error, page error and failed /api response fails the run. Requires `psql` on PATH.
  */
-import { existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";
 import {
@@ -437,6 +439,33 @@ try {
     const slips = psql(`SELECT count(*) FROM people.payslip WHERE status = 'issued'`);
     check(slips === "1", `one payslip issued (${slips})`);
     await shot(page, "7-admin-payroll-posted");
+  });
+
+  await step(page, "admin: net pay disbursed — bank account, NEFT file, mark paid clears salaries payable (DEF-E-007)", async () => {
+    const disb = tile(page, "Disbursements");
+    await disb.waitFor();
+    check((await disb.locator('[data-bank-submission="BLOCKED_EXTERNAL"]').count()) === 1, "bank submission is shown as BLOCKED_EXTERNAL");
+    await action(page, "bank-account", disb);
+    await fillForm(page, "bank-account", { staffId: "Meera Shah", accountHolderName: "Meera Shah", accountNumber: "001234567890", ifsc: "HDFC0001234" });
+    await action(page, "disbursement-new", disb);
+    await fillForm(page, "disbursement-create", { runId: "PR-", kind: "Net pay" });
+    await row(page, "PD-", disb).waitFor();
+    await maybeRowAction(page, "PD-", "disbursement-approve", disb);
+    await expectRowStatus(page, "PD-", "Approved", disb);
+    const [download] = await Promise.all([page.waitForEvent("download", { timeout: 15000 }), rowAction(page, "PD-", "disbursement-download", disb)]);
+    check(/^PD-\d{6}-neft\.csv$/.test(download.suggestedFilename()), `NEFT file name (${download.suggestedFilename()})`);
+    const csv = readFileSync(await download.path(), "utf8");
+    const recs = csv.split("\r\n").filter(Boolean);
+    check(recs.length === 3 && recs[0].startsWith("H,PD-") && recs[2].startsWith("T,1,"), `NEFT file has header, one transfer and trailer (${recs.join(" / ")})`);
+    check((recs[1] ?? "").startsWith("D,NEFT,001234567890,HDFC0001234,Meera Shah,"), `transfer record (${recs[1]})`);
+    await rowAction(page, "PD-", "disbursement-paid", disb);
+    await fillForm(page, "disbursement-paid", { reference: "UTR2026E2E0001" });
+    await expectRowStatus(page, "PD-", "Paid", disb);
+    const payable = psql(`SELECT COALESCE(sum(l.credit - l.debit), 0) FROM finance.journal_line l JOIN finance.ledger_account a ON a.id = l.ledger_account_id WHERE a.system_key = 'payroll_payable'`);
+    check(Number(payable) === 0, `salaries payable cleared (${payable})`);
+    const payout = psql(`SELECT count(*) FROM finance.journal_entry WHERE source_type = 'payroll_disbursement'`);
+    check(payout === "1", `one payout journal entry (${payout})`);
+    await shot(page, "7-admin-payroll-disbursed");
   });
 
   await step(page, "admin: home “Faculty on roll” is live", async () => {

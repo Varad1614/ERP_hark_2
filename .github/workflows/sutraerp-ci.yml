@@ -163,10 +163,10 @@ jobs:
   # e2e-shots-reskin2); e2e builds set VITE_UI_CATALOGUE=1 so the dev-only catalogue is served.
   # Click-through e2e suites in preview mode (Batch 3 student, Batch 4 academic, Batch 5 finance, Batch 6 exams, Batch 7 people, Batch 8 campus,
   # UI re-skin shell/homes/workspaces); screenshots uploaded as artifacts (the sandbox OOMs running
-  # chromium + API + preview together). Runs on ui/**, batch*/** and erp_merge.
+  # chromium + API + preview together). Runs on ui/**, batch*/**, part1/** (dispatch) and erp_merge.
   e2e:
     name: E2E ${{ matrix.suite }} (preview)
-    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || github.ref == 'refs/heads/erp_merge'
+    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || startsWith(github.ref, 'refs/heads/part1/') || github.ref == 'refs/heads/erp_merge'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false

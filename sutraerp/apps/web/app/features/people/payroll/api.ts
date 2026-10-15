@@ -6,7 +6,7 @@
 import { ApiProblem, isProblem, isUnsafeMethod, newIdempotencyKey, type paths } from "@sutra/api-client";
 import { getCsrfToken } from "../../../lib/api";
 import { fill } from "../../institution/api";
-import type { BulkSummary, Decision, FinalSettlement, Items, PayComponentInput, PayrollConfig, PayrollPeriod, PayrollResult, PayrollRun, Payslip, RunCommand, SalaryAssignment, SalaryStructure } from "./types";
+import type { BankAccount, BankAccountInput, BulkSummary, Decision, DisbursementFile, DisbursementKind, FinalSettlement, Items, PayComponentInput, PayrollConfig, PayrollDisbursement, PayrollPeriod, PayrollResult, PayrollRun, Payslip, RunCommand, SalaryAssignment, SalaryStructure } from "./types";
 
 export interface PayrollApi {
   configs(institutionId: string): Promise<PayrollConfig[]>;
@@ -32,6 +32,13 @@ export interface PayrollApi {
   createSettlement(engagementId: string, input: { recoveries?: Array<{ code: string; name: string; amount: string }>; notes?: string }): Promise<FinalSettlement>;
   settlementCommand(id: string, version: number, cmd: "calculate" | "complete"): Promise<FinalSettlement>;
   decideSettlement(id: string, version: number, decision: Decision, reason?: string): Promise<FinalSettlement>;
+  // DEF-E-007: payroll disbursement (bank transfer file, mark paid → Finance payout posting)
+  disbursements(institutionId: string): Promise<PayrollDisbursement[]>;
+  createDisbursement(runId: string, kind: DisbursementKind): Promise<PayrollDisbursement>;
+  decideDisbursement(id: string, version: number, decision: Decision, reason?: string): Promise<PayrollDisbursement>;
+  disbursementFile(id: string): Promise<DisbursementFile>;
+  markDisbursementPaid(id: string, version: number, reference: string, paidOn?: string): Promise<PayrollDisbursement>;
+  putBankAccount(staffId: string, input: BankAccountInput): Promise<BankAccount>;
 }
 
 const B = "/api/v1/people";
@@ -61,6 +68,12 @@ export const PATHS = {
   settlementCalculate: `${B}/final-settlements/{id}/calculate`,
   settlementComplete: `${B}/final-settlements/{id}/complete`,
   settlementDecision: `${B}/final-settlements/{id}/decision`,
+  disbursements: `${B}/institutions/{id}/payroll-disbursements`,
+  runDisbursements: `${B}/payroll-runs/{id}/disbursements`,
+  disbursementDecision: `${B}/payroll-disbursements/{id}/decision`,
+  disbursementFile: `${B}/payroll-disbursements/{id}/file`,
+  disbursementPaid: `${B}/payroll-disbursements/{id}/mark-paid`,
+  bankAccount: `${B}/staff/{id}/bank-account`,
 } as const satisfies Record<string, keyof paths>;
 
 const RUN_CMD: Record<RunCommand, string> = {
@@ -108,6 +121,24 @@ export function createHttpPayrollApi(fetchImpl: Fetch = (i, init) => fetch(i, in
     }
     return data as T;
   }
+  /** GET of a text file (the bank transfer CSV); problem+json errors still become `ApiProblem`. */
+  async function file(path: string): Promise<DisbursementFile> {
+    const res = await fetchImpl(`${baseUrl}${path}`, { method: "GET", headers: { Accept: "text/csv, application/problem+json" }, credentials: "include" });
+    const text = await res.text();
+    if (!res.ok) {
+      let data: unknown = undefined;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = undefined;
+      }
+      if (isProblem(data)) throw new ApiProblem(data);
+      throw new ApiProblem({ type: "about:blank", title: `Request failed (${res.status})`, status: res.status, errorCode: `http-${res.status}` });
+    }
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "payroll-disbursement.csv";
+    return { fileName, content: text };
+  }
   const items = async <T>(path: string) => (await request<Items<T>>("GET", path)).items;
   const id = (i: string) => ({ id: i });
   return {
@@ -134,5 +165,11 @@ export function createHttpPayrollApi(fetchImpl: Fetch = (i, init) => fetch(i, in
     createSettlement: (e, input) => request("POST", fill(PATHS.settlementCreate, id(e)), { body: input, idempotent: true }),
     settlementCommand: (f, v, cmd) => request("POST", fill(cmd === "calculate" ? PATHS.settlementCalculate : PATHS.settlementComplete, id(f)), { ifMatch: v }),
     decideSettlement: (f, v, decision, reason) => request("POST", fill(PATHS.settlementDecision, id(f)), { ifMatch: v, body: { decision, reason } }),
+    disbursements: (i) => items(fill(PATHS.disbursements, id(i))),
+    createDisbursement: (r, kind) => request("POST", fill(PATHS.runDisbursements, id(r)), { body: { kind }, idempotent: true }),
+    decideDisbursement: (d, v, decision, reason) => request("POST", fill(PATHS.disbursementDecision, id(d)), { ifMatch: v, body: { decision, reason } }),
+    disbursementFile: (d) => file(fill(PATHS.disbursementFile, id(d))),
+    markDisbursementPaid: (d, v, reference, paidOn) => request("POST", fill(PATHS.disbursementPaid, id(d)), { ifMatch: v, body: { reference, paidOn: paidOn || undefined } }),
+    putBankAccount: (s, input) => request("PUT", fill(PATHS.bankAccount, id(s)), { body: input }),
   };
 }
