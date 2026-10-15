@@ -52,6 +52,7 @@ DECLARE
     r record;
     inst_col text;
     expr text;
+    check_expr text;
     n integer := 0;
 BEGIN
     FOR r IN
@@ -80,12 +81,23 @@ BEGIN
                 inst_col);
         END IF;
         expr := expr || '))';
+        check_expr := expr;
+        IF r.schema_name = 'student' AND r.table_name = 'student' THEN
+            -- The student persona is tenant-level (one person, a context per institution): a
+            -- session pinned to an institution sees the personas that have a context there.
+            -- Creating a persona (its context follows in the same transaction) only needs the
+            -- tenant, so WITH CHECK stays tenant-only.
+            expr := '(platform.rls_system() OR (tenant_id = platform.rls_tenant() AND '
+                 || '(platform.rls_institution() IS NULL OR EXISTS (SELECT 1 FROM student.student_context sc '
+                 || 'WHERE sc.tenant_id = student.student.tenant_id AND sc.student_id = student.student.id '
+                 || 'AND sc.institution_id = platform.rls_institution()))))';
+        END IF;
         EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY', r.tbl);
         EXECUTE format('ALTER TABLE %s FORCE ROW LEVEL SECURITY', r.tbl);
         EXECUTE format('DROP POLICY IF EXISTS sutra_tenant_isolation ON %s', r.tbl);
         EXECUTE format(
             'CREATE POLICY sutra_tenant_isolation ON %s AS PERMISSIVE FOR ALL TO PUBLIC USING %s WITH CHECK %s',
-            r.tbl, expr, expr);
+            r.tbl, expr, check_expr);
         n := n + 1;
     END LOOP;
     RETURN n;
