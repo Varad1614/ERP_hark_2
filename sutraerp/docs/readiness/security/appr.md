@@ -14,6 +14,8 @@ DEF-P1-DEMO-006. Full endpoint matrix: `docs/readiness/APPROVAL_CONTROL_MATRIX.m
 | SEC-P1-APPR-006 | Content change after approval | High (if present) | Reviewed: finance adjustment `/correct`, final settlement `/calculate`, vendor invoice `/match`, PO amendments (S2-ops) | Approve a small amount, then edit it upward | No bypass found: pending adjustments are not corrected/reversed; correcting a posted adjustment supersedes it and returns a new draft that needs a new decision; approved settlements are not recalculated; approved invoices are not re-matched; PO amendments return to `draft` | `db_p1_s3_appr::finance_adjustment_is_decided_by_an_independent_human_only`, `…payroll_adjustment_and_final_settlement…`, `…vendor_invoice…`; `db_p1_ops::direct_purchase_limit_binds_the_ordered_value` | FIXED (verified, regression added) |
 | SEC-P1-APPR-007 | 26 decisions without SoD | Low | `ALLOWLIST` in `apps/api/tests/approval_matrix.rs` | Self-decision of institution set-up / catalogue / facilities / reporting configuration | Not guarded by design: no money, grade, student-status or access effect, or not a checker decision; everything they enable that matters passes a guarded decision downstream; reasons are enforced non-empty and stale entries fail CI | `approval_matrix::allowlist_reasons_are_documented` | ACCEPTED-RISK (configuration-only decisions; reasons per row in the matrix) |
 
+Verification: code head 7f4c129a — CI 38772672703 and Part 1 demo 38772672672 green.
+
 Residual notes: requests raised by background work (or by code paths that bypass the web
 `authenticate` middleware, e.g. test routers layering an `AuthContext` directly) record
 `requested_by = NULL` (no human maker); their decisions still need an identified human checker, and

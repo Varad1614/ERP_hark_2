@@ -16,3 +16,10 @@ Tests that encoded self-approval were changed to decide with a second user (neve
 guard): see the commit diffs above.
 
 ## Status
+
+Code head **7f4c129a** (all S3-appr code + tests): SutraERP CI run **38772672703** green (Rust fmt·clippy·test,
+Rust integration on PostgreSQL 18 incl. `db_p1_s3_appr` + `approval_matrix`, OpenAPI drift, web,
+8 e2e suites, container images); Part 1 demo (full stack, human approval mode) run **38772672672** green.
+Coverage confirmed in `db_p1_s3_appr`: posting/applying/completing/reversing a pending record → 409;
+amount change after approval refused (settlement recalculation, invoice re-match) or superseded into a
+new pending/draft record (finance adjustment correction). This status commit is docs-only (`[skip ci]`).

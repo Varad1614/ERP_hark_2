@@ -1,7 +1,7 @@
 # Approval control matrix (Part 1 · Stage 2 S2-appr · finalised Stage 3 S3-appr)
 
 Every governed decision in SutraERP, who may raise it (maker), who may decide it (checker), and
-whether separation of duties (SoD) and an audit trail are enforced. Branch `part1/s2-appr`.
+whether separation of duties (SoD) and an audit trail are enforced. Branches `part1/s2-appr` (Stage 2) and `part1/s3-appr` (Stage 3; verified at 7f4c129a: CI 38772672703, demo 38772672672 green).
 
 ## How approval works now (DEF-X-001)
 
