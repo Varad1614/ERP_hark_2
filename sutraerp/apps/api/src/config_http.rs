@@ -112,9 +112,14 @@ impl HttpSecurityConfig {
             trusted_proxy_hops: parse(src, "SUTRA_TRUSTED_PROXY_HOPS", usize::from(prod))?,
             max_clients: parse(src, "SUTRA_RATE_LIMIT_MAX_CLIENTS", d.max_clients)?,
         };
-        // `SUTRA_HSTS` (S3-auth's switch, default on in production) turns the header on with the
-        // one-year default; `SUTRA_HSTS=false` sends none (refused in production below).
-        let hsts_on: bool = parse(src, "SUTRA_HSTS", prod)?;
+        // `SUTRA_HSTS` (S3-auth's switch; default on in production or when a max-age is given)
+        // turns the header on with the one-year default; `SUTRA_HSTS=false` sends none (refused
+        // in production below).
+        let hsts_on: bool = parse(
+            src,
+            "SUTRA_HSTS",
+            prod || src.get("SUTRA_HSTS_MAX_AGE_SECS").is_some(),
+        )?;
         let hsts_max_age_secs = if hsts_on {
             parse(src, "SUTRA_HSTS_MAX_AGE_SECS", 365 * 24 * 3600)?
         } else {
