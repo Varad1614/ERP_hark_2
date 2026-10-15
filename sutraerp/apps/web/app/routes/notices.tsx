@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { useSession } from "../lib/auth";
 import { inboxKeys, useInbox, useInboxRefresh } from "../lib/inbox";
-import { ROLE_CONFIG, ROLES } from "../lib/roles";
+import { ROLE_CONFIG, ROLES, roleTitle } from "../lib/roles";
 import "../features/home/home.css";
 import "../components/shell.css";
 
@@ -210,7 +210,7 @@ export default function Notices() {
                 <small>
                   {n.authorName} · {day(n.publishAt)}
                   {n.expiresAt ? ` · until ${day(n.expiresAt)}` : ""}
-                  {view === "manage" ? ` · for ${n.audienceRoles.map((r) => ROLE_CONFIG[r].title).join(", ")}` : ""}
+                  {view === "manage" ? ` · for ${n.audienceRoles.map((r) => roleTitle(r)).join(", ")}` : ""}
                 </small>
               </div>
             </BentoTile>
@@ -227,7 +227,7 @@ export default function Notices() {
             ? [
                 { label: "From", value: current.authorName },
                 { label: "When", value: `${fmt(current.publishAt)}${current.expiresAt ? ` – ${fmt(current.expiresAt)}` : ""}` },
-                { label: "For", value: current.audienceRoles.map((r) => ROLE_CONFIG[r].title).join(", ") },
+                { label: "For", value: current.audienceRoles.map((r) => roleTitle(r)).join(", ") },
                 ...(canManage ? [{ label: "Status", value: STATE_BADGE[current.state].label }] : []),
               ]
             : undefined

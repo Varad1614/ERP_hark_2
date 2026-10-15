@@ -178119,7 +178119,12 @@
         "enum": [
           "administrator",
           "faculty",
-          "student"
+          "student",
+          "finance_approver",
+          "exam_controller",
+          "registrar",
+          "payroll_approver",
+          "procurement_approver"
         ]
       },
       "RoomInspectionComplete": {

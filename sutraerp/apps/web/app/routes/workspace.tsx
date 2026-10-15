@@ -6,7 +6,7 @@ import { useWorkspaces } from "../lib/api";
 import { useSession } from "../lib/auth";
 import { groupMeta } from "../lib/icons";
 import { rememberWorkspace } from "../features/home/widgets";
-import { ROLE_CONFIG } from "../lib/roles";
+import { ROLE_CONFIG, roleTitle } from "../lib/roles";
 
 const STAGES = ["Draft", "Submitted", "In review", "Approved"];
 const TABS = ["overview", "workflows", "records"] as const;
@@ -113,7 +113,7 @@ export default function WorkspaceRoute() {
         <>
           <StatTile span={4} icon={Workflow} tone={g.tone} label="Workflows" value={String(ws.workflows.length)} hint="Available to your role" />
           <StatTile span={4} icon={Layers} tone="amber" label="Scenarios" value={String(scenarios)} hint="Specified behaviours" />
-          <StatTile span={4} icon={CircleCheck} tone="green" label="Roles" value={String(ws.roles.length)} hint={ws.roles.map((r) => ROLE_CONFIG[r].title).join(", ")} />
+          <StatTile span={4} icon={CircleCheck} tone="green" label="Roles" value={String(ws.roles.length)} hint={ws.roles.map((r) => roleTitle(r)).join(", ")} />
           <BentoTile span={12} title="Workflows you can start" action={<Link to={`/workspaces/${ws.key}/workflows`}>See all</Link>}>
             {ws.workflows.length ? ws.workflows.slice(0, 3).map((_, i) => row(i, false)) : <p>No workflows for your role.</p>}
           </BentoTile>
@@ -171,7 +171,7 @@ export default function WorkspaceRoute() {
               <dt>Scenarios</dt>
               <dd>{wf.scenarios}</dd>
               <dt>Roles</dt>
-              <dd>{wf.roles.map((r) => ROLE_CONFIG[r].title).join(", ")}</dd>
+              <dd>{wf.roles.map((r) => roleTitle(r)).join(", ")}</dd>
               <dt>Stage</dt>
               <dd>{badgeFor(openWf ?? 0)}</dd>
             </dl>

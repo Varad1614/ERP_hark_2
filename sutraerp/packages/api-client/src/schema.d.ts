@@ -41929,7 +41929,7 @@ export interface components {
          *     [`Permission`] map below, never the role name directly.
          * @enum {string}
          */
-        Role: "administrator" | "faculty" | "student";
+        Role: "administrator" | "faculty" | "student" | "finance_approver" | "exam_controller" | "registrar" | "payroll_approver" | "procurement_approver";
         /** @description Inspection outcome. */
         RoomInspectionComplete: {
             /**

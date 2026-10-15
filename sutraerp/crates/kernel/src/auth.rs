@@ -26,19 +26,19 @@ pub enum Role {
     Administrator,
     Faculty,
     Student,
-    /// Part 1 (DEF-X-002): checker for finance decisions (refunds, adjustments, write-offs, …).
+    // Part 1 (DEF-X-002): checker for finance decisions (refunds, adjustments, write-offs, …).
     #[serde(rename = "finance_approver")]
     FinanceApprover,
-    /// Part 1 (DEF-X-002): controller of examinations (result approval / publication).
+    // Part 1 (DEF-X-002): controller of examinations (result approval / publication).
     #[serde(rename = "exam_controller")]
     ExamController,
-    /// Part 1 (DEF-X-002): registrar deciding admissions.
+    // Part 1 (DEF-X-002): registrar deciding admissions.
     #[serde(rename = "registrar")]
     Registrar,
-    /// Part 1 (DEF-X-002): checker for payroll runs, adjustments and final settlements.
+    // Part 1 (DEF-X-002): checker for payroll runs, adjustments and final settlements.
     #[serde(rename = "payroll_approver")]
     PayrollApprover,
-    /// Part 1 (DEF-X-002): checker for requisitions, purchase orders and vendor invoices.
+    // Part 1 (DEF-X-002): checker for requisitions, purchase orders and vendor invoices.
     #[serde(rename = "procurement_approver")]
     ProcurementApprover,
 }

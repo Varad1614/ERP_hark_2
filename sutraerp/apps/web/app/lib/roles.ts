@@ -7,11 +7,22 @@
  */
 import type { LucideIcon } from "lucide-react";
 import type { BadgeKind, Tone } from "@sutra/ui";
-import type { Role } from "@sutra/api-client";
+import type { Role as ApiRole } from "@sutra/api-client";
 import { Icons as I } from "./icons";
 
-export type { Role };
+/**
+ * UI persona of a session. Part 1 (DEF-X-002) checker roles (`finance_approver`, `exam_controller`,
+ * `registrar`, `payroll_approver`, `procurement_approver`) sign in to the administrator workspace;
+ * the API alone decides what each role may read or decide.
+ */
+export type Role = Extract<ApiRole, "administrator" | "faculty" | "student">;
+export type { ApiRole };
 export const ROLES: readonly Role[] = ["administrator", "faculty", "student"];
+
+/** The UI persona for an API role (checker roles use the administrator workspace). */
+export function uiRole(r: ApiRole): Role {
+  return r === "faculty" || r === "student" ? r : "administrator";
+}
 
 export interface NavEntry {
   id: string;
@@ -230,4 +241,17 @@ export function routeFor(id: string): string {
 
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as readonly string[]).includes(value);
+}
+
+const APPROVER_TITLES: Record<Exclude<ApiRole, Role>, string> = {
+  finance_approver: "Finance approver",
+  exam_controller: "Controller of examinations",
+  registrar: "Registrar",
+  payroll_approver: "Payroll approver",
+  procurement_approver: "Procurement approver",
+};
+
+/** Display title of any API role. */
+export function roleTitle(r: ApiRole): string {
+  return r === "administrator" || r === "faculty" || r === "student" ? ROLE_CONFIG[r].title : APPROVER_TITLES[r];
 }

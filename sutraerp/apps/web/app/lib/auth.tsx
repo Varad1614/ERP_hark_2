@@ -11,7 +11,7 @@
 import type { LoginResponse, MfaLevel, MfaMethod } from "@sutra/api-client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AUTH_MODE, api, bootstrapLoginCsrf, setCsrfToken, unwrap } from "./api";
-import { isRole, ROLE_CONFIG, type Role } from "./roles";
+import { isRole, ROLE_CONFIG, type Role, uiRole } from "./roles";
 import { getPasskeyAssertion } from "./webauthn";
 
 export interface ClientSession {
@@ -58,7 +58,7 @@ export function sessionFromLogin(res: LoginResponse, fallbackRole: Role): Client
   if (res.outcome !== "authenticated" || !p) throw new Error("Sign-in is not complete");
   setCsrfToken(res.csrfToken ?? undefined);
   return {
-    role: p.roles[0] ?? fallbackRole,
+    role: p.roles[0] ? uiRole(p.roles[0]) : fallbackRole,
     displayName: p.displayName,
     loginId: p.loginId,
     mfaLevel: res.mfaLevel ?? "none",
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled && res.data && p && role) {
           setCsrfToken(res.data.csrfToken);
           setSession({
-            role,
+            role: uiRole(role),
             displayName: p.displayName,
             loginId: p.loginId,
             mfaLevel: res.data.mfaLevel,

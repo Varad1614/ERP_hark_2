@@ -7,7 +7,7 @@ import { useNavigate } from "react-router";
 import { useAuth, useSession } from "../lib/auth";
 import "../components/shell.css";
 import { inboxKeys, useInbox, useInboxRefresh } from "../lib/inbox";
-import { ROLE_CONFIG } from "../lib/roles";
+import { ROLE_CONFIG, roleTitle } from "../lib/roles";
 import { CATEGORY_META } from "../components/NotificationRow";
 
 export function meta() {
@@ -143,7 +143,7 @@ export default function ProfilePage() {
       setBusy(false);
     }
   };
-  const roleTitles = profile.roles.map((r) => ROLE_CONFIG[r].title).join(", ");
+  const roleTitles = profile.roles.map((r) => roleTitle(r)).join(", ");
   const localeLabel = LOCALES.find((l) => l.value === profile.locale)?.label ?? profile.locale;
 
   return (
