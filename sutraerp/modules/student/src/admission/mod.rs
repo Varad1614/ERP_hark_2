@@ -10,6 +10,7 @@
 
 pub mod application;
 pub mod domain;
+pub mod duplicates;
 pub mod flow;
 
 use crate::shared::StudentState;
