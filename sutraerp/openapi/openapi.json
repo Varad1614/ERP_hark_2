@@ -99756,6 +99756,154 @@
         ]
       }
     },
+    "/api/v1/resources/suppliers/{id}/bank-change": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Request new bank details for an approved supplier (`resources.procurement.manage`; If-Match;\nPart 1 · Stage 3, DEF-J-004). The live details stay in use; the request waits for\n`SUPPLIER_BANK_CHANGE_APPROVAL` (approvers notified, audited with masked accounts). One open\nrequest at a time (`409`).",
+        "operationId": "resources_supplier_bank_change_request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the supplier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierBankChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/suppliers/{id}/bank-change/decision": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Decide a supplier's pending bank-change request (`resources.approve` **or**\n`finance.approve`, step-up; If-Match; Part 1 · Stage 3, DEF-J-004): approve → the new details\ngo live (`supplier.bank_change_approved` warns finance); reject → discarded (reason\nrequired). Whoever requested the change — or a system actor — is refused (`403`).",
+        "operationId": "resources_supplier_bank_change_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the supplier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcesDecisionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/resources/suppliers/{id}/decision": {
       "post": {
         "tags": [
@@ -186043,6 +186191,36 @@
           "cancelled"
         ]
       },
+      "SupplierBankChangeRequest": {
+        "type": "object",
+        "description": "New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`).",
+        "required": [
+          "bankAccountNumber",
+          "bankIfsc",
+          "reason"
+        ],
+        "properties": {
+          "bankAccountName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Defaults to the current account name."
+          },
+          "bankAccountNumber": {
+            "type": "string",
+            "example": "001234567890"
+          },
+          "bankIfsc": {
+            "type": "string",
+            "example": "HDFC0001234"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the details change (shown to the approver; required)."
+          }
+        }
+      },
       "SupplierList": {
         "type": "object",
         "required": [
@@ -186160,7 +186338,8 @@
           "approvalPending",
           "approvalState",
           "version",
-          "createdAt"
+          "createdAt",
+          "bankChangePending"
         ],
         "properties": {
           "address": {
@@ -186196,6 +186375,43 @@
               "null"
             ],
             "description": "Masked (`XXXXXX7890`)."
+          },
+          "bankChangePending": {
+            "type": "boolean",
+            "description": "Part 1 · Stage 3 (DEF-J-004): a bank-change request awaits an independent decision."
+          },
+          "bankChangeProcessInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bankChangeReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bankChangeRequestId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Id of the open bank-change request (its status history is keyed by it)."
+          },
+          "bankChangeRequestedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "bankChangeRequestedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "bankIfsc": {
             "type": [
@@ -186254,6 +186470,25 @@
               "null"
             ],
             "example": "ABCDE1234F"
+          },
+          "pendingBankAccountName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pendingBankAccountNumber": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Masked (`XXXXXX7890`)."
+          },
+          "pendingBankIfsc": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "phone": {
             "type": [

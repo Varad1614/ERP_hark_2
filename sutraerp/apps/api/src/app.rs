@@ -106,8 +106,36 @@ pub struct AppContext {
     pub search: sutra_platform::search::SearchState, // 9C
     /// INT: SEC-9D-003 — payment gateway of the finance routes (`SUTRA_PAYMENT_GATEWAY`).
     pub payment_gateway: Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort>,
-    /// SEC-9D-006 / SEC-9D-012: browser-hardening headers (+ HSTS) on every API response.
-    pub security_headers: sutra_web::headers::SecurityHeaders,
+    /// Part 1 · Stage 3 (S3-config): transport hardening (headers, CORS, body limit, ops
+    /// endpoints) and the public-endpoint rate limiter.
+    pub http: HttpLayers,
+}
+
+/// Part 1 · Stage 3 (S3-config): settings of the transport layers built in [`router`].
+#[derive(Clone, Debug)]
+pub struct HttpLayers {
+    pub headers: Arc<sutra_web::security_headers::SecurityHeaders>,
+    pub cors: Arc<sutra_web::cors::CorsPolicy>,
+    pub rate_limiter: Arc<sutra_web::rate_limit::RateLimiter>,
+    pub max_body_bytes: usize,
+    /// Serve `GET /api/openapi.json` (off in production).
+    pub api_docs: bool,
+}
+
+impl HttpLayers {
+    pub fn from_config(cfg: &Config) -> Self {
+        Self {
+            headers: Arc::new(sutra_web::security_headers::SecurityHeaders {
+                hsts_max_age_secs: cfg.http.hsts_max_age_secs,
+            }),
+            cors: Arc::new(sutra_web::cors::CorsPolicy::new(&cfg.allowed_origins)),
+            rate_limiter: Arc::new(sutra_web::rate_limit::RateLimiter::new(
+                cfg.http.rate_limit.clone(),
+            )),
+            max_body_bytes: cfg.http.max_body_bytes,
+            api_docs: cfg.http.api_docs,
+        }
+    }
 }
 
 /// Long-running workers that run next to the HTTP server.
@@ -197,7 +225,7 @@ impl AppContext {
         checks.extend(cache_check);
         let (relay, relay_check) = build_relay(cfg, &pool)?;
         checks.extend(relay_check);
-        let readiness = Readiness::new(checks);
+        let readiness = Readiness::new(checks).with_detail(cfg.http.health_detail); // Part 1 · S3
         let scheduler = cfg.sweepers.enabled.then(|| build_scheduler(cfg, &pool));
         let mailer = build_mailer(cfg)?;
         let consumers = cfg
@@ -363,6 +391,7 @@ impl AppContext {
             },
             session_auth,
             origin_policy: OriginPolicy::new(&cfg.allowed_origins),
+            http: HttpLayers::from_config(cfg), // Part 1 · S3-config
             idempotency,
             request_timeout: cfg.request_timeout,
             cache,
@@ -377,7 +406,6 @@ impl AppContext {
             },
             search,                                // 9C
             payment_gateway: payment_gateway(cfg), // INT: SEC-9D-003
-            security_headers: sutra_web::headers::SecurityHeaders { hsts: cfg.hsts },
         })
     }
 
@@ -1003,6 +1031,12 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.idempotency,
             sutra_web::idempotency::idempotency,
         ))
+        // Part 1 · Stage 3 (S3-config): inside the session layer, so it knows who is signed in
+        // (credential endpoints always, other requests only without a live session).
+        .layer(axum::middleware::from_fn_with_state(
+            ctx.http.rate_limiter.clone(),
+            sutra_web::rate_limit::rate_limit,
+        ))
         .layer(axum::middleware::from_fn_with_state(
             ctx.session_auth,
             sutra_web::auth::authenticate,
@@ -1016,33 +1050,36 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
 /// Final Axum application with the full middleware stack (outermost last).
 pub fn router(ctx: AppContext) -> Router {
     let timeout = ctx.request_timeout;
-    let security_headers = ctx.security_headers;
     let audit_anchor = ctx.audit_anchor.clone(); // 9A
+    let layers = ctx.http.clone(); // Part 1 · S3-config
     let (router, api) = build(ctx).split_for_parts();
     // 9A: the audit chain API checks anchor MACs with this key when it is configured.
     let router = match audit_anchor {
         Some(key) => router.layer(axum::Extension(key)),
         None => router,
     };
-    let api = Arc::new(api);
-    router
-        .route(
+    // Part 1 · Stage 3 (S3-config): the generated API description is a development aid; in
+    // production (`SUTRA_API_DOCS` refused) it is published with the release, not served.
+    let router = if layers.api_docs {
+        let api = Arc::new(api);
+        router.route(
             "/api/openapi.json",
             get(move || {
                 let api = api.clone();
                 async move { Json((*api).clone()) }
             }),
         )
+    } else {
+        router
+    };
+    router
         .fallback(sutra_web::problem::not_found)
         .layer(TimeoutLayer::with_status_code(
             http::StatusCode::GATEWAY_TIMEOUT,
             timeout,
         ))
-        .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
-        .layer(axum::middleware::from_fn_with_state(
-            security_headers,
-            sutra_web::headers::security_headers,
-        ))
+        .layer(RequestBodyLimitLayer::new(layers.max_body_bytes)) // Part 1 · S3: SUTRA_MAX_BODY_BYTES
+        .layer(axum::extract::DefaultBodyLimit::max(layers.max_body_bytes))
         .layer(CatchPanicLayer::new())
         .layer(axum::middleware::from_fn(crate::metrics::track_http)) // 9A
         .layer(TraceLayer::new_for_http().make_span_with(crate::telemetry::make_span))
@@ -1052,6 +1089,16 @@ pub fn router(ctx: AppContext) -> Router {
             header::SET_COOKIE,
         ]))
         .layer(axum::middleware::from_fn(sutra_web::request_id::request_id))
+        // Part 1 · Stage 3 (S3-config): outermost, so every answer — 404s, 413s, 429s, timeouts
+        // and panics included — carries the hardening headers and the CORS decision.
+        .layer(axum::middleware::from_fn_with_state(
+            layers.cors,
+            sutra_web::cors::cors,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            layers.headers,
+            sutra_web::security_headers::security_headers,
+        ))
 }
 
 // ---- 9C ---- Flowable workflow adapter, decision sync, OpenSearch projections

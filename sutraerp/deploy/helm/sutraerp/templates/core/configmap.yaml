@@ -30,13 +30,20 @@ data:
   {{- if eq $approvalMode "auto" }}{{ fail "approvals.mode=auto is not allowed when global.environment=production" }}{{ end }}
   {{- if not .Values.flowable.enabled }}{{ fail "flowable.enabled=false (SUTRA_WORKFLOW=noop) is not allowed when global.environment=production" }}{{ end }}
   {{- if $flowableAuto }}{{ fail "flowable.autoApprove=true is not allowed when global.environment=production" }}{{ end }}
+  {{- /* Part 1 · Stage 3 (S3-config): the API refuses these at start-up; fail the render first. */}}
+  {{- range $k, $v := .Values.api.extraEnv }}
+  {{- if hasPrefix "SUTRA_DEV_" $k }}{{ fail (printf "api.extraEnv.%s (development-only) is not allowed when global.environment=production" $k) }}{{ end }}
+  {{- if and (eq $k "SUTRA_PAYMENT_GATEWAY") (eq (lower (toString $v)) "mock") }}{{ fail "SUTRA_PAYMENT_GATEWAY=mock is not allowed when global.environment=production (DEF-F-002)" }}{{ end }}
+  {{- if and (has $k (list "SUTRA_RATE_LIMIT" "SUTRA_SESSION_COOKIE_SECURE" "SUTRA_HSTS")) (eq (lower (toString $v)) "false") }}{{ fail (printf "%s=false is not allowed when global.environment=production" $k) }}{{ end }}
+  {{- if and (has $k (list "SUTRA_API_DOCS" "SUTRA_HEALTH_DETAIL")) (eq (lower (toString $v)) "true") }}{{ fail (printf "%s=true is not allowed when global.environment=production" $k) }}{{ end }}
+  {{- end }}
   {{- end }}
   {{- /* Part 1 S3 (auth): production never disables MFA enforcement, the sign-in lockout or
   Keycloak (the API refuses these at start-up too). */}}
   {{- if eq .Values.global.environment "production" }}
   {{- $xe := .Values.api.extraEnv | default dict }}
   {{- if eq .Values.api.authMode "dev" }}{{ fail "api.authMode=dev is not allowed when global.environment=production" }}{{ end }}
-  {{- range $k := list "SUTRA_PRIVILEGED_MFA" "SUTRA_MFA_STEP_UP" "SUTRA_SESSION_COOKIE_SECURE" }}
+  {{- range $k := list "SUTRA_PRIVILEGED_MFA" "SUTRA_MFA_STEP_UP" }}
   {{- if and (hasKey $xe $k) (eq (toString (index $xe $k)) "false") }}{{ fail (printf "api.extraEnv.%s=false is not allowed when global.environment=production" $k) }}{{ end }}
   {{- end }}
   {{- if and (hasKey $xe "SUTRA_AUTH_MAX_FAILURES") (eq (toString (index $xe "SUTRA_AUTH_MAX_FAILURES")) "0") }}{{ fail "api.extraEnv.SUTRA_AUTH_MAX_FAILURES=0 is not allowed when global.environment=production" }}{{ end }}

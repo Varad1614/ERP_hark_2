@@ -25,8 +25,6 @@ pub enum AuthProvider {
     Keycloak,
 }
 
-/// Development-only default key for the TOTP secret encryption (AES-256-GCM). Refused in
-/// production; set `SUTRA_MFA_ENCRYPTION_KEY` (64 hex chars) everywhere else that matters.
 /// Client secret of the dev realm's `sutra-web` client (compose, `.env.example`): public, so
 /// production refuses it (SEC-P1-AUTH-006).
 pub const DEV_OIDC_CLIENT_SECRET: &str = "dev-only-change-me";
@@ -36,26 +34,8 @@ pub const OIDC_ASYMMETRIC_ALGS: [&str; 8] = [
     "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384",
 ];
 
-/// `https://…`, or plain http to a loopback host (never reachable as a production IdP from a
-/// browser, kept for local production-mode checks).
-fn oidc_url_ok_in_production(url: &str) -> bool {
-    let u = url.trim().to_ascii_lowercase();
-    if u.starts_with("https://") {
-        return true;
-    }
-    let Some(rest) = u.strip_prefix("http://") else {
-        return false;
-    };
-    let host = rest.split(['/', '?', '#']).next().unwrap_or_default();
-    let host = host.rsplit_once('@').map_or(host, |(_, h)| h);
-    let host = if host.starts_with('[') {
-        host.split(']').next().map(|h| &h[1..]).unwrap_or_default()
-    } else {
-        host.split(':').next().unwrap_or_default()
-    };
-    matches!(host, "localhost" | "127.0.0.1" | "::1")
-}
-
+/// Development-only default key for the TOTP secret encryption (AES-256-GCM). Refused in
+/// production; set `SUTRA_MFA_ENCRYPTION_KEY` (64 hex chars) everywhere else that matters.
 pub const DEV_MFA_ENCRYPTION_KEY: &str =
     "5375747261455250206465762d6f6e6c79204d4641206b6579202d2d20646576";
 
@@ -282,9 +262,6 @@ pub struct Config {
     /// temporary lockout (`SUTRA_AUTH_MAX_FAILURES`, `0` disables; window and lockout in
     /// seconds: `SUTRA_AUTH_FAILURE_WINDOW_SECS`, `SUTRA_AUTH_LOCKOUT_SECS`).
     pub auth_max_failures: u32,
-    /// SEC-9D-012: `Strict-Transport-Security` on API responses (`SUTRA_HSTS`, default on in
-    /// production).
-    pub hsts: bool,
     pub auth_failure_window_secs: i64,
     pub auth_lockout_secs: i64,
     /// AES-256-GCM key for TOTP secrets at rest (dev mode).
@@ -326,6 +303,9 @@ pub struct Config {
     pub webauthn: WebauthnConfig,
     /// Batch 9: telemetry export, audit chain, Flowable, OpenSearch (`config_b9`, contract §1).
     pub hardening: crate::config_b9::HardeningConfig,
+    /// Part 1 · Stage 3 (S3-config): HSTS, body limit, rate limits, ops endpoints
+    /// (`config_http`, `docs/security/config.md`).
+    pub http: crate::config_http::HttpSecurityConfig,
 }
 
 /// A secret string whose `Debug` is redacted.
@@ -722,7 +702,6 @@ impl Config {
             mfa_step_up: parse(src, "SUTRA_MFA_STEP_UP", mfa_step_up_default)?,
             privileged_mfa: parse(src, "SUTRA_PRIVILEGED_MFA", privileged_mfa_default)?,
             auth_max_failures: parse(src, "SUTRA_AUTH_MAX_FAILURES", 10)?,
-            hsts: parse(src, "SUTRA_HSTS", prod)?,
             auth_failure_window_secs: parse(src, "SUTRA_AUTH_FAILURE_WINDOW_SECS", 900)?,
             auth_lockout_secs: parse(src, "SUTRA_AUTH_LOCKOUT_SECS", 900)?,
             mfa_encryption_key: match src.get("SUTRA_MFA_ENCRYPTION_KEY") {
@@ -770,6 +749,7 @@ impl Config {
             inbox,
             webauthn,
             hardening: crate::config_b9::HardeningConfig::load(src, env)?,
+            http: crate::config_http::HttpSecurityConfig::load(src, env)?,
         };
         cfg.validate()?;
         Ok(cfg)
@@ -804,38 +784,8 @@ impl Config {
                     "SUTRA_PRIVILEGED_MFA=false is not allowed in production",
                 ));
             }
-            // Part 1 S3 (SEC-P1-AUTH-006): the browser-facing OIDC endpoints must use TLS (codes,
-            // ID tokens and the post-logout hop travel through them) and the shipped dev client
-            // secret is public.
-            if self.auth_provider == AuthProvider::Keycloak {
-                for (key, url) in [
-                    ("SUTRA_OIDC_ISSUER", Some(self.oidc.issuer.as_str())),
-                    (
-                        "SUTRA_OIDC_REDIRECT_URI",
-                        Some(self.oidc.redirect_uri.as_str()),
-                    ),
-                    (
-                        "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI",
-                        self.oidc.post_logout_redirect_uri.as_deref(),
-                    ),
-                ] {
-                    if let Some(u) = url {
-                        if !oidc_url_ok_in_production(u) {
-                            return Err(ConfigError::Invalid {
-                                key,
-                                value: format!(
-                                    "{u} (production needs https:// for the browser-facing OIDC endpoints)"
-                                ),
-                            });
-                        }
-                    }
-                }
-                if self.oidc.client_secret == DEV_OIDC_CLIENT_SECRET {
-                    return Err(ConfigError::Forbidden(
-                        "the dev SUTRA_OIDC_CLIENT_SECRET is not allowed in production",
-                    ));
-                }
-            }
+            // Part 1 S3 (SEC-P1-AUTH-006): https-only browser-facing OIDC endpoints and no dev /
+            // weak client secret are enforced by `config_http::validate_production` (one gate).
             if self.csrf_key.is_none() {
                 return Err(ConfigError::RequiredInProduction("SUTRA_CSRF_KEY"));
             }
@@ -1009,6 +959,11 @@ impl Config {
                 value: "0".into(),
             });
         }
+        // Part 1 · Stage 3 (S3-config): transport rules everywhere, then the production gate.
+        crate::config_http::validate(self)?;
+        if self.env == Environment::Production {
+            crate::config_http::validate_production(self)?;
+        }
         Ok(())
     }
 }
@@ -1032,7 +987,10 @@ mod tests {
         assert_eq!(dev.session_touch_secs, 60);
         assert!(dev.csrf_key.is_none());
         assert!(!dev.privileged_mfa, "dev auth keeps privileged MFA opt-in");
-        assert!(!dev.hsts, "no HSTS on plain-http development hosts");
+        assert_eq!(
+            dev.http.hsts_max_age_secs, 0,
+            "no HSTS on plain-http development hosts"
+        );
         assert!(
             Config::load(&HashMap::from([("SUTRA_PRIVILEGED_MFA", "true")]))
                 .unwrap()
@@ -1157,19 +1115,13 @@ mod tests {
             Config::load(&no_anchor_key),
             Err(ConfigError::RequiredInProduction("SUTRA_AUDIT_ANCHOR_KEY"))
         ));
-        let mut chain_off = no_anchor_key.clone();
+        // Part 1 · Stage 3: the complete, valid production environment of the start-up gate
+        // (TLS URLs, sslmode, distinct keys, strong secrets; `config_http::tests::prod`).
+        let mut chain_off = crate::config_http::tests::prod();
+        chain_off.remove("SUTRA_AUDIT_ANCHOR_KEY");
         chain_off.insert("SUTRA_AUDIT_CHAIN", "false");
-        chain_off.insert("SUTRA_WORKFLOW", "flowable"); // Part 1: noop is refused in production
         assert!(Config::load(&chain_off).is_ok(), "chain off needs no key");
-        let ok = HashMap::from([
-            ("SUTRA_ENV", "production"),
-            ("DATABASE_URL", "postgres://x"),
-            ("SUTRA_OIDC_CLIENT_SECRET", "s"),
-            ("SUTRA_CSRF_KEY", KEY),
-            ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
-            ("SUTRA_AUDIT_ANCHOR_KEY", KEY), // 9A
-            ("SUTRA_WORKFLOW", "flowable"),  // Part 1: DEF-X-001
-        ]);
+        let ok = crate::config_http::tests::prod(); // 9A anchor key + Part 1 Flowable included
         let c = Config::load(&ok).unwrap();
         assert_eq!(
             c.hardening.workflow.approvals,
@@ -1210,7 +1162,10 @@ mod tests {
             c.privileged_mfa,
             "privileged MFA is always enforced in production"
         );
-        assert!(c.hsts, "HSTS on by default in production");
+        assert!(
+            c.http.hsts_max_age_secs >= crate::config_http::MIN_HSTS_SECS,
+            "HSTS on by default in production"
+        );
         // SEC-P1-AUTH-001 / -006: production refuses privileged MFA off, plain-http OIDC
         // endpoints and the public dev client secret.
         for (key, value) in [
@@ -1245,15 +1200,8 @@ mod tests {
             "https://erp.example.edu/sign-in",
         );
         assert!(Config::load(&tls).is_ok());
-        assert!(oidc_url_ok_in_production("http://127.0.0.1:8180/realms/x"));
-        assert!(oidc_url_ok_in_production("http://[::1]:8180/x"));
-        assert!(!oidc_url_ok_in_production(
-            "http://localhost.evil.example/x"
-        ));
-        assert!(!oidc_url_ok_in_production("http://user@sso.example/x"));
-        assert!(!oidc_url_ok_in_production("ftp://localhost/x"));
         assert!(
-            !format!("{:?}", c.oidc).contains("\"s\""),
+            !format!("{:?}", c.oidc).contains("unit-test-only-oidc-client-secret"),
             "secret redacted"
         );
         assert_eq!(c.auth_provider, AuthProvider::Keycloak);
@@ -1339,17 +1287,11 @@ mod tests {
             "duplicate window must exceed the lease"
         );
         let prod = |extra: (&'static str, &'static str)| {
-            Config::load(&HashMap::from([
-                ("SUTRA_ENV", "production"),
-                ("DATABASE_URL", "postgres://x"),
-                ("SUTRA_OIDC_CLIENT_SECRET", "s"),
-                ("SUTRA_CSRF_KEY", KEY),
-                ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
-                ("SUTRA_AUDIT_ANCHOR_KEY", KEY), // 9A
-                ("SUTRA_OUTBOX_RELAY", "off"),
-                ("SUTRA_WORKFLOW", "flowable"), // Part 1: DEF-X-001
-                extra,
-            ]))
+            // Part 1 · Stage 3: valid production base (`config_http::tests::prod`).
+            let mut m = crate::config_http::tests::prod();
+            m.insert("SUTRA_OUTBOX_RELAY", "off");
+            m.insert(extra.0, extra.1);
+            Config::load(&m)
         };
         assert!(matches!(
             prod(("SUTRA_CACHE", "off")),

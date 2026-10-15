@@ -27,7 +27,7 @@ pub enum PaymentGatewayMode {
     /// Default in `production`.
     Disabled,
     /// `sutra_finance::MockPaymentGateway` (deterministic, captures without money). Default in
-    /// `development` / `test`; refused in `production` with the public dev webhook secret.
+    /// `development` / `test`; always refused in `production` (Part 1 · Stage 3, DEF-F-002).
     Mock,
 }
 
@@ -306,6 +306,15 @@ impl HardeningConfig {
             gateway: payment_gateway,
             webhook_secret: src.get("SUTRA_PAYMENT_WEBHOOK_SECRET").map(SecretString),
         };
+        // Part 1 · Stage 3 (DEF-F-002): the mock "captures" without money — never in production,
+        // whatever webhook secret accompanies it. Only `disabled` is valid until a real gateway
+        // adapter exists (then this match grows its mode and the secret rules below apply).
+        if env == Environment::Production && payments.gateway == PaymentGatewayMode::Mock {
+            return Err(ConfigError::Forbidden(
+                "SUTRA_PAYMENT_GATEWAY=mock is not allowed in production (the mock captures \
+                 without money); use disabled until a real gateway adapter is configured",
+            ));
+        }
         if env == Environment::Production && payments.gateway != PaymentGatewayMode::Disabled {
             match payments.webhook_secret.as_ref().map(|s| s.0.as_str()) {
                 None => {
@@ -451,18 +460,26 @@ mod tests {
             Environment::Production
         )
         .is_err());
-        let ok = HardeningConfig::load(
-            &HashMap::from([
-                ("SUTRA_PAYMENT_GATEWAY", "mock"),
-                (
-                    "SUTRA_PAYMENT_WEBHOOK_SECRET",
-                    "0123456789abcdef0123456789abcdef0123",
-                ),
-            ]),
-            Environment::Production,
+        // Part 1 · Stage 3 (DEF-F-002): a strong secret no longer makes the mock acceptable.
+        assert!(matches!(
+            HardeningConfig::load(
+                &HashMap::from([
+                    ("SUTRA_PAYMENT_GATEWAY", "mock"),
+                    (
+                        "SUTRA_PAYMENT_WEBHOOK_SECRET",
+                        "0123456789abcdef0123456789abcdef0123",
+                    ),
+                ]),
+                Environment::Production,
+            ),
+            Err(ConfigError::Forbidden(_))
+        ));
+        let dev_mock = HardeningConfig::load(
+            &HashMap::from([("SUTRA_PAYMENT_GATEWAY", "mock")]),
+            Environment::Development,
         )
         .unwrap();
-        assert_eq!(ok.payments.gateway, PaymentGatewayMode::Mock);
+        assert_eq!(dev_mock.payments.gateway, PaymentGatewayMode::Mock);
         assert!(HardeningConfig::load(
             &HashMap::from([("SUTRA_PAYMENT_GATEWAY", "razorpay")]),
             Environment::Development

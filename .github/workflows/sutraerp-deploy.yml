@@ -92,6 +92,13 @@ jobs:
           check production-refuses-step-up-off "! helm template sutraerp deploy/helm/sutraerp --set api.extraEnv.SUTRA_MFA_STEP_UP=false >/dev/null 2>&1"
           check production-refuses-lockout-off "! helm template sutraerp deploy/helm/sutraerp --set api.extraEnv.SUTRA_AUTH_MAX_FAILURES=0 >/dev/null 2>&1"
           check keycloak-realm-security-parity "python3 deploy/keycloak/check-realm.py deploy/keycloak/realm-sutra-dev.json deploy/keycloak/realm-production-baseline.json"
+          # Part 1 · Stage 3 (S3-config): web CSP by script hash, HSTS behind TLS, production refusals.
+          check web-csp-without-unsafe-inline-script "grep -q \"script-src 'self' \\\$sutra_csp_script_hashes\" /tmp/rendered/pilot.yaml && ! grep -q \"script-src 'self' 'unsafe-inline'\" /tmp/rendered/*.yaml"
+          check web-hsts-behind-tls "grep -q 'Strict-Transport-Security' /tmp/rendered/pilot.yaml"
+          check production-refuses-mock-gateway "! helm template sutraerp deploy/helm/sutraerp --set api.extraEnv.SUTRA_PAYMENT_GATEWAY=mock >/dev/null 2>&1"
+          check production-refuses-dev-variables "! helm template sutraerp deploy/helm/sutraerp --set api.extraEnv.SUTRA_DEV_AUTH_PASSWORD=x >/dev/null 2>&1"
+          check production-refuses-rate-limit-off "! helm template sutraerp deploy/helm/sutraerp --set-string api.extraEnv.SUTRA_RATE_LIMIT=false >/dev/null 2>&1"
+          check production-refuses-api-docs "! helm template sutraerp deploy/helm/sutraerp --set-string api.extraEnv.SUTRA_API_DOCS=true >/dev/null 2>&1"
           # INT: two templates rendering the same kind/name make `helm install` fail ("already exists").
           check unique-resource-names "python3 deploy/helm/check-unique.py /tmp/rendered/*.yaml"
       - name: shellcheck (stage + deploy scripts)
