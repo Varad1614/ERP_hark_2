@@ -435,8 +435,9 @@ try {
         if (r.status === 200 && r.json?.admissionId) {
           // Clean up the extra admission so the rest of the journey is not affected.
           const a2 = await admin.get(`${S}/admissions/${r.json.admissionId}`);
-          const w = await admin.raw("POST", `${S}/admissions/${a2.id}/withdraw`, { reason: "duplicate created by the journey negative test" }, a2.version);
-          e(`cleanup: duplicate admission ${a2.id} withdraw → ${w.status}`);
+          // An initiated admission is cancelled (withdraw is only for confirmed ones — admission state machine).
+          const w = await admin.raw("POST", `${S}/admissions/${a2.id}/cancel`, { reason: "duplicate created by the journey negative test" }, a2.version);
+          e(`cleanup: duplicate admission ${a2.id} (${a2.status}) cancel → ${w.status}`);
         } else if (!refused(r)) {
           const w = await admin.raw("POST", `${S}/admission-applications/${app.id}/withdraw`, { reason: "journey negative test cleanup" }, app.version);
           e(`cleanup: duplicate application withdraw → ${w.status}`);
