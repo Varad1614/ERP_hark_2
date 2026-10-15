@@ -1001,6 +1001,16 @@ pub async fn gateway_webhook(
     headers: HeaderMap,
     body: Bytes,
 ) -> ApiResult<Json<WebhookAck>> {
+    // Part 1 S3 (DEF-X-003): the gateway is not a session; the order reference is looked up
+    // across tenants (system context) and the outcome is then applied in the payment's tenant.
+    sutra_kernel::db_context::system(gateway_webhook_signed(st, headers, body)).await
+}
+
+async fn gateway_webhook_signed(
+    st: FinanceState,
+    headers: HeaderMap,
+    body: Bytes,
+) -> ApiResult<Json<WebhookAck>> {
     // INT: SEC-9D-003 — feature off: 503 before any signature handling.
     if st.gateway.name() == crate::payments::gateway::DISABLED_GATEWAY {
         return Err(KernelError::Unavailable("online payments are disabled".into()).into());
@@ -1060,6 +1070,16 @@ pub async fn gateway_webhook(
             payment_status: Some(p.status),
         }));
     }
+    // Part 1 S3 (DEF-X-003): from here on the transaction is bound to the payment's tenant.
+    sutra_persistence::pool::apply_context(
+        &mut *tx,
+        Some(sutra_kernel::db_context::DbContext::Scoped(
+            ExecutionScope::tenant(p.tenant_id),
+        )),
+        true,
+    )
+    .await
+    .map_err(map_db_error)?;
     let a = Actor::system(Some(format!("gateway:{}", hook.event_id)));
     let done = apply_outcome(&st, &mut tx, &p, &hook.outcome, &a).await?;
     tx.commit().await.map_err(map_db_error)?;

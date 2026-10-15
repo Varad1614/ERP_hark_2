@@ -30,6 +30,7 @@ pub mod audit_chain;
 pub mod auth;
 pub mod cache;
 pub mod concurrency;
+pub mod db_context; // Part 1 S3: DEF-X-003 row-level security context
 pub mod error;
 pub mod events;
 pub mod health;

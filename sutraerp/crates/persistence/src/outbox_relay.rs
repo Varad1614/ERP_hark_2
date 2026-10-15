@@ -285,8 +285,13 @@ impl OutboxRelay {
         Ok(())
     }
 
-    /// One claim → publish → mark pass.
+    /// One claim → publish → mark pass. Part 1 S3 (DEF-X-003): the relay serves every tenant's
+    /// outbox, so the pass runs in the system database context.
     pub async fn run_once(&self) -> Result<RelayReport, sqlx::Error> {
+        sutra_kernel::db_context::system(self.pass()).await
+    }
+
+    async fn pass(&self) -> Result<RelayReport, sqlx::Error> {
         let (token, rows) = self.claim().await?;
         let mut report = RelayReport {
             claimed: rows.len(),
