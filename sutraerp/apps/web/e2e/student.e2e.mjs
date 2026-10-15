@@ -131,6 +131,9 @@ async function startApi() {
     SUTRA_OUTBOX_RELAY: "off",
     SUTRA_CACHE: "memory",
     SUTRA_INBOX_CONSUMER: "false",
+    // Part 1 (DEF-X-001): the API defaults to human approval; this click-through suite exercises
+    // domain flows, not the approval control (covered by db_p1_appr.rs), so it opts in to dev auto-approval.
+    SUTRA_APPROVAL_MODE: "auto",
     SUTRA_WEBAUTHN_RP_ID: "localhost",
     SUTRA_WEBAUTHN_ORIGINS: "http://localhost:3000,http://localhost:5173",
   };

@@ -156,6 +156,8 @@ jobs:
           export SUTRA_METRICS=true SUTRA_METRICS_ADDR=0.0.0.0:9464 SUTRA_GIT_SHA="${GITHUB_SHA::12}"
           export SUTRA_AUDIT_CHAIN=true SUTRA_AUDIT_SEAL_SECS=2 SUTRA_AUDIT_ANCHOR_SECS=5
           export SUTRA_AUDIT_ANCHOR_KEY="$(openssl rand -hex 32)" SUTRA_AUDIT_ANCHOR_KEY_ID=ci
+          # Part 1 (DEF-X-001): telemetry checks, not approvals → dev auto-approval opt-in.
+          export SUTRA_APPROVAL_MODE=auto
           nohup target/debug/sutra-api serve > "$RUNNER_TEMP/api.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/api.pid"
           for i in $(seq 1 60); do

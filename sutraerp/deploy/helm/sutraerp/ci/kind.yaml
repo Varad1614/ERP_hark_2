@@ -38,6 +38,7 @@ observability:
   otlpEndpoint: http://sutraerp-lgtm:4317
   lgtm: { enabled: true }
   grafanaDashboards: { enabled: true }  # 9A: dashboards provisioned into the lgtm Grafana
-flowable: { enabled: true }
+flowable: { enabled: true, bundled: true, autoApprove: false }  # Part 1: human approvals on real Flowable
+approvals: { mode: human }
 opensearch: { enabled: true, securityDisabled: true }  # 9C: plain http in CI
 backup: { enabled: true, target: { kind: pvc, pvcSize: 2Gi } }

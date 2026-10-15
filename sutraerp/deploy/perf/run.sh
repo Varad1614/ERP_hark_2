@@ -49,11 +49,14 @@ fi
 SUTRA_ENV=development "$API_BIN" migrate >"$OUT/migrate.log" 2>&1 || { tail -n 40 "$OUT/migrate.log" >&2; exit 1; }
 echo "ok migrate"
 
+# Part 1 (DEF-X-001): the perf gate measures throughput, not the approval control, so the dev API
+# under test opts in to auto-approval (production refuses SUTRA_APPROVAL_MODE=auto).
 if ! curl -fsS "$API_URL/health/live" >/dev/null 2>&1; then
   hostport="${API_URL#http://}"
   SUTRA_ENV=development SUTRA_HTTP_ADDR="$hostport" SUTRA_LOG_FORMAT=json RUST_LOG="${RUST_LOG:-warn}" \
     SUTRA_AUTH_MODE=dev SUTRA_DEV_MFA=false SUTRA_SESSION_COOKIE_SECURE=false \
     SUTRA_OUTBOX_RELAY=off SUTRA_CACHE=memory SUTRA_INBOX_CONSUMER=false \
+    SUTRA_APPROVAL_MODE=auto \
     SUTRA_WEBAUTHN_RP_ID=localhost SUTRA_WEBAUTHN_ORIGINS=http://localhost:3000 \
     nohup env ${SUTRA_PERF_API_ENV:-} "$API_BIN" serve >"$OUT/api.log" 2>&1 &
   echo $! >"$OUT/api.pid"

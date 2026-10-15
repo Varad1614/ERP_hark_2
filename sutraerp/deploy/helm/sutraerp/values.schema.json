@@ -577,6 +577,20 @@
       "type": "object",
       "description": "9A section (not constrained here)"
     },
+    "approvals": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Part 1 (DEF-X-001): SUTRA_APPROVAL_MODE; auto is refused when global.environment=production",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "human",
+            "auto"
+          ]
+        }
+      }
+    },
     "flowable": {
       "type": "object",
       "description": "9C section (not constrained here)"

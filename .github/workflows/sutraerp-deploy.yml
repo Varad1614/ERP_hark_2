@@ -79,6 +79,11 @@ jobs:
           check default-deny-netpol "grep -q 'name: sutraerp-default-deny' /tmp/rendered/default.yaml"
           check hpa-pilot "grep -q '^kind: HorizontalPodAutoscaler' /tmp/rendered/pilot.yaml"
           check ingress-tls-pilot "grep -q '^kind: Ingress' /tmp/rendered/pilot.yaml"
+          # Part 1 (DEF-X-001): production renders human approvals on Flowable and refuses every auto path.
+          check approvals-human-on-flowable "grep -q 'SUTRA_APPROVAL_MODE: \"human\"' /tmp/rendered/pilot.yaml && grep -q 'SUTRA_WORKFLOW: \"flowable\"' /tmp/rendered/pilot.yaml && grep -q 'SUTRA_FLOWABLE_AUTO_APPROVE: \"false\"' /tmp/rendered/default.yaml"
+          check production-refuses-auto-approval "! helm template sutraerp deploy/helm/sutraerp --set approvals.mode=auto >/dev/null 2>&1"
+          check production-refuses-noop-workflow "! helm template sutraerp deploy/helm/sutraerp --set flowable.enabled=false >/dev/null 2>&1"
+          check production-refuses-flowable-auto "! helm template sutraerp deploy/helm/sutraerp --set flowable.autoApprove=true >/dev/null 2>&1"
           # INT: two templates rendering the same kind/name make `helm install` fail ("already exists").
           check unique-resource-names "python3 deploy/helm/check-unique.py /tmp/rendered/*.yaml"
       - name: shellcheck (stage + deploy scripts)

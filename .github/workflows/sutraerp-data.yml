@@ -158,6 +158,8 @@ jobs:
           export SUTRA_FLOWABLE_USER=rest-admin SUTRA_FLOWABLE_PASSWORD="$SUTRA_TEST_FLOWABLE_PASSWORD"
           export SUTRA_SEARCH=opensearch SUTRA_OPENSEARCH_URL=http://localhost:9200
           export SUTRA_OPENSEARCH_INDEX_PREFIX=sutra-development SUTRA_SEARCH_POLL_MS=1000
+          # Part 1 (DEF-X-001): the DR drill tests backup/restore, not approvals → dev auto opt-in.
+          export SUTRA_APPROVAL_MODE=auto
           nohup target/debug/sutra-api serve >>"$RUNNER_TEMP/api.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/api.pid"
           EOF

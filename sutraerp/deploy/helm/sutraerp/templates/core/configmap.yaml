@@ -23,10 +23,20 @@ data:
   OTEL_EXPORTER_OTLP_PROTOCOL: {{ .Values.observability.otlpProtocol | quote }}
   OTEL_TRACES_SAMPLER_ARG: {{ .Values.observability.sampleRatio | quote }}
   {{- end }}
+  {{- /* Part 1 (DEF-X-001): production never auto-approves (the API refuses these at start-up too). */}}
+  {{- $approvalMode := default "human" (.Values.approvals | default dict).mode }}
+  {{- $flowableAuto := default false .Values.flowable.autoApprove }}
+  {{- if eq .Values.global.environment "production" }}
+  {{- if eq $approvalMode "auto" }}{{ fail "approvals.mode=auto is not allowed when global.environment=production" }}{{ end }}
+  {{- if not .Values.flowable.enabled }}{{ fail "flowable.enabled=false (SUTRA_WORKFLOW=noop) is not allowed when global.environment=production" }}{{ end }}
+  {{- if $flowableAuto }}{{ fail "flowable.autoApprove=true is not allowed when global.environment=production" }}{{ end }}
+  {{- end }}
+  SUTRA_APPROVAL_MODE: {{ $approvalMode | quote }}
   SUTRA_WORKFLOW: {{ ternary "flowable" "noop" .Values.flowable.enabled | quote }}
   {{- if .Values.flowable.enabled }}
   SUTRA_FLOWABLE_URL: {{ .Values.flowable.url | quote }}
   SUTRA_FLOWABLE_USER: {{ .Values.flowable.user | quote }}
+  SUTRA_FLOWABLE_AUTO_APPROVE: {{ ternary "true" "false" $flowableAuto | quote }}
   {{- end }}
   SUTRA_SEARCH: {{ ternary "opensearch" "off" .Values.opensearch.enabled | quote }}
   {{- if .Values.opensearch.enabled }}

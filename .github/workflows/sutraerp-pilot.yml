@@ -66,11 +66,13 @@ jobs:
         run: cargo build -p sutra-api --locked
       - name: Migrate
         run: SUTRA_ENV=development target/debug/sutra-api migrate
+      # Part 1 (DEF-X-001): the pilot seed exercises data loading, not the approval control, so the
+      # dev API opts in to SUTRA_APPROVAL_MODE=auto (default is human; production refuses auto).
       - name: Serve (dev auth, pilot tenant)
         run: |
           SUTRA_ENV=development SUTRA_HTTP_ADDR=127.0.0.1:8080 SUTRA_AUTH_MODE=dev SUTRA_DEV_MFA=false \
           SUTRA_DEV_TENANT_ID="$PILOT_TENANT_ID" SUTRA_SESSION_COOKIE_SECURE=false SUTRA_OUTBOX_RELAY=off \
-          SUTRA_CACHE=memory SUTRA_INBOX_CONSUMER=false SUTRA_WEBAUTHN_RP_ID=localhost SUTRA_WEBAUTHN_ORIGINS=http://localhost:3000 RUST_LOG=warn \
+          SUTRA_CACHE=memory SUTRA_INBOX_CONSUMER=false SUTRA_APPROVAL_MODE=auto SUTRA_WEBAUTHN_RP_ID=localhost SUTRA_WEBAUTHN_ORIGINS=http://localhost:3000 RUST_LOG=warn \
             nohup target/debug/sutra-api serve >"$RUNNER_TEMP/api.log" 2>&1 &
           for i in $(seq 1 90); do
             curl -fsS http://127.0.0.1:8080/health/live >/dev/null 2>&1 && exit 0
