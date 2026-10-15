@@ -7,7 +7,7 @@
 //! * `decided_malpractice_feeds_the_result_outcome` — L3-I-095 / 112: 6C's computation reads 6B's
 //!   decided malpractice cases read-only: a decided marks deduction reduces the external marks and
 //!   makes the outcome `malpractice`; overturned (`none`, then closed) and merged duplicate cases are ignored;
-//!   a case reopened for investigation no longer counts on recompute.
+//!   a case reopened for investigation withholds the result (DEF-I-004) until decided again.
 #![cfg(feature = "db-tests")]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -345,12 +345,38 @@ async fn decided_malpractice_feeds_the_result_outcome() {
     assert_eq!(r["lines"][0]["externalMarks"], "35.00", "60 − 25: {r}");
     assert_ne!(r["lines"][0]["remark"], Value::Null, "{r}");
 
-    // ---- reopened for investigation (decided → under_investigation): no longer counted.
+    // ---- reopened for investigation (decided → under_investigation): the old penalty no
+    // longer counts, and the open case withholds the result until it is decided again
+    // (contract §1 6C "pending malpractice", DEF-I-004).
     sqlx::query("UPDATE exams.malpractice_case SET status = 'under_investigation' WHERE id = $1")
         .bind(decided)
         .execute(&pool)
         .await
         .unwrap();
+    let (_, b) = read(&app, &admin, &format!("{API}/result-batches/{bid}")).await;
+    let (s, run) = call(&app, &admin, "POST", &compute, json!({}), Some(ver(&b))).await;
+    assert_eq!(s, StatusCode::OK, "{run}");
+    let r = current(&app, &admin, sid).await;
+    assert_eq!(
+        (r["status"].as_str(), r["outcome"].as_str()),
+        (Some("withheld"), Some("withheld")),
+        "{r}"
+    );
+    assert!(
+        r["statusReason"]
+            .as_str()
+            .is_some_and(|w| w.contains("malpractice case MC-INT-1 pending")),
+        "{r}"
+    );
+    // ---- overturned on review (penalty `none`): no longer open, no penalty.
+    sqlx::query(
+        "UPDATE exams.malpractice_case SET status = 'overturned', penalty = 'none', \
+         marks_deduction = NULL WHERE id = $1",
+    )
+    .bind(decided)
+    .execute(&pool)
+    .await
+    .unwrap();
     let (_, b) = read(&app, &admin, &format!("{API}/result-batches/{bid}")).await;
     let (s, run) = call(&app, &admin, "POST", &compute, json!({}), Some(ver(&b))).await;
     assert_eq!(s, StatusCode::OK, "{run}");

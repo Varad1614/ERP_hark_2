@@ -50,7 +50,8 @@ pub fn batch_recomputable(s: ResultBatchStatus) -> bool {
     )
 }
 
-/// Batch states after institutional approval (released results go straight to `approved`).
+/// Batch states after institutional approval (a released result needs a release approval
+/// unless it returns unchanged to the approval it already had — DEF-I-003).
 pub fn batch_approved(s: ResultBatchStatus) -> bool {
     matches!(
         s,
@@ -152,17 +153,26 @@ impl CandidateComputation {
 }
 
 /// Computes one candidate from final marks (L3-I-083/085/095/114). Only `finalised` marks are
-/// inputs; any other mark row of a registered paper blocks the result (withheld).
+/// inputs; any other mark row of a registered paper blocks the result (withheld). An open
+/// malpractice case (`open_cases`: case numbers still under investigation / hearing / appeal)
+/// withholds the result too (contract §1 6C "pending malpractice", DEF-I-004).
 pub fn compute_candidate(
     reg: &CandidateSummary,
     papers: &HashMap<ExamPaperId, ExamPaperSummary>,
     marks: &[PaperMarkSummary],
     bands: &[GradeBand],
     penalties: &[DecidedPenalty],
+    open_cases: &[String],
 ) -> CandidateComputation {
     let mut lines = Vec::new();
     let mut graded: Vec<(Decimal, GradedLine)> = Vec::new();
     let mut withheld = Vec::new();
+    if !open_cases.is_empty() {
+        withheld.push(format!(
+            "malpractice case {} pending",
+            open_cases.join(", ")
+        ));
+    }
     let mut malpractice = false;
     let mut any_absent = false;
     for rp in reg
@@ -422,7 +432,7 @@ mod tests {
             ("3", Some("75"), MarkStatus::Finalised),
             ("3", Some("20"), MarkStatus::Finalised),
         ]);
-        let c = compute_candidate(&f.reg, &f.papers, &f.marks, &ten_point_default(), &[]);
+        let c = compute_candidate(&f.reg, &f.papers, &f.marks, &ten_point_default(), &[], &[]);
         assert!(c.withheld.is_empty());
         assert_eq!(c.aggregate.sgpa, Some(d("6.40")));
         assert_eq!(c.aggregate.credits_earned, d("7.00"));
@@ -437,10 +447,29 @@ mod tests {
             ("4", Some("92"), MarkStatus::Finalised),
             ("3", Some("75"), MarkStatus::Verified),
         ]);
-        let c = compute_candidate(&f.reg, &f.papers, &f.marks, &ten_point_default(), &[]);
+        let c = compute_candidate(&f.reg, &f.papers, &f.marks, &ten_point_default(), &[], &[]);
         assert_eq!(c.outcome, ResultOutcome::Withheld);
         assert!(c.lines.is_empty());
         assert!(c.withheld_reason().is_some_and(|r| r.contains("verified")));
+    }
+
+    #[test]
+    fn an_open_malpractice_case_withholds_the_result() {
+        let f = fixture(&[("4", Some("92"), MarkStatus::Finalised)]);
+        let c = compute_candidate(
+            &f.reg,
+            &f.papers,
+            &f.marks,
+            &ten_point_default(),
+            &[],
+            &["MC-000001".to_owned()],
+        );
+        assert_eq!(c.outcome, ResultOutcome::Withheld);
+        assert!(c.lines.is_empty());
+        assert_eq!(
+            c.withheld_reason().as_deref(),
+            Some("malpractice case MC-000001 pending")
+        );
     }
 
     #[test]
@@ -449,7 +478,7 @@ mod tests {
             ("4", Some("92"), MarkStatus::Finalised),
             ("3", None, MarkStatus::Finalised),
         ]);
-        let c = compute_candidate(&f.reg, &f.papers, &f.marks, &ten_point_default(), &[]);
+        let c = compute_candidate(&f.reg, &f.papers, &f.marks, &ten_point_default(), &[], &[]);
         assert_eq!(c.outcome, ResultOutcome::Incomplete);
         assert_eq!(c.lines[1].remark.as_deref(), Some("absent"));
         assert_eq!(c.aggregate.credits_attempted, d("7.00"));
@@ -474,6 +503,7 @@ mod tests {
             &f.marks,
             &ten_point_default(),
             &deduction,
+            &[],
         );
         assert_eq!(c.outcome, ResultOutcome::Malpractice);
         assert_eq!(c.lines[0].external_marks, Some(d("37")));
@@ -501,12 +531,19 @@ mod tests {
             penalty: MalpracticePenalty::Warning,
             marks_deduction: None,
         }];
-        let c = compute_candidate(&f.reg, &f.papers, &f.marks, &ten_point_default(), &warning);
+        let c = compute_candidate(
+            &f.reg,
+            &f.papers,
+            &f.marks,
+            &ten_point_default(),
+            &warning,
+            &[],
+        );
         assert_eq!(c.outcome, ResultOutcome::Pass);
         // Debarred registered paper (6B sets it): not passed, outcome malpractice.
         let mut g = fixture(&[("4", Some("80"), MarkStatus::Finalised)]);
         g.reg.papers[0].status = RegistrationPaperStatus::Debarred;
-        let c = compute_candidate(&g.reg, &g.papers, &g.marks, &ten_point_default(), &[]);
+        let c = compute_candidate(&g.reg, &g.papers, &g.marks, &ten_point_default(), &[], &[]);
         assert_eq!(c.outcome, ResultOutcome::Malpractice);
         assert!(!c.lines[0].passed);
     }
