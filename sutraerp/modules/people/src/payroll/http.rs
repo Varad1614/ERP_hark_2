@@ -273,6 +273,8 @@ pub async fn config_decide(
     Json(b): Json<PayrollDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::PeopleApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "payroll configuration").await?;
     let v = expected!(headers);
     let a = actor(ctx);
     config::decide_config(

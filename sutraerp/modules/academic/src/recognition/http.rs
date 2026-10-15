@@ -126,6 +126,8 @@ pub async fn cert_decision(
     Json(cmd): Json<CertificateDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FlexibleLearningManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "certificate verification").await?;
     let v = expect_version!(headers);
     let c = certificate::decide(&st, ctx, id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&c, c.version))
@@ -245,6 +247,8 @@ pub async fn mapping_decision(
     Json(cmd): Json<FlexibleDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FlexibleLearningManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "credit mapping rule").await?;
     let v = expect_version!(headers);
     let approve = cmd.decision == FlexibleDecisionValue::Approve;
     let r = mapping::decide(
@@ -346,6 +350,8 @@ pub async fn recognition_decision(
     Json(cmd): Json<CreditRecognitionDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::CreditRecognitionDecide)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "credit recognition").await?;
     let v = expect_version!(headers);
     let r = credit::decide(&st, ctx, id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&r, r.version))

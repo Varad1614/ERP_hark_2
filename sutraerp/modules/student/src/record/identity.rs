@@ -541,6 +541,8 @@ pub async fn decide_correction(
     Json(b): Json<DecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::StudentIdentityManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "identity correction").await?;
     let expected = expect_version!(headers);
     let reason = b.checked_reason()?;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
@@ -1092,6 +1094,8 @@ pub async fn decide_duplicate(
     Json(b): Json<DecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::StudentIdentityManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "duplicate resolution").await?;
     let expected = expect_version!(headers);
     let reason = b.checked_reason()?;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;

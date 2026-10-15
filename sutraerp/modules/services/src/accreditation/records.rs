@@ -1166,6 +1166,8 @@ pub async fn record_decide(
     Json(b): Json<ReportDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ReportApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "accreditation decision").await?;
     let v = expected!(headers);
     let reason = clean(b.reason.clone());
     let approve = b.decision == ReportDecision::Approve;
