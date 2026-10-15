@@ -106,6 +106,8 @@ pub struct AppContext {
     pub search: sutra_platform::search::SearchState, // 9C
     /// INT: SEC-9D-003 — payment gateway of the finance routes (`SUTRA_PAYMENT_GATEWAY`).
     pub payment_gateway: Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort>,
+    /// SEC-9D-006 / SEC-9D-012: browser-hardening headers (+ HSTS) on every API response.
+    pub security_headers: sutra_web::headers::SecurityHeaders,
 }
 
 /// Long-running workers that run next to the HTTP server.
@@ -372,6 +374,7 @@ impl AppContext {
             },
             search,                                // 9C
             payment_gateway: payment_gateway(cfg), // INT: SEC-9D-003
+            security_headers: sutra_web::headers::SecurityHeaders { hsts: cfg.hsts },
         })
     }
 
@@ -1011,6 +1014,7 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
 /// Final Axum application with the full middleware stack (outermost last).
 pub fn router(ctx: AppContext) -> Router {
     let timeout = ctx.request_timeout;
+    let security_headers = ctx.security_headers;
     let audit_anchor = ctx.audit_anchor.clone(); // 9A
     let (router, api) = build(ctx).split_for_parts();
     // 9A: the audit chain API checks anchor MACs with this key when it is configured.
@@ -1033,6 +1037,10 @@ pub fn router(ctx: AppContext) -> Router {
             timeout,
         ))
         .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
+        .layer(axum::middleware::from_fn_with_state(
+            security_headers,
+            sutra_web::headers::security_headers,
+        ))
         .layer(CatchPanicLayer::new())
         .layer(axum::middleware::from_fn(crate::metrics::track_http)) // 9A
         .layer(TraceLayer::new_for_http().make_span_with(crate::telemetry::make_span))

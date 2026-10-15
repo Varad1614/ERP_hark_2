@@ -16,6 +16,7 @@
 //! Framework types defined here never leak into canonical contracts (`sutra-contracts`).
 
 pub mod auth;
+pub mod headers;
 pub mod health;
 pub mod idempotency;
 pub mod problem;

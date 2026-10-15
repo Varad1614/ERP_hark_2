@@ -84,6 +84,14 @@ jobs:
           check production-refuses-auto-approval "! helm template sutraerp deploy/helm/sutraerp --set approvals.mode=auto >/dev/null 2>&1"
           check production-refuses-noop-workflow "! helm template sutraerp deploy/helm/sutraerp --set flowable.enabled=false >/dev/null 2>&1"
           check production-refuses-flowable-auto "! helm template sutraerp deploy/helm/sutraerp --set flowable.autoApprove=true >/dev/null 2>&1"
+          # Part 1 S3 (auth): auth rate limit on the pilot ingress; production refuses dev auth and
+          # switching off privileged MFA / step-up / the sign-in lockout; realm security + parity.
+          check auth-rate-limit-ingress-pilot "grep -q 'nginx.ingress.kubernetes.io/limit-rpm' /tmp/rendered/pilot.yaml"
+          check production-refuses-dev-auth "! helm template sutraerp deploy/helm/sutraerp --set api.authMode=dev >/dev/null 2>&1"
+          check production-refuses-privileged-mfa-off "! helm template sutraerp deploy/helm/sutraerp --set api.extraEnv.SUTRA_PRIVILEGED_MFA=false >/dev/null 2>&1"
+          check production-refuses-step-up-off "! helm template sutraerp deploy/helm/sutraerp --set api.extraEnv.SUTRA_MFA_STEP_UP=false >/dev/null 2>&1"
+          check production-refuses-lockout-off "! helm template sutraerp deploy/helm/sutraerp --set api.extraEnv.SUTRA_AUTH_MAX_FAILURES=0 >/dev/null 2>&1"
+          check keycloak-realm-security-parity "python3 deploy/keycloak/check-realm.py deploy/keycloak/realm-sutra-dev.json deploy/keycloak/realm-production-baseline.json"
           # INT: two templates rendering the same kind/name make `helm install` fail ("already exists").
           check unique-resource-names "python3 deploy/helm/check-unique.py /tmp/rendered/*.yaml"
       - name: shellcheck (stage + deploy scripts)

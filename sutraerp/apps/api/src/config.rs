@@ -282,6 +282,9 @@ pub struct Config {
     /// temporary lockout (`SUTRA_AUTH_MAX_FAILURES`, `0` disables; window and lockout in
     /// seconds: `SUTRA_AUTH_FAILURE_WINDOW_SECS`, `SUTRA_AUTH_LOCKOUT_SECS`).
     pub auth_max_failures: u32,
+    /// SEC-9D-012: `Strict-Transport-Security` on API responses (`SUTRA_HSTS`, default on in
+    /// production).
+    pub hsts: bool,
     pub auth_failure_window_secs: i64,
     pub auth_lockout_secs: i64,
     /// AES-256-GCM key for TOTP secrets at rest (dev mode).
@@ -715,6 +718,7 @@ impl Config {
             mfa_step_up: parse(src, "SUTRA_MFA_STEP_UP", mfa_step_up_default)?,
             privileged_mfa: parse(src, "SUTRA_PRIVILEGED_MFA", privileged_mfa_default)?,
             auth_max_failures: parse(src, "SUTRA_AUTH_MAX_FAILURES", 10)?,
+            hsts: parse(src, "SUTRA_HSTS", prod)?,
             auth_failure_window_secs: parse(src, "SUTRA_AUTH_FAILURE_WINDOW_SECS", 900)?,
             auth_lockout_secs: parse(src, "SUTRA_AUTH_LOCKOUT_SECS", 900)?,
             mfa_encryption_key: match src.get("SUTRA_MFA_ENCRYPTION_KEY") {
@@ -1024,6 +1028,7 @@ mod tests {
         assert_eq!(dev.session_touch_secs, 60);
         assert!(dev.csrf_key.is_none());
         assert!(!dev.privileged_mfa, "dev auth keeps privileged MFA opt-in");
+        assert!(!dev.hsts, "no HSTS on plain-http development hosts");
         assert!(
             Config::load(&HashMap::from([("SUTRA_PRIVILEGED_MFA", "true")]))
                 .unwrap()
@@ -1201,6 +1206,7 @@ mod tests {
             c.privileged_mfa,
             "privileged MFA is always enforced in production"
         );
+        assert!(c.hsts, "HSTS on by default in production");
         // SEC-P1-AUTH-001 / -006: production refuses privileged MFA off, plain-http OIDC
         // endpoints and the public dev client secret.
         for (key, value) in [

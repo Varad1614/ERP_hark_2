@@ -91,6 +91,13 @@ ingress:
     enabled: true
     secretName: sutraerp-tls
   annotations: {}
+  # Part 1 S3 (SEC-9D-005): per-client request rate limit on /api/v1/auth/* (ingress-nginx
+  # annotations on a separate Ingress, templates/core/ingress-auth.yaml).
+  authRateLimit:
+    enabled: true
+    rpm: 30                            # requests per minute per client IP
+    burstMultiplier: 5
+    connections: 20                    # concurrent connections per client IP
 
 # Secrets: never in values. mode=openbao renders OpenBao Agent Injector annotations that write
 # /vault/secrets/sutra.env (dotenv) and sets SUTRA_ENV_FILE; mode=kubernetes reads an existing

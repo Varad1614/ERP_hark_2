@@ -5,6 +5,19 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "otpPolicyCodeReusable": false,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "accessTokenLifespan": 300,
   "roles": {
     "realm": [
       {
