@@ -184,53 +184,63 @@ async function oidcLogin(login) {
   let res = await send(jar, `${BASE}/api/v1/auth/oidc/start?returnTo=%2F`);
   if (res.status !== 303 && res.status !== 302) throw new Error(`oidc/start → ${res.status} ${(await res.text()).slice(0, 300)}`);
   let url = new URL(res.headers.get("location"), BASE).toString();
+  let page = null; // a Keycloak page rendered in the answer to a POST (no redirect)
   const steps = [];
-  for (let hop = 0; hop < 20; hop++) {
-    if (url.startsWith(`${BASE}/api/v1/auth/oidc/callback`)) {
+  for (let hop = 0; hop < 24; hop++) {
+    if (!page) {
+      if (url.startsWith(`${BASE}/api/v1/auth/oidc/callback`)) {
+        res = await send(jar, url);
+        const to = res.headers.get("location") ?? "";
+        if (to.includes("authError")) throw new Error(`OIDC callback refused the sign-in for ${login}: ${to} (steps: ${steps.join(" → ")})`);
+        const s = await send(jar, `${BASE}/api/v1/auth/session`);
+        if (s.status !== 200) throw new Error(`no session after the OIDC callback for ${login}: ${s.status}`);
+        steps.push("callback");
+        log(`${login}: ${steps.join(" → ")}`);
+        return client(jar, await s.json(), login);
+      }
       res = await send(jar, url);
-      const to = res.headers.get("location") ?? "";
-      if (to.includes("authError")) throw new Error(`OIDC callback refused the sign-in for ${login}: ${to} (steps: ${steps.join(" → ")})`);
-      const s = await send(jar, `${BASE}/api/v1/auth/session`);
-      if (s.status !== 200) throw new Error(`no session after the OIDC callback for ${login}: ${s.status}`);
-      steps.push("callback");
-      log(`${login}: ${steps.join(" → ")}`);
-      return client(jar, await s.json(), login);
+      if (res.status >= 300 && res.status < 400) {
+        url = new URL(res.headers.get("location"), url).toString();
+        continue;
+      }
+      const html = await res.text();
+      if (res.status !== 200) throw new Error(`Keycloak ${url} → ${res.status} ${kcError(html) || html.slice(0, 300)}`);
+      page = { url, html };
     }
-    res = await send(jar, url);
-    if (res.status >= 300 && res.status < 400) {
-      url = new URL(res.headers.get("location"), url).toString();
-      continue;
-    }
-    const html = await res.text();
-    if (res.status !== 200) throw new Error(`Keycloak ${url} → ${res.status} ${kcError(html) || html.slice(0, 300)}`);
-    const form = parseForm(html, url);
-    if (!form) throw new Error(`Keycloak page without a form at ${url}: ${kcError(html) || html.slice(0, 300)}`);
+    const { html } = page;
+    const form = parseForm(html, page.url);
+    if (!form) throw new Error(`Keycloak page without a form at ${page.url}: ${kcError(html) || html.slice(0, 300)}`);
     const f = form.fields;
     let body;
+    let kind;
     if ("totpSecret" in f) {
       // Required action CONFIGURE_TOTP: enrol the authenticator with the secret Keycloak issued.
+      kind = "configure-totp";
       totpSecrets.set(login, f.totpSecret);
       lastCounter.delete(login);
       body = { ...f, totp: await totpCode(login), userLabel: "e2e-journey" };
-      steps.push("configure-totp");
     } else if ("otp" in f || /name="otp"/.test(html)) {
+      kind = "otp";
       body = { ...f, otp: await totpCode(login) };
-      steps.push("otp");
     } else if ("username" in f || "password" in f || /name="password"/.test(html)) {
-      if (steps.includes("password")) throw new Error(`Keycloak rejected the password for ${login}: ${kcError(html)}`);
+      kind = "password";
       body = { ...f, username: login, password: PASSWORD };
       delete body.login;
-      steps.push("password");
     } else {
-      throw new Error(`unexpected Keycloak page for ${login} at ${url}: ${kcError(html) || Object.keys(f).join(",")}`);
+      throw new Error(`unexpected Keycloak page for ${login} at ${page.url}: ${kcError(html) || Object.keys(f).join(",")}`);
     }
+    if (steps.at(-1) === kind) throw new Error(`Keycloak rejected step ${kind} for ${login}: ${kcError(html) || "same form again"}`);
+    steps.push(kind);
     res = await send(jar, form.action, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(body).toString() });
     if (res.status >= 300 && res.status < 400) {
       url = new URL(res.headers.get("location"), form.action).toString();
+      page = null;
       continue;
     }
-    const again = await res.text();
-    throw new Error(`Keycloak did not accept step ${steps.at(-1)} for ${login}: ${res.status} ${kcError(again) || again.slice(0, 300)}`);
+    const next = await res.text();
+    if (res.status !== 200) throw new Error(`Keycloak did not accept step ${kind} for ${login}: ${res.status} ${kcError(next) || next.slice(0, 300)}`);
+    // Keycloak renders the next form (OTP, required action) directly in the POST answer.
+    page = { url: form.action, html: next };
   }
   throw new Error(`OIDC sign-in for ${login} did not finish in 20 hops`);
 }
