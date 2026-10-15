@@ -1,0 +1,63 @@
+name: SutraERP devcontainer (Codespaces proof)
+
+# Builds and starts .devcontainer exactly like Codespaces does (devcontainer CLI → postCreate →
+# .devcontainer/start.sh), with the Codespaces origin simulated (CODESPACE_NAME=test,
+# GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN=app.github.dev), then runs .devcontainer/smoke-test.sh.
+on:
+  push:
+    branches: [dev/codespaces]
+    paths: [".devcontainer/**", "sutraerp/**", ".github/workflows/sutraerp-devcontainer.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: devcontainer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  devcontainer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Free runner disk (nested Docker needs room for the Rust build)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo docker image prune -af >/dev/null || true
+          df -h /
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install devcontainer CLI
+        run: npm install -g @devcontainers/cli@0.80.0
+      - name: devcontainer up (runs postCreate = start.sh --build)
+        run: |
+          start=$(date +%s)
+          devcontainer up --workspace-folder . \
+            --remote-env CODESPACE_NAME=test \
+            --remote-env GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN=app.github.dev \
+            | tee up.json
+          grep -q '"outcome":"success"' up.json
+          echo "devcontainer up took $(( ($(date +%s) - start) / 60 )) min"
+      - name: Smoke test (health, seed, web, Codespaces-origin login)
+        run: |
+          devcontainer exec --workspace-folder . \
+            --remote-env CODESPACE_NAME=test \
+            --remote-env GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN=app.github.dev \
+            bash .devcontainer/smoke-test.sh
+      - name: postStart path (resume without rebuild)
+        run: |
+          devcontainer exec --workspace-folder . \
+            --remote-env CODESPACE_NAME=test \
+            --remote-env GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN=app.github.dev \
+            bash .devcontainer/start.sh --resume
+      - name: Disk and stack state
+        if: always()
+        run: |
+          df -h / || true
+          devcontainer exec --workspace-folder . bash -lc 'cd sutraerp && docker compose --env-file .env.codespaces -f docker-compose.yml -f docker-compose.codespaces.yml --profile app ps -a; docker system df; cat .env.codespaces' || true
+      - name: Logs on failure
+        if: failure()
+        run: |
+          devcontainer exec --workspace-folder . bash -lc 'cd sutraerp && docker compose --env-file .env.codespaces -f docker-compose.yml -f docker-compose.codespaces.yml --profile app logs --tail 150 migrate api web' || true
