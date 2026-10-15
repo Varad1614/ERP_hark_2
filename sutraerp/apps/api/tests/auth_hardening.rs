@@ -141,7 +141,10 @@ async fn privileged_role_needs_mfa_for_every_privileged_permission() {
     let app = router(context(&[("SUTRA_PRIVILEGED_MFA", "true")]));
     let (admin, body) = login(&app, "admin@sutra.dev").await;
     assert_eq!(body["mfaLevel"], "none");
-    assert_eq!(body["mfaEnrollmentRequired"], true, "told to enrol a factor");
+    assert_eq!(
+        body["mfaEnrollmentRequired"], true,
+        "told to enrol a factor"
+    );
     let (s, _, b) = send(&app, write("PATCH", &path, &admin, rename.clone())).await;
     assert_eq!(s, StatusCode::FORBIDDEN, "{b}");
     assert_eq!(b["errorCode"], "mfa-step-up-required");
@@ -520,8 +523,7 @@ async fn every_route_requires_a_session_and_a_permission() {
     let probes = probes(&doc);
     assert!(probes.len() > 1000, "only {} operations", probes.len());
     let is_in = |list: &[(&str, &str)], p: &Probe| {
-        list.iter()
-            .any(|(m, t)| *m == p.method && *t == p.template)
+        list.iter().any(|(m, t)| *m == p.method && *t == p.template)
     };
 
     let anonymous = run(&app, &probes, None).await;
