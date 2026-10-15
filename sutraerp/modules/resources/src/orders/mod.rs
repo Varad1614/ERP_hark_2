@@ -790,10 +790,11 @@ pub async fn issue(
     check_version(v, o.version)?;
     sqlx::query(
         "UPDATE resources.purchase_order SET approval_pending = true, process_instance_id = $2, \
-         version = version + 1, updated_at = now() WHERE id = $1",
+         approval_requested_by = $3, version = version + 1, updated_at = now() WHERE id = $1",
     )
     .bind(id)
     .bind(outcome.process_instance_id())
+    .bind(actor.id.as_deref()) // Part 1: DEF-X-002
     .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
@@ -850,6 +851,25 @@ pub async fn decide(
     if !o.approval_pending {
         return Err(illegal("purchase order", &o.number, &o.status, "decided").into());
     }
+    // Part 1 (DEF-X-002): whoever created the order or asked for its approval never decides it.
+    let requested_by: Option<String> = sqlx::query_scalar(
+        "SELECT approval_requested_by FROM resources.purchase_order WHERE id = $1",
+    )
+    .bind(id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "purchase_order",
+        id,
+        &[],
+        &[requested_by.as_deref()],
+        actor.id.as_deref(),
+        "purchase order",
+    )
+    .await?;
     match b.decision {
         ResourcesDecision::Approve => issue_now(&mut tx, &scope, t, id, &actor).await?,
         ResourcesDecision::Reject => {

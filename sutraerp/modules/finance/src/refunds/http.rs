@@ -904,6 +904,24 @@ pub async fn refund_decide(
         )
         .into());
     }
+    // Part 1 (DEF-X-002): the requester of a refund never decides it.
+    let requested_by: Option<String> =
+        sqlx::query_scalar("SELECT requested_by FROM finance.refund WHERE id = $1")
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(map_db_error)?;
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "refund",
+        id,
+        &["under_review"],
+        &[requested_by.as_deref()],
+        a.id.as_deref(),
+        "refund",
+    )
+    .await?;
     if approve {
         approve_in_tx(&mut tx, &scope, &r, reason, today, &a).await?;
     } else {

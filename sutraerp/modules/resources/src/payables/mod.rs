@@ -791,6 +791,18 @@ pub async fn decide_invoice(
     if !inv.approval_pending || inv.status()? != VendorInvoiceStatus::Matched {
         return Err(illegal("vendor invoice", &inv.number, &inv.status, "decided").into());
     }
+    // Part 1 (DEF-X-002): whoever recorded or matched the invoice never approves it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "vendor_invoice",
+        id,
+        &["matched"],
+        &[],
+        actor.id.as_deref(),
+        "vendor invoice",
+    )
+    .await?;
     match b.decision {
         ResourcesDecision::Approve => approve_invoice(&mut tx, t, id, &actor).await?,
         ResourcesDecision::Reject => {

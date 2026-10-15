@@ -1236,6 +1236,24 @@ pub async fn decide_batch(
             b.status
         )));
     };
+    // Part 1 (DEF-X-002): whoever created / validated the batch never approves it.
+    let created_by: Option<String> =
+        sqlx::query_scalar("SELECT created_by FROM exams.result_batch WHERE id = $1")
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(map_db_error)?;
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        tenant,
+        "result_batch",
+        id,
+        &["validated"],
+        &[created_by.as_deref()],
+        actor.id.as_deref(),
+        "result approval",
+    )
+    .await?;
     let b2 = if approve {
         apply_batch_approval(&mut tx, tenant, &scope, &b, &pid, reason.as_deref(), actor).await?
     } else {
@@ -1995,6 +2013,18 @@ pub async fn decide_decision(
             d.kind, d.status
         )));
     }
+    // Part 1 (DEF-X-002): the requester of a result withholding / withdrawal never decides it.
+    let requested_by: Option<String> =
+        sqlx::query_scalar("SELECT requested_by FROM exams.result_decision WHERE id = $1")
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(map_db_error)?;
+    sutra_kernel::approval::ensure_independent_decider(
+        actor.id.as_deref(),
+        requested_by.as_deref(),
+        "result decision",
+    )?;
     let scope = ExecutionScope::institution(tenant, d.institution_id);
     require_institution_writable(st, &scope, d.institution_id).await?;
     let r = finish_decision(st, &mut tx, tenant, &d, approve, reason.as_deref(), actor).await?;
@@ -2298,11 +2328,13 @@ pub async fn authorise_publication(
         ApprovalOutcome::Pending { .. } => {
             let row = sqlx::query(&format!(
                 "UPDATE exams.publication SET process_instance_id = $3, version = version + 1, \
+                 authorisation_requested_by = $4, \
                  updated_at = now() WHERE id = $1 AND tenant_id = $2 RETURNING {PUBLICATION_COLUMNS}"
             ))
             .bind(p.id)
             .bind(tenant.as_uuid())
             .bind(&pid)
+            .bind(actor.id.as_deref()) // Part 1: DEF-X-002
             .fetch_one(&mut *tx)
             .await
             .map_err(map_db_error)?;
@@ -2347,6 +2379,22 @@ pub async fn decide_publication(
             p.status
         )));
     }
+    // Part 1 (DEF-X-002): whoever planned the publication or asked for its authorisation never
+    // authorises it.
+    let makers: (Option<String>, Option<String>) = sqlx::query_as(
+        "SELECT created_by, authorisation_requested_by FROM exams.publication WHERE id = $1",
+    )
+    .bind(id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    sutra_kernel::approval::ensure_independent_decider(
+        actor.id.as_deref(),
+        [makers.0.as_deref(), makers.1.as_deref()]
+            .into_iter()
+            .flatten(),
+        "result publication",
+    )?;
     let p2 = if approve {
         set_publication_status(
             &mut tx,

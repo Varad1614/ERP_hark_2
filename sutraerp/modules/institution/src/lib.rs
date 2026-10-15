@@ -76,7 +76,8 @@ pub struct InstitutionDeps {
 /// All Domain B routes. Every slice router is already mounted here; slices fill in their own
 /// `router` functions and never edit this list.
 pub fn router(deps: InstitutionDeps) -> OpenApiRouter {
-    let st = InstitutionState::new(deps.pool, deps.cache, deps.workflow).with_approvals(deps.approvals);
+    let st =
+        InstitutionState::new(deps.pool, deps.cache, deps.workflow).with_approvals(deps.approvals);
     OpenApiRouter::new()
         .merge(http::router(st.clone())) // 2A — reference aggregate root
         .merge(lifecycle::router(st.clone())) // 2A

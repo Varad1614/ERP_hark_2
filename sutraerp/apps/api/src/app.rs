@@ -350,7 +350,7 @@ impl AppContext {
             idempotency,
             request_timeout: cfg.request_timeout,
             cache,
-            workflow,                      // 9C: noop unless SUTRA_WORKFLOW=flowable
+            workflow, // 9C: noop unless SUTRA_WORKFLOW=flowable
             approvals: cfg.hardening.workflow.approvals, // Part 1: DEF-X-001
             audit_anchor: anchor_key(cfg), // 9A
             background: BackgroundTasks {
@@ -705,7 +705,10 @@ pub fn student_deps_with(
 /// real People staff directory (Batch 7 foundation; subject-only fallback when no staff record
 /// exists). Tests reuse it to build an `AcademicState` with
 /// `ApprovalMode::AwaitDecision` (`sutra_academic::router_with_state`).
-pub fn academic_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_academic::AcademicDeps {
+pub fn academic_deps(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+) -> sutra_academic::AcademicDeps {
     academic_deps_with(pool, workflow, ApprovalMode::default())
 }
 
@@ -855,7 +858,10 @@ pub fn campus_deps_with(
 /// Domain H (Batch 8) adapters: Domain B reference reads and one `OperationalMetricsPort` per
 /// domain (student, people, finance, campus, resources). Tests reuse it to build a
 /// `ServicesState` with `ApprovalMode::AwaitDecision` (`sutra_services::router_with_state`).
-pub fn services_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_services::ServicesDeps {
+pub fn services_deps(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+) -> sutra_services::ServicesDeps {
     services_deps_with(pool, workflow, ApprovalMode::default())
 }
 
@@ -889,7 +895,10 @@ pub fn services_deps_with(
 /// Domain J (Batch 8) adapters: Domain B reference reads, the Domain E workforce directory and
 /// the Domain F procurement posting port. Tests reuse it to build a `ResourcesState` with
 /// `ApprovalMode::AwaitDecision` (`sutra_resources::router_with_state`).
-pub fn resources_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_resources::ResourcesDeps {
+pub fn resources_deps(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+) -> sutra_resources::ResourcesDeps {
     resources_deps_with(pool, workflow, ApprovalMode::default())
 }
 

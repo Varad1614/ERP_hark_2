@@ -84,8 +84,14 @@ mod tests {
     #[test]
     fn default_is_human_and_parse_is_strict() {
         assert_eq!(ApprovalMode::default(), ApprovalMode::AwaitDecision);
-        assert_eq!(ApprovalMode::parse("human"), Some(ApprovalMode::AwaitDecision));
-        assert_eq!(ApprovalMode::parse(" AUTO "), Some(ApprovalMode::AutoApprove));
+        assert_eq!(
+            ApprovalMode::parse("human"),
+            Some(ApprovalMode::AwaitDecision)
+        );
+        assert_eq!(
+            ApprovalMode::parse(" AUTO "),
+            Some(ApprovalMode::AutoApprove)
+        );
         assert_eq!(ApprovalMode::parse("yes"), None);
         assert_eq!(ApprovalMode::AwaitDecision.as_str(), "human");
     }

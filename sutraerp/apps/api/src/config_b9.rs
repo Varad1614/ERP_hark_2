@@ -249,12 +249,12 @@ impl HardeningConfig {
             deploy_on_start: parse(src, "SUTRA_FLOWABLE_DEPLOY_ON_START", true)?,
             approvals: match src.get("SUTRA_APPROVAL_MODE") {
                 None => sutra_kernel::approval::ApprovalMode::default(),
-                Some(v) => sutra_kernel::approval::ApprovalMode::parse(&v).ok_or(
-                    ConfigError::Invalid {
+                Some(v) => {
+                    sutra_kernel::approval::ApprovalMode::parse(&v).ok_or(ConfigError::Invalid {
                         key: "SUTRA_APPROVAL_MODE",
                         value: v,
-                    },
-                )?,
+                    })?
+                }
             },
             flowable_auto_approve: parse(src, "SUTRA_FLOWABLE_AUTO_APPROVE", false)?,
         };

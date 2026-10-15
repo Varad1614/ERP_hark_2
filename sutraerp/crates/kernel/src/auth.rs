@@ -1387,11 +1387,36 @@ mod tests {
     fn approver_roles_hold_approve_without_manage() {
         use Permission::*;
         for (role, approve, manage) in [
-            (Role::FinanceApprover, &[FinanceApprove][..], &[RefundManage, AdjustmentManage, ReceivableManage, ChargeManage][..]),
-            (Role::ExamController, &[ExamApprove, ResultPublish][..], &[ResultManage, MarksManage][..]),
-            (Role::Registrar, &[AdmissionDecide][..], &[AdmissionManage, StudentManage][..]),
-            (Role::PayrollApprover, &[PayrollApprove][..], &[PayrollManage, StaffManage][..]),
-            (Role::ProcurementApprover, &[ResourcesApprove][..], &[ProcurementManage, InventoryManage][..]),
+            (
+                Role::FinanceApprover,
+                &[FinanceApprove][..],
+                &[
+                    RefundManage,
+                    AdjustmentManage,
+                    ReceivableManage,
+                    ChargeManage,
+                ][..],
+            ),
+            (
+                Role::ExamController,
+                &[ExamApprove, ResultPublish][..],
+                &[ResultManage, MarksManage][..],
+            ),
+            (
+                Role::Registrar,
+                &[AdmissionDecide][..],
+                &[AdmissionManage, StudentManage][..],
+            ),
+            (
+                Role::PayrollApprover,
+                &[PayrollApprove][..],
+                &[PayrollManage, StaffManage][..],
+            ),
+            (
+                Role::ProcurementApprover,
+                &[ResourcesApprove][..],
+                &[ProcurementManage, InventoryManage][..],
+            ),
         ] {
             assert!(role.is_approver() && role.is_privileged(), "{role:?}");
             for p in approve {

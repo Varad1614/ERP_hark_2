@@ -1098,6 +1098,22 @@ pub async fn decide(
         ))
         .into());
     }
+    // Part 1 (DEF-X-002): whoever created the admission or requested its approval never decides it.
+    let makers: Vec<String> = sqlx::query_scalar(
+        "SELECT DISTINCT actor FROM student.admission_status_history \
+         WHERE tenant_id = $1 AND admission_id = $2 AND actor IS NOT NULL AND actor <> '' \
+         AND (from_status IS NULL OR to_status = 'approval_pending')",
+    )
+    .bind(scope.tenant_id.as_uuid())
+    .bind(id.as_uuid())
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    sutra_kernel::approval::ensure_independent_decider(
+        a.id.as_deref(),
+        makers.iter().map(String::as_str),
+        "admission",
+    )?;
     let next = apply_decision(&mut tx, &scope, &cur, cmd.decision, reason.as_deref(), &a).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(respond(StatusCode::OK, &next))
