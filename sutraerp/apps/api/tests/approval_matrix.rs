@@ -28,7 +28,7 @@ const ALLOWLIST: &[(&str, &str)] = &[
     ("learning_opportunity_decision", "catalogue activation of a learning opportunity; credits only flow through guarded decisions"),
     ("campus_infra_node_decommission_decide", "facilities operation (space decommissioning); no money, grade, status or access change"),
     ("campus_maintenance_plan_decide", "facilities maintenance planning; spend is procured through guarded procurement decisions"),
-    ("campus_reservation_decide", "room / space booking"),
+    ("campus_reservation_decide", "room / space booking of a facility slot; no money, grade, status or access change (fees, if any, go through guarded finance decisions)"),
     ("campus_transport_route_decide", "transport route activation; fees go through guarded finance decisions"),
     ("exam_publication_authorise", "the maker's request step of result publication; the decision is exam_publication_decide (guarded)"),
     ("exam_supplementary_authorise", "single-step authorisation of a rule-computed supplementary attempt (no maker request); marks and results of the attempt pass the guarded mark-sheet / result approvals"),

@@ -1072,9 +1072,11 @@ async fn library_policy_membership_catalogue_circulation_fines_and_clearance() {
     )
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "one open request");
+    // S3-appr (SoD): the administrator raised this clearance; a second administrator decides.
+    let dean = login(&app, "dean@sutra.dev").await;
     let (s, _) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &format!("{C}/library-clearances/{kid}/decision"),
         json!({"decision": "approve"}),
@@ -1085,7 +1087,7 @@ async fn library_policy_membership_catalogue_circulation_fines_and_clearance() {
     settle(&pool, &lost_charge).await;
     let (s, k) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &format!("{C}/library-clearances/{kid}/decision"),
         json!({"decision": "approve"}),

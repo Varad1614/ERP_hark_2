@@ -1094,9 +1094,12 @@ async fn hostel_policy_admission_residency_and_clearance() {
     )
     .await;
     assert_eq!(s, StatusCode::CONFLICT);
+    // S3-appr (SoD): the requester is refused first; an independent administrator gets the
+    // stale-version answer.
+    let dean = login(&app, "dean@sutra.dev").await;
     let (s, _) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &format!("{C}/hostel-applications/{}/decision", id(&app_isha)),
         json!({"decision": "approve"}),

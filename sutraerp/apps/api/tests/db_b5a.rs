@@ -518,9 +518,12 @@ async fn charges_structures_adjustments_and_configuration() {
         None,
     )
     .await;
+    // S3-appr (SoD): the administrator raised this dispute, so another user with
+    // finance.approve decides it.
+    let finance_approver = login(&app, "finance.approver@sutra.dev").await;
     let (s, _) = call(
         &app,
-        &admin,
+        &finance_approver,
         "POST",
         &format!(
             "/api/v1/finance/disputes/{}/decision",
@@ -537,7 +540,7 @@ async fn charges_structures_adjustments_and_configuration() {
     );
     let (s, dsp2) = call(
         &app,
-        &admin,
+        &finance_approver,
         "POST",
         &format!(
             "/api/v1/finance/disputes/{}/decision",
