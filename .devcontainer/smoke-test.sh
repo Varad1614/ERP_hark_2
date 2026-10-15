@@ -9,6 +9,10 @@ DC=(docker compose --env-file .env.codespaces -f docker-compose.yml -f docker-co
 # shellcheck disable=SC1091
 source .env.codespaces
 ORIGIN="$SUTRA_CS_ORIGIN"
+if [[ -n "${CODESPACE_NAME:-}" ]]; then
+  want="https://${CODESPACE_NAME}-3000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+  [[ "$ORIGIN" == "$want" ]] || fail "start.sh configured origin $ORIGIN, expected $want"
+fi
 WEB=http://localhost:3000
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }

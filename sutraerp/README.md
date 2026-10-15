@@ -16,6 +16,31 @@ for how each ADR is realised here and [`docs/batches.md`](docs/batches.md) for t
 
 ![Administrator home](docs/screenshots/home-administrator.png)
 
+## Run in GitHub Codespaces
+
+No local Docker or big PC needed — the whole stack runs in the browser.
+
+1. Open <https://codespaces.new/Varad1614/ERP_hark_2?ref=dev/codespaces> (or on GitHub: **Code → Codespaces →
+   Create codespace**; the 4-core / 16 GB machine is picked automatically).
+2. Wait while the terminal shows `postCreateCommand` (~15–25 min the first time: it builds the API and web
+   images, starts postgres, valkey, nats, mailpit, migrate → api → web, and seeds the demo college).
+   When it prints `SutraERP is up`, port **3000** ("SutraERP") opens in a browser tab — if not, open it from
+   the **Ports** tab. Mailpit (notification e-mails) is port 8025.
+3. Sign in with a role card, password **`sutra`**:
+   `admin@sutra.dev` (administrator), `aarav.desai@sutra.dev` (student), `meera.shah@sutra.dev` (faculty).
+4. In the **Institution** picker choose **Sutra Demo College (DEMO)**.
+5. **Stop the codespace when you are done** (Codespaces page → ⋯ → Stop, or it idles out after 30 min).
+   The free plan has 120 core-hours/month = about **30 hours** on this 4-core machine, plus 15 GB-month of
+   storage. Restarting a stopped codespace reuses the built images (`start.sh --resume`, ~1 min).
+
+It is **dev mode with demo data only** (dev sign-in, shared password, no real data, no Keycloak, no
+observability stack). Terminal helpers: `sutra-compose ps`, `sutra-compose logs -f api`; after pulling new
+code run `bash .devcontainer/start.sh --build`; `bash .devcontainer/smoke-test.sh` checks the stack.
+How it works: `.devcontainer/` + `docker-compose.codespaces.yml` allow-list the forwarded origin
+`https://<codespace>-3000.<forwarding domain>` (Origin guard, `SUTRA_PUBLIC_URL`, passkey RP id) — production
+defaults are unchanged. Keycloak SSO is localhost-only and not started; passkeys are bound to that
+codespace's address. Proved in CI by `.github/workflows/sutraerp-devcontainer.yml`.
+
 ## Architecture map
 
 ```
