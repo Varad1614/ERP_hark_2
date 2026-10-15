@@ -31,6 +31,11 @@ pub enum AuthProvider {
 /// production refuses it (SEC-P1-AUTH-006).
 pub const DEV_OIDC_CLIENT_SECRET: &str = "dev-only-change-me";
 
+/// JWS algorithms `SUTRA_OIDC_ALGS` may name: asymmetric only (no `none`, no HMAC).
+pub const OIDC_ASYMMETRIC_ALGS: [&str; 8] = [
+    "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384",
+];
+
 /// `https://…`, or plain http to a loopback host (never reachable as a production IdP from a
 /// browser, kept for local production-mode checks).
 fn oidc_url_ok_in_production(url: &str) -> bool {
@@ -67,6 +72,9 @@ pub struct OidcConfig {
     pub institution_claim: String,
     pub mfa_acr_values: Vec<String>,
     pub step_up_acr: Option<String>,
+    /// Accepted ID / logout token signature algorithms (`SUTRA_OIDC_ALGS`, default `RS256`,
+    /// asymmetric only; SEC-P1-AUTH-002).
+    pub algorithms: Vec<String>,
 }
 
 impl std::fmt::Debug for OidcConfig {
@@ -507,7 +515,23 @@ impl Config {
             mfa_acr_values: list("SUTRA_OIDC_MFA_ACR", "2,mfa"),
             step_up_acr: Some(string(src, "SUTRA_OIDC_STEP_UP_ACR", "mfa"))
                 .filter(|v| !v.is_empty()),
+            algorithms: list("SUTRA_OIDC_ALGS", "RS256"),
         };
+        if oidc.algorithms.is_empty()
+            || oidc
+                .algorithms
+                .iter()
+                .any(|a| !OIDC_ASYMMETRIC_ALGS.contains(&a.as_str()))
+        {
+            return Err(ConfigError::Invalid {
+                key: "SUTRA_OIDC_ALGS",
+                value: format!(
+                    "{} (allowed: {})",
+                    oidc.algorithms.join(","),
+                    OIDC_ASYMMETRIC_ALGS.join(",")
+                ),
+            });
+        }
         let dev_mfa_enforced: bool = parse(src, "SUTRA_DEV_MFA", false)?;
         let mfa_step_up_default =
             prod || auth_provider == AuthProvider::Keycloak || dev_mfa_enforced;
@@ -1018,6 +1042,24 @@ mod tests {
         assert_eq!(kc.auth_provider, AuthProvider::Keycloak);
         assert!(kc.mfa_step_up);
         assert!(kc.privileged_mfa, "Keycloak mode enforces privileged MFA");
+        assert_eq!(
+            kc.oidc.algorithms,
+            vec!["RS256"],
+            "pinned to RS256 by default"
+        );
+        for bad in ["none", "HS256", "RS256,HS256", ","] {
+            assert!(
+                Config::load(&HashMap::from([("SUTRA_OIDC_ALGS", bad)])).is_err(),
+                "{bad}"
+            );
+        }
+        assert_eq!(
+            Config::load(&HashMap::from([("SUTRA_OIDC_ALGS", "PS256, ES256")]))
+                .unwrap()
+                .oidc
+                .algorithms,
+            vec!["PS256", "ES256"]
+        );
         assert_eq!(kc.oidc.issuer, "https://sso.example/realms/x");
         assert_eq!(kc.oidc.mfa_acr_values, vec!["gold", "silver"]);
         assert_eq!(kc.allowed_origins.len(), 2);

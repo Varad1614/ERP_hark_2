@@ -236,6 +236,9 @@ impl AppContext {
                 settings.institution_claim = o.institution_claim.clone();
                 settings.mfa_acr_values = o.mfa_acr_values.clone();
                 settings.step_up_acr = o.step_up_acr.clone();
+                settings
+                    .set_algorithms(&o.algorithms)
+                    .map_err(BuildError::Auth)?;
                 let kc = Arc::new(
                     KeycloakAuthenticator::new(settings)
                         .map_err(|e| BuildError::Auth(e.to_string()))?,
