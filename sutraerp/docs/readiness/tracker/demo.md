@@ -36,3 +36,11 @@ DEF-C-003; persistence 6/6; api / postgres addresses swapped on restart). SutraE
 commit: 38750760063. Reports: `../LOCAL_DEMO_REPORT.md`, `../E2E_TEST_REPORT.md`; guide
 `../DEMO_RUN_GUIDE.md`. Approvals still auto-approved on this base — `approve(kind, id)` in
 `apps/web/e2e/lib/approvals.mjs` is the single seam the integrator switches after `part1/s2-appr`.
+
+## Integrator (part1/s2-int, phase B)
+
+| ID | Issue | Root cause | Files changed | Status | Tests | CI result + run id | Blockers | Commit |
+|---|---|---|---|---|---|---|---|---|
+| DEF-P1-DEMO-006 | Eligibility override for a section seat returns 409 “awaits a decision” in human mode; nothing can decide it | `academic/offering/enrolment.rs::evaluate` starts `ENROLMENT_ELIGIBILITY_OVERRIDE` but no decision endpoint exists | `journey.e2e.mjs`, `lib/journey-seed.mjs` (office registers the seed student, seats her without override) | test fixed; product gap open (P2) | journey step “Seed student Isha registered …” | demo 38755333716 green | override decision endpoint (academic) | 7c26665f |
+| DEF-P1-DEMO-007 | Journey/harness assumed auto-approval; no checker users in the realm | written before DEF-X-001 merged | `lib/approvals.mjs`, `lib/auth.mjs`, `lib/harness.mjs`, `lib/journey-seed.mjs`, `journey.e2e.mjs`, `lib/journey-report.mjs`, `deploy/keycloak/realm-sutra-dev.json` | fixed | journey 29/29, persistence 6/6 (human mode); self-decision 403 ×4 | demo 38755333716 green | — | 1b6d4276, 7c26665f |
+| DEF-P1-DEMO-008 | No DB integrity gate | — | `deploy/ci/db-integrity.{sh,sql}`, workflow step | fixed | 0 violations | demo 38755333716 green | — | 7c594e49 |

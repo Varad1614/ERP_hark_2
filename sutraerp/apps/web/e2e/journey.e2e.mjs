@@ -29,7 +29,7 @@ import { randomUUID } from "node:crypto";
 import { chromium } from "playwright";
 
 process.env.DATABASE_URL ??= "postgres://sutra:sutra@localhost:5432/sutra";
-const { psql } = await import("./lib/harness.mjs");
+const { psql, HARNESS_DECISIONS } = await import("./lib/harness.mjs");
 const { AUTH, BASE, login, browserSignIn, totpSecrets } = await import("./lib/auth.mjs");
 const { approve, DECISIONS, CHECKERS } = await import("./lib/approvals.mjs");
 const { seedJourney, day } = await import("./lib/journey-seed.mjs");
@@ -55,7 +55,7 @@ const state = PHASE === "persistence" && existsSync(STATE) ? JSON.parse(readFile
 for (const [k, v] of Object.entries(state.totp ?? {})) totpSecrets.set(k, v);
 const ids = state.ids;
 const save = () => {
-  R.decisions = [...(R.decisions ?? []).filter((a) => a.phase !== PHASE), ...DECISIONS.map((a) => ({ ...a, phase: PHASE }))];
+  R.decisions = [...(R.decisions ?? []).filter((a) => a.phase !== PHASE), ...HARNESS_DECISIONS.map((a) => ({ ...a, step: "seed: institution set-up (harness)", phase: PHASE })), ...DECISIONS.map((a) => ({ ...a, phase: PHASE }))];
   delete R.autoApproved;
   R.finishedAt = new Date().toISOString();
   writeFileSync(RESULTS, JSON.stringify(R, null, 2));
