@@ -201,6 +201,9 @@ jobs:
       - name: docker compose --profile app up -d --build
         env:
           COMPOSE_PROGRESS: plain
+          # Part 1 (DEF-X-001): the compose boot test runs the demo seed (domain data, not the
+          # approval control) → dev auto-approval opt-in; the API default is human.
+          SUTRA_COMPOSE_APPROVAL_MODE: auto
         run: |
           # api and migrate share deploy/docker/api.Dockerfile: build it once first so `up --build`
           # reuses the layers instead of running two cargo builds side by side.

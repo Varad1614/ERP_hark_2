@@ -118,6 +118,11 @@ services:
       SUTRA_AUTH_MODE: ${SUTRA_COMPOSE_AUTH_MODE:-dev}
       # true = administrators must answer a second factor (TOTP or passkey) at dev sign-in.
       SUTRA_DEV_MFA: ${SUTRA_COMPOSE_DEV_MFA:-false}
+      # Part 1 (DEF-X-001): governed decisions wait for a human approver by default. The demo seed
+      # (`--profile demo`) walks every governed step itself, so run it with
+      # `SUTRA_COMPOSE_APPROVAL_MODE=auto docker compose --profile app up -d` (development only;
+      # production refuses auto).
+      SUTRA_APPROVAL_MODE: ${SUTRA_COMPOSE_APPROVAL_MODE:-human}
       SUTRA_OIDC_ISSUER: http://localhost:8180/realms/sutra
       SUTRA_OIDC_BACKCHANNEL_URL: http://keycloak:8180/realms/sutra
       SUTRA_OIDC_CLIENT_ID: sutra-web
