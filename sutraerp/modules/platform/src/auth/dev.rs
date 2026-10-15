@@ -16,7 +16,7 @@ pub struct DevPersona {
     pub role: Role,
 }
 
-pub const DEV_PERSONAS: [DevPersona; 8] = [
+pub const DEV_PERSONAS: [DevPersona; 9] = [
     DevPersona {
         login_id: "admin@sutra.dev",
         display_name: "Dhruv Naik",
@@ -58,6 +58,14 @@ pub const DEV_PERSONAS: [DevPersona; 8] = [
         login_id: "procurement.approver@sutra.dev",
         display_name: "Farah Siddiqui",
         role: Role::ProcurementApprover,
+    },
+    // Part 1 · S3-appr (DEF-X-002): a second, independent administrator — the checker for
+    // administrator-only decisions (registration, faculty assignment, enrolment override, HR …)
+    // that the first administrator requested.
+    DevPersona {
+        login_id: "dean@sutra.dev",
+        display_name: "Prof. Kiran Bhat",
+        role: Role::Administrator,
     },
 ];
 

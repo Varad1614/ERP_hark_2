@@ -1047,9 +1047,12 @@ async fn malpractice_report_decision_appeal_reopen_merge_close() {
     .await;
     assert_eq!(s, StatusCode::OK, "{c}");
     assert_eq!(c["status"], "under_investigation");
+    // S3-appr (SoD): the administrator requested the reopening, so a second administrator
+    // decides the new penalty.
+    let dean = login(&app, "dean@sutra.dev").await;
     let (s, c) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &case(&id, "decision"),
         json!({"penalty": "marks_deduction", "marksDeduction": "5", "reason": "Partial use established"}),

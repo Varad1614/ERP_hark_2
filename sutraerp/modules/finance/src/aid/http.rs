@@ -249,6 +249,17 @@ pub async fn aid_allocation_approve(
     Json(b): Json<DecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FinanceApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision_for_row(
+        &st.pool,
+        ctx,
+        "finance.aid_allocation",
+        "id",
+        id,
+        &[],
+        "aid allocation",
+    )
+    .await?;
     let v = if_match!(headers);
     let a = repo::decide(
         &st,

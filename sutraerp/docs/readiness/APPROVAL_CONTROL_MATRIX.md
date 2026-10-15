@@ -1,7 +1,7 @@
-# Approval control matrix (Part 1 · Stage 2 · S2-appr)
+# Approval control matrix (Part 1 · Stage 2 S2-appr · finalised Stage 3 S3-appr)
 
 Every governed decision in SutraERP, who may raise it (maker), who may decide it (checker), and
-whether separation of duties (SoD) and an audit trail are enforced. Branch `part1/s2-appr`.
+whether separation of duties (SoD) and an audit trail are enforced. Branches `part1/s2-appr` (Stage 2) and `part1/s3-appr` (Stage 3; verified at 7f4c129a: CI 38772672703, demo 38772672672 green).
 
 ## How approval works now (DEF-X-001)
 
@@ -22,15 +22,37 @@ whether separation of duties (SoD) and an audit trail are enforced. Branch `part
   `student.e2e.mjs`, `passkey.e2e.mjs`, the pilot / data / observability / quality workflows,
   `deploy/perf/run.sh`, the kind values and the compose boot job (demo seed).
 
-## Separation of duties (DEF-X-002)
+## Separation of duties (DEF-X-002, completed in Stage 3)
 
-`ensure_independent_decider` (kernel + each module's `shared::approval`) refuses with **403** a
-decision by an unidentified or `system:` actor, or by any maker of the request: its creator /
-`requested_by` column and whoever moved it into its pending status (from the module's
-`status_history`). Five checker roles hold a domain's read + approve permissions and **none** of the
-manage permissions that create requests (`crates/kernel/src/auth.rs`,
-`approver_roles_hold_approve_without_manage`); each has a dev persona
-(`modules/platform/src/auth/dev.rs`):
+Every governed decision endpoint of the API (124 POST operations whose path ends in `…/decision`,
+`…-decision`, `/authorise` or `/approve` in `openapi/openapi.json`) is either **guarded** or
+**allowlisted with a written reason**. The fitness test `apps/api/tests/approval_matrix.rs` enforces
+it on every CI run: a new decision endpoint without a guard, a stale allowlist entry, or an
+operation missing from this document fails the build.
+
+Two guard mechanisms refuse a decision with **403**:
+
+* **Approval request ledger** (S3, `platform.approval_request`, migration `20261202004100`,
+  append-only — UPDATE/DELETE raise, no runtime role holds UPDATE/DELETE/TRUNCATE). Every module's
+  `shared::approval::request_approval` records *who asked* (the authenticated subject, carried by the
+  task-local `sutra_kernel::approval::with_requester` set in `crates/web/src/auth.rs`), keyed by the
+  business-key subject and version. Decision handlers call
+  `sutra_persistence::approval::guard_decision` / `guard_decision_by` / `guard_decision_for_row`
+  (`crates/persistence/src/approval.rs`): the decider must be an identified human (not `None`, empty,
+  `system` or `system:*`) and must not be any requester of the **latest version** of the subject
+  (a concurrent losing submission of the same version still counts), nor a maker column the caller
+  passes (creator / `requested_by` / `raised_by`).
+* **Status-history check** (S2, `ensure_independent_decider` in each module's `shared::approval`):
+  the creator and whoever moved the aggregate into its pending status (module `status_history`) plus
+  maker columns. Used by the money decisions (refund, write-off, adjustments, payroll, settlement,
+  procurement, vendor invoice / payment, library fine waiver, admission, results).
+
+Both share `sutra_kernel::approval::ensure_independent_decider` (unit tests in
+`crates/kernel/src/approval.rs`). The handler still checks the checker permission and the pending
+state itself. `administrator` holds every permission, so an administrator may decide — never their
+own request; the dev/Keycloak persona **dean@sutra.dev** (second administrator) is the independent
+checker for administrator-raised requests in the demo journey. Checker roles hold read + approve and
+none of the manage permissions that raise requests (`approver_roles_hold_approve_without_manage`):
 
 | Role | Dev persona | Approve permissions |
 |---|---|---|
@@ -40,28 +62,166 @@ manage permissions that create requests (`crates/kernel/src/auth.rs`,
 | `payroll_approver` | payroll.approver@sutra.dev | people.payroll.approve |
 | `procurement_approver` | procurement.approver@sutra.dev | resources.approve |
 
-`administrator` still holds every permission, so an administrator may act as checker, but never on
-a request they made (SoD applies to every caller).
+**Bypass controls.** Posting / finalising / applying a governed record requires its approved state
+(vendor invoice `/post`, vendor payment `/post`, payroll run finalise / post, payroll adjustment
+`/apply`, final settlement `/complete` → 409 while pending; a settlement's run cannot be driven
+through the payroll-run commands). Content cannot change behind an approval: a pending finance
+adjustment is not corrected or reversed; a correction of a posted adjustment supersedes it and
+returns a **new draft** that needs its own submission and decision; an approved final settlement is
+not recalculated; an approved vendor invoice is not re-matched; every PO amendment returns the order
+to `draft` (S2-ops). Regression: `db_p1_s3_appr` (below).
 
-## Governed decisions with SoD enforced (15)
+**DEF-P1-DEMO-006** — eligibility overrides are governed requests:
+`POST /academic/sections/{id}/enrolment-overrides` (maker `offering.enrolment.manage`, table
+`academic.enrolment_override_request`, migration `20261202004101`) → `POST
+/academic/enrolment-overrides/{id}/decision` (checker `academic.offering.decide`, never the
+requester; approve seats the student through the seat gate — capacity is never overridden; reject
+needs a reason). A direct override seat under human approval is refused (409). Test:
+`db_p1_s3_appr::enrolment_override_is_decided_by_a_second_administrator`; journey via
+`apps/web/e2e/lib/approvals.mjs` (`enrolment_override`, checker `academic_admin` = dean).
 
-| Decision (operation) | Endpoint | Maker permission / role | Checker permission / role | SoD | Audit | Test |
+## Every decision endpoint
+
+Generated from the code by `docs/readiness/tools/approval_matrix_table.py .` (port of the fitness test; total=124 allow=26 history=16 ledger=82: ledger = approval-ledger guard, history = status-history guard, allow = allowlisted).
+Maker permission = the manage permission(s) the slice's create/submit handlers require (where the
+checker permission equals it, the guard is what separates maker and checker). Tests always include
+the fitness test plus the DB / e2e tests that call the endpoint.
+
+| Operation | Endpoint | Maker permission | Checker permission | SoD | Tests | Handler |
 |---|---|---|---|---|---|---|
-| Refund | `POST /finance/refunds/{id}/decision` | refund.manage / administrator | finance.approve / finance_approver (or another administrator) | y | y (`finance.refund.approve`/`reject` + status history + `decided_by/at/decision_reason`) | `db_p1_appr::refund_waits_for_an_independent_finance_approver`; `db_b5b::approvals_await_a_decision` |
-| Receivable write-off | `POST /finance/receivables/{id}/write-off/decision` | receivable.manage / administrator | finance.approve / finance_approver | y | y | `db_b5b::approvals_await_a_decision` |
-| Finance adjustment | `POST /finance/adjustments/{id}/decision` | adjustment.manage / administrator | finance.approve / finance_approver | y | y | covered by the shared SoD path (`kernel::approval` unit tests); no dedicated DB regression yet |
-| Payroll run | `POST /people/payroll-runs/{id}/decision` | people.payroll.manage / administrator | people.payroll.approve / payroll_approver | y | y | `db_b7c` (maker ≠ approver contexts); shared SoD unit tests |
-| Payroll adjustment | `POST /people/payroll-adjustments/{id}/decision` | people.payroll.manage / administrator | people.payroll.approve / payroll_approver | y | y | shared SoD unit tests |
-| Final settlement | `POST /people/final-settlements/{id}/decision` | people.payroll.manage / administrator | people.payroll.approve / payroll_approver | y | y | shared SoD unit tests |
-| Result batch approval | `POST /exams/result-batches/{id}/decision` | exam.result.manage / administrator | exam.result.publish / exam_controller | y | y (`exams.result_batch.approve` + status history) | `db_p1_appr::result_batch_waits_for_an_independent_exam_controller`; `db_b6c::await_decision_keeps_governed_steps_pending` |
-| Result decision (correction / withholding / withdrawal) | `POST /exams/result-decisions/{id}/decision` | exam.result.manage / administrator | exam.result.publish / exam_controller | y | y | `db_b6c::await_decision_keeps_governed_steps_pending` |
-| Result publication authorisation | `POST /exams/publications/{id}/decision` | exam.result.publish (planner / authorisation requester) | exam.result.publish / exam_controller (a different user) | y | y | `db_b6c::await_decision_keeps_governed_steps_pending` |
-| Admission | `POST /student/admissions/{id}/decision` | admission.manage / administrator | admission.decide / registrar | y | y | `db_b3a::admission_approval_await_decision_and_finance_evidence` |
-| Purchase requisition | `POST /resources/requisitions/{id}/decision` | resources.procurement.manage / administrator | resources.approve / procurement_approver | y | y | `db_b8d::governed_decisions_await_a_decision` |
-| Purchase order | `POST /resources/purchase-orders/{id}/decision` | resources.procurement.manage / administrator | resources.approve / procurement_approver | y | y | `db_b8d::governed_decisions_await_a_decision` |
-| Vendor invoice | `POST /resources/vendor-invoices/{id}/decision` | resources.procurement.manage / administrator | resources.approve / procurement_approver | y | y | shared SoD unit tests |
-| Vendor payment (S2-ops, DEF-J-003) | `POST /resources/vendor-payments/{id}/decision` (process `resources.vendor_payment_approval`) | resources.procurement.manage / administrator (create → `pending_approval`) | resources.approve / procurement_approver **or** finance.approve / finance_approver (or another administrator); posting (`/post`) only from `approved` | y (maker = `approval_requested_by` + history) | y (`resources.vendor_payment.decide` + `.approve`/`.reject` + status history + `decided_by/at/decision_reason`; events `vendor_payment.submitted/approved/rejected`) | `db_p1_ops::vendor_payment_posts_only_after_an_independent_approval`; `db_b8d::procure_to_pay_end_to_end` (auto opt-in) |
-| Library fine waiver (S2-ops, DEF-G-002) | `POST /campus/library-fines/{id}/decision` | campus.library.manage / administrator (`/waiver` → `waiver_requested`; no amount threshold — every waiver needs a decision) | library.fine.waive.approve / finance_approver (or another administrator); `campus.approve` alone no longer decides it | y (assessor + waiver requester from `campus.status_history`) | y (`campus.library_fine.request_waiver` / `.waive` / `.reject_waiver` + status history; `library_fine.waived` event) | `db_p1_ops::library_fine_waiver_is_decided_by_another_authorised_user`; `db_b8c::library_await_decision_policy_fine_waiver_and_clearance` |
+| `academic_break_decision` | `POST /student/academic-breaks/{id}/decision` | ProgressionManage, ProgressionPolicyManage | ProgressionDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3b::approvals_await_a_decision` | `modules/student/src/progression/http.rs` |
+| `academic_structure_decision` | `POST /institution/academic-structures/{structureId}/decision` | CurriculumManage | CurriculumPublish | N — allowlisted: institution set-up: academic structure | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b2b::publication_awaiting_a_decision_can_be_returned_and_approved`; `e2e lib/harness.mjs` | `modules/institution/src/curriculum/structure.rs` |
+| `academic_year_decision` | `POST /institution/academic-years/{yearId}/decision` | CalendarManage | CalendarPublish | N — allowlisted: institution set-up: academic year closure | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/institution/src/calendar/http.rs` |
+| `admission_decide` | `POST /student/admissions/{id}/decision` | AdmissionManage, StudentManage | AdmissionDecide | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3a::admission_approval_await_decision_and_finance_evidence`; `e2e lib/approvals.mjs` | `modules/student/src/admission/flow.rs` |
+| `alumni_transition_decision` | `POST /student/alumni-transitions/{id}/decision` | same slice manage permission | AlumniManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/alumni/http.rs` |
+| `assessment_moderation_decision` | `POST /academic/assessment-windows/{id}/moderation/{moderationId}/decision` | AssessmentManage | AssessmentManage, in-handler check (administrator) | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/assessment/http.rs` |
+| `attendance_correction_decision` | `POST /academic/attendance-corrections/{id}/decision` | AttendanceManage | AttendanceManage, in-handler check (administrator) | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b4b::sessions_attendance_thresholds_corrections_and_syllabus`; `db_p1_acad_attendance::faculty_correction_waits_for_an_approver_in_the_deployed_router` | `modules/academic/src/attendance/http.rs` |
+| `attendance_policy_decision` | `POST /academic/attendance-policies/{id}/decision` | same slice manage permission | AttendanceManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/attendance/http.rs` |
+| `calendar_exception_decision` | `POST /institution/calendar-exceptions/{exceptionId}/decision` | CalendarManage | CalendarPublish | N — allowlisted: institution set-up: calendar exception | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/institution/src/calendar/http.rs` |
+| `calendar_simulation_decision` | `POST /institution/calendar-simulations/{simulationId}/decision` | CalendarManage | CalendarPublish | N — allowlisted: institution set-up: calendar change simulation | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b2c::change_simulation_has_no_side_effects` | `modules/institution/src/calendar/http.rs` |
+| `calendar_version_decision` | `POST /institution/calendar-versions/{versionId}/decision` | CalendarManage | CalendarPublish | N — allowlisted: institution set-up: calendar publication | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/harness.mjs` | `modules/institution/src/calendar/http.rs` |
+| `campus_decision` | `POST /institution/campuses/{campusId}/decision` | same slice manage permission | CampusManage, CampusDecommission | N — allowlisted: institution set-up: campus activation / decommissioning | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b2b::campus_lifecycle_end_to_end`; `e2e lib/harness.mjs` | `modules/institution/src/campus/http.rs` |
+| `campus_governance_case_decide` | `POST /campus/governance-cases/{id}/decision` | GovernanceManage | CampusApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b9e::governance_await_decision` | `modules/campus/src/governance/cases.rs` |
+| `campus_governance_config_decide` | `POST /campus/governance-configs/{id}/decision` | GovernanceManage | CampusApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b9e::governance_await_decision` | `modules/campus/src/governance/config.rs` |
+| `campus_hostel_application_decide` | `POST /campus/hostel-applications/{id}/decision` | HostelManage | CampusApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8b::hostel_policy_admission_residency_and_clearance`; `db_b8b::governed_decisions_await_a_decision`; `e2e lib/reskin2-seed.mjs` | `modules/campus/src/hostel/admission.rs` |
+| `campus_hostel_leave_decide` | `POST /campus/resident-leaves/{id}/decision` | same slice manage permission | HostelManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8b::hostel_policy_admission_residency_and_clearance`; `db_b8b::governed_decisions_await_a_decision` | `modules/campus/src/hostel/residency.rs` |
+| `campus_hostel_policy_decide` | `POST /campus/hostel-policies/{id}/decision` | HostelManage | CampusApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8b::governed_decisions_await_a_decision`; `e2e lib/reskin2-seed.mjs` | `modules/campus/src/hostel/policy.rs` |
+| `campus_hostel_transfer_decide` | `POST /campus/room-transfers/{id}/decision` | HostelManage | CampusApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8b::governed_decisions_await_a_decision` | `modules/campus/src/hostel/residency.rs` |
+| `campus_infra_node_decommission_decide` | `POST /campus/infrastructure-nodes/{id}/decommission-decision` | FacilityManage | CampusApprove | N — allowlisted: facilities operation (space decommissioning); no money, grade, status or access change | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/campus/src/infrastructure/nodes.rs` |
+| `campus_library_clearance_decide` | `POST /campus/library-clearances/{id}/decision` | LibraryManage | CampusApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8c::library_policy_membership_catalogue_circulation_fines_and_clearance`; `db_b8c::library_await_decision_policy_fine_waiver_and_clearance` | `modules/campus/src/library/clearance.rs` |
+| `campus_library_fine_decide` | `POST /campus/library-fines/{id}/decision` | LibraryManage | LibraryFineWaiveApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8c::library_await_decision_policy_fine_waiver_and_clearance`; `db_p1_ops::library_fine_waiver_is_decided_by_another_authorised_user` | `modules/campus/src/library/fines.rs` |
+| `campus_library_policy_decide` | `POST /campus/library-policies/{id}/decision` | LibraryManage | CampusApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8c::library_await_decision_policy_fine_waiver_and_clearance`; `e2e lib/reskin2-seed.mjs` | `modules/campus/src/library/policy.rs` |
+| `campus_maintenance_plan_decide` | `POST /campus/maintenance-plans/{id}/decision` | FacilityManage | CampusApprove | N — allowlisted: facilities maintenance planning; spend is procured through guarded procurement decisions | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/campus/src/maintenance/plans.rs` |
+| `campus_reservation_decide` | `POST /campus/reservations/{id}/decision` | same slice manage permission | FacilityManage | N — allowlisted: room / space booking of a facility slot; no money, grade, status or access change (fees, if any, go through guarded finance decisions) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8a::await_decision_reservations_decommissioning_and_plans` | `modules/campus/src/reservations/http.rs` |
+| `campus_transport_route_decide` | `POST /campus/transport-routes/{id}/decision` | TransportManage | CampusApprove | N — allowlisted: transport route activation; fees go through guarded finance decisions | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8b::governed_decisions_await_a_decision` | `modules/campus/src/transport/network.rs` |
+| `certificate_verification_decision` | `POST /academic/certificate-verifications/{id}/decision` | same slice manage permission | FlexibleLearningManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/recognition/http.rs` |
+| `conferred_qualification_decision` | `POST /student/conferred-qualifications/{id}/corrections/{correctionId}/decision` | CompletionManage | QualificationConfer | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/completion/http.rs` |
+| `credit_mapping_decision` | `POST /academic/credit-mapping-rules/{id}/decision` | same slice manage permission | FlexibleLearningManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/recognition/http.rs` |
+| `credit_recognition_decision` | `POST /academic/credit-recognitions/{id}/decision` | FlexibleLearningManage | CreditRecognitionDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/recognition/http.rs` |
+| `credit_transfer_decision` | `POST /student/credit-transfers/{id}/decision` | ProgressionManage, ProgressionPolicyManage | ProgressionDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/progression/http.rs` |
+| `curriculum_version_decision` | `POST /institution/curriculum-versions/{versionId}/decision` | CurriculumManage | CurriculumPublish | N — allowlisted: institution set-up: curriculum version publication; grades follow the guarded exam decisions | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/harness.mjs` | `modules/institution/src/curriculum/framework.rs` |
+| `duplicate_case_decide` | `POST /student/duplicate-cases/{id}/decision` | same slice manage permission | StudentIdentityManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/record/identity.rs` |
+| `exam_closure_decide` | `POST /exams/exam-sessions/{id}/closure/decision` | ResultManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/completion/http.rs` |
+| `exam_conduct_decision` | `POST /exams/conduct-records/{id}/decision` | ExamSetupManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/scheduling/conduct.rs` |
+| `exam_malpractice_decide` | `POST /exams/malpractice-cases/{id}/decision` | same slice manage permission | MarksManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/integrity/http.rs` |
+| `exam_mark_sheet_decide` | `POST /exams/mark-sheets/{id}/decision` | MarksManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/approvals.mjs`; `e2e lib/reskin2-seed.mjs` | `modules/exams/src/marks/http.rs` |
+| `exam_moderation_decide` | `POST /exams/moderations/{id}/decision` | MarksManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/marks/http.rs` |
+| `exam_policy_decision` | `POST /exams/exam-policies/{id}/decision` | ExamSetupManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/approvals.mjs` | `modules/exams/src/setup/policy.rs` |
+| `exam_publication_authorise` | `POST /exams/publications/{id}/authorise` | ResultManage | ResultPublish | N — allowlisted: the maker's request step of result publication; the decision is exam_publication_decide (guarded) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b6c::results_engine_publication_and_grade_cards`; `db_b6c::revaluation_supplementary_completion_and_closure`; `e2e lib/reskin2-seed.mjs` | `modules/exams/src/results/http.rs` |
+| `exam_publication_decide` | `POST /exams/publications/{id}/decision` | ResultManage | ResultPublish | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/approvals.mjs`; `e2e lib/reskin2-seed.mjs` | `modules/exams/src/results/http.rs` |
+| `exam_registration_decision` | `POST /exams/exam-registrations/{id}/decision` | ExamRegistrationManage, ExamSetupManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/registration/staff.rs` |
+| `exam_registration_override_decision` | `POST /exams/registration-overrides/{id}/decision` | ExamRegistrationManage, ExamSetupManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/registration/staff.rs` |
+| `exam_result_batch_decide` | `POST /exams/result-batches/{id}/decision` | ResultManage | ResultPublish | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_appr::result_batch_waits_for_an_independent_exam_controller`; `e2e lib/approvals.mjs`; `e2e lib/reskin2-seed.mjs` | `modules/exams/src/results/http.rs` |
+| `exam_result_decision_decide` | `POST /exams/result-decisions/{id}/decision` | ResultManage | ResultPublish | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/results/http.rs` |
+| `exam_revaluation_decide` | `POST /exams/revaluation-requests/{id}/decision` | ResultManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/revaluation/http.rs` |
+| `exam_schedule_decision` | `POST /exams/exam-schedules/{id}/decision` | ExamSetupManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/approvals.mjs` | `modules/exams/src/scheduling/schedule.rs` |
+| `exam_session_decision` | `POST /exams/exam-sessions/{id}/decision` | ExamSetupManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b6a::session_approval_awaits_a_decision`; `e2e lib/approvals.mjs` | `modules/exams/src/setup/session.rs` |
+| `exam_supplementary_authorise` | `POST /exams/supplementary-eligibility/{id}/authorise` | same slice manage permission | ResultManage | N — allowlisted: single-step authorisation of a rule-computed supplementary attempt (no maker request); marks and results of the attempt pass the guarded mark-sheet / result approvals | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b6c::revaluation_supplementary_completion_and_closure` | `modules/exams/src/revaluation/http.rs` |
+| `exit_decision` | `POST /student/exits/{id}/decision` | CompletionManage | ExitDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/completion/http.rs` |
+| `faculty_assignment_change_decision` | `POST /academic/faculty-assignments/{id}/changes/{changeId}/decision` | FacultyAssignmentManage | FacultyAssignmentDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/faculty/assignment.rs` |
+| `faculty_assignment_decision` | `POST /academic/faculty-assignments/{id}/decision` | FacultyAssignmentManage | FacultyAssignmentDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b4a::approval_await_decision_cancellation_and_revisions`; `e2e lib/approvals.mjs` | `modules/academic/src/faculty/assignment.rs` |
+| `faculty_policy_decision` | `POST /academic/faculty-assignment-policies/{id}/decision` | FacultyAssignmentManage | FacultyAssignmentDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b4a::faculty_assignment_changes_and_policy` | `modules/academic/src/faculty/policy.rs` |
+| `finance_adjustment_decide` | `POST /finance/adjustments/{id}/decision` | AdjustmentManage | FinanceApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_s3_appr::finance_adjustment_is_decided_by_an_independent_human_only`; `e2e lib/approvals.mjs` | `modules/finance/src/adjustments/http.rs` |
+| `finance_aid_allocation_approve` | `POST /finance/aid-allocations/{id}/approve` | AidManage | FinanceApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/finance/src/aid/http.rs` |
+| `finance_bank_account_decide` | `POST /finance/bank-accounts/{id}/decision` | TreasuryManage | FinanceApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b5c::approvals_await_a_decision_with_maker_checker` | `modules/finance/src/treasury/http.rs` |
+| `finance_config_decide` | `POST /finance/finance-config/{id}/decision` | same slice permission: FinanceConfigManage | FinanceRead, FinanceConfigManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/finance/src/config/http.rs` |
+| `finance_dispute_decide` | `POST /finance/disputes/{id}/decision` | ChargeManage | FinanceApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b5a::charges_structures_adjustments_and_configuration` | `modules/finance/src/charges/http.rs` |
+| `finance_fee_structure_decide` | `POST /finance/fee-structures/{id}/decision` | ChargeManage | FinanceApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/approvals.mjs` | `modules/finance/src/charges/http.rs` |
+| `finance_journal_manual_decide` | `POST /finance/manual-journals/{id}/decision` | LedgerManage | FinanceApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b5c::approvals_await_a_decision_with_maker_checker` | `modules/finance/src/ledger/journals.rs` |
+| `finance_receivable_write_off_decide` | `POST /finance/receivables/{id}/write-off/decision` | ReceivableManage | FinanceApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/finance/src/receivables/http.rs` |
+| `finance_refund_decide` | `POST /finance/refunds/{id}/decision` | RefundManage | FinanceApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b5b::approvals_await_a_decision`; `db_p1_appr::refund_waits_for_an_independent_finance_approver` | `modules/finance/src/refunds/http.rs` |
+| `finance_rule_decide` | `POST /finance/finance-rules/{id}/decision` | same slice permission: FinanceConfigManage | FinanceRead, FinanceConfigManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/finance/src/config/http.rs` |
+| `flexible_enrolment_decision` | `POST /academic/flexible-enrolments/{id}/decision` | same slice manage permission | FlexibleLearningManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/flexible/http.rs` |
+| `flexible_exception_decision` | `POST /academic/flexible-exceptions/{id}/decision` | same slice manage permission | FlexibleLearningManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/flexible/http.rs` |
+| `flexible_policy_decision` | `POST /academic/flexible-learning-policies/{id}/decision` | same slice manage permission | FlexibleLearningManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/flexible/http.rs` |
+| `guardian_relationship_verification_decision` | `POST /student/guardian-relationships/{id}/verification-decision` | same slice manage permission | GuardianManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/guardian/http.rs` |
+| `identity_correction_decide` | `POST /student/identity-corrections/{id}/decision` | same slice manage permission | StudentIdentityManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3a::identity_correction_and_duplicate_resolution` | `modules/student/src/record/identity.rs` |
+| `institution_decide_activation` | `POST /institution/institutions/{id}/decision` | InstitutionManage | InstitutionActivationDecide | N — allowlisted: institution set-up by the implementation administrator; no person's money, grades or status | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b2_integration::register_configure_set_up_all_slices_then_activate`; `e2e student.e2e.mjs`; `e2e lib/approvals.mjs`; `e2e lib/harness.mjs` | `modules/institution/src/lifecycle/http.rs` |
+| `internal_assessment_correction_decision` | `POST /academic/internal-assessment-results/{id}/corrections/{correctionId}/decision` | AssessmentManage | AssessmentManage, in-handler check (administrator) | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/assessment/http.rs` |
+| `internal_assessment_decision` | `POST /academic/sections/{id}/internal-assessment/decision` | AssessmentManage | AssessmentManage, in-handler check (administrator) | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/assessment/http.rs` |
+| `learning_opportunity_decision` | `POST /academic/learning-opportunities/{id}/decision` | same slice manage permission | FlexibleLearningManage | N — allowlisted: catalogue activation of a learning opportunity; credits only flow through guarded decisions | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/flexible/http.rs` |
+| `learning_provider_decision` | `POST /academic/learning-providers/{id}/decision` | same slice manage permission | FlexibleLearningManage | N — allowlisted: catalogue onboarding of an external provider; credits only flow through the guarded flexible-enrolment / credit-recognition decisions | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/flexible/http.rs` |
+| `monitoring_case_decision` | `POST /academic/monitoring-cases/{id}/decision` | same slice manage permission | MonitoringManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/monitoring/http.rs` |
+| `offering_decision` | `POST /academic/offerings/{id}/decision` | OfferingManage | OfferingDecide | N — allowlisted: academic catalogue approval of an offering (dates, capacity, sections); no money, grade or student-status change; seats still need a registration or a guarded override | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b4a::approval_await_decision_cancellation_and_revisions`; `db_b4a::restrictions_templates_simulation_merge_split`; `e2e lib/approvals.mjs` | `modules/academic/src/offering/lifecycle.rs` |
+| `offering_reorganisation_decision` | `POST /academic/offerings/{id}/reorganisations/{reorganisationId}/decision` | OfferingManage | OfferingLifecycle | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/offering/change.rs` |
+| `offering_revision_decision` | `POST /academic/offerings/{id}/revisions/{revisionId}/decision` | OfferingManage | AcademicRead | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b4a::approval_await_decision_cancellation_and_revisions` | `modules/academic/src/offering/change.rs` |
+| `offering_simulation_decision` | `POST /academic/offerings/{id}/simulations/{simulationId}/decision` | OfferingManage | OfferingDecide | N — allowlisted: not a checker decision: the planner proceeds / revises / rejects their own change-impact simulation; proceeding requests the governed approval | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b4a::restrictions_templates_simulation_merge_split` | `modules/academic/src/offering/templates.rs` |
+| `org_restructure_decide` | `POST /institution/org-restructures/{id}/decision` | same slice manage permission | OrganisationManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b2a::organisation_restructure_move_merge_cycles_and_stale_baseline` | `modules/institution/src/org/restructure.rs` |
+| `org_type_blueprint_decide` | `POST /institution/org-type-blueprints/{id}/decision` | same slice manage permission | OrganisationManage | N — allowlisted: institution set-up: organisation type blueprint | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/harness.mjs` | `modules/institution/src/org/blueprint.rs` |
+| `people_certificate_decide` | `POST /people/certificate-requests/{id}/decision` | StaffManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7a::governed_decisions_await_a_decision` | `modules/people/src/hr/certificate.rs` |
+| `people_engagement_decide` | `POST /people/engagements/{id}/decision` | StaffManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7a::governed_decisions_await_a_decision`; `e2e lib/reskin2-seed.mjs` | `modules/people/src/workforce/engagement.rs` |
+| `people_leave_adjustment_decide` | `POST /people/leave-adjustments/{id}/decision` | LeaveManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7b::await_decision_routes_leave_to_the_reporting_manager` | `modules/people/src/leave/balance.rs` |
+| `people_leave_case_decide` | `POST /people/leave-cases/{id}/decision` | LeaveManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7b::leave_lifecycle_attendance_and_workload`; `db_b7b::await_decision_routes_leave_to_the_reporting_manager` | `modules/people/src/leave/cases.rs` |
+| `people_leave_encashment_decide` | `POST /people/leave-encashments/{id}/decision` | LeaveManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7b::await_decision_routes_leave_to_the_reporting_manager` | `modules/people/src/leave/balance.rs` |
+| `people_leave_policy_decide` | `POST /people/leave-policies/{id}/decision` | LeaveManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7b::await_decision_routes_leave_to_the_reporting_manager`; `e2e lib/reskin2-seed.mjs` | `modules/people/src/leave/policy.rs` |
+| `people_leave_request_decide` | `POST /people/leave-requests/{id}/decision` | LeaveManage | LeaveDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7b::await_decision_routes_leave_to_the_reporting_manager` | `modules/people/src/leave/request.rs` |
+| `people_leave_self_approval_decide` | `POST /people/me/leave-approvals/{id}/decision` | LeaveManage | PeopleSelfService | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7b::await_decision_routes_leave_to_the_reporting_manager` | `modules/people/src/leave/request.rs` |
+| `people_onboarding_decide` | `POST /people/onboarding-cases/{id}/decision` | StaffManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/people/src/hr/onboarding.rs` |
+| `people_payroll_adjustment_decide` | `POST /people/payroll-adjustments/{id}/decision` | PayrollManage | PayrollApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_s3_appr::payroll_adjustment_and_final_settlement_need_an_independent_approver` | `modules/people/src/payroll/http.rs` |
+| `people_payroll_config_decide` | `POST /people/payroll-configs/{id}/decision` | PayrollManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/people/src/payroll/http.rs` |
+| `people_payroll_disbursement_decide` | `POST /people/payroll-disbursements/{id}/decision` | PayrollManage | PayrollApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_pay::disbursement_clears_salaries_and_statutory_payables_over_http` | `modules/people/src/payroll/disbursement_http.rs` |
+| `people_payroll_run_decide` | `POST /people/payroll-runs/{id}/decision` | PayrollManage | PayrollApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_s3_appr::payroll_adjustment_and_final_settlement_need_an_independent_approver`; `db_b7c::await_decision_keeps_payroll_steps_pending` | `modules/people/src/payroll/http.rs` |
+| `people_position_assignment_decide` | `POST /people/position-assignments/{id}/decision` | StaffManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7a::governed_decisions_await_a_decision` | `modules/people/src/positions/http.rs` |
+| `people_probation_decide` | `POST /people/probation-reviews/{id}/decision` | StaffManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/people/src/hr/probation.rs` |
+| `people_recruitment_requisition_decide` | `POST /people/requisitions/{id}/decision` | StaffManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7a::recruitment_onboarding_faculty_and_self_service`; `db_b7a::governed_decisions_await_a_decision`; `db_b8d::governed_decisions_await_a_decision` | `modules/people/src/hr/recruitment.rs` |
+| `people_separation_decide` | `POST /people/separation-cases/{id}/decision` | StaffManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7a::governed_decisions_await_a_decision` | `modules/people/src/hr/separation.rs` |
+| `people_settlement_decide` | `POST /people/final-settlements/{id}/decision` | PayrollManage | PayrollApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_s3_appr::payroll_adjustment_and_final_settlement_need_an_independent_approver` | `modules/people/src/payroll/http.rs` |
+| `people_workload_plan_decide` | `POST /people/workload-plans/{id}/decision` | LeaveManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7b::await_decision_routes_leave_to_the_reporting_manager` | `modules/people/src/workload/mod.rs` |
+| `programme_migration_decision` | `POST /student/programme-migrations/{id}/decision` | ProgressionManage, ProgressionPolicyManage | ProgressionDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/progression/http.rs` |
+| `progression_decision_decide` | `POST /student/progression-decisions/{id}/decision` | ProgressionManage, ProgressionPolicyManage | ProgressionDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3b::approvals_await_a_decision` | `modules/student/src/progression/http.rs` |
+| `progression_policy_decision` | `POST /student/progression-policies/{id}/decision` | ProgressionManage | ProgressionPolicyManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3b::approvals_await_a_decision` | `modules/student/src/progression/http.rs` |
+| `qualification_completion_decision` | `POST /student/qualification-completions/{id}/decision` | CompletionManage | QualificationConfer | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/completion/http.rs` |
+| `registration_decision` | `POST /student/registrations/{id}/decision` | same slice manage permission | RegistrationManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3b::approvals_await_a_decision`; `e2e lib/approvals.mjs` | `modules/student/src/registration/http.rs` |
+| `resources_asset_decide` | `POST /resources/assets/{id}/decision` | AssetManage | ResourcesApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8d::governed_decisions_await_a_decision` | `modules/resources/src/assets/mod.rs` |
+| `resources_payable_invoice_decide` | `POST /resources/vendor-invoices/{id}/decision` | ProcurementManage | ResourcesApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_s3_appr::vendor_invoice_posts_only_after_an_independent_approval` | `modules/resources/src/payables/mod.rs` |
+| `resources_payable_payment_decide` | `POST /resources/vendor-payments/{id}/decision` | ProcurementManage | FinanceApprove, ResourcesApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_ops::vendor_payment_posts_only_after_an_independent_approval` | `modules/resources/src/payables/mod.rs` |
+| `resources_po_decide` | `POST /resources/purchase-orders/{id}/decision` | ProcurementManage | ResourcesApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8d::governed_decisions_await_a_decision`; `db_p1_ops::direct_purchase_limit_binds_the_ordered_value` | `modules/resources/src/orders/mod.rs` |
+| `resources_requisition_decide` | `POST /resources/requisitions/{id}/decision` | ProcurementManage | ResourcesApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7a::recruitment_onboarding_faculty_and_self_service`; `db_b7a::governed_decisions_await_a_decision`; `db_b8d::governed_decisions_await_a_decision` | `modules/resources/src/requisitions/mod.rs` |
+| `resources_sourcing_decide` | `POST /resources/sourcing-events/{id}/decision` | ProcurementManage | ResourcesApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/resources/src/sourcing/mod.rs` |
+| `resources_stock_adjustment_decide` | `POST /resources/stock-adjustments/{id}/decision` | InventoryManage | ResourcesApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8d::governed_decisions_await_a_decision` | `modules/resources/src/inventory/stock.rs` |
+| `resources_stock_issue_decide` | `POST /resources/stock-issues/{id}/decision` | same slice manage permission | InventoryManage | N — allowlisted: internal issue of stocked consumables to a department (inventory.manage); no supplier payment; stock value changes by adjustment are guarded | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8_integration::campus_services_resources_end_to_end`; `db_b8d::inventory_documents_and_replenishment` | `modules/resources/src/inventory/stock.rs` |
+| `resources_supplier_decide` | `POST /resources/suppliers/{id}/decision` | ProcurementManage | ResourcesApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8d::governed_decisions_await_a_decision` | `modules/resources/src/suppliers/mod.rs` |
+| `scholarship_eligibility_recommendation_decision` | `POST /student/scholarship-eligibilities/{id}/recommendation-decision` | same slice manage permission | ScholarshipManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/scholarship/http.rs` |
+| `scholarship_policy_decision` | `POST /student/scholarship-policies/{id}/decision` | ScholarshipManage | ScholarshipPublish | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/scholarship/http.rs` |
+| `school_model_decision` | `POST /institution/school-models/{schoolModelId}/decision` | CurriculumManage | CurriculumPublish | N — allowlisted: institution set-up: school model | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/institution/src/curriculum/school.rs` |
+| `section_enrolment_override_decision` | `POST /academic/enrolment-overrides/{id}/decision` | OfferingEnrolmentManage | OfferingDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_s3_appr::enrolment_override_is_decided_by_a_second_administrator`; `e2e lib/approvals.mjs` | `modules/academic/src/offering/enrolment.rs` |
+| `services_accreditation_cycle_decide` | `POST /services/accreditation-cycles/{id}/decision` | AccreditationManage | ReportApprove | N — allowlisted: reporting configuration: accreditation plan | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/services/src/accreditation/cycles.rs` |
+| `services_accreditation_framework_decide` | `POST /services/accreditation-frameworks/{id}/decision` | AccreditationManage | ReportApprove | N — allowlisted: reporting configuration: accreditation framework | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b9e::accreditation_await_decision` | `modules/services/src/accreditation/frameworks.rs` |
+| `services_accreditation_record_decide` | `POST /services/accreditation-records/{id}/decision` | AccreditationManage | ReportApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b9e::accreditation_await_decision` | `modules/services/src/accreditation/records.rs` |
+| `services_dashboard_decide` | `POST /services/dashboards/{id}/decision` | ReportManage | ReportApprove | N — allowlisted: reporting configuration: dashboard publication (read-only analytics) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8c::reports_await_decision_dashboard_and_submission_approval` | `modules/services/src/dashboards/board.rs` |
+| `services_regulatory_framework_decide` | `POST /services/reporting-frameworks/{id}/decision` | ReportManage | ReportApprove | N — allowlisted: reporting configuration: regulatory framework | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8c::reports_await_decision_dashboard_and_submission_approval` | `modules/services/src/regulatory/frameworks.rs` |
+| `services_regulatory_package_decide` | `POST /services/submission-packages/{id}/decision` | ReportManage | ReportApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8c::reports_await_decision_dashboard_and_submission_approval` | `modules/services/src/regulatory/cycles.rs` |
+| `student_transfer_decide` | `POST /student/transfers/{id}/decision` | StudentManage | StudentRead | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3a::intra_and_inter_institute_transfers` | `modules/student/src/record/transfer.rs` |
+| `timetable_decision` | `POST /academic/timetables/{id}/decision` | TimetableManage | TimetablePublish | N — allowlisted: scheduling of teaching slots; no money, grade or status change | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/timetable/http.rs` |
+
+### Allowlisted (no SoD guard) — why a self-decision is acceptable
+
+The 26 allowlisted operations (reasons above, source of truth `ALLOWLIST` in
+`apps/api/tests/approval_matrix.rs`) are institution set-up / catalogue / facilities / reporting
+configuration decisions with no money, grade, student-status or access effect, or are not checker
+decisions at all (a planner's own simulation, the maker's request step of result publication,
+a rule-computed supplementary authorisation). Anything they enable that moves money, grades or
+status passes a guarded decision downstream.
 
 ### Value controls (S2-ops, DEF-J-005)
 
@@ -77,112 +237,3 @@ amendment returns the order to `draft`, so the changed order is issued again onl
 Configuration (production refusals): `db_p1_appr::production_config_refuses_noop_workflow_and_auto_approval`,
 `config::tests` (unit), Helm checks `production-refuses-*` in `.github/workflows/sutraerp-deploy.yml`.
 
-## Other governed decisions (human by default, SoD not yet enforced)
-
-These wait for a decision under the default `human` mode (DEF-X-001 applies to all of them) but
-the decider is checked only for the permission, not for independence from the requester. The
-maker column is a code scan of the slice's manage permissions; the checker is the permission the
-decision handler requires. Extending `ensure_independent_decider` to these is the open follow-up.
-
-| Operation | Endpoint | Maker permission (slice) | Checker permission (roles) | SoD | Audit |
-|---|---|---|---|---|---|
-| `assessment_moderation_decision` | `/academic/assessment-windows/{id}/moderation/{moderationId}/decision` | AssessmentManage | AssessmentManage, in-handler check (administrator) | n | y |
-| `attendance_correction_decision` | `/academic/attendance-corrections/{id}/decision` | AttendanceManage | AttendanceManage, in-handler check (administrator) | n | y |
-| `attendance_policy_decision` | `/academic/attendance-policies/{id}/decision` | same slice manage permission | AttendanceManage (administrator) | n | y |
-| `certificate_verification_decision` | `/academic/certificate-verifications/{id}/decision` | same slice manage permission | FlexibleLearningManage (administrator) | n | y |
-| `credit_mapping_decision` | `/academic/credit-mapping-rules/{id}/decision` | same slice manage permission | FlexibleLearningManage (administrator) | n | y |
-| `credit_recognition_decision` | `/academic/credit-recognitions/{id}/decision` | FlexibleLearningManage | CreditRecognitionDecide (administrator) | n | y |
-| `faculty_policy_decision` | `/academic/faculty-assignment-policies/{id}/decision` | FacultyAssignmentManage | FacultyAssignmentDecide (administrator) | n | y |
-| `faculty_assignment_change_decision` | `/academic/faculty-assignments/{id}/changes/{changeId}/decision` | FacultyAssignmentManage | FacultyAssignmentDecide (administrator) | n | y |
-| `faculty_assignment_decision` | `/academic/faculty-assignments/{id}/decision` | FacultyAssignmentManage | FacultyAssignmentDecide (administrator) | n | y |
-| `flexible_enrolment_decision` | `/academic/flexible-enrolments/{id}/decision` | same slice manage permission | FlexibleLearningManage (administrator) | n | y |
-| `flexible_exception_decision` | `/academic/flexible-exceptions/{id}/decision` | same slice manage permission | FlexibleLearningManage (administrator) | n | y |
-| `flexible_policy_decision` | `/academic/flexible-learning-policies/{id}/decision` | same slice manage permission | FlexibleLearningManage (administrator) | n | y |
-| `internal_assessment_correction_decision` | `/academic/internal-assessment-results/{id}/corrections/{correctionId}/decision` | AssessmentManage | AssessmentManage, in-handler check (administrator) | n | y |
-| `learning_opportunity_decision` | `/academic/learning-opportunities/{id}/decision` | same slice manage permission | FlexibleLearningManage (administrator) | n | y |
-| `learning_provider_decision` | `/academic/learning-providers/{id}/decision` | same slice manage permission | FlexibleLearningManage (administrator) | n | y |
-| `monitoring_case_decision` | `/academic/monitoring-cases/{id}/decision` | same slice manage permission | MonitoringManage (administrator) | n | y |
-| `offering_decision` | `/academic/offerings/{id}/decision` | OfferingManage | OfferingDecide (administrator) | n | y |
-| `offering_reorganisation_decision` | `/academic/offerings/{id}/reorganisations/{reorganisationId}/decision` | OfferingManage | OfferingLifecycle (administrator) | n | y |
-| `offering_revision_decision` | `/academic/offerings/{id}/revisions/{revisionId}/decision` | OfferingManage | AcademicRead (administrator) | n | y |
-| `offering_simulation_decision` | `/academic/offerings/{id}/simulations/{simulationId}/decision` | OfferingManage | OfferingDecide (administrator) | n | y |
-| `internal_assessment_decision` | `/academic/sections/{id}/internal-assessment/decision` | AssessmentManage | AssessmentManage, in-handler check (administrator) | n | y |
-| `timetable_decision` | `/academic/timetables/{id}/decision` | TimetableManage | TimetablePublish (administrator) | n | y |
-| `campus_governance_case_decide` | `/campus/governance-cases/{id}/decision` | GovernanceManage | CampusApprove (administrator) | n | y |
-| `campus_governance_config_decide` | `/campus/governance-configs/{id}/decision` | GovernanceManage | CampusApprove (administrator) | n | y |
-| `campus_hostel_application_decide` | `/campus/hostel-applications/{id}/decision` | HostelManage | CampusApprove (administrator) | n | y |
-| `campus_hostel_policy_decide` | `/campus/hostel-policies/{id}/decision` | HostelManage | CampusApprove (administrator) | n | y |
-| `campus_infra_node_decommission_decide` | `/campus/infrastructure-nodes/{id}/decommission-decision` | FacilityManage | CampusApprove (administrator) | n | y |
-| `campus_library_clearance_decide` | `/campus/library-clearances/{id}/decision` | LibraryManage | CampusApprove (administrator) | n | y |
-| `campus_library_policy_decide` | `/campus/library-policies/{id}/decision` | LibraryManage | CampusApprove (administrator) | n | y |
-| `campus_maintenance_plan_decide` | `/campus/maintenance-plans/{id}/decision` | FacilityManage | CampusApprove (administrator) | n | y |
-| `campus_reservation_decide` | `/campus/reservations/{id}/decision` | same slice manage permission | FacilityManage (administrator) | n | y |
-| `campus_hostel_leave_decide` | `/campus/resident-leaves/{id}/decision` | same slice manage permission | HostelManage (administrator) | n | y |
-| `campus_hostel_transfer_decide` | `/campus/room-transfers/{id}/decision` | HostelManage | CampusApprove (administrator) | n | y |
-| `campus_transport_route_decide` | `/campus/transport-routes/{id}/decision` | TransportManage | CampusApprove (administrator) | n | y |
-| `exam_conduct_decision` | `/exams/conduct-records/{id}/decision` | ExamSetupManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_policy_decision` | `/exams/exam-policies/{id}/decision` | ExamSetupManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_registration_decision` | `/exams/exam-registrations/{id}/decision` | ExamRegistrationManage, ExamSetupManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_schedule_decision` | `/exams/exam-schedules/{id}/decision` | ExamSetupManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_closure_decide` | `/exams/exam-sessions/{id}/closure/decision` | ResultManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_session_decision` | `/exams/exam-sessions/{id}/decision` | ExamSetupManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_malpractice_decide` | `/exams/malpractice-cases/{id}/decision` | same slice manage permission | MarksManage (administrator) | n | y |
-| `exam_mark_sheet_decide` | `/exams/mark-sheets/{id}/decision` | MarksManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_moderation_decide` | `/exams/moderations/{id}/decision` | MarksManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_publication_authorise` | `/exams/publications/{id}/authorise` | ResultManage | ResultPublish (administrator, exam_controller) | n | y |
-| `exam_registration_override_decision` | `/exams/registration-overrides/{id}/decision` | ExamRegistrationManage, ExamSetupManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_revaluation_decide` | `/exams/revaluation-requests/{id}/decision` | ResultManage | ExamApprove (administrator, exam_controller) | n | y |
-| `exam_supplementary_authorise` | `/exams/supplementary-eligibility/{id}/authorise` | same slice manage permission | ResultManage (administrator) | n | y |
-| `finance_aid_allocation_approve` | `/finance/aid-allocations/{id}/approve` | AidManage | FinanceApprove (administrator, finance_approver) | n | y |
-| `finance_bank_account_decide` | `/finance/bank-accounts/{id}/decision` | TreasuryManage | FinanceApprove (administrator, finance_approver) | n | event only (no audit call found in slice) |
-| `finance_dispute_decide` | `/finance/disputes/{id}/decision` | ChargeManage | FinanceApprove (administrator, finance_approver) | n | y |
-| `finance_fee_structure_decide` | `/finance/fee-structures/{id}/decision` | ChargeManage | FinanceApprove (administrator, finance_approver) | n | y |
-| `finance_journal_manual_decide` | `/finance/manual-journals/{id}/decision` | LedgerManage | FinanceApprove (administrator, finance_approver) | n | y |
-| `academic_structure_decision` | `/institution/academic-structures/{structureId}/decision` | CurriculumManage | CurriculumPublish (administrator) | n | y |
-| `academic_year_decision` | `/institution/academic-years/{yearId}/decision` | CalendarManage | CalendarPublish (administrator) | n | y |
-| `calendar_exception_decision` | `/institution/calendar-exceptions/{exceptionId}/decision` | CalendarManage | CalendarPublish (administrator) | n | y |
-| `calendar_simulation_decision` | `/institution/calendar-simulations/{simulationId}/decision` | CalendarManage | CalendarPublish (administrator) | n | y |
-| `calendar_version_decision` | `/institution/calendar-versions/{versionId}/decision` | CalendarManage | CalendarPublish (administrator) | n | y |
-| `campus_decision` | `/institution/campuses/{campusId}/decision` | same slice manage permission | CampusManage (administrator) | n | y |
-| `curriculum_version_decision` | `/institution/curriculum-versions/{versionId}/decision` | CurriculumManage | CurriculumPublish (administrator) | n | y |
-| `institution_decide_activation` | `/institution/institutions/{id}/decision` | InstitutionManage | InstitutionActivationDecide (administrator) | n | y |
-| `org_restructure_decide` | `/institution/org-restructures/{id}/decision` | same slice manage permission | OrganisationManage (administrator) | n | y |
-| `org_type_blueprint_decide` | `/institution/org-type-blueprints/{id}/decision` | same slice manage permission | OrganisationManage (administrator) | n | y |
-| `school_model_decision` | `/institution/school-models/{schoolModelId}/decision` | CurriculumManage | CurriculumPublish (administrator) | n | y |
-| `people_certificate_decide` | `/people/certificate-requests/{id}/decision` | StaffManage | PeopleApprove (administrator) | n | event only (no audit call found in slice) |
-| `people_engagement_decide` | `/people/engagements/{id}/decision` | StaffManage | PeopleApprove (administrator) | n | y |
-| `people_leave_adjustment_decide` | `/people/leave-adjustments/{id}/decision` | LeaveManage | PeopleApprove (administrator) | n | y |
-| `people_leave_case_decide` | `/people/leave-cases/{id}/decision` | LeaveManage | PeopleApprove (administrator) | n | y |
-| `people_leave_encashment_decide` | `/people/leave-encashments/{id}/decision` | LeaveManage | PeopleApprove (administrator) | n | y |
-| `people_leave_policy_decide` | `/people/leave-policies/{id}/decision` | LeaveManage | PeopleApprove (administrator) | n | y |
-| `people_leave_request_decide` | `/people/leave-requests/{id}/decision` | LeaveManage | LeaveDecide (administrator) | n | y |
-| `people_leave_self_approval_decide` | `/people/me/leave-approvals/{id}/decision` | LeaveManage | PeopleSelfService (administrator) | n | y |
-| `people_onboarding_decide` | `/people/onboarding-cases/{id}/decision` | StaffManage | PeopleApprove (administrator) | n | event only (no audit call found in slice) |
-| `people_payroll_config_decide` | `/people/payroll-configs/{id}/decision` | PayrollManage | PeopleApprove (administrator) | n | y |
-| `people_position_assignment_decide` | `/people/position-assignments/{id}/decision` | StaffManage | PeopleApprove (administrator) | n | event only (no audit call found in slice) |
-| `people_probation_decide` | `/people/probation-reviews/{id}/decision` | StaffManage | PeopleApprove (administrator) | n | event only (no audit call found in slice) |
-| `people_recruitment_requisition_decide` | `/people/requisitions/{id}/decision` | StaffManage | PeopleApprove (administrator) | n | event only (no audit call found in slice) |
-| `people_separation_decide` | `/people/separation-cases/{id}/decision` | StaffManage | PeopleApprove (administrator) | n | event only (no audit call found in slice) |
-| `people_workload_plan_decide` | `/people/workload-plans/{id}/decision` | LeaveManage | PeopleApprove (administrator) | n | y |
-| `resources_asset_decide` | `/resources/assets/{id}/decision` | AssetManage | ResourcesApprove (administrator, procurement_approver) | n | event only (no audit call found in slice) |
-| `resources_sourcing_decide` | `/resources/sourcing-events/{id}/decision` | ProcurementManage | ResourcesApprove (administrator, procurement_approver) | n | event only (no audit call found in slice) |
-| `resources_stock_adjustment_decide` | `/resources/stock-adjustments/{id}/decision` | InventoryManage | ResourcesApprove (administrator, procurement_approver) | n | event only (no audit call found in slice) |
-| `resources_stock_issue_decide` | `/resources/stock-issues/{id}/decision` | same slice manage permission | InventoryManage (administrator) | n | event only (no audit call found in slice) |
-| `resources_supplier_decide` | `/resources/suppliers/{id}/decision` | ProcurementManage | ResourcesApprove (administrator, procurement_approver) | n | y |
-| `services_accreditation_cycle_decide` | `/services/accreditation-cycles/{id}/decision` | AccreditationManage | ReportApprove (administrator) | n | y |
-| `services_accreditation_framework_decide` | `/services/accreditation-frameworks/{id}/decision` | AccreditationManage | ReportApprove (administrator) | n | y |
-| `services_accreditation_record_decide` | `/services/accreditation-records/{id}/decision` | AccreditationManage | ReportApprove (administrator) | n | y |
-| `services_dashboard_decide` | `/services/dashboards/{id}/decision` | ReportManage | ReportApprove (administrator) | n | y |
-| `services_regulatory_framework_decide` | `/services/reporting-frameworks/{id}/decision` | ReportManage | ReportApprove (administrator) | n | event only (no audit call found in slice) |
-| `services_regulatory_package_decide` | `/services/submission-packages/{id}/decision` | ReportManage | ReportApprove (administrator) | n | event only (no audit call found in slice) |
-| `alumni_transition_decision` | `/student/alumni-transitions/{id}/decision` | same slice manage permission | AlumniManage (administrator) | n | y |
-| `conferred_qualification_decision` | `/student/conferred-qualifications/{id}/corrections/{correctionId}/decision` | CompletionManage | QualificationConfer (administrator) | n | y |
-| `duplicate_case_decide` | `/student/duplicate-cases/{id}/decision` | same slice manage permission | StudentIdentityManage (administrator) | n | y |
-| `exit_decision` | `/student/exits/{id}/decision` | CompletionManage | ExitDecide (administrator) | n | y |
-| `guardian_relationship_verification_decision` | `/student/guardian-relationships/{id}/verification-decision` | same slice manage permission | GuardianManage (administrator) | n | y |
-| `identity_correction_decide` | `/student/identity-corrections/{id}/decision` | same slice manage permission | StudentIdentityManage (administrator) | n | y |
-| `qualification_completion_decision` | `/student/qualification-completions/{id}/decision` | CompletionManage | QualificationConfer (administrator) | n | y |
-| `registration_decision` | `/student/registrations/{id}/decision` | same slice manage permission | RegistrationManage (administrator) | n | y |
-| `scholarship_eligibility_recommendation_decision` | `/student/scholarship-eligibilities/{id}/recommendation-decision` | same slice manage permission | ScholarshipManage (administrator) | n | y |
-| `scholarship_policy_decision` | `/student/scholarship-policies/{id}/decision` | ScholarshipManage | ScholarshipPublish (administrator) | n | y |
-| `student_transfer_decide` | `/student/transfers/{id}/decision` | StudentManage | StudentRead (administrator) | n | y |

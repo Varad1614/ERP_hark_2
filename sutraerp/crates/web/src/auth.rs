@@ -271,9 +271,16 @@ pub async fn authenticate(
     // Part 1 S3 (DEF-X-003): row-level security of every database connection the handler uses
     // is bound to the tenant (and pinned institution) of the server-side session — never to a
     // header, path or body value.
+    // Part 1 · S3-appr: the authenticated subject is visible to the request's governed
+    // `request_approval` calls, which record who asked for each decision (separation of duties).
     let scope = ctx.scope;
+    let requester = Some(ctx.subject.clone());
     req.extensions_mut().insert(ctx);
-    sutra_kernel::db_context::scoped(scope, next.run(req)).await
+    sutra_kernel::db_context::scoped(
+        scope,
+        sutra_kernel::approval::with_requester(requester, next.run(req)),
+    )
+    .await
 }
 
 /// Part 1 S3 (DEF-X-003): layer for the sign-in / identity routes. Before a session exists

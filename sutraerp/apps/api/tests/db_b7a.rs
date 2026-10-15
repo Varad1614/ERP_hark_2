@@ -1221,9 +1221,12 @@ async fn recruitment_onboarding_faculty_and_self_service() {
         events(&pool, &rid, "sutraerp.people.requisition.decided").await,
         1
     );
+    // S3-appr (SoD): the requester is refused before anything else, so an independent
+    // administrator shows that nothing is pending any more.
+    let dean = login(&app, "dean@sutra.dev").await;
     let (s, _) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &format!("{P}/requisitions/{rid}/decision"),
         json!({"decision": "approve"}),

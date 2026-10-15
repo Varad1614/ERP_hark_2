@@ -933,6 +933,8 @@ pub async fn sheet_decide(
     Json(b): Json<MarksDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ExamApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "final marks approval").await?;
     let v = match expected(&headers)? {
         Ok(v) => v,
         Err(r) => return Ok(r),
@@ -1406,6 +1408,8 @@ pub async fn moderation_decide(
     Json(b): Json<MarksDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ExamApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "moderation").await?;
     let v = match expected(&headers)? {
         Ok(v) => v,
         Err(r) => return Ok(r),

@@ -1059,6 +1059,17 @@ pub async fn decide(
     Json(b): Json<DecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::PeopleApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision_for_row(
+        &st.pool,
+        ctx,
+        "people.position_assignment",
+        "id",
+        id,
+        &[],
+        "position assignment",
+    )
+    .await?;
     let v = expected!(headers);
     let reason = clean(b.reason);
     let t = ctx.scope.tenant_id;

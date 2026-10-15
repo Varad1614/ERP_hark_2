@@ -385,15 +385,28 @@ body_cmd!(
     StepDecisionBody,
     ProgressionPolicy,
     Permission::ProgressionPolicyManage,
-    |st, t, id, v, b, a| repo::decide_policy(
-        &st,
-        t,
-        id,
-        v,
-        b.decision == StepDecision::Approve,
-        b.reason.filter(|r| !r.trim().is_empty()),
-        &a
-    )
+    |st, t, id, v, b, a| async {
+        // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+        sutra_persistence::approval::guard_decision_by(
+            &st.pool,
+            t.as_uuid(),
+            a.id.as_deref(),
+            &id,
+            &[],
+            "progression policy",
+        )
+        .await?;
+        repo::decide_policy(
+            &st,
+            t,
+            id,
+            v,
+            b.decision == StepDecision::Approve,
+            b.reason.filter(|r| !r.trim().is_empty()),
+            &a,
+        )
+        .await
+    }
 );
 reason_cmd!(
     policy_retire,
@@ -519,15 +532,28 @@ body_cmd!(
     StepDecisionBody,
     ProgressionDecision,
     Permission::ProgressionDecide,
-    |st, t, id, v, b, a| repo::decide_decision(
-        &st,
-        t,
-        id,
-        v,
-        b.decision == StepDecision::Approve,
-        b.reason.filter(|r| !r.trim().is_empty()),
-        &a
-    )
+    |st, t, id, v, b, a| async {
+        // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+        sutra_persistence::approval::guard_decision_by(
+            &st.pool,
+            t.as_uuid(),
+            a.id.as_deref(),
+            &id,
+            &[],
+            "progression decision",
+        )
+        .await?;
+        repo::decide_decision(
+            &st,
+            t,
+            id,
+            v,
+            b.decision == StepDecision::Approve,
+            b.reason.filter(|r| !r.trim().is_empty()),
+            &a,
+        )
+        .await
+    }
 );
 reason_cmd!(
     decision_discard,
@@ -855,15 +881,28 @@ body_cmd!(
     RecognitionDecisionBody,
     CreditTransfer,
     Permission::ProgressionDecide,
-    |st, t, id, v, b, a| mobility::decide_transfer(
-        &st,
-        t,
-        id,
-        v,
-        b.decision,
-        b.reason.filter(|r| !r.trim().is_empty()),
-        &a
-    )
+    |st, t, id, v, b, a| async {
+        // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+        sutra_persistence::approval::guard_decision_by(
+            &st.pool,
+            t.as_uuid(),
+            a.id.as_deref(),
+            &id,
+            &[],
+            "credit transfer",
+        )
+        .await?;
+        mobility::decide_transfer(
+            &st,
+            t,
+            id,
+            v,
+            b.decision,
+            b.reason.filter(|r| !r.trim().is_empty()),
+            &a,
+        )
+        .await
+    }
 );
 reason_cmd!(
     transfer_withdraw,
@@ -910,15 +949,28 @@ body_cmd!(
     RecognitionDecisionBody,
     ProgrammeMigration,
     Permission::ProgressionDecide,
-    |st, t, id, v, b, a| mobility::decide_migration(
-        &st,
-        t,
-        id,
-        v,
-        b.decision,
-        b.reason.filter(|r| !r.trim().is_empty()),
-        &a
-    )
+    |st, t, id, v, b, a| async {
+        // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+        sutra_persistence::approval::guard_decision_by(
+            &st.pool,
+            t.as_uuid(),
+            a.id.as_deref(),
+            &id,
+            &[],
+            "programme migration",
+        )
+        .await?;
+        mobility::decide_migration(
+            &st,
+            t,
+            id,
+            v,
+            b.decision,
+            b.reason.filter(|r| !r.trim().is_empty()),
+            &a,
+        )
+        .await
+    }
 );
 reason_cmd!(
     migration_withdraw,
@@ -961,15 +1013,28 @@ body_cmd!(
     StepDecisionBody,
     AcademicBreak,
     Permission::ProgressionDecide,
-    |st, t, id, v, b, a| mobility::decide_break(
-        &st,
-        t,
-        id,
-        v,
-        b.decision == StepDecision::Approve,
-        b.reason.filter(|r| !r.trim().is_empty()),
-        &a
-    )
+    |st, t, id, v, b, a| async {
+        // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+        sutra_persistence::approval::guard_decision_by(
+            &st.pool,
+            t.as_uuid(),
+            a.id.as_deref(),
+            &id,
+            &[],
+            "academic break",
+        )
+        .await?;
+        mobility::decide_break(
+            &st,
+            t,
+            id,
+            v,
+            b.decision == StepDecision::Approve,
+            b.reason.filter(|r| !r.trim().is_empty()),
+            &a,
+        )
+        .await
+    }
 );
 reason_cmd!(
     break_start,

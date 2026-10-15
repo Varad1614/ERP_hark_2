@@ -38,7 +38,8 @@ export const KINDS = {
     read: (id) => `/api/v1/academic/faculty-assignments/${id}`,
     approved: ["approved", "active"],
     decide: (id) => `/api/v1/academic/faculty-assignments/${id}/decision`,
-    checker: "administrator", // faculty assignment decide: administrators only
+    // faculty assignment decide: administrators only; SoD (S3-appr) → a second administrator
+    checker: "academic_admin",
   },
   admission: {
     read: (id) => `/api/v1/student/admissions/${id}`,
@@ -50,7 +51,15 @@ export const KINDS = {
     read: (id) => `/api/v1/student/registrations/${id}`,
     approved: ["registered", "finalised"],
     decide: (id) => `/api/v1/student/registrations/${id}/decision`,
-    checker: "administrator", // student.registration.manage (the student is the maker)
+    // student.registration.manage; SoD (S3-appr): never the requester → a second administrator
+    // decides office registrations the administrator submitted (students' own: any admin)
+    checker: "academic_admin",
+  },
+  enrolment_override: {
+    read: (id) => `/api/v1/academic/enrolment-overrides/${id}`,
+    approved: ["approved"],
+    decide: (id) => `/api/v1/academic/enrolment-overrides/${id}/decision`,
+    checker: "academic_admin", // academic.offering.decide, never the requester (DEF-P1-DEMO-006)
   },
   fee_structure: {
     read: (id) => `/api/v1/finance/fee-structures/${id}`,

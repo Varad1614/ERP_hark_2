@@ -460,6 +460,8 @@ pub async fn fee_structure_decide(
     Json(b): Json<super::kit::DecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FinanceApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "fee structure").await?;
     let v = if_match!(headers);
     let s = fees::decide_structure(
         &st,
@@ -1020,6 +1022,17 @@ pub async fn dispute_decide(
     Json(b): Json<DisputeDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FinanceApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision_for_row(
+        &st.pool,
+        ctx,
+        "finance.charge_dispute",
+        "id",
+        id,
+        &["raised_by"],
+        "dispute resolution",
+    )
+    .await?;
     let v = if_match!(headers);
     require_idempotency_key(&headers)?;
     let note = opt_text(b.reason.as_deref());

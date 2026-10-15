@@ -1280,6 +1280,8 @@ pub async fn adjustment_decide(
     Json(b): Json<LeaveDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::PeopleApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "leave adjustment").await?;
     let v = expected!(headers);
     let t = ctx.scope.tenant_id;
     let a = actor(ctx);
@@ -1793,6 +1795,8 @@ pub async fn encashment_decide(
     Json(b): Json<LeaveDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::PeopleApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "leave encashment").await?;
     let v = expected!(headers);
     let t = ctx.scope.tenant_id;
     let a = actor(ctx);

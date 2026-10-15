@@ -871,9 +871,12 @@ async fn leave_lifecycle_attendance_and_workload() {
     assert_eq!(s, StatusCode::OK, "{case}");
     assert_eq!(case["status"], "completed");
     assert_eq!(case["leaveOutcome"], "approved");
+    // S3-appr (SoD): an independent administrator (not the case's requester) shows that a
+    // completed case has nothing left to decide.
+    let dean = login(&app, "dean@sutra.dev").await;
     let (s, _) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &format!("{P}/leave-cases/{case_id}/decision"),
         json!({"decision": "approve"}),

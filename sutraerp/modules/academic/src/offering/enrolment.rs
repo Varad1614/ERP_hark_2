@@ -256,6 +256,9 @@ pub struct Gate {
     pub home_institution: Option<InstitutionId>,
     /// Skip the registration coverage check (waitlist join re-checks it itself).
     pub registration: bool,
+    /// The override was already approved by an independent checker (DEF-P1-DEMO-006): no new
+    /// approval is requested.
+    pub override_approved: bool,
 }
 
 /// What justified the seat.
@@ -515,7 +518,7 @@ pub async fn evaluate(
             basis.reason = gate.override_reason.clone();
         }
     }
-    if basis.origin == "override" {
+    if basis.origin == "override" && !gate.override_approved {
         let outcome = request_approval(
             st,
             scope,
@@ -537,7 +540,10 @@ pub async fn evaluate(
         } = outcome
         {
             return Err(conflict(format!(
-                "the eligibility override awaits a decision (process {process_instance_id})"
+                "the eligibility override awaits a decision (process {process_instance_id}); \
+                 request it through POST /api/v1/academic/sections/{}/enrolment-overrides so an \
+                 independent approver can decide it",
+                s.id
             )));
         }
     }
@@ -2085,4 +2091,388 @@ mod tests {
         assert!(!waitlist_can_transition(Expired, Offered));
         assert!(!waitlist_can_transition(Waiting, Accepted));
     }
+}
+
+// ================================================================== eligibility override requests
+//
+// Part 1 · S3-appr — DEF-P1-DEMO-006. In human approval mode an override used to wait for a
+// decision that no endpoint could make. The override is now a persisted, governed request:
+// the maker (`offering.enrolment.manage`) records it, an independent checker
+// (`academic.offering.decide`, never the requester) approves — which seats the student through
+// the same seat gate (capacity is still never overridden) — or rejects it.
+
+/// An eligibility override request (`pending` → `approved` with the seat, or `rejected`).
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EnrolmentOverrideRequest {
+    pub id: Uuid,
+    pub offering_id: Uuid,
+    pub section_id: Uuid,
+    pub student_id: Uuid,
+    pub home_institution_id: Option<Uuid>,
+    pub reason: String,
+    /// `pending` | `approved` | `rejected`.
+    pub status: String,
+    pub requested_by: Option<String>,
+    pub decided_by: Option<String>,
+    pub decided_at: Option<DateTime<Utc>>,
+    pub decision_reason: Option<String>,
+    /// The seat created by the approval.
+    pub enrolment_id: Option<Uuid>,
+    pub process_instance_id: Option<String>,
+    pub version: i64,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Request an eligibility override for one student in a section.
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EnrolmentOverrideCreate {
+    pub student_id: Uuid,
+    /// Why the student should be seated despite the failed eligibility checks (required).
+    pub reason: String,
+    /// Home institution of a cross-institution student.
+    pub home_institution_id: Option<Uuid>,
+}
+
+const OVERRIDE_COLUMNS: &str =
+    "id, offering_id, section_id, student_id, home_institution_id, reason, \
+     status, requested_by, decided_by, decided_at, decision_reason, enrolment_id, \
+     process_instance_id, version, created_at";
+
+fn override_from_row(r: &PgRow) -> Result<EnrolmentOverrideRequest, sqlx::Error> {
+    Ok(EnrolmentOverrideRequest {
+        id: r.try_get("id")?,
+        offering_id: r.try_get("offering_id")?,
+        section_id: r.try_get("section_id")?,
+        student_id: r.try_get("student_id")?,
+        home_institution_id: r.try_get("home_institution_id")?,
+        reason: r.try_get("reason")?,
+        status: r.try_get("status")?,
+        requested_by: r.try_get("requested_by")?,
+        decided_by: r.try_get("decided_by")?,
+        decided_at: r.try_get("decided_at")?,
+        decision_reason: r.try_get("decision_reason")?,
+        enrolment_id: r.try_get("enrolment_id")?,
+        process_instance_id: r.try_get("process_instance_id")?,
+        version: r.try_get("version")?,
+        created_at: r.try_get("created_at")?,
+    })
+}
+
+async fn load_override(
+    conn: &mut PgConnection,
+    tenant: sutra_kernel::scope::TenantId,
+    id: Uuid,
+    lock: bool,
+) -> Result<EnrolmentOverrideRequest, KernelError> {
+    let lock_sql = if lock { " FOR UPDATE" } else { "" };
+    let row = sqlx::query(&format!(
+        "SELECT {OVERRIDE_COLUMNS} FROM academic.enrolment_override_request \
+         WHERE id = $1 AND tenant_id = $2{lock_sql}"
+    ))
+    .bind(id)
+    .bind(tenant.as_uuid())
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(map_db_error)?
+    .ok_or(KernelError::NotFound {
+        entity: "enrolment override request",
+    })?;
+    override_from_row(&row).map_err(map_db_error)
+}
+
+fn override_gate(reason: &str, home: Option<Uuid>) -> Gate {
+    Gate {
+        capacity: true,
+        window: true,
+        registration: true,
+        override_reason: Some(reason.to_owned()),
+        override_approved: true,
+        home_institution: home.map(InstitutionId),
+        ..Gate::default()
+    }
+}
+
+/// Seats the student of an approved override (same gate, capacity never overridden) and marks
+/// the request approved by `decided_by`.
+async fn seat_approved_override(
+    st: &AcademicState,
+    c: &mut Cmd,
+    r: &EnrolmentOverrideRequest,
+    decided_by: &str,
+    reason: Option<&str>,
+) -> Result<(), KernelError> {
+    let s = lock_section(&mut c.tx, c.o.tenant_id, OfferingSectionId(r.section_id)).await?;
+    let gate = override_gate(&r.reason, r.home_institution_id);
+    let b = evaluate(
+        st,
+        &mut c.tx,
+        &c.scope,
+        &c.o,
+        &s,
+        StudentId(r.student_id),
+        &gate,
+    )
+    .await?;
+    let origin = b.origin;
+    let e = insert_seat(&mut c.tx, &c.scope, &c.o, &s, &b, origin, None, &c.actor).await?;
+    sqlx::query(
+        "UPDATE academic.enrolment_override_request SET status = 'approved', decided_by = $3, \
+         decided_at = now(), decision_reason = $4, enrolment_id = $5, version = version + 1, \
+         updated_at = now() WHERE id = $1 AND tenant_id = $2",
+    )
+    .bind(r.id)
+    .bind(c.o.tenant_id.as_uuid())
+    .bind(decided_by)
+    .bind(reason)
+    .bind(e.id.as_uuid())
+    .execute(&mut *c.tx)
+    .await
+    .map_err(map_db_error)?;
+    Ok(())
+}
+
+/// Request an eligibility override (`offering.enrolment.manage`): the student fails the seat
+/// gate only on overridable checks (registration, restrictions, window). Pending until an
+/// independent approver decides it (auto-approval in development seats at once).
+#[utoipa::path(
+    post,
+    path = "/api/v1/academic/sections/{id}/enrolment-overrides",
+    operation_id = "section_enrolment_override_request",
+    tag = "offerings",
+    params(
+        ("id" = String, Path, format = Uuid, description = "Section id"),
+        ("Idempotency-Key" = String, Header, description = "Required. Retry-safe key."),
+        ("X-CSRF-Token" = String, Header, description = "Required. Session CSRF token."),
+    ),
+    security(("session_cookie" = [], "csrf_token" = [])),
+    request_body = EnrolmentOverrideCreate,
+    responses(
+        (status = 201, body = EnrolmentOverrideRequest, headers(("ETag" = String))),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, description = "No override needed, not overridable (full, inactive) or already requested", body = Problem, content_type = "application/problem+json"),
+        (status = 422, body = Problem, content_type = "application/problem+json"),
+    )
+)]
+pub async fn override_request(
+    State(st): State<AcademicState>,
+    auth: Authenticated,
+    Path(id): Path<OfferingSectionId>,
+    headers: HeaderMap,
+    Json(cmd): Json<EnrolmentOverrideCreate>,
+) -> ApiResult<Response> {
+    let ctx = auth.require(Permission::OfferingEnrolmentManage)?;
+    require_idempotency_key(&headers)?;
+    let reason = clean_reason(Some(cmd.reason), true)?.unwrap_or_default();
+    let t = tenant(ctx);
+    let student = StudentId(cmd.student_id);
+    let gate = override_gate(&reason, cmd.home_institution_id);
+    let s0 = load_section(&st.pool, t, id).await?;
+    // Dry run of the seat gate: an override must be what is missing (nothing is written).
+    {
+        let mut probe = begin(&st, ctx, s0.offering_id, None).await?;
+        let s = lock_section(&mut probe.tx, t, id).await?;
+        let b = evaluate(
+            &st,
+            &mut probe.tx,
+            &probe.scope,
+            &probe.o,
+            &s,
+            student,
+            &gate,
+        )
+        .await?;
+        if b.origin != "override" {
+            return Err(conflict(
+                "the student is eligible for this section; seat them without an override",
+            )
+            .into());
+        }
+    }
+    let rid = Uuid::now_v7();
+    let scope = crate::shared::scope::institution_scope(ctx, s0.institution_id);
+    let outcome = request_approval(
+        &st,
+        &scope,
+        process::ENROLMENT_ELIGIBILITY_OVERRIDE,
+        business_key("enrolment_override", rid, 1),
+        BTreeMap::from([
+            ("sectionId".to_owned(), serde_json::json!(id.as_uuid())),
+            ("studentId".to_owned(), serde_json::json!(cmd.student_id)),
+            ("reason".to_owned(), serde_json::json!(reason)),
+        ]),
+    )
+    .await?;
+    let mut c = begin(&st, ctx, s0.offering_id, None).await?;
+    sqlx::query(
+        "INSERT INTO academic.enrolment_override_request (id, tenant_id, institution_id, offering_id, \
+         section_id, student_id, home_institution_id, reason, requested_by, process_instance_id) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+    )
+    .bind(rid)
+    .bind(t.as_uuid())
+    .bind(c.o.institution_id.as_uuid())
+    .bind(c.o.id.as_uuid())
+    .bind(id.as_uuid())
+    .bind(cmd.student_id)
+    .bind(cmd.home_institution_id)
+    .bind(&reason)
+    .bind(c.actor.id.as_deref())
+    .bind(outcome.process_instance_id())
+    .execute(&mut *c.tx)
+    .await
+    .map_err(|e| {
+        super::lifecycle::unique_code(
+            e,
+            "studentId",
+            "an override for this student and section already awaits a decision",
+        )
+    })?;
+    publish::audit(
+        &mut c.tx,
+        &c.scope,
+        "academic.enrolment_override.request",
+        "enrolment_override_request",
+        rid.to_string(),
+        serde_json::json!({"sectionId": id.as_uuid(), "studentId": cmd.student_id, "reason": reason}),
+        &c.actor,
+    )
+    .await?;
+    if let ApprovalOutcome::Approved { .. } = outcome {
+        let r = load_override(&mut c.tx, t, rid, true).await?;
+        seat_approved_override(
+            &st,
+            &mut c,
+            &r,
+            crate::shared::approval::AUTO_APPROVER,
+            None,
+        )
+        .await?;
+    }
+    let r = load_override(&mut c.tx, t, rid, false).await?;
+    c.tx.commit().await.map_err(map_db_error)?;
+    Ok(with_etag(StatusCode::CREATED, &r, Version(r.version)))
+}
+
+/// One eligibility override request (`academic.read`).
+#[utoipa::path(
+    get,
+    path = "/api/v1/academic/enrolment-overrides/{id}",
+    operation_id = "section_enrolment_override_get",
+    tag = "offerings",
+    params(("id" = String, Path, format = Uuid)),
+    security(("session_cookie" = [])),
+    responses(
+        (status = 200, body = EnrolmentOverrideRequest, headers(("ETag" = String))),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+    )
+)]
+pub async fn override_get(
+    State(st): State<AcademicState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Response> {
+    let ctx = auth.require(Permission::AcademicRead)?;
+    let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+    let r = load_override(&mut conn, tenant(ctx), id, false).await?;
+    Ok(with_etag(StatusCode::OK, &r, Version(r.version)))
+}
+
+/// Decide an eligibility override (`academic.offering.decide`, step-up; never the requester):
+/// approve seats the student through the seat gate (capacity is never overridden); reject
+/// (reason required) closes the request.
+#[utoipa::path(
+    post,
+    path = "/api/v1/academic/enrolment-overrides/{id}/decision",
+    operation_id = "section_enrolment_override_decision",
+    tag = "offerings",
+    params(
+        ("id" = String, Path, format = Uuid),
+        ("If-Match" = String, Header, description = "ETag of the override request"),
+        ("X-CSRF-Token" = String, Header, description = "Required. Session CSRF token."),
+    ),
+    security(("session_cookie" = [], "csrf_token" = [])),
+    request_body = StepDecisionBody,
+    responses(
+        (status = 200, body = EnrolmentOverrideRequest, headers(("ETag" = String))),
+        (status = 403, description = "Missing permission, or the requester deciding their own override", body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+        (status = 409, description = "Not pending, or the seat gate fails (e.g. the section is full)", body = Problem, content_type = "application/problem+json"),
+        (status = 412, body = Problem, content_type = "application/problem+json"),
+        (status = 422, body = Problem, content_type = "application/problem+json"),
+    )
+)]
+pub async fn override_decision(
+    State(st): State<AcademicState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(d): Json<StepDecisionBody>,
+) -> ApiResult<Response> {
+    let ctx = auth.require(Permission::OfferingDecide)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the override never decides it.
+    sutra_persistence::approval::guard_decision_for_row(
+        &st.pool,
+        ctx,
+        "academic.enrolment_override_request",
+        "id",
+        id,
+        &["requested_by"],
+        "enrolment eligibility override",
+    )
+    .await?;
+    let v = expect_version!(headers);
+    let reason = clean_reason(d.reason, d.decision == StepDecision::Reject)?;
+    let t = tenant(ctx);
+    let r0 = {
+        let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+        load_override(&mut conn, t, id, false).await?
+    };
+    let mut c = begin(&st, ctx, CourseOfferingId(r0.offering_id), None).await?;
+    let r = load_override(&mut c.tx, t, id, true).await?;
+    check_version(Version(r.version), v)?;
+    if r.status != "pending" {
+        return Err(conflict(format!(
+            "the override request is {}; nothing awaits a decision",
+            r.status
+        ))
+        .into());
+    }
+    let decider = c.actor.id.clone().unwrap_or_default();
+    match d.decision {
+        StepDecision::Approve => {
+            seat_approved_override(&st, &mut c, &r, &decider, reason.as_deref()).await?;
+        }
+        StepDecision::Reject => {
+            sqlx::query(
+                "UPDATE academic.enrolment_override_request SET status = 'rejected', decided_by = $3, \
+                 decided_at = now(), decision_reason = $4, version = version + 1, updated_at = now() \
+                 WHERE id = $1 AND tenant_id = $2",
+            )
+            .bind(id)
+            .bind(t.as_uuid())
+            .bind(&decider)
+            .bind(reason.as_deref())
+            .execute(&mut *c.tx)
+            .await
+            .map_err(map_db_error)?;
+        }
+    }
+    publish::audit(
+        &mut c.tx,
+        &c.scope,
+        "academic.enrolment_override.decide",
+        "enrolment_override_request",
+        id.to_string(),
+        serde_json::json!({
+            "decision": if d.decision == StepDecision::Approve { "approve" } else { "reject" },
+            "reason": reason,
+        }),
+        &c.actor,
+    )
+    .await?;
+    let out = load_override(&mut c.tx, t, id, false).await?;
+    c.tx.commit().await.map_err(map_db_error)?;
+    Ok(with_etag(StatusCode::OK, &out, Version(out.version)))
 }

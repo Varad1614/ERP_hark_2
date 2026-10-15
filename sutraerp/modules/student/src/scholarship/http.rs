@@ -251,6 +251,8 @@ pub async fn policy_decision(
     Json(cmd): Json<LifecycleDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ScholarshipPublish)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "scholarship policy").await?;
     let v = expect_version!(headers);
     let p = repo::decide_policy(&st, ctx, id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&p, p.version))
@@ -390,6 +392,9 @@ pub async fn eligibility_recommendation_decision(
     Json(cmd): Json<LifecycleDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ScholarshipManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "scholarship recommendation")
+        .await?;
     let v = expect_version!(headers);
     let e = repo::recommendation_decision(&st, ctx, id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&e, e.version))

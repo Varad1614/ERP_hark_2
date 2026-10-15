@@ -411,6 +411,8 @@ pub async fn policy_decision(
     Json(cmd): Json<DeliveryDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::AttendanceManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "attendance policy").await?;
     let v = expect_version!(headers);
     let p = repo::decide_policy(
         &st,

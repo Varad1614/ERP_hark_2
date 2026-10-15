@@ -211,6 +211,8 @@ macro_rules! policy_routes {
             responses((status = 200, body = PolicyVersionView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
         pub async fn $decide(State(st): State<FinanceState>, auth: Authenticated, Path(id): Path<Uuid>, headers: HeaderMap, Json(b): Json<DecisionBody>) -> ApiResult<Response> {
             let ctx = auth.require(Permission::FinanceApprove)?;
+            // Part 1 · S3-appr (DEF-X-002): the requester of the pending version never decides it.
+            sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "finance configuration").await?;
             let v = if_match!(headers);
             let out = repo::decide(&st, $kind, ctx.scope.tenant_id, id, v, b.decision == DecisionKind::Approve, opt_text(b.reason.as_deref()), &actor(ctx)).await?;
             Ok(ok(&out, StatusCode::OK))

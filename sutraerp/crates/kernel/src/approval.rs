@@ -41,6 +41,29 @@ impl ApprovalMode {
     }
 }
 
+tokio::task_local! {
+    /// Subject of the authenticated user serving the current request (set by the web
+    /// authentication middleware; absent in background jobs and consumers).
+    static REQUESTER: Option<String>;
+}
+
+/// Runs `f` with `subject` as the request's authenticated user (Part 1 · S3-appr). The web
+/// authentication middleware wraps every authenticated request in it, so a module's
+/// `request_approval` can record **who asked** for a governed decision
+/// (`platform.approval_request`) without threading the actor through every call site.
+pub async fn with_requester<F: std::future::Future>(subject: Option<String>, f: F) -> F::Output {
+    REQUESTER.scope(subject, f).await
+}
+
+/// The authenticated user of the request being served, if any (see [`with_requester`]).
+pub fn current_requester() -> Option<String> {
+    REQUESTER
+        .try_with(Clone::clone)
+        .ok()
+        .flatten()
+        .filter(|s| !s.trim().is_empty())
+}
+
 /// Actor ids that are never a human decider (automatic steps).
 pub fn is_system_actor(id: &str) -> bool {
     id.starts_with("system:") || id == "system"
@@ -94,6 +117,16 @@ mod tests {
         );
         assert_eq!(ApprovalMode::parse("yes"), None);
         assert_eq!(ApprovalMode::AwaitDecision.as_str(), "human");
+    }
+
+    #[tokio::test]
+    async fn the_requester_is_only_visible_inside_its_request() {
+        assert_eq!(current_requester(), None);
+        let inside = with_requester(Some("dev|a".into()), async { current_requester() }).await;
+        assert_eq!(inside.as_deref(), Some("dev|a"));
+        let blank = with_requester(Some("  ".into()), async { current_requester() }).await;
+        assert_eq!(blank, None);
+        assert_eq!(current_requester(), None);
     }
 
     #[test]

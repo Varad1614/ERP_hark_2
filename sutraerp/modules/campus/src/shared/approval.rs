@@ -117,6 +117,16 @@ pub async fn request_approval(
             },
         )
         .await?;
+    // Part 1 · S3-appr: who asked for this decision (separation of duties on its decision path).
+    sutra_persistence::approval::record_request(
+        &state.pool,
+        scope.tenant_id.as_uuid(),
+        &r.process_definition_key,
+        &r.business_key,
+        &r.process_instance_id,
+        sutra_kernel::approval::current_requester().as_deref(),
+    )
+    .await?;
     Ok(match state.approvals {
         ApprovalMode::AutoApprove => ApprovalOutcome::Approved {
             process_instance_id: r.process_instance_id,

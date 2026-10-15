@@ -257,6 +257,9 @@ pub async fn relationship_decision(
     Json(cmd): Json<LifecycleDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::GuardianManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "guardian verification")
+        .await?;
     let v = expect_version!(headers);
     let r = repo::verification_decision(&st, ctx, id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&r, r.version))

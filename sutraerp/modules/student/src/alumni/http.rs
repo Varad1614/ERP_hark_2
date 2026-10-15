@@ -137,6 +137,8 @@ pub async fn transition_decision(
     Json(cmd): Json<LifecycleDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::AlumniManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "alumni transition").await?;
     let v = expect_version!(headers);
     let t = repo::decide(&st, ctx, id, v, cmd, &actor(ctx)).await?;
     Ok(ok(&t, t.version))

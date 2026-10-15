@@ -403,6 +403,8 @@ pub async fn case_decide(
     Json(b): Json<MalpracticeDecisionCreate>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::MarksManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "malpractice decision").await?;
     let v = if_match_or_return!(headers);
     let t = tenant(ctx);
     let c = repo::propose_decision(

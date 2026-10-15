@@ -483,6 +483,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic/enrolment-overrides/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One eligibility override request (`academic.read`). */
+        get: operations["section_enrolment_override_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/enrolment-overrides/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide an eligibility override (`academic.offering.decide`, step-up; never the requester):
+         *     approve seats the student through the seat gate (capacity is never overridden); reject
+         *     (reason required) closes the request.
+         */
+        post: operations["section_enrolment_override_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/academic/enrolments/{id}": {
         parameters: {
             query?: never;
@@ -3556,6 +3594,27 @@ export interface paths {
         put?: never;
         /** Cancel a section without seated students (reason required, `offering.manage`). */
         post: operations["offering_section_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/enrolment-overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an eligibility override (`offering.enrolment.manage`): the student fails the seat
+         *     gate only on overridable checks (registration, restrictions, window). Pending until an
+         *     independent approver decides it (auto-approval in development seats at once).
+         */
+        post: operations["section_enrolment_override_request"];
         delete?: never;
         options?: never;
         head?: never;
@@ -31479,6 +31538,49 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Request an eligibility override for one student in a section. */
+        EnrolmentOverrideCreate: {
+            /**
+             * Format: uuid
+             * @description Home institution of a cross-institution student.
+             */
+            homeInstitutionId?: string | null;
+            /** @description Why the student should be seated despite the failed eligibility checks (required). */
+            reason: string;
+            /** Format: uuid */
+            studentId: string;
+        };
+        /** @description An eligibility override request (`pending` → `approved` with the seat, or `rejected`). */
+        EnrolmentOverrideRequest: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /**
+             * Format: uuid
+             * @description The seat created by the approval.
+             */
+            enrolmentId?: string | null;
+            /** Format: uuid */
+            homeInstitutionId?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offeringId: string;
+            processInstanceId?: string | null;
+            reason: string;
+            requestedBy?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            /** @description `pending` | `approved` | `rejected`. */
+            status: string;
+            /** Format: uuid */
+            studentId: string;
+            /** Format: int64 */
+            version: number;
+        };
         EnrolmentRestriction: {
             /** Format: date */
             effectiveFrom?: string | null;
@@ -47126,6 +47228,109 @@ export interface operations {
             };
         };
     };
+    section_enrolment_override_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentOverrideRequest"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_override_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the override request */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentOverrideRequest"];
+                };
+            };
+            /** @description Missing permission, or the requester deciding their own override */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not pending, or the seat gate fails (e.g. the section is full) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     section_enrolment_get: {
         parameters: {
             query?: never;
@@ -56386,6 +56591,63 @@ export interface operations {
                 };
             };
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_override_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Section id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolmentOverrideCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentOverrideRequest"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No override needed, not overridable (full, inactive) or already requested */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
