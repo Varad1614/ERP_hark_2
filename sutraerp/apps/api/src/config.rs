@@ -753,6 +753,23 @@ impl Config {
             {
                 return Err(ConfigError::RequiredInProduction("SUTRA_AUDIT_ANCHOR_KEY"));
             }
+            // Part 1 (DEF-X-001): governed decisions always need a human in production.
+            let wf = &self.hardening.workflow;
+            if wf.approvals == sutra_kernel::approval::ApprovalMode::AutoApprove {
+                return Err(ConfigError::Forbidden(
+                    "SUTRA_APPROVAL_MODE=auto (automatic approval) is not allowed in production",
+                ));
+            }
+            if wf.mode == crate::config_b9::WorkflowMode::Noop {
+                return Err(ConfigError::Forbidden(
+                    "SUTRA_WORKFLOW=noop is not allowed in production; set SUTRA_WORKFLOW=flowable",
+                ));
+            }
+            if wf.flowable_auto_approve {
+                return Err(ConfigError::Forbidden(
+                    "SUTRA_FLOWABLE_AUTO_APPROVE=true is not allowed in production",
+                ));
+            }
         }
         if self.relay.batch_size == 0 || self.relay.batch_size > 10_000 {
             return Err(ConfigError::Invalid {
@@ -991,6 +1008,7 @@ mod tests {
         ));
         let mut chain_off = no_anchor_key.clone();
         chain_off.insert("SUTRA_AUDIT_CHAIN", "false");
+        chain_off.insert("SUTRA_WORKFLOW", "flowable"); // Part 1: noop is refused in production
         assert!(Config::load(&chain_off).is_ok(), "chain off needs no key");
         let ok = HashMap::from([
             ("SUTRA_ENV", "production"),
@@ -999,8 +1017,40 @@ mod tests {
             ("SUTRA_CSRF_KEY", KEY),
             ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
             ("SUTRA_AUDIT_ANCHOR_KEY", KEY), // 9A
+            ("SUTRA_WORKFLOW", "flowable"),  // Part 1: DEF-X-001
         ]);
         let c = Config::load(&ok).unwrap();
+        assert_eq!(
+            c.hardening.workflow.approvals,
+            sutra_kernel::approval::ApprovalMode::AwaitDecision,
+            "production decides by a human"
+        );
+        // Part 1 (DEF-X-001): production refuses every auto-approving configuration.
+        for (key, value) in [
+            ("SUTRA_APPROVAL_MODE", "auto"),
+            ("SUTRA_WORKFLOW", "noop"),
+            ("SUTRA_FLOWABLE_AUTO_APPROVE", "true"),
+        ] {
+            let mut bad = ok.clone();
+            bad.insert(key, value);
+            assert!(
+                matches!(Config::load(&bad), Err(ConfigError::Forbidden(_))),
+                "{key}={value} must be refused in production"
+            );
+        }
+        let mut no_workflow = ok.clone();
+        no_workflow.remove("SUTRA_WORKFLOW");
+        assert!(
+            matches!(Config::load(&no_workflow), Err(ConfigError::Forbidden(_))),
+            "the noop default is refused in production"
+        );
+        let dev_auto = Config::load(&HashMap::from([("SUTRA_APPROVAL_MODE", "auto")])).unwrap();
+        assert_eq!(
+            dev_auto.hardening.workflow.approvals,
+            sutra_kernel::approval::ApprovalMode::AutoApprove,
+            "development may opt in explicitly"
+        );
+        assert!(Config::load(&HashMap::from([("SUTRA_APPROVAL_MODE", "maybe")])).is_err());
         assert_eq!(c.relay.mode, OutboxRelayMode::Nats, "relay on by default");
         assert_eq!(c.cache.backend, CacheBackend::Off);
         assert_eq!(c.cache.namespace, "production");
@@ -1100,6 +1150,7 @@ mod tests {
                 ("SUTRA_MFA_ENCRYPTION_KEY", KEY),
                 ("SUTRA_AUDIT_ANCHOR_KEY", KEY), // 9A
                 ("SUTRA_OUTBOX_RELAY", "off"),
+                ("SUTRA_WORKFLOW", "flowable"), // Part 1: DEF-X-001
                 extra,
             ]))
         };

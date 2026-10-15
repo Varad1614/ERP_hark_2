@@ -93,7 +93,8 @@ pub struct AuditChainConfig {
 /// `SUTRA_WORKFLOW`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkflowMode {
-    /// `NoopWorkflowAdapter` (approvals auto-complete; Batches 2–8 behaviour).
+    /// `NoopWorkflowAdapter` (records a process id only; development / test — refused in
+    /// production, Part 1 DEF-X-001).
     Noop,
     /// `sutra_platform::workflow_flowable::FlowableWorkflowAdapter` (9C).
     Flowable,
@@ -113,6 +114,13 @@ pub struct WorkflowConfig {
     pub timeout: Duration,
     /// `SUTRA_FLOWABLE_DEPLOY_ON_START` (default true): deploy `deploy/flowable/processes/*.bpmn20.xml`.
     pub deploy_on_start: bool,
+    /// Part 1 (DEF-X-001): `SUTRA_APPROVAL_MODE` = `human` (default) | `auto`. One mode handed to
+    /// every module state; `auto` is a development / test opt-in refused in production.
+    pub approvals: sutra_kernel::approval::ApprovalMode,
+    /// Part 1 (DEF-X-001): `SUTRA_FLOWABLE_AUTO_APPROVE` (default false). When false the Flowable
+    /// adapter always starts processes with `autoApprove=false` (the BPMN waits at `decide`);
+    /// refused in production.
+    pub flowable_auto_approve: bool,
 }
 
 /// `SUTRA_SEARCH`.
@@ -239,6 +247,16 @@ impl HardeningConfig {
             flowable_password: src.get("SUTRA_FLOWABLE_PASSWORD").map(SecretString),
             timeout: Duration::from_millis(parse(src, "SUTRA_FLOWABLE_TIMEOUT_MS", 5000)?),
             deploy_on_start: parse(src, "SUTRA_FLOWABLE_DEPLOY_ON_START", true)?,
+            approvals: match src.get("SUTRA_APPROVAL_MODE") {
+                None => sutra_kernel::approval::ApprovalMode::default(),
+                Some(v) => sutra_kernel::approval::ApprovalMode::parse(&v).ok_or(
+                    ConfigError::Invalid {
+                        key: "SUTRA_APPROVAL_MODE",
+                        value: v,
+                    },
+                )?,
+            },
+            flowable_auto_approve: parse(src, "SUTRA_FLOWABLE_AUTO_APPROVE", false)?,
         };
         let search_mode = match src
             .get("SUTRA_SEARCH")
@@ -331,6 +349,12 @@ mod tests {
         assert!(c.audit_chain.enabled);
         assert!(c.audit_chain.anchor_key.is_none());
         assert_eq!(c.workflow.mode, WorkflowMode::Noop);
+        // Part 1 (DEF-X-001): human decision by default, no Flowable auto-approval.
+        assert_eq!(
+            c.workflow.approvals,
+            sutra_kernel::approval::ApprovalMode::AwaitDecision
+        );
+        assert!(!c.workflow.flowable_auto_approve);
         assert_eq!(c.search.mode, SearchMode::Off);
         assert_eq!(c.search.index_prefix, "sutra-development");
         let t = HardeningConfig::load(&HashMap::<&str, &str>::new(), Environment::Test).unwrap();

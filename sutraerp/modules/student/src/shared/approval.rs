@@ -15,7 +15,8 @@
 //! 4. With [`ApprovalMode::AwaitDecision`] (later batches, Flowable) the aggregate stays pending;
 //!    a human with the decide/publish permission calls the slice's decision endpoint.
 //!
-//! Batch 3 runs [`ApprovalMode::AutoApprove`] with the platform `NoopWorkflowAdapter`; tests build a
+//! The mode comes from `SUTRA_APPROVAL_MODE` (default [`ApprovalMode::AwaitDecision`];
+//! [`ApprovalMode::AutoApprove`] is a dev/test opt-in refused in production); tests build a
 //! [`StudentState`] with [`ApprovalMode::AwaitDecision`] to cover the explicit decision endpoint.
 
 use crate::shared::StudentState;
@@ -80,15 +81,9 @@ pub mod process {
     ];
 }
 
-/// How approval steps resolve.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-pub enum ApprovalMode {
-    /// Batch 3 default: the process is started (no-op adapter) and approved at once.
-    #[default]
-    AutoApprove,
-    /// The aggregate stays pending until a decision endpoint is called.
-    AwaitDecision,
-}
+/// How approval steps resolve: the one config-driven mode shared by every module
+/// (`SUTRA_APPROVAL_MODE`; default human decision, auto-approval is a dev/test opt-in).
+pub use sutra_kernel::approval::ApprovalMode;
 
 /// Result of [`request_approval`].
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -156,7 +151,7 @@ mod tests {
         let keys: std::collections::HashSet<_> = process::ALL.iter().collect();
         assert_eq!(keys.len(), process::ALL.len());
         assert!(process::ALL.iter().all(|k| k.starts_with("student.")));
-        assert_eq!(ApprovalMode::default(), ApprovalMode::AutoApprove);
+        assert_eq!(ApprovalMode::default(), ApprovalMode::AwaitDecision);
         let o = ApprovalOutcome::Pending {
             process_instance_id: "p".into(),
         };

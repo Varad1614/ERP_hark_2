@@ -67,14 +67,16 @@ pub struct InstitutionDeps {
     pub pool: PgPool,
     /// Advisory cache: pass `AdvisoryCache::disabled()` to turn it off.
     pub cache: AdvisoryCache,
-    /// Approval steps (`NoopWorkflowAdapter` in Batch 2).
+    /// Approval steps (workflow adapter selected by `SUTRA_WORKFLOW`).
     pub workflow: Arc<dyn WorkflowPort>,
+    /// How approval steps resolve (`SUTRA_APPROVAL_MODE`, composed by the API; never hard-coded).
+    pub approvals: shared::approval::ApprovalMode,
 }
 
 /// All Domain B routes. Every slice router is already mounted here; slices fill in their own
 /// `router` functions and never edit this list.
 pub fn router(deps: InstitutionDeps) -> OpenApiRouter {
-    let st = InstitutionState::new(deps.pool, deps.cache, deps.workflow);
+    let st = InstitutionState::new(deps.pool, deps.cache, deps.workflow).with_approvals(deps.approvals);
     OpenApiRouter::new()
         .merge(http::router(st.clone())) // 2A — reference aggregate root
         .merge(lifecycle::router(st.clone())) // 2A

@@ -196,7 +196,7 @@ mod tests {
         let a = plan(&e).unwrap_or_default();
         let n = notifications(&a);
         let roles: Vec<_> = n.iter().map(|x| x.recipient.clone()).collect();
-        assert_eq!(roles.len(), 3);
+        assert_eq!(roles.len(), Role::ALL.len());
         for r in Role::ALL {
             assert!(roles.contains(&Recipient::Role(r)));
         }

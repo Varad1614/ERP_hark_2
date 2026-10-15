@@ -26,17 +26,59 @@ pub enum Role {
     Administrator,
     Faculty,
     Student,
+    /// Part 1 (DEF-X-002): checker for finance decisions (refunds, adjustments, write-offs, …).
+    #[serde(rename = "finance_approver")]
+    FinanceApprover,
+    /// Part 1 (DEF-X-002): controller of examinations (result approval / publication).
+    #[serde(rename = "exam_controller")]
+    ExamController,
+    /// Part 1 (DEF-X-002): registrar deciding admissions.
+    #[serde(rename = "registrar")]
+    Registrar,
+    /// Part 1 (DEF-X-002): checker for payroll runs, adjustments and final settlements.
+    #[serde(rename = "payroll_approver")]
+    PayrollApprover,
+    /// Part 1 (DEF-X-002): checker for requisitions, purchase orders and vendor invoices.
+    #[serde(rename = "procurement_approver")]
+    ProcurementApprover,
 }
 
 impl Role {
-    pub const ALL: [Role; 3] = [Role::Administrator, Role::Faculty, Role::Student];
+    pub const ALL: [Role; 8] = [
+        Role::Administrator,
+        Role::Faculty,
+        Role::Student,
+        Role::FinanceApprover,
+        Role::ExamController,
+        Role::Registrar,
+        Role::PayrollApprover,
+        Role::ProcurementApprover,
+    ];
 
     pub fn as_str(&self) -> &'static str {
         match self {
             Role::Administrator => "administrator",
             Role::Faculty => "faculty",
             Role::Student => "student",
+            Role::FinanceApprover => "finance_approver",
+            Role::ExamController => "exam_controller",
+            Role::Registrar => "registrar",
+            Role::PayrollApprover => "payroll_approver",
+            Role::ProcurementApprover => "procurement_approver",
         }
+    }
+
+    /// Part 1 (DEF-X-002): approver (checker) roles that hold a domain's approve permission
+    /// without its manage permissions.
+    pub fn is_approver(&self) -> bool {
+        matches!(
+            self,
+            Role::FinanceApprover
+                | Role::ExamController
+                | Role::Registrar
+                | Role::PayrollApprover
+                | Role::ProcurementApprover
+        )
     }
 
     /// Strict parse of the stored/wire name. Unknown names yield `None` (and therefore no grants).
@@ -46,7 +88,7 @@ impl Role {
 
     /// Privileged roles require MFA (ADR-L5-0038 §3.8).
     pub fn is_privileged(&self) -> bool {
-        matches!(self, Role::Administrator)
+        matches!(self, Role::Administrator) || self.is_approver()
     }
 }
 
@@ -766,6 +808,56 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             // Batch 8: own service requests, hostel residency, transport pass, library loans and fines.
             CampusSelfService,
         ],
+        // Part 1 (DEF-X-002): checker roles — the domain's read + approve permissions only, never
+        // the manage permissions that create the requests they decide. docs/readiness/APPROVAL_CONTROL_MATRIX.md.
+        Role::FinanceApprover => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            StudentRead,
+            FinanceRead,
+            FinanceApprove,
+        ],
+        Role::ExamController => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            StudentRead,
+            ExamRead,
+            ExamApprove,
+            ResultPublish,
+        ],
+        Role::Registrar => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            StudentRead,
+            AdmissionDecide,
+        ],
+        Role::PayrollApprover => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            PeopleRead,
+            PayrollApprove,
+        ],
+        Role::ProcurementApprover => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            ResourcesRead,
+            ResourcesApprove,
+        ],
     }
 }
 
@@ -1289,6 +1381,27 @@ mod tests {
             Permission::ALL.len(),
             "permission names are unique"
         );
+    }
+
+    #[test]
+    fn approver_roles_hold_approve_without_manage() {
+        use Permission::*;
+        for (role, approve, manage) in [
+            (Role::FinanceApprover, &[FinanceApprove][..], &[RefundManage, AdjustmentManage, ReceivableManage, ChargeManage][..]),
+            (Role::ExamController, &[ExamApprove, ResultPublish][..], &[ResultManage, MarksManage][..]),
+            (Role::Registrar, &[AdmissionDecide][..], &[AdmissionManage, StudentManage][..]),
+            (Role::PayrollApprover, &[PayrollApprove][..], &[PayrollManage, StaffManage][..]),
+            (Role::ProcurementApprover, &[ResourcesApprove][..], &[ProcurementManage, InventoryManage][..]),
+        ] {
+            assert!(role.is_approver() && role.is_privileged(), "{role:?}");
+            for p in approve {
+                assert!(is_granted(&[role], *p), "{role:?} needs {p:?}");
+            }
+            for p in manage {
+                assert!(!is_granted(&[role], *p), "{role:?} must not hold {p:?}");
+            }
+        }
+        assert!(!Role::Administrator.is_approver());
     }
 
     #[test]

@@ -5,6 +5,7 @@
 //! It holds only *technical* primitives that every module needs and that carry no business
 //! meaning of their own (ADR-L5-0003 §7, ADR-L5-0036 §3):
 //!
+//! * [`approval`] – approval mode (human decision vs dev auto-approval) + separation of duties
 //! * [`auth`] – authenticated context, deny-by-default role→permission policy, session resolver port
 //! * [`secret`] – CSPRNG tokens, SHA-256/HMAC, constant-time compare (ADR-L5-0038)
 //! * [`id`] – UUIDv7 technical identifiers (ADR-L5-0036 §3.3)
@@ -23,6 +24,7 @@
 //!
 //! The kernel must never depend on Axum, SQLx or any domain module.
 
+pub mod approval;
 pub mod audit;
 pub mod audit_chain;
 pub mod auth;

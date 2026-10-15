@@ -64,8 +64,10 @@ pub const MODULE: ModuleDescriptor = ModuleDescriptor {
 #[derive(Clone)]
 pub struct StudentDeps {
     pub pool: PgPool,
-    /// Approval steps (`NoopWorkflowAdapter` in Batch 3).
+    /// Approval steps (workflow adapter selected by `SUTRA_WORKFLOW`; was `NoopWorkflowAdapter` in Batch 3).
     pub workflow: Arc<dyn WorkflowPort>,
+    /// How approval steps resolve (`SUTRA_APPROVAL_MODE`, composed by the API; never hard-coded).
+    pub approvals: shared::approval::ApprovalMode,
     /// Domain B reference data (`sutra_institution::PgInstitutionReferences`).
     pub references: Arc<dyn InstitutionReferencePort>,
     /// Finance facts (`sutra_finance::PgFinanceClearance` since the Batch 5 foundation).
@@ -79,12 +81,12 @@ pub struct StudentDeps {
 }
 
 impl StudentDeps {
-    /// Handler state with the Batch 3 defaults (auto-approving approval steps).
+    /// Handler state with the Batch 3 defaults (approval steps in the configured `approvals` mode).
     pub fn into_state(self) -> StudentState {
         StudentState {
             pool: self.pool,
             workflow: self.workflow,
-            approvals: shared::approval::ApprovalMode::AutoApprove,
+            approvals: self.approvals,
             references: self.references,
             finance: self.finance,
             results: self.results,

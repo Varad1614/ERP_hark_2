@@ -7,8 +7,10 @@
 //!   travels as a variable and is re-checked on every task call). A live instance with the same
 //!   key + business key of the same tenant is reused, so a retried command never starts a
 //!   second process.
-//! * `autoApprove` rule: `true` unless the caller's variables contain `"autoApprove": false`
-//!   (modules stay unchanged; `ApprovalMode::AwaitDecision` callers and tests pass `false`).
+//! * `autoApprove` rule (Part 1, DEF-X-001): always `false` (the BPMN waits at `decide` for the
+//!   domain decision endpoint) unless the adapter was built with `allow_auto_approve`
+//!   (`SUTRA_FLOWABLE_AUTO_APPROVE=true`, development / test only — refused in production) **and**
+//!   the caller's variables contain `"autoApprove": true`.
 //! * `complete_task` → `POST runtime/tasks/{id}` (`action=complete`) after checking the task's
 //!   process belongs to the caller's tenant; `signal` → every execution of the instance
 //!   subscribed to the signal gets `PUT runtime/executions/{id}` (`action=signalEventReceived`).
@@ -233,6 +235,9 @@ pub struct FlowableSettings {
     pub password: Option<String>,
     pub timeout: Duration,
     pub deploy_on_start: bool,
+    /// Part 1 (DEF-X-001): honour a caller's `autoApprove: true` (dev / test only; production
+    /// refuses `SUTRA_FLOWABLE_AUTO_APPROVE=true`). Default false.
+    pub allow_auto_approve: bool,
 }
 
 impl std::fmt::Debug for FlowableSettings {
@@ -242,6 +247,7 @@ impl std::fmt::Debug for FlowableSettings {
             .field("user", &self.user)
             .field("timeout", &self.timeout)
             .field("deploy_on_start", &self.deploy_on_start)
+            .field("allow_auto_approve", &self.allow_auto_approve)
             .finish_non_exhaustive()
     }
 }
@@ -276,12 +282,15 @@ pub fn rest_variables(vars: &BTreeMap<String, serde_json::Value>) -> Vec<serde_j
 pub fn start_variables(
     scope: &ExecutionScope,
     caller: &BTreeMap<String, serde_json::Value>,
+    allow_auto_approve: bool,
 ) -> BTreeMap<String, serde_json::Value> {
     let mut vars = caller.clone();
-    let auto = !matches!(
-        caller.get("autoApprove"),
-        Some(serde_json::Value::Bool(false))
-    );
+    // Part 1 (DEF-X-001): human decision unless auto-approval is explicitly allowed AND asked for.
+    let auto = allow_auto_approve
+        && matches!(
+            caller.get("autoApprove"),
+            Some(serde_json::Value::Bool(true))
+        );
     vars.insert("autoApprove".into(), serde_json::Value::Bool(auto));
     vars.insert(
         "sutraTenantId".into(),
@@ -565,7 +574,7 @@ impl FlowableWorkflowAdapter {
                 business_key: req.business_key,
             });
         }
-        let vars = start_variables(scope, &req.variables);
+        let vars = start_variables(scope, &req.variables, self.settings.allow_auto_approve);
         let body = serde_json::json!({
             "processDefinitionKey": req.process_definition_key,
             "businessKey": req.business_key,
@@ -934,10 +943,21 @@ mod tests {
     use sutra_kernel::scope::InstitutionId;
 
     #[test]
-    fn auto_approve_defaults_to_true_unless_the_caller_says_false() {
+    fn auto_approve_is_false_unless_allowed_and_requested() {
         let scope = ExecutionScope::institution(TenantId::new(), InstitutionId::new());
-        let v = start_variables(&scope, &BTreeMap::new());
-        assert_eq!(v["autoApprove"], serde_json::Value::Bool(true));
+        let v = start_variables(&scope, &BTreeMap::new(), true);
+        assert_eq!(v["autoApprove"], serde_json::Value::Bool(false));
+        let mut yes = BTreeMap::new();
+        yes.insert("autoApprove".to_owned(), serde_json::Value::Bool(true));
+        assert_eq!(
+            start_variables(&scope, &yes, false)["autoApprove"],
+            serde_json::Value::Bool(false),
+            "a caller cannot auto-approve unless the adapter allows it"
+        );
+        assert_eq!(
+            start_variables(&scope, &yes, true)["autoApprove"],
+            serde_json::Value::Bool(true)
+        );
         assert_eq!(
             v["sutraTenantId"],
             serde_json::Value::String(scope.tenant_id.as_uuid().to_string())
@@ -946,7 +966,7 @@ mod tests {
         let mut caller = BTreeMap::new();
         caller.insert("autoApprove".to_owned(), serde_json::Value::Bool(false));
         caller.insert("sutraTenantId".to_owned(), serde_json::json!("spoofed"));
-        let v = start_variables(&ExecutionScope::tenant(scope.tenant_id), &caller);
+        let v = start_variables(&ExecutionScope::tenant(scope.tenant_id), &caller, true);
         assert_eq!(v["autoApprove"], serde_json::Value::Bool(false));
         assert_ne!(v["sutraTenantId"], serde_json::json!("spoofed"));
         assert!(!v.contains_key("sutraInstitutionId"));
@@ -1032,6 +1052,7 @@ mod tests {
             password: Some("hunter2".into()),
             timeout: Duration::from_secs(1),
             deploy_on_start: true,
+            allow_auto_approve: false,
         };
         assert!(!format!("{s:?}").contains("hunter2"));
         assert!(FlowableWorkflowAdapter::new(s).is_ok());
