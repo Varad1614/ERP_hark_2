@@ -471,7 +471,7 @@ try {
 
     await step("2 Enrolment", "Registration window for term 1 scheduled and opened", "API (screen exists: /students/registration — not driven)", async (e) => {
       gap("2 Enrolment: registration window", "screen exists (/students/registration); scheduled + opened through the API to keep the journey on one browser path");
-      let w = await admin.call("POST", `${S}/institutions/${need(ids.id, "institution")}/registration-windows`, { academicTermId: ids.termIds[0], name: "Term 1 registration", opensOn: day(-1), closesOn: day(20), minCredits: 16, maxCredits: 28 });
+      let w = await admin.call("POST", `${S}/institutions/${need(ids.id, "institution")}/registration-windows`, { academicTermId: ids.termIds[0], name: "Term 1 registration", opensOn: day(0), closesOn: day(20), minCredits: 16, maxCredits: 28 });
       e(`window ${w.id} → ${w.status}`);
       w = await admin.call("POST", `${S}/registration-windows/${w.id}/open`, {}, w.version);
       check(w.status === "open", "window open", e);
@@ -688,7 +688,7 @@ try {
       await settle(page);
       const after = (await page.locator("[data-outstanding]").textContent())?.trim();
       e(`student sees outstanding ${after} (${await snap(page, "4-student-fees-paid")})`);
-      check(after === "₹0", "nothing outstanding", e);
+      check(/^₹0(\.00)?$/.test(after ?? ""), "nothing outstanding", e);
       noServerErrors(e);
       db(e, "charge settled", `SELECT status || '|' || outstanding_amount || '|' || settled_amount FROM finance.charge WHERE id = ${q(ids.chargeId)}`, (v) => v.split("|")[1] === "0.00" && v.split("|")[2] === "90000.00");
       db(e, "payments", `SELECT string_agg(channel || ':' || amount || ':' || status, ',' ORDER BY created_at) FROM finance.payment WHERE student_account_id = ${q(ids.studentAccountId)}`, (v) => v === "cash:30000.00:completed,bank_transfer:10000.00:completed,gateway:50000.00:completed");
@@ -883,7 +883,7 @@ try {
       await sees(e, "student", student, `${F}/me/accounts`, 200, (j) => JSON.stringify(j).includes(ids.chargeNumber));
       await go(P.student, "/fees");
       const out = (await P.student.locator("[data-outstanding]").textContent())?.trim();
-      check(out === "₹0", `student still sees ₹0 outstanding (${out})`, e);
+      check(/^₹0(\.00)?$/.test(out ?? ""), `student still sees ₹0 outstanding (${out})`, e);
       e(`(${await snap(P.student, "7-student-fees-after-restart")})`);
     });
     await step("7 Persistence", "Results persist (published term result and grade)", "API + DB + browser", async (e) => {

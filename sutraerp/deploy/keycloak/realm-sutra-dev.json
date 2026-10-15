@@ -253,7 +253,7 @@
   "authenticationFlows": [
     {
       "alias": "browser-sutra",
-      "description": "Browser sign-in that records Authentication Method References (pwd, otp) so the ID token amr claim tells SutraERP an OTP was used (MFA / step-up). Same steps as the built-in browser flow: SSO cookie, else username + password, then OTP when the user has one configured.",
+      "description": "Built-in browser steps (cookie, password, conditional OTP) with AMR references pwd/otp, so the ID token amr shows MFA to SutraERP",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,
