@@ -279,15 +279,27 @@ async fn register_configure_set_up_all_slices_then_activate() {
         .unwrap();
     assert_eq!(school["status"], "not_applicable");
 
-    // Submit → pending_approval → (auto-approval) → active.
+    // Submit → pending_approval (DEF-B-002: never activates by itself) → the Activation
+    // Authority approves → active.
     let cur = read(&app, &admin, &format!("{API}/institutions/{inst}")).await;
-    let done = call(
+    let pending = call(
         &app,
         &admin,
         "POST",
         &format!("{API}/institutions/{inst}/submit"),
         json!({}),
         ver(&cur),
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(pending["status"], "pending_approval", "{pending}");
+    let done = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("{API}/institutions/{inst}/decision"),
+        json!({"decision": "approve"}),
+        ver(&pending),
         StatusCode::OK,
     )
     .await;

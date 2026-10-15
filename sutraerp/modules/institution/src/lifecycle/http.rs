@@ -67,8 +67,9 @@ pub async fn configure(
 /// Submit the activation request (`configured → pending_approval`).
 ///
 /// Refused with 409 while a required activation-readiness item is unmet (the detail lists the
-/// blocking keys). The approval step runs through the WorkflowPort; in the Batch 2 auto-approval
-/// mode the response already shows the decided (`active`) institution. Requires
+/// blocking keys). The approval step runs through the WorkflowPort; the institution stays
+/// `pending_approval` until the Institution Activation Authority decides (`/decision`,
+/// `institution.activation.decide` + MFA step-up). Submitting never activates. Requires
 /// `institution.manage`.
 #[utoipa::path(
     post,
