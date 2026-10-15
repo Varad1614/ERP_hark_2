@@ -9,7 +9,7 @@ use super::domain::{evaluate, ClosureChecks, CompletionInput};
 use crate::results::common::{ensure_version, history, status_payload};
 use crate::results::repo::session_of;
 use crate::shared::approval::{business_key, process, request_approval, ApprovalOutcome};
-use crate::shared::grading::{cgpa, round2};
+use crate::shared::grading::{cumulative, round2, AttemptLine};
 use crate::shared::guard::require_institution_writable;
 use crate::shared::lifecycle::{change_registration_status, change_session_status, StatusChange};
 use crate::shared::publish::{audit, event};
@@ -21,7 +21,7 @@ use rust_decimal::Decimal;
 use serde_json::json;
 use sqlx::postgres::PgRow;
 use sqlx::{PgConnection, Row};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use sutra_contracts::exams::events::results::{
     COMPLETION_EVALUATED, COMPLETION_EVALUATED_SCHEMA, EXAM_SESSION_CLOSED,
     EXAM_SESSION_CLOSED_SCHEMA,
@@ -138,7 +138,8 @@ pub async fn list_completions(
 }
 
 /// Evaluates (or re-evaluates, superseding the current evaluation — L3-I-150) a student's
-/// academic completion from the latest published result of every term: credits earned vs the
+/// academic completion from every published result (one per session; each course counted once
+/// with its effective attempt — DEF-I-005): credits earned vs the
 /// curriculum (Domain B), every component passed, CGPA; the row is the completion evidence
 /// record (L3-I-153).
 pub async fn evaluate_completion(
@@ -182,10 +183,15 @@ pub async fn evaluate_completion(
         .map(credits)
         .unwrap_or(component_credits);
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    // Every current published result (one per session — regular, supplementary, improvement),
+    // first-published order; the cumulative standing counts each course once with its effective
+    // attempt (grade-replacement policy, `shared::grading::cumulative`, DEF-I-005).
     let latest: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT DISTINCT ON (academic_term_id) id FROM exams.term_result WHERE tenant_id = $1 \
-         AND institution_id = $2 AND student_id = $3 AND status = 'published' \
-         ORDER BY academic_term_id, published_at DESC",
+        "SELECT r.id FROM exams.term_result r WHERE r.tenant_id = $1 \
+         AND r.institution_id = $2 AND r.student_id = $3 AND r.status = 'published' \
+         ORDER BY (SELECT min(f.published_at) FROM exams.term_result f \
+                   WHERE f.tenant_id = r.tenant_id AND f.session_id = r.session_id \
+                   AND f.student_id = r.student_id) NULLS LAST, r.session_id",
     )
     .bind(tenant.as_uuid())
     .bind(institution.as_uuid())
@@ -203,33 +209,33 @@ pub async fn evaluate_completion(
     .fetch_one(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    let mut passed = HashSet::new();
-    let mut earned = Decimal::ZERO;
-    let mut terms = Vec::new();
+    let mut attempts = Vec::new();
     let mut evidence_terms = Vec::new();
     for id in &latest {
         let r = load_result(&mut tx, tenant, TermResultId(*id), false).await?;
-        earned += r.credits_earned;
-        terms.push((r.credits_attempted, r.grade_points));
-        for l in r.lines.iter().filter(|l| l.passed) {
-            passed.insert(l.curriculum_component_id);
-        }
+        attempts.extend(r.lines.iter().map(|l| AttemptLine {
+            component: l.curriculum_component_id,
+            credits: l.credits,
+            grade_point: l.grade_point,
+            passed: l.passed,
+        }));
         evidence_terms.push(json!({
             "resultId": r.id, "sessionId": r.session_id, "academicTermId": r.academic_term_id,
             "revision": r.revision, "sgpa": r.sgpa.map(|v| v.to_string()),
             "creditsEarned": r.credits_earned.to_string(),
         }));
     }
+    let standing = cumulative(&attempts);
     let input = CompletionInput {
         has_curriculum: context.curriculum_version_id.is_some(),
         credits_required: required,
         components_required: components.iter().map(|c| c.id).collect(),
-        passed_components: passed,
-        credits_earned: round2(earned),
+        passed_components: standing.passed_components.clone(),
+        credits_earned: standing.credits_earned,
         blocked,
     };
     let outcome = evaluate(&input);
-    let overall = cgpa(&terms);
+    let overall = standing.cgpa;
     let previous: Option<Uuid> = sqlx::query_scalar(
         "SELECT id FROM exams.completion_evaluation WHERE tenant_id = $1 AND institution_id = $2 \
          AND student_id = $3 AND status <> 'superseded' FOR UPDATE",
