@@ -65,6 +65,10 @@ pub fn router(state: AcademicState) -> OpenApiRouter {
         // enrolment + waitlist
         .routes(routes!(enrolment::create, enrolment::list))
         .routes(routes!(enrolment::get))
+        // Part 1 · S3-appr (DEF-P1-DEMO-006): governed eligibility overrides.
+        .routes(routes!(enrolment::override_request))
+        .routes(routes!(enrolment::override_get))
+        .routes(routes!(enrolment::override_decision))
         .routes(routes!(enrolment::drop))
         .routes(routes!(enrolment::withdraw))
         .routes(routes!(enrolment::transfer))
