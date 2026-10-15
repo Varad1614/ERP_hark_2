@@ -39,6 +39,9 @@ pub mod process {
     pub const ASSET_RETIREMENT: &str = "resources.asset_retirement";
     // Part 1 (DEF-J-003): a vendor payment posts only after an independent approval.
     pub const VENDOR_PAYMENT_APPROVAL: &str = "resources.vendor_payment_approval";
+    // Part 1 · Stage 3 (DEF-J-004): an approved supplier's bank details change only after an
+    // independent approval.
+    pub const SUPPLIER_BANK_CHANGE_APPROVAL: &str = "resources.supplier_bank_change_approval";
 
     /// Every key (unit-tested unique).
     pub const ALL: &[&str] = &[
@@ -50,6 +53,7 @@ pub mod process {
         VENDOR_INVOICE_APPROVAL,
         ASSET_RETIREMENT,
         VENDOR_PAYMENT_APPROVAL,
+        SUPPLIER_BANK_CHANGE_APPROVAL,
     ];
 }
 

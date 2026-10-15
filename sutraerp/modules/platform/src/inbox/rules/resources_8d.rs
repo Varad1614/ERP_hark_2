@@ -5,6 +5,8 @@
 //! |-------|------------|
 //! | `purchase_requisition.submitted` | emitted only while `REQUISITION_APPROVAL` awaits a decision: notification → administrators + to-do for the submitter "Decide PR-…" (link `/campus/procurement`) |
 //! | `vendor_payment.submitted` | Part 1 (DEF-J-003): notification → procurement approvers and finance approvers "Vendor payment VPAY-… awaits approval" (link `/campus/procurement`); the maker gets no decide to-do (they may not decide it) |
+//! | `supplier.bank_change_requested` | Part 1 · Stage 3 (DEF-J-004): notification → procurement approvers and finance approvers "Bank details change for SUP-… awaits approval" (masked old → new account); no decide to-do for the maker |
+//! | `supplier.bank_change_approved` | Part 1 · Stage 3 (DEF-J-004): warning → finance approvers and administrators "Bank details of SUP-… changed" (out-of-band check before the next payment) |
 //! | `replenishment_need.raised` | notification → administrators + to-do for whoever ran the reorder-level check "Replenish …" (link `/campus/inventory`) |
 //!
 //! Notifications are idempotent on the event id (category `institution`); to-dos skip system
@@ -16,7 +18,8 @@ use crate::inbox::notifications::{Recipient, Severity};
 use crate::inbox::todos::SystemTodo;
 use chrono::Duration;
 use sutra_contracts::resources::events::procurement::{
-    PURCHASE_REQUISITION_SUBMITTED, REPLENISHMENT_NEEDED, VENDOR_PAYMENT_SUBMITTED,
+    PURCHASE_REQUISITION_SUBMITTED, REPLENISHMENT_NEEDED, SUPPLIER_BANK_CHANGE_APPROVED,
+    SUPPLIER_BANK_CHANGE_REQUESTED, VENDOR_PAYMENT_SUBMITTED,
 };
 use sutra_contracts::resources::events::StatusChangedV1;
 use sutra_kernel::auth::Role;
@@ -28,6 +31,8 @@ pub const EVENT_TYPES: &[&str] = &[
     PURCHASE_REQUISITION_SUBMITTED,
     REPLENISHMENT_NEEDED,
     VENDOR_PAYMENT_SUBMITTED,
+    SUPPLIER_BANK_CHANGE_REQUESTED,
+    SUPPLIER_BANK_CHANGE_APPROVED,
 ];
 
 const PROCUREMENT: &str = "/campus/procurement";
@@ -97,6 +102,40 @@ pub fn plan(env: &EventEnvelope) -> Result<Vec<InboxAction>, String> {
                         Recipient::Role(r),
                         Severity::Info,
                         format!("Vendor payment {number} awaits approval"),
+                        body.clone(),
+                        Some(PROCUREMENT),
+                    )
+                })
+                .collect()
+        }
+        SUPPLIER_BANK_CHANGE_REQUESTED | SUPPLIER_BANK_CHANGE_APPROVED => {
+            let d: StatusChangedV1 = data(env)?;
+            let number = d.number.clone().unwrap_or_default();
+            let body = d
+                .reason
+                .clone()
+                .unwrap_or_else(|| "Supplier bank details.".into());
+            let (roles, severity, title) = if env.event_type == SUPPLIER_BANK_CHANGE_REQUESTED {
+                (
+                    [Role::ProcurementApprover, Role::FinanceApprover],
+                    Severity::Info,
+                    format!("Bank details change for {number} awaits approval"),
+                )
+            } else {
+                (
+                    [Role::FinanceApprover, Role::Administrator],
+                    Severity::Warning,
+                    format!("Bank details of {number} changed"),
+                )
+            };
+            roles
+                .into_iter()
+                .map(|r| {
+                    notify(
+                        env,
+                        Recipient::Role(r),
+                        severity,
+                        title.clone(),
                         body.clone(),
                         Some(PROCUREMENT),
                     )
@@ -203,6 +242,36 @@ mod tests {
             vec![
                 Recipient::Role(Role::ProcurementApprover),
                 Recipient::Role(Role::FinanceApprover)
+            ]
+        );
+    }
+
+    // Part 1 · Stage 3 (DEF-J-004).
+    #[test]
+    fn supplier_bank_changes_reach_the_checkers_and_finance() {
+        let roles = |t: &'static str| -> Vec<Recipient> {
+            plan(&env(t, payload("SUP-000001"), Some("dev|admin@sutra.dev")))
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|x| match x {
+                    InboxAction::Notify(n) => Some(n.recipient.clone()),
+                    InboxAction::Todo(_) => None,
+                })
+                .collect()
+        };
+        assert_eq!(
+            roles(SUPPLIER_BANK_CHANGE_REQUESTED),
+            vec![
+                Recipient::Role(Role::ProcurementApprover),
+                Recipient::Role(Role::FinanceApprover)
+            ],
+            "no decide to-do for the maker"
+        );
+        assert_eq!(
+            roles(SUPPLIER_BANK_CHANGE_APPROVED),
+            vec![
+                Recipient::Role(Role::FinanceApprover),
+                Recipient::Role(Role::Administrator)
             ]
         );
     }
