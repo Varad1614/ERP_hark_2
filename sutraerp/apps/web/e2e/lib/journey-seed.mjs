@@ -146,9 +146,8 @@ export async function seedJourney({ admin, faculty }, ev = () => {}) {
   // 6. synthetic students through the admission API.
   ids.isha = await admitViaApi(admin, ids, { given: "Isha", family: "Kulkarni", dob: "2007-05-21", email: `isha.${suffix.toLowerCase()}@students.jit.edu.in`, phone: "+91 98220 22334", roll: "CSE-26-002" }, ev);
   ids.kiran = await admitViaApi(admin, ids, { given: "Kiran", family: "Joshi", dob: "2007-01-09", email: `kiran.${suffix.toLowerCase()}@students.jit.edu.in`, phone: "+91 98220 33445", roll: "CSE-26-003" }, ev);
-  // Isha is seated in CS101 / A by the office (override: she has no login to self-register).
-  const seat = await admin.call("POST", `${A}/sections/${ids.sections.CS101}/enrolments`, { studentId: ids.isha.id, overrideEligibility: true, reason: "Synthetic seed student seated by the academic office" });
-  ev(`Isha seated in CS101-T1/A (enrolment ${seat.id}, origin ${seat.origin})`);
+  // Isha is registered by the academic office and seated in CS101 / A once the term-1
+  // registration window is open (journey step 2).
 
   // 7. fees: fee head + structure BTECH-Y1 (₹90,000) → approved → published.
   const head = await admin.call("POST", `${F}/institutions/${setup.id}/fee-heads`, { code: "TUITION", name: "Tuition fee", category: "tuition", refundable: false });

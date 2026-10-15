@@ -171,7 +171,26 @@ export const I = "/api/v1/institution";
  * `opts` (all optional; defaults = the e2e suites' SIT institution): `code`, `name`, `shortName`,
  * `domain` (e-mail domain), `city` — used by the Docker demo seed (`e2e/demo-seed.mjs`).
  */
+/**
+ * Governed set-up steps of the institution (Batch 2: org blueprint, campus activation, academic
+ * structure, curriculum version, calendar version). With SUTRA_APPROVAL_MODE=auto the command
+ * already returns the final state; in human mode (default) the record is pending and the
+ * decision endpoint completes it. These decide permissions are held by administrators only (no
+ * checker role, SoD not enforced for them — APPROVAL_CONTROL_MATRIX.md), so the decider is the
+ * administrator unless `opts.decider` names another signed-in client. Every decision made here is
+ * recorded in HARNESS_DECISIONS.
+ */
+export const HARNESS_DECISIONS = [];
+async function decideIfPending(decider, rec, path, done, label) {
+  if (done.includes(rec?.status)) return rec;
+  const d = await decider.call("POST", path, { decision: "approve", reason: `${label}: approved (harness, human approval mode)` }, rec.version);
+  HARNESS_DECISIONS.push({ kind: label, id: rec.id, before: rec.status, after: d?.status, decider: decider.login ?? "administrator" });
+  if (!done.includes(d?.status)) throw new Error(`${label}: decision left “${d?.status}” (expected ${done.join(" | ")})`);
+  return { ...rec, ...d };
+}
+
 export async function seedInstitution(admin, opts = {}) {
+  const decider = opts.decider ?? admin;
   const suffix = Date.now().toString(36).toUpperCase().slice(-5);
   const o = { code: `SIT-${suffix}`, name: "Sahyadri Institute of Technology", shortName: "SIT", domain: "sit.edu.in", city: "Pune", ...opts };
   let inst = await admin.call("POST", `${I}/institutions`, { code: o.code, name: o.name });
@@ -203,7 +222,8 @@ export async function seedInstitution(admin, opts = {}) {
       { key: "department", label: "Department", allowedParentTypes: ["university"] },
     ],
   });
-  await admin.call("POST", `${I}/org-type-blueprints/${bp.id}/publish`, {}, bp.version);
+  const bpPub = await admin.call("POST", `${I}/org-type-blueprints/${bp.id}/publish`, {}, bp.version);
+  await decideIfPending(decider, bpPub, `${I}/org-type-blueprints/${bp.id}/decision`, ["published", "active", "effective"], "org type blueprint");
   const rootUnit = await admin.call("POST", `${I}/institutions/${id}/org-units`, { unitType: "university", code: "ROOT", name: o.name });
   await admin.call("POST", `${I}/org-units/${rootUnit.id}/activate`, {}, rootUnit.version);
   // 2B: campus, structure, programme, curriculum.
@@ -218,7 +238,8 @@ export async function seedInstitution(admin, opts = {}) {
     contactEmail: `campus@${o.domain}`,
     address: { line1: "1 Campus Road", city: o.city, state: "Maharashtra", postalCode: "411007", country: "IN" },
   });
-  const activeCampus = await admin.call("POST", `${I}/campuses/${campus.id}/activate`, {}, campus.version);
+  let activeCampus = await admin.call("POST", `${I}/campuses/${campus.id}/activate`, {}, campus.version);
+  activeCampus = await decideIfPending(decider, activeCampus, `${I}/campuses/${campus.id}/decision`, ["active"], "campus activation");
   check(activeCampus.status === "active", "main campus active");
   let s = await admin.call("POST", `${I}/institutions/${id}/academic-structures`, {
     name: "University structure",
@@ -230,7 +251,8 @@ export async function seedInstitution(admin, opts = {}) {
       { kind: "degree_type", key: "btech", name: "B.Tech", parentKey: "ug", nheqfLevel: 6 },
     ],
   });
-  await admin.call("POST", `${I}/academic-structures/${s.id}/publish`, {}, s.version);
+  const sPub = await admin.call("POST", `${I}/academic-structures/${s.id}/publish`, {}, s.version);
+  await decideIfPending(decider, sPub, `${I}/academic-structures/${s.id}/decision`, ["published"], "academic structure");
   let p = await admin.call("POST", `${I}/institutions/${id}/programmes`, { code: "BTECH-CSE", name: "B.Tech Computer Science", level: "ug", degreeType: "btech", durationTerms: 4 });
   p = await admin.call("POST", `${I}/programmes/${p.id}/publish`, {}, p.version);
   const components = [];
@@ -261,6 +283,7 @@ export async function seedInstitution(admin, opts = {}) {
   });
   let cv = await admin.get(`${I}/curriculum-versions/${c.openVersionId}`);
   cv = await admin.call("POST", `${I}/curriculum-versions/${cv.id}/publish`, {}, cv.version);
+  cv = await decideIfPending(decider, cv, `${I}/curriculum-versions/${cv.id}/decision`, ["published"], "curriculum version");
   // 2C: calendar (two terms), open year, effective assignment.
   const cal = await admin.call("POST", `${I}/institutions/${id}/calendars`, { code: `CAL-${suffix}`, name: "Main calendar" });
   let year = await admin.call("POST", `${I}/institutions/${id}/academic-years`, { calendarId: cal.id, label: "2026-27", startsOn: "2026-06-01", endsOn: "2027-05-31" });
@@ -271,6 +294,7 @@ export async function seedInstitution(admin, opts = {}) {
   ])
     v = await admin.call("POST", `${I}/calendar-versions/${v.id}/terms`, { code, name: `Term ${seq}`, sequence: seq, startsOn, endsOn }, v.version);
   v = await admin.call("POST", `${I}/calendar-versions/${v.id}/publish`, {}, v.version);
+  { const terms = v.terms; v = await decideIfPending(decider, v, `${I}/calendar-versions/${v.id}/decision`, ["published", "effective", "active"], "calendar version"); v.terms ??= terms; }
   year = await admin.call("POST", `${I}/academic-years/${year.id}/open`, {}, year.version);
   const a = await admin.call("POST", `${I}/calendars/${cal.id}/assignments`, { calendarVersionId: v.id, scopeKind: "institution", effectiveFrom: "2026-06-01" });
   const effective = await admin.call("POST", `${I}/calendar-assignments/${a.id}/activate`, {}, a.version);

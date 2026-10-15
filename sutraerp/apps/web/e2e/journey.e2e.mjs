@@ -488,6 +488,20 @@ try {
       audit(e, w.id, [], "registration window");
     });
 
+    await step("2 Enrolment", "Seed student Isha registered by the academic office (CS101, MD101, EL101 → decided) and seated in CS101-T1 / A", "API (office registration on the student's behalf)", async (e) => {
+      // Without a registration the office could only seat her with an eligibility override, which
+      // in human approval mode waits for a decision that has no endpoint yet (DEF-P1-DEMO-006).
+      need(ids.windowId, "open window");
+      let reg = await admin.call("POST", `${S}/students/${need(ids.isha?.id, "seed student Isha")}/registrations`, { academicTermId: ids.termIds[0], lines: ["CS101", "MD101", "EL101"].map((slot) => ({ curriculumComponentId: ids.components[slot] })) });
+      check(reg.lines?.length === 3, `registration ${reg.id} drafted with 3 lines`, e);
+      reg = await admin.call("POST", `${S}/registrations/${reg.id}/submit`, {}, reg.version);
+      check(reg.status === "submitted", `submitted — pending a decision (${reg.status})`, e);
+      reg = await approve("registration", reg.id, { client: admin, ev: e, step: "2 Enrolment: office registration of Isha decided" });
+      const seat = await admin.call("POST", `${A}/sections/${ids.sections.CS101}/enrolments`, { studentId: ids.isha.id });
+      check(seat.status === "enrolled", `Isha seated in CS101-T1/A (enrolment ${seat.id}, origin ${seat.origin})`, e);
+      db(e, "Isha's registration", `SELECT status FROM student.registration WHERE id = ${q(reg.id)}`, (v) => v === "registered");
+    });
+
     await step("2 Enrolment", "Student self-registration (CS101, MD101, EL101) → submitted → registered", "browser (student /registration)", async (e) => {
       need(ids.windowId, "open window");
       const page = P.student;
