@@ -48,6 +48,12 @@ jobs:
     env:
       DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
       PILOT_TENANT_ID: 0192f5a0-7c3e-7000-8000-000000009110
+      # Part 1 S3 (DEF-X-003): the API serves as the runtime login role (RLS applies, like
+      # production); DATABASE_URL (schema owner) is used only to migrate/provision and for the
+      # seed script's psql seeding.
+      SUTRA_DB_RUNTIME_USER: sutra_pilot_runtime
+      SUTRA_DB_RUNTIME_PASSWORD: sutra-pilot-runtime-pw
+      RUNTIME_DATABASE_URL: postgres://sutra_pilot_runtime:sutra-pilot-runtime-pw@localhost:5432/sutra
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -73,6 +79,7 @@ jobs:
           SUTRA_ENV=development SUTRA_HTTP_ADDR=127.0.0.1:8080 SUTRA_AUTH_MODE=dev SUTRA_DEV_MFA=false \
           SUTRA_DEV_TENANT_ID="$PILOT_TENANT_ID" SUTRA_SESSION_COOKIE_SECURE=false SUTRA_OUTBOX_RELAY=off \
           SUTRA_CACHE=memory SUTRA_INBOX_CONSUMER=false SUTRA_APPROVAL_MODE=auto SUTRA_WEBAUTHN_RP_ID=localhost SUTRA_WEBAUTHN_ORIGINS=http://localhost:3000 RUST_LOG=warn \
+          DATABASE_URL="$RUNTIME_DATABASE_URL" \
             nohup target/debug/sutra-api serve >"$RUNNER_TEMP/api.log" 2>&1 &
           for i in $(seq 1 90); do
             curl -fsS http://127.0.0.1:8080/health/live >/dev/null 2>&1 && exit 0
