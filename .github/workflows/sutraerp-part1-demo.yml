@@ -45,7 +45,6 @@ jobs:
       AUTH_MODE: ${{ inputs.auth_mode || 'keycloak' }}
       COMPOSE_FILE: docker-compose.yml:docker-compose.demo.yml
       COMPOSE_PROFILES: app
-      DEMO_OUT: ${{ runner.temp }}/demo
       # The host reaches the published ports; the journey talks to the browser-facing origin.
       E2E_BASE: http://localhost:3000
       DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
@@ -58,6 +57,7 @@ jobs:
 
       - name: Auth mode
         run: |
+          DEMO_OUT="$RUNNER_TEMP/demo"; echo "DEMO_OUT=$DEMO_OUT" >> "$GITHUB_ENV"
           mkdir -p "$DEMO_OUT/logs" "$DEMO_OUT/shots"
           if [ "$AUTH_MODE" = "keycloak" ]; then
             echo "SUTRA_COMPOSE_AUTH_MODE=keycloak" >> "$GITHUB_ENV"
