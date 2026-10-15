@@ -384,7 +384,7 @@ pub enum Permission {
 }
 
 impl Permission {
-    pub const ALL: [Permission; 112] = [
+    pub const ALL: [Permission; 113] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
