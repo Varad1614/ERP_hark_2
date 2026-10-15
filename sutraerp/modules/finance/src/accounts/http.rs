@@ -208,7 +208,7 @@ pub async fn account_list(
         q.q.as_deref()
             .map(str::trim)
             .filter(|s| !s.is_empty())
-            .map(|s| format!("%{}%", s.replace('%', "\\%").replace('_', "\\_")));
+            .map(sutra_persistence::like_contains);
     let ids: Vec<Uuid> = sqlx::query(
         "SELECT a.id FROM finance.student_account a WHERE a.tenant_id = $1 AND a.institution_id = $2 \
          AND ($3::text IS NULL OR a.display_name ILIKE $3 OR a.student_number ILIKE $3) \

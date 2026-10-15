@@ -41,5 +41,6 @@ pub mod module;
 pub mod money;
 pub mod scope;
 pub mod secret;
+pub mod weblink;
 
 pub use error::{KernelError, KernelResult};

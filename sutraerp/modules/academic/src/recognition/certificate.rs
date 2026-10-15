@@ -185,19 +185,9 @@ pub async fn submit(
         ),
     )?;
     let number = kit::required_text("certificateNumber", Some(&cmd.certificate_number))?;
-    if let Some(u) = cmd
-        .certificate_url
-        .as_deref()
-        .filter(|u| !u.trim().is_empty())
-    {
-        if !(u.starts_with("https://") || u.starts_with("http://")) {
-            return Err(invalid(
-                "certificateUrl",
-                "invalid",
-                "certificateUrl must be an http(s) URL",
-            ));
-        }
-    }
+    // SEC-P1-APPSEC-004: absolute http(s) link with a host, no whitespace / control characters.
+    let certificate_url =
+        sutra_kernel::weblink::opt_http_link("certificateUrl", cmd.certificate_url.as_deref())?;
     let o: LearningOpportunity = kit::fetch(
         &st.pool,
         opportunity::TABLE,
@@ -222,7 +212,7 @@ pub async fn submit(
     let c: CertificateVerification = kit::insert(&mut tx, TABLE, json!({
         "tenant_id": tenant.as_uuid(), "institution_id": e.institution_id, "enrolment_id": e.id,
         "provider_id": o.provider_id, "student_id": e.student_id, "certificate_number": number,
-        "certificate_url": kit::opt_text(cmd.certificate_url.as_deref()), "issued_on": cmd.issued_on,
+        "certificate_url": certificate_url, "issued_on": cmd.issued_on,
         "learner_name": kit::opt_text(cmd.learner_name.as_deref()), "submitted_by": actor.id,
     })).await?;
     history(
