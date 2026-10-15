@@ -720,6 +720,14 @@ pub fn bank_text(raw: &str, max: usize) -> String {
         .to_owned()
 }
 
+/// A component code for the remittance advice: ASCII letters, digits and `_` only (`PF_ER`).
+pub fn code_text(raw: &str, max: usize) -> String {
+    raw.chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || *ch == '_')
+        .take(max)
+        .collect()
+}
+
 /// `DD-MM-YYYY` (the date format of Indian bank bulk-upload files).
 fn bank_date(d: NaiveDate) -> String {
     d.format("%d-%m-%Y").to_string()
@@ -802,7 +810,7 @@ pub fn challan_file(h: &FileHeader<'_>, lines: &[DisbursementLine]) -> String {
     for l in lines {
         out.push_str(&format!(
             "D,{},{},{}\r\n",
-            bank_text(l.component_code.as_deref().unwrap_or_default(), 20),
+            code_text(l.component_code.as_deref().unwrap_or_default(), 20),
             bank_text(l.component_name.as_deref().unwrap_or_default(), 50),
             fmt2(l.amount)
         ));
@@ -1274,11 +1282,17 @@ mod tests {
         let mut pf = payee(1, "x", "3600.00");
         pf.component_code = Some("PF".into());
         pf.component_name = Some("Provident fund".into());
-        let f = challan_file(&header(), &[pf]);
+        let mut er = pf.clone();
+        er.line_no = 2;
+        er.component_code = Some("PF_ER".into());
+        er.component_name = Some("Employer PF".into());
+        let f = challan_file(&header(), &[pf, er]);
         assert_eq!(
             f,
-            "H,PD-000001,PR-000001,30-11-2026,1,3600.00,INR\r\nD,PF,Provident fund,3600.00\r\nT,1,3600.00\r\n"
+            "H,PD-000001,PR-000001,30-11-2026,2,7200.00,INR\r\nD,PF,Provident fund,3600.00\r\n\
+             D,PF_ER,Employer PF,3600.00\r\nT,2,7200.00\r\n"
         );
+        assert_eq!(code_text("=PF_ER,1", 20), "PF_ER1");
     }
 
     #[test]
