@@ -309,7 +309,7 @@ try {
     check(JSON.stringify(tabs) === JSON.stringify(["overview", "schedule", "marks", "results"]), `header tabs Overview · Schedule · Marks · Results (${tabs.join(", ")})`);
     await page.click("[data-tab-more]");
     const more = await page.locator(".sb-menu a[data-tab-link]").evaluateAll((as) => as.map((a) => a.getAttribute("data-tab-link")));
-    check(JSON.stringify(more) === JSON.stringify(["registrations", "malpractice", "revaluation", "sessions"]), `More holds the other four (${more.join(", ")})`);
+    check(JSON.stringify(more) === JSON.stringify(["registrations", "conduct", "malpractice", "revaluation", "sessions"]), `More holds the other five, Conduct included (${more.join(", ")})`);
     await page.keyboard.press("Escape");
     check((await page.locator("[data-kpi-tile]").count()) === 3, "three KPI tiles");
     await shot(page, "6-admin-examinations-empty");
