@@ -542,7 +542,10 @@ try {
     await shot(page, "4b-admin-correction-queue");
     await queue.locator('[data-action="correction-approve"]').first().click();
     await queue.getByText("No corrections waiting").waitFor({ timeout: 10000 });
+    // The other seated student already reads 1 / 1, so "1 / 1" alone does not prove the summary
+    // refetched: wait (bounded) for the corrected student's 0 / 1 to disappear, then assert.
     await page.getByText("1 / 1").first().waitFor();
+    await page.getByText("0 / 1").first().waitFor({ state: "hidden", timeout: 15000 }).catch(() => {});
     check((await page.getByText("0 / 1").count()) === 0, "after approval the corrected mark counts as present");
     await shot(page, "4b-admin-correction-approved");
     await go(page, "/academic-delivery/monitoring");
