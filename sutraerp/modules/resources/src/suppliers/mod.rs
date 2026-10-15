@@ -1165,7 +1165,6 @@ pub async fn merge(
     Ok(res)
 }
 
-/// Routes of this area.
 // ------------------------------------------------------------------ Part 1 · Stage 3 (DEF-J-004)
 
 /// New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`).
@@ -1580,6 +1579,7 @@ pub async fn decide_bank_change(
     Ok(res)
 }
 
+/// Routes of this area.
 pub fn router(state: ResourcesState) -> OpenApiRouter {
     OpenApiRouter::new()
         .routes(routes!(create, list))

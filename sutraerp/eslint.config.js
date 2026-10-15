@@ -24,4 +24,9 @@ export default tseslint.config(
     files: ["apps/web/e2e/**/*.mjs"],
     languageOptions: { globals: { ...globals.node, ...globals.browser }, ecmaVersion: 2023, sourceType: "module" },
   },
+  {
+    // Build/deploy helper scripts (e.g. deploy/docker/csp-hashes.mjs) run in Node.
+    files: ["deploy/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node }, ecmaVersion: 2023, sourceType: "module" },
+  },
 );
