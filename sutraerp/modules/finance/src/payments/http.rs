@@ -1072,7 +1072,7 @@ async fn gateway_webhook_signed(
     }
     // Part 1 S3 (DEF-X-003): from here on the transaction is bound to the payment's tenant.
     sutra_persistence::pool::apply_context(
-        &mut *tx,
+        &mut tx,
         Some(sutra_kernel::db_context::DbContext::Scoped(
             ExecutionScope::tenant(p.tenant_id),
         )),
