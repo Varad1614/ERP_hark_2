@@ -10,13 +10,20 @@ SutraERP is delivered as a modular monolith in ten batches. Each batch ends gree
 | 2 | Institution | B | Institutions, campuses, departments, programmes catalogue, academic calendar & business timezone, institution configuration; Batch 0 reference aggregate becomes the real model | ✅ complete (slices F, 2A–2C integrated, see below) |
 | 3 | Student lifecycle | C | Admissions → enrolment → progression → exit, guardians, documents & certificates, student workspace | ✅ complete (slices F, 3A–3C integrated, see below) |
 | 4 | Academic | D | Courses, sections, timetable, attendance, coursework/assignments, faculty "My classes" | ✅ complete (slices F, 4A–4C integrated, see below) |
-| 5 | Finance | F | Fee structures, demands, concessions, payments & receipts (rust_decimal end to end), reconciliation, student fees screen | planned |
-| 6 | Examinations | I | Exam scheduling, seating, registration & hall tickets, assessments & marks, gradebook, moderation, result computation (SGPA/CGPA), verification, publication, grade cards, revaluation | in progress (6·F foundation, see below) |
+| 5 | Finance | F | Fee structures, demands, concessions, payments & receipts (rust_decimal end to end), reconciliation, student fees screen | ✅ complete (slices 5A–5C, see below; online payment mock/disabled only, budgets not delivered) |
+| 6 | Examinations | I | Exam scheduling, seating, registration & hall tickets, assessments & marks, gradebook, moderation, result computation (SGPA/CGPA), verification, publication, grade cards, revaluation | ✅ complete (slices F, 6A–6C, see below; 6D deferred) |
 | 7 | People & workforce | E | Staff records, recruitment/onboarding, positions, leave & approvals, attendance & workload, payroll engine (Finance postings), payslips, staff directory | ✅ complete (slices F, 7A–7C integrated, see below) |
 | 8 | Campus · Services · Resources | G · H · J | Facilities, rooms & labs, maintenance, service desk, hostel, transport, library, dashboards & regulatory reporting, procurement, inventory, assets, Finance AP | ✅ complete (slices F, 8A–8D integrated, see below) |
-| 9 | Production hardening | cross-cutting | OTLP exporter + Prometheus/Loki/Tempo/Grafana, tamper-evident audit chaining (ADR-L5-0012), GHCR push + Cosign signing on trusted runners, K8s manifests/Helm, OpenBao secrets, Flowable OSS 8 adapter + BPMN deployment, OpenSearch projections, performance/capacity gates, DR drills | planned |
+| 9 | Production hardening | cross-cutting | OTLP exporter + Prometheus/Loki/Tempo/Grafana, tamper-evident audit chaining (ADR-L5-0012), GHCR push + Cosign signing on trusted runners, K8s manifests/Helm, OpenBao secrets, Flowable OSS 8 adapter + BPMN deployment, OpenSearch projections, performance/capacity gates, DR drills | ✅ complete (slices F, 9A–9E integrated, see below) |
 
 Screens in the web app link to their batch (`apps/web/app/lib/roles.ts → SCREEN_BATCH`).
+
+> **Status caveat (Part 1 readiness review, 2026-10-15):** ✅ means the batch scope was delivered and CI is green, not
+> that the product is release-ready. In every environment, governed approval steps ("approval", "decision",
+> "approve") are completed by `system:auto-approval` (module state hard-codes `ApprovalMode::AutoApprove`; selecting
+> Flowable does not change it), and no decision endpoint enforces separation of duties. See
+> [`readiness/DEFECT_REGISTER.md`](readiness/DEFECT_REGISTER.md) (DEF-X-001, DEF-X-002) and
+> [`readiness/FEATURE_INVENTORY.md`](readiness/FEATURE_INVENTORY.md).
 
 ## Batch 1 slices
 
@@ -87,6 +94,20 @@ Gates at integration: fmt, clippy `-D warnings`, API DB tests 131/131 (`db_b4_fo
 `db_b4b`, `db_b4c` plus the Batch 2/3 suites), `cargo test --workspace` 366, web typecheck/lint/test/build,
 and the `pnpm e2e:academic` click-through (admin, student and faculty) with `pnpm e2e:student` as the
 Batch 3 regression.
+
+## Batch 5 slices
+
+Contracts, scenario coverage and deferrals: [`batch5-contracts.md`](batch5-contracts.md).
+
+| Slice | Scope | Status |
+|-------|-------|--------|
+| **5A** | Charges, adjustments, aid, configuration: fee heads, versioned fee structures (approval → publication), charge generation → validation → publication (Dr receivables / Cr income), revision / adjustment / cancellation, concessions and aid | ✅ |
+| **5B** | Payments, receipts, refunds, receivables: counter and online payments (gateway adapter: mock / disabled only), allocation, unidentified receipts, refunds, receivables, write-off, dunning | ✅ |
+| **5C** | Ledger, periods, treasury: balanced double-entry postings, manual journals, reversal, period close / reopen, year close, bank accounts and settlements | ✅ |
+
+Not delivered: budgets and cost centres (F-033…F-038; the contract placed them in "Batch 9 or a later 5D", Batch 9 did
+not deliver them), accounting batches and fund transfers (process keys exist, no aggregate), a real payment gateway
+adapter. DB tests `db_b5_foundation`, `db_b5a`, `db_b5b`, `db_b5c`; click-through `pnpm e2e:finance`.
 
 ## Batch 6 slices
 
@@ -200,6 +221,9 @@ Known gaps and deferrals (contract §1 / §14):
   RTO target 2 h (the DR drill records the measured RTO).
 - `NoopWorkflowAdapter` stays the default approval engine; Flowable is proved and switched on per
   environment after the pilot.
+  **Caveat:** switching Flowable on does not stop auto-approval: every module hard-codes
+  `ApprovalMode::AutoApprove` and the adapter sends `autoApprove=true` unless the caller passes `false`
+  (no module does); production also does not refuse `noop` (readiness DEF-X-001).
 - OpenSearch projections cover students, staff and the library catalogue only; no global search UI.
 - Online payments stay off in production until a real payment gateway adapter exists (SEC-9D-003).
 - Every Batch 8 deferral remains (H01, H03…H06, H10, G06…G09, J09 / J10, F-046…050, F-067…075,
