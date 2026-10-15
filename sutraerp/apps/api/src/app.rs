@@ -142,7 +142,10 @@ impl BackgroundTasks {
     pub fn spawn(self, cancel: &CancellationToken) -> Vec<JoinHandle<()>> {
         let mut handles = vec![];
         if let Some(relay) = self.relay {
-            handles.push(tokio::spawn(relay.run(cancel.clone())));
+            // Part 1 S3 (DEF-X-003): the relay publishes every tenant's outbox (system context).
+            handles.push(tokio::spawn(sutra_kernel::db_context::system(
+                relay.run(cancel.clone()),
+            )));
         }
         if let Some(s) = self.scheduler {
             handles.extend(s.spawn(cancel.clone()));
@@ -586,10 +589,9 @@ impl ObservabilityTasks {
         }
         if let Some(addr) = self.metrics_addr {
             handles.push(tokio::spawn(crate::metrics::serve(addr, cancel.clone())));
-            handles.push(tokio::spawn(crate::metrics::collect(
-                self.pool.clone(),
-                Duration::from_secs(15),
-                cancel.clone(),
+            // Part 1 S3 (DEF-X-003): gauges count rows of every tenant (system context).
+            handles.push(tokio::spawn(sutra_kernel::db_context::system(
+                crate::metrics::collect(self.pool.clone(), Duration::from_secs(15), cancel.clone()),
             )));
         }
         handles.push(tokio::spawn(crate::telemetry::flush_on_shutdown(

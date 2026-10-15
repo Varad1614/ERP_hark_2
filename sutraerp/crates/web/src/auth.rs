@@ -239,7 +239,9 @@ pub async fn authenticate(
     let Some(token) = read_cookie(req.headers(), &auth.cookie_name) else {
         return next.run(req).await;
     };
-    let ctx = match auth.resolver.resolve(&token).await {
+    // Part 1 S3 (DEF-X-003): the session row is looked up before any tenant is known, so the
+    // lookup itself is server-internal work (system context); the request then runs scoped.
+    let ctx = match sutra_kernel::db_context::system(auth.resolver.resolve(&token)).await {
         Ok(ctx) => ctx,
         Err(e) => return ApiError(e).into_response(),
     };
@@ -266,8 +268,25 @@ pub async fn authenticate(
             }
         }
     }
+    // Part 1 S3 (DEF-X-003): row-level security of every database connection the handler uses
+    // is bound to the tenant (and pinned institution) of the server-side session — never to a
+    // header, path or body value.
+    let scope = ctx.scope;
     req.extensions_mut().insert(ctx);
-    next.run(req).await
+    sutra_kernel::db_context::scoped(scope, next.run(req)).await
+}
+
+/// Part 1 S3 (DEF-X-003): layer for the sign-in / identity routes. Before a session exists
+/// (sign-in, MFA, passkey assertion, OIDC callback, back-channel logout) the identity layer has
+/// to find the account across tenants, so such requests run in the system context. Requests that
+/// already carry a session keep the session's tenant scope set by [`authenticate`]. Every other
+/// unauthenticated request runs without a database context (row-level security fails closed).
+pub async fn pre_auth_system(req: Request, next: Next) -> Response {
+    if req.extensions().get::<AuthContext>().is_some() {
+        next.run(req).await
+    } else {
+        sutra_kernel::db_context::system(next.run(req)).await
+    }
 }
 
 /// Allow-list for [`origin_guard`]: origins (`scheme://host[:port]`) that may send unsafe

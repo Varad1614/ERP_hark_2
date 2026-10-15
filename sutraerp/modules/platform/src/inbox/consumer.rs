@@ -30,8 +30,9 @@ use sutra_contracts::platform::events::{
     NoticeChangedV1, TodoAssignedV1, NOTICE_PUBLISHED, TODO_ASSIGNED,
 };
 use sutra_kernel::auth::Role;
+use sutra_kernel::db_context::DbContext;
 use sutra_kernel::events::EventEnvelope;
-use sutra_kernel::scope::TenantId;
+use sutra_kernel::scope::{ExecutionScope, TenantId};
 use sutra_persistence::jobs::SweepJob;
 
 /// Consumer name in `platform.event_receipt`.
@@ -250,8 +251,8 @@ impl SweepJob for InboxProjector {
             let raw: serde_json::Value = row.try_get("envelope")?;
             let planned = serde_json::from_value::<EventEnvelope>(raw)
                 .map_err(|e| e.to_string())
-                .and_then(|env| plan(&env));
-            let actions = match planned {
+                .and_then(|env| plan(&env).map(|a| (TenantId(env.tenantid), a)));
+            let (tenant, actions) = match planned {
                 Ok(a) => a,
                 Err(why) => {
                     tracing::warn!(event = %id, reason = %why, "inbox consumer: undecodable event");
@@ -262,11 +263,30 @@ impl SweepJob for InboxProjector {
             sqlx::query("SAVEPOINT inbox_event")
                 .execute(&mut *conn)
                 .await?;
-            match apply(&mut *conn, &actions, self.email).await {
+            // Part 1 S3 (DEF-X-003): the projections of an event are written in the event's
+            // tenant only (row-level security refuses a notification / to-do for another tenant);
+            // the job's system context comes back after the event.
+            let scoped = sutra_persistence::pool::apply_context(
+                &mut *conn,
+                Some(DbContext::Scoped(ExecutionScope::tenant(tenant))),
+                true,
+            )
+            .await;
+            let applied = match scoped {
+                Ok(()) => apply(&mut *conn, &actions, self.email).await,
+                Err(e) => Err(e),
+            };
+            match applied {
                 Ok(()) => {
                     sqlx::query("RELEASE SAVEPOINT inbox_event")
                         .execute(&mut *conn)
                         .await?;
+                    sutra_persistence::pool::apply_context(
+                        &mut *conn,
+                        Some(DbContext::System),
+                        true,
+                    )
+                    .await?;
                     let outcome = if actions.is_empty() {
                         "ignored"
                     } else {
@@ -279,6 +299,12 @@ impl SweepJob for InboxProjector {
                     sqlx::query("ROLLBACK TO SAVEPOINT inbox_event")
                         .execute(&mut *conn)
                         .await?;
+                    sutra_persistence::pool::apply_context(
+                        &mut *conn,
+                        Some(DbContext::System),
+                        true,
+                    )
+                    .await?;
                     tracing::warn!(event = %id, error = %e, "inbox consumer: projection failed");
                     receipt(&mut *conn, id, "failed", Some(&e.to_string())).await?;
                 }

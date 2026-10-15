@@ -1128,7 +1128,15 @@ async fn malpractice_report_decision_appeal_reopen_merge_close() {
     assert_eq!(s, StatusCode::OK, "{merged}");
     assert_eq!(merged["status"], "closed");
     assert_eq!(merged["mergedIntoId"], whole["id"]);
-    let (s, list) = read(&app, &meera, &format!("{cases}?status=reported")).await;
+    // Part 1 S3 (DEF-I-006): malpractice cases are confidential to the examination office;
+    // faculty holding exam.read alone are refused.
+    let (s, body) = read(&app, &meera, &format!("{cases}?status=reported")).await;
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "faculty must not list malpractice cases: {body}"
+    );
+    let (s, list) = read(&app, &admin, &format!("{cases}?status=reported")).await;
     assert_eq!(s, StatusCode::OK, "{list}");
     let open = list["items"].as_array().unwrap();
     assert_eq!(open.len(), 1, "one authoritative open case");

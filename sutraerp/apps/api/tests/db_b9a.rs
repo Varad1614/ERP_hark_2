@@ -69,12 +69,17 @@ async fn app_with_anchor_key(tenant: &'static str) -> (Router, sqlx::PgPool) {
     (router(ctx), owner)
 }
 
+/// The runtime role through the API's own pool (Part 1 S3: it writes the row-level security
+/// context of the calling task onto each connection).
 async fn runtime_pool() -> sqlx::PgPool {
-    sqlx::postgres::PgPoolOptions::new()
-        .max_connections(2)
-        .connect(&runtime_url())
-        .await
-        .unwrap()
+    sutra_persistence::pool::connect_lazy(&sutra_persistence::pool::PoolSettings {
+        url: runtime_url(),
+        max_connections: 2,
+        min_connections: 0,
+        acquire_timeout: std::time::Duration::from_secs(10),
+        application_name: "sutra-api-db-tests-b9a-runtime".into(),
+    })
+    .unwrap()
 }
 
 /// Inserts `n` audit rows for `tenant` through the shared insert path.
@@ -458,9 +463,21 @@ async fn tampering_is_detected_and_evidence_is_append_only() {
             .await
             .expect_err("append-only trigger");
     assert!(err.to_string().contains("append-only"), "{err}");
-    // …but it can read and seal (SELECT / INSERT / head UPDATE).
-    insert_rows(&runtime, TENANT_C, 1, "rt").await;
-    let r = audit_chain::seal_pending(&runtime, 500).await;
+    // …but it can read and seal (SELECT / INSERT / head UPDATE): audit rows are written inside the
+    // request's tenant context, the sealer runs as server-internal (system) work like the
+    // audit_seal job (Part 1 S3, DEF-X-003).
+    let scope_c = ExecutionScope::parse(Some(TENANT_C), None).unwrap();
+    let no_ctx = AuditEntry::new(scope_c, "test.b9a.no-context", AuditOutcome::Succeeded);
+    let err = sutra_persistence::audit::insert(&runtime, &no_ctx)
+        .await
+        .expect_err("no tenant context: RLS refuses the audit write");
+    assert_eq!(
+        err.as_database_error().and_then(|d| d.code()).as_deref(),
+        Some("42501"),
+        "{err}"
+    );
+    sutra_kernel::db_context::scoped(scope_c, insert_rows(&runtime, TENANT_C, 1, "rt")).await;
+    let r = sutra_kernel::db_context::system(audit_chain::seal_pending(&runtime, 500)).await;
     assert!(r.is_ok(), "{r:?}");
 }
 

@@ -56,6 +56,17 @@ pub fn map_db_error(e: sqlx::Error) -> KernelError {
         sqlx::Error::Database(db) if db.is_unique_violation() => {
             KernelError::Conflict("a record with the same unique attributes already exists".into())
         }
+        // Part 1 S3 (DEF-X-003): a write outside the session's tenant / institution refused by
+        // row-level security (SQLSTATE 42501 "new row violates row-level security policy").
+        sqlx::Error::Database(db)
+            if db.code().as_deref() == Some("42501")
+                && db.message().contains("row-level security") =>
+        {
+            tracing::warn!(error = %db.message(), "write refused by row-level security");
+            KernelError::Forbidden(
+                "the record is outside the session's tenant or institution scope".into(),
+            )
+        }
         _ => KernelError::internal(e),
     }
 }

@@ -124,21 +124,6 @@
           }
         },
         {
-          "name": "institution_id (dev: hardcoded)",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-hardcoded-claim-mapper",
-          "consentRequired": false,
-          "config": {
-            "claim.name": "institution_id",
-            "claim.value": "0192f5a0-7c3e-7000-8000-0000000000aa",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "introspection.token.claim": "true"
-          }
-        },
-        {
           "name": "amr",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-amr-mapper",

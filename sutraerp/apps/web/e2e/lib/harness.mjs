@@ -30,6 +30,27 @@ export const STUDENT_SUBJECT = "dev|aarav.desai@sutra.dev";
 export const apiBin =
   process.env.SUTRA_API_BIN ?? path.join(process.env.CARGO_TARGET_DIR ?? path.join(root, "target"), "debug", "sutra-api");
 
+// Part 1 S3 (DEF-X-003): the API under test acts as the RUNTIME login role (member of sutra_app,
+// NOSUPERUSER, no BYPASSRLS), exactly like production, so PostgreSQL row-level tenant isolation
+// applies to every request the suite makes. DATABASE_URL (schema owner / superuser) is used ONLY
+// for migrations + provisioning that role and for psql seeding / teardown, never by the app.
+export const RUNTIME_DB_USER = process.env.E2E_DB_RUNTIME_USER ?? "sutra_e2e_runtime";
+const RUNTIME_DB_PASSWORD = process.env.E2E_DB_RUNTIME_PASSWORD ?? "sutra-e2e-runtime-pw";
+export function runtimeDatabaseUrl() {
+  const u = new URL(DATABASE_URL);
+  u.username = RUNTIME_DB_USER;
+  u.password = RUNTIME_DB_PASSWORD;
+  return u.toString();
+}
+/** Idempotent: `sutra-api migrate` as the owner (no-op when migrated) + provision the runtime role. */
+export function provisionRuntimeRole() {
+  const r = spawnSync(apiBin, ["migrate"], {
+    encoding: "utf8",
+    env: { ...process.env, SUTRA_ENV: "development", DATABASE_URL, SUTRA_DB_RUNTIME_USER: RUNTIME_DB_USER, SUTRA_DB_RUNTIME_PASSWORD: RUNTIME_DB_PASSWORD },
+  });
+  if (r.error || r.status !== 0) throw new Error(`provisioning the runtime DB role failed: ${r.error?.message ?? r.stderr}`);
+}
+
 export const children = new Set();
 export const failed = [];
 export const log = (...a) => console.log("[e2e]", ...a);
@@ -91,13 +112,15 @@ export async function waitFor(url, child, ms = 90000) {
 }
 
 export async function startApi() {
+  provisionRuntimeRole();
   const env = {
     ...process.env,
     SUTRA_ENV: "development",
     SUTRA_HTTP_ADDR: `127.0.0.1:${API_PORT}`,
     SUTRA_LOG_FORMAT: "pretty",
     RUST_LOG: process.env.RUST_LOG ?? "warn",
-    DATABASE_URL,
+    // The app connects as the runtime role (RLS applies); see provisionRuntimeRole().
+    DATABASE_URL: runtimeDatabaseUrl(),
     SUTRA_AUTH_MODE: "dev",
     SUTRA_DEV_MFA: "false",
     SUTRA_DEV_TENANT_ID: TENANT,
@@ -311,6 +334,7 @@ export async function seedInstitution(admin, opts = {}) {
   return { id, programmeId: p.id, curriculumVersionId: cv.id, yearId: year.id, termIds: terms.map((t) => t.id) };
 }
 
+/** Seeding / teardown only: runs as the schema owner (DATABASE_URL), not as the app (see provisionRuntimeRole). */
 export function psql(sql) {
   const r = spawnSync("psql", [DATABASE_URL, "-qtAX", "-v", "ON_ERROR_STOP=1", "-c", sql], { encoding: "utf8" });
   if (r.error || r.status !== 0) throw new Error(`psql: ${r.error?.message ?? r.stderr}`);

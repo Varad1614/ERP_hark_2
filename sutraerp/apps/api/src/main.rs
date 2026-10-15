@@ -82,7 +82,9 @@ async fn main() -> ExitCode {
     telemetry::init(&cfg);
     let result = match cmd.as_str() {
         "serve" => serve(cfg).await,
-        "migrate" => migrate(cfg).await,
+        // Part 1 S3 (DEF-X-003): migrations and runtime-role provisioning are schema-owner work
+        // across every tenant; row-level security is FORCEd, so they run in the system context.
+        "migrate" => sutra_kernel::db_context::system(migrate(cfg)).await,
         other => Err(format!(
             "unknown command `{other}` (expected serve | migrate | openapi | check-config)"
         )),
@@ -126,9 +128,44 @@ async fn migrate(cfg: Config) -> Result<(), String> {
     Ok(())
 }
 
+/// Part 1 S3 (DEF-X-003): the API must serve as a role that row-level security applies to. A
+/// superuser or BYPASSRLS login is refused in production and reported loudly elsewhere. An
+/// unreachable database is not fatal here (readiness reports it).
+async fn check_runtime_role(cfg: &Config, pool: &sqlx::PgPool) -> Result<(), String> {
+    let probe = tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        sutra_persistence::pool::role_security(pool),
+    )
+    .await;
+    match probe {
+        Ok(Ok(r)) if r.bypasses_rls() => {
+            if cfg.env == sutra_api::config::Environment::Production {
+                return Err(format!(
+                    "DATABASE_URL role `{}` is superuser={} bypassrls={}: row-level tenant \
+                     isolation would not apply; serve as the runtime role (member of sutra_app)",
+                    r.role, r.superuser, r.bypass_rls
+                ));
+            }
+            tracing::warn!(
+                role = %r.role,
+                superuser = r.superuser,
+                bypassrls = r.bypass_rls,
+                "the API serves as a role that bypasses row-level security (refused in production)"
+            );
+        }
+        Ok(Ok(r)) => {
+            tracing::info!(role = %r.role, "runtime role is subject to row-level security")
+        }
+        Ok(Err(e)) => tracing::warn!(error = %e, "could not check the runtime database role"),
+        Err(_) => tracing::warn!("timed out checking the runtime database role"),
+    }
+    Ok(())
+}
+
 async fn serve(cfg: Config) -> Result<(), String> {
     let mut ctx = app::AppContext::from_config(&cfg).map_err(|e| e.to_string())?;
     let pool = ctx.pool.clone();
+    check_runtime_role(&cfg, &pool).await?;
     // Outbox relay + sweepers run beside the server and stop after HTTP draining finished.
     let background = ctx.take_background();
     tracing::info!(workers = ?background.describe(), "background workers");

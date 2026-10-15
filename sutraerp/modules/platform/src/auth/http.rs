@@ -979,6 +979,9 @@ pub fn router(deps: PlatformDeps) -> OpenApiRouter {
         .merge(super::http_security::routes())
         .merge(super::http_webauthn::routes())
         .with_state(state)
+        // Part 1 S3 (DEF-X-003): sign-in before a session exists runs in the system database
+        // context; requests with a session stay scoped to its tenant.
+        .layer(axum::middleware::from_fn(sutra_web::auth::pre_auth_system))
 }
 
 #[cfg(test)]

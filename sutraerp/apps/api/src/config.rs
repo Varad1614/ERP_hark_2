@@ -366,7 +366,11 @@ fn millis_cfg(src: &dyn Source, key: &'static str, default: u64) -> Result<Durat
 }
 
 pub const DEV_TENANT_ID: &str = "0192f5a0-7c3e-7000-8000-000000000001";
-pub const DEV_INSTITUTION_ID: &str = "0192f5a0-7c3e-7000-8000-0000000000aa";
+/// Part 1 S3 (DEF-C-010): dev sessions are tenant-wide by default. A session that carries an
+/// institution is pinned to it (row-level security hides and refuses every other institution's
+/// rows), so the old default — a fixed id no institution ever had — pinned every dev user to a
+/// phantom institution. Set `SUTRA_DEV_INSTITUTION_ID` to sign in pinned to one institution.
+pub const DEV_INSTITUTION_ID: &str = "";
 
 impl Config {
     pub fn from_env() -> Result<Self, ConfigError> {
