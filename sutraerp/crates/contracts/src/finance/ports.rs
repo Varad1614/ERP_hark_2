@@ -267,6 +267,9 @@ pub mod source {
     pub const PERIOD_CLOSE: &str = "period_close";
     // Batch 7 (Domain E): payroll liability postings through `PayrollPostingPort`.
     pub const PAYROLL_RUN: &str = "payroll_run";
+    // Part 1 (DEF-E-007): payroll disbursements (net pay / statutory dues) through
+    // `PayrollPostingPort::post_payroll_payout`.
+    pub const PAYROLL_DISBURSEMENT: &str = "payroll_disbursement";
     // Batch 8 (Domain J): vendor invoices / payments through `ProcurementPostingPort`.
     pub const PROCUREMENT_INVOICE: &str = "procurement_invoice";
     pub const PROCUREMENT_PAYMENT: &str = "procurement_payment";
@@ -665,6 +668,11 @@ pub struct PayrollPostingReceipt {
 /// (deductions + employer contributions), and emits `journal_entry.posted`. Idempotent on
 /// `(payroll_run_id, posting_key)`. Errors: invalid request → `Validation`; closed period →
 /// `Conflict`. Implemented by `sutra_finance::PgPayrollPostings`.
+///
+/// Part 1 (DEF-E-007) adds [`PayrollPostingPort::post_payroll_payout`]: the settlement of a
+/// payroll disbursement batch (net pay paid to staff → Dr `2410` / Cr bank; statutory dues
+/// remitted → Dr `2420` / Cr bank), `source_type = payroll_disbursement`, idempotent on
+/// `(disbursement_id, posting_key)`.
 #[async_trait::async_trait]
 pub trait PayrollPostingPort: Send + Sync + 'static {
     async fn post_payroll(
@@ -672,6 +680,84 @@ pub trait PayrollPostingPort: Send + Sync + 'static {
         scope: &ExecutionScope,
         request: PayrollPostingRequest,
     ) -> Result<PayrollPostingReceipt, KernelError>;
+
+    /// Records a payroll payout (see [`PayrollPayoutRequest`]). Errors: invalid request →
+    /// `Validation`; closed period → `Conflict`.
+    async fn post_payroll_payout(
+        &self,
+        scope: &ExecutionScope,
+        request: PayrollPayoutRequest,
+    ) -> Result<PayrollPostingReceipt, KernelError>;
+}
+
+/// Which payroll liability a payout settles.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PayrollPayoutKind {
+    /// Net pay transferred to staff bank accounts: Dr `2410` salaries payable / Cr `bank_main`.
+    NetPay,
+    /// Statutory dues and deductions remitted (challan): Dr `2420` payroll deductions and
+    /// statutory dues payable / Cr `bank_main`.
+    StatutoryDues,
+}
+
+impl PayrollPayoutKind {
+    /// Wire / storage name (`net_pay`, `statutory_dues`).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::NetPay => "net_pay",
+            Self::StatutoryDues => "statutory_dues",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "net_pay" => Some(Self::NetPay),
+            "statutory_dues" => Some(Self::StatutoryDues),
+            _ => None,
+        }
+    }
+}
+
+/// A payroll payout Domain E asks Finance to record when an authorised user marks a
+/// disbursement batch paid (bank reference / challan reference in hand).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PayrollPayoutRequest {
+    pub institution_id: InstitutionId,
+    pub kind: PayrollPayoutKind,
+    /// The Domain E disbursement batch (journal `source_id`).
+    pub disbursement_id: Uuid,
+    /// The payroll run the batch pays (recorded in the description / audit).
+    pub payroll_run_id: Uuid,
+    /// `paid`; `(payroll_disbursement, disbursement_id, posting_key)` is the idempotency key.
+    pub posting_key: String,
+    /// Payment value date (business date, period guard applies).
+    pub posting_date: NaiveDate,
+    pub description: String,
+    /// Positive, at most two decimals.
+    pub amount: Decimal,
+    /// Bank transaction reference (UTR) or challan reference.
+    pub reference: String,
+    pub actor: Option<String>,
+}
+
+impl PayrollPayoutRequest {
+    /// A positive amount with at most two decimals, a posting key and a reference.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.amount.normalize().scale() > 2 {
+            return Err("payout amounts take at most two decimals".into());
+        }
+        if self.amount <= Decimal::ZERO {
+            return Err("a payout amount must be positive".into());
+        }
+        if self.posting_key.trim().is_empty() {
+            return Err("a posting key is required".into());
+        }
+        let r = self.reference.trim();
+        if r.is_empty() || r.chars().count() > 64 {
+            return Err("a bank or challan reference of 1 to 64 characters is required".into());
+        }
+        Ok(())
+    }
 }
 
 // ---- Batch 8 (Domain G) block: campus service charges (library fines, hostel, transport) ----
@@ -1002,6 +1088,38 @@ mod payroll_posting_tests {
             net_pay: d(net),
             actor: None,
         }
+    }
+
+    #[test]
+    fn payroll_payouts_validate() {
+        let ok = PayrollPayoutRequest {
+            institution_id: InstitutionId(Uuid::nil()),
+            kind: PayrollPayoutKind::NetPay,
+            disbursement_id: Uuid::nil(),
+            payroll_run_id: Uuid::nil(),
+            posting_key: "paid".into(),
+            posting_date: NaiveDate::default(),
+            description: "Salary".into(),
+            amount: d("43800.00"),
+            reference: "UTR123".into(),
+            actor: None,
+        };
+        assert!(ok.validate().is_ok());
+        for (amount, reference) in [
+            ("0", "UTR"),
+            ("-1.00", "UTR"),
+            ("1.005", "UTR"),
+            ("1.00", " "),
+        ] {
+            let mut r = ok.clone();
+            r.amount = d(amount);
+            r.reference = reference.into();
+            assert!(r.validate().is_err(), "{amount} {reference}");
+        }
+        for k in [PayrollPayoutKind::NetPay, PayrollPayoutKind::StatutoryDues] {
+            assert_eq!(PayrollPayoutKind::parse(k.as_str()), Some(k));
+        }
+        assert_eq!(PayrollPayoutKind::parse("x"), None);
     }
 
     #[test]

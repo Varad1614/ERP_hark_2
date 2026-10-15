@@ -51,6 +51,8 @@ pub mod process {
     pub const PAYROLL_ADJUSTMENT_APPROVAL: &str = "people.payroll_adjustment_approval";
     pub const OFF_CYCLE_APPROVAL: &str = "people.off_cycle_approval";
     pub const FINAL_SETTLEMENT_APPROVAL: &str = "people.final_settlement_approval";
+    // Part 1 (DEF-E-007): payroll disbursement batches (net pay transfer / statutory remittance).
+    pub const PAYROLL_DISBURSEMENT_APPROVAL: &str = "people.payroll_disbursement_approval";
 
     /// Every key (unit-tested unique).
     pub const ALL: &[&str] = &[
@@ -73,6 +75,7 @@ pub mod process {
         PAYROLL_ADJUSTMENT_APPROVAL,
         OFF_CYCLE_APPROVAL,
         FINAL_SETTLEMENT_APPROVAL,
+        PAYROLL_DISBURSEMENT_APPROVAL,
     ];
 }
 

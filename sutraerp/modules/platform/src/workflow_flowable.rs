@@ -147,6 +147,7 @@ pub const PROCESS_KEYS: &[&str] = &[
     "people.payroll_adjustment_approval",
     "people.payroll_approval",
     "people.payroll_config_approval",
+    "people.payroll_disbursement_approval",
     "people.position_assignment",
     "people.probation_decision",
     "people.requisition_approval",
