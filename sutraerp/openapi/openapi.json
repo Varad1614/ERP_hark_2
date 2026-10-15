@@ -5956,6 +5956,62 @@
         ]
       }
     },
+    "/api/v1/academic/institutions/{id}/attendance-corrections": {
+      "get": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Attendance corrections of an institution: the HOD / administrator decision queue\n(`attendance.correct`).",
+        "operationId": "attendance_correction_queue",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`requested` lists the corrections awaiting a decision.",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ChangeRequestStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceCorrectionQueue"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/academic/institutions/{id}/attendance-policies": {
       "get": {
         "tags": [
@@ -74322,7 +74378,7 @@
           "institution"
         ],
         "summary": "Submit the activation request (`configured → pending_approval`).",
-        "description": "Refused with 409 while a required activation-readiness item is unmet (the detail lists the\nblocking keys). The approval step runs through the WorkflowPort; in the Batch 2 auto-approval\nmode the response already shows the decided (`active`) institution. Requires\n`institution.manage`.",
+        "description": "Refused with 409 while a required activation-readiness item is unmet (the detail lists the\nblocking keys). The approval step runs through the WorkflowPort; the institution stays\n`pending_approval` until the Institution Activation Authority decides (`/decision`,\n`institution.activation.decide` + MFA step-up). Submitting never activates. Requires\n`institution.manage`.",
         "operationId": "institution_submit",
         "parameters": [
           {
@@ -134501,6 +134557,141 @@
           }
         }
       },
+      "AttendanceCorrectionQueue": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttendanceCorrectionQueueItem"
+            }
+          }
+        }
+      },
+      "AttendanceCorrectionQueueItem": {
+        "type": "object",
+        "description": "A correction in an institution's decision queue, with the student, session and section it\ntouches (DEF-D-003: the HOD / administrator decision screen).",
+        "required": [
+          "id",
+          "institutionId",
+          "sessionId",
+          "recordId",
+          "studentId",
+          "studentNumber",
+          "displayName",
+          "sectionId",
+          "offeringCode",
+          "sectionCode",
+          "sessionDate",
+          "startsAt",
+          "fromMark",
+          "toMark",
+          "reason",
+          "status",
+          "version",
+          "createdAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fromMark": {
+            "$ref": "#/components/schemas/AttendanceMark"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "offeringCode": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "recordId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sectionCode": {
+            "type": "string"
+          },
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "description": "`HH:MM`."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChangeRequestStatus"
+          },
+          "statusReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentNumber": {
+            "type": "string"
+          },
+          "toMark": {
+            "$ref": "#/components/schemas/AttendanceMark"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "AttendanceDayId": {
         "type": "string",
         "format": "uuid",
@@ -140034,6 +140225,17 @@
             ],
             "format": "date"
           },
+          "duplicateOverride": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DuplicateOverride",
+                "description": "Explicit override of a detected duplicate applicant (409): the candidate id the 409 named\nand why this is a different person (or a deliberate second application). Recorded in the\naudit trail (`student.admission_application.duplicate_override`)."
+              }
+            ]
+          },
           "email": {
             "type": [
               "string",
@@ -143478,6 +143680,25 @@
             }
           }
         }
+      },
+      "DuplicateOverride": {
+        "type": "object",
+        "description": "Override of duplicate-applicant detection (DEF-C-003).",
+        "required": [
+          "candidateId",
+          "reason"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "One of the candidates the 409 reported."
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "EligibilityAction": {
         "type": "string",

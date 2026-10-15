@@ -2,21 +2,34 @@
  * Re-skin v2 (R3): faculty Attendance (prototype `fac-attendance.png`, `-dlg-qgsub.png`):
  * class pill switcher, Roster tile with the tap-to-mark `AttendanceGrid` (Quick grid / List),
  * "Today's count" cells, a Submit tile and the confirm dialog. The marks map feeds the same API
- * calls as before: create session → start → capture (If-Match) → complete → finalise.
+ * calls as before: create session → start → capture (If-Match) → submit → complete → finalise
+ * (DEF-D-004: a register is submitted before it is finalised).
+ *
+ * A finalised register is never edited here: the Corrections tile requests a governed correction
+ * (DEF-D-003), which stays "Awaiting approval" until an approver other than the requester decides
+ * it (Academic delivery → Attendance → Correction requests).
  */
-import { CalendarDays, ClipboardCheck, LayoutGrid, List, Play, Presentation, Send } from "lucide-react";
+import { CalendarDays, ClipboardCheck, PencilLine, LayoutGrid, List, Play, Presentation, Send } from "lucide-react";
 import { AreaHeader, AttendanceGrid, BentoTile, countMarks, EmptyState, formatWeekdayDate, ListRow, StatCells, StatusBadge, type AttendanceStudent, type Mark } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useCommand } from "../../institution/hooks";
 import { dkeys, useDeliveryApi } from "../delivery/hooks";
-import type { AttendanceMark, TaughtSection, TeachingSession } from "../delivery/types";
+import type { AttendanceCorrection, AttendanceMark, TaughtSection, TeachingSession } from "../delivery/types";
 import { okeys, useOfferingApi } from "../offering/hooks";
 import { courseCode, hhmm, sectionLabel, slotWhen, todayIso, useAsk } from "../kit";
 
 const MARKS: AttendanceMark[] = ["present", "absent", "late", "excused"];
 const MARK_LABEL: Record<AttendanceMark, string> = { present: "Present", absent: "Absent", late: "Late", excused: "Excused" };
 const OPEN_STATES = ["started", "in_progress", "paused", "completed"];
+const CORRECTION_BADGE: Record<AttendanceCorrection["status"], { label: string; kind: "done" | "neutral" | "attention" | "review" }> = {
+  requested: { label: "Awaiting approval", kind: "review" },
+  validated: { label: "Awaiting approval", kind: "review" },
+  approved: { label: "Approved", kind: "review" },
+  applied: { label: "Applied", kind: "done" },
+  rejected: { label: "Rejected", kind: "attention" },
+  withdrawn: { label: "Withdrawn", kind: "neutral" },
+};
 
 /** The session to work on: today's open one, else the newest not finalised one. */
 function pickSession(sec: TaughtSection | undefined): TeachingSession | undefined {
@@ -58,6 +71,7 @@ export function FacultyAttendanceScreen() {
   const numberOf = useMemo(() => new Map([...(session?.records ?? []).map((r) => [r.studentId, r.studentNumber] as const), ...(students.data ?? []).map((s) => [s.studentId, s.studentNumber] as const)]), [session, students.data]);
 
   const finalised = session?.attendanceStatus === "finalised";
+  const corrections = useQuery({ queryKey: dkeys.scoped(session?.id ?? "-", "attendance-corrections"), queryFn: () => api.listCorrections(session!.id), enabled: !!session && finalised });
   const canMark = !!session && !finalised && (session.status === "scheduled" || OPEN_STATES.includes(session.status));
   const gridMarks = Object.fromEntries(Object.entries(marks).filter(([, m]) => m !== "excused")) as Record<string, Mark>;
   const counts = countMarks(roster, gridMarks);
@@ -110,11 +124,36 @@ export function FacultyAttendanceScreen() {
           let cur = await api.getSession(s.id);
           if (cur.status === "scheduled") cur = await api.sessionCommand(cur.id, cur.version, "start");
           cur = await api.capture(cur.id, cur.version, records());
+          cur = await api.submitAttendance(cur.id, cur.version);
           if (cur.status === "started" || cur.status === "in_progress") cur = await api.sessionCommand(cur.id, cur.version, "complete");
           return api.finalise(cur.id, cur.version);
         }, "Attendance submitted");
         if (done) setPicked(done.id);
       },
+    });
+
+  const nameOf = (studentId: string) => session?.records.find((r) => r.studentId === studentId)?.displayName ?? numberOf.get(studentId) ?? "Student";
+  const requestCorrection = (s: TeachingSession) =>
+    ask({
+      eyebrow: `Attendance · ${courseCode(sec!.offeringCode)} · ${sectionLabel(sec!.sectionCode)} · ${formatWeekdayDate(s.sessionDate)}, ${hhmm(s.startsAt)}`,
+      title: "Request a correction",
+      name: "attendance-correction",
+      submitLabel: "Send for approval",
+      columns: 2,
+      intro: <p className="ac-ask-note">The register stays as it is until the head of department or an administrator approves the change.</p>,
+      fields: [
+        {
+          name: "recordId",
+          label: "Student",
+          type: "select",
+          required: true,
+          options: s.records.filter((r) => r.id && r.mark).map((r) => ({ value: r.id!, label: `${r.displayName} · ${MARK_LABEL[r.mark as AttendanceMark]}` })),
+        },
+        { name: "toMark", label: "Correct mark", type: "select", required: true, options: MARKS.map((m) => ({ value: m, label: MARK_LABEL[m] })) },
+        { name: "reason", label: "Reason", type: "textarea", required: true, placeholder: "For example, was at the lab practical" },
+        { name: "evidence", label: "Evidence", wide: true, placeholder: "For example, lab register page 4" },
+      ],
+      onSubmit: (v) => submit(() => api.requestCorrection(s.id, { recordId: v.recordId!, toMark: v.toMark as AttendanceMark, reason: v.reason!.trim(), evidence: v.evidence?.trim() || null }), "Correction sent for approval"),
     });
 
   if (!q.isLoading && sections.length === 0)
@@ -260,7 +299,13 @@ export function FacultyAttendanceScreen() {
                     </button>
                   </>
                 ) : finalised ? (
-                  <p className="ac-muted">The register for {formatWeekdayDate(session.sessionDate)} is finalised.</p>
+                  <>
+                    <p className="ac-muted">The register for {formatWeekdayDate(session.sessionDate)} is finalised. Changes need a correction request.</p>
+                    <button type="button" className="sb-btn sb-btn--ghost" disabled={busy} data-request-correction="" onClick={() => requestCorrection(session)}>
+                      <PencilLine strokeWidth={1.75} aria-hidden="true" />
+                      Request a correction
+                    </button>
+                  </>
                 ) : (
                   <>
                     <p className="ac-muted">{session.status === "scheduled" ? "Session scheduled — start it when the class begins." : `Everyone not tapped is marked present.`}</p>
@@ -286,6 +331,36 @@ export function FacultyAttendanceScreen() {
               </div>
             </BentoTile>
           </div>
+          {session && finalised && (
+            <BentoTile span={12} data-corrections="">
+              <div className="ac-th">
+                <h2>Corrections</h2>
+                <span className="ac-th-sub">
+                  {formatWeekdayDate(session.sessionDate)}, {hhmm(session.startsAt)} · decided by the head of department or an administrator
+                </span>
+              </div>
+              {(corrections.data ?? []).length === 0 ? (
+                <EmptyState icon={PencilLine} title="No corrections requested" compact>
+                  Request one when a finalised mark is wrong.
+                </EmptyState>
+              ) : (
+                <div className="sb-list-rows">
+                  {(corrections.data ?? []).map((c) => (
+                    <ListRow
+                      key={c.id}
+                      data-correction={c.id}
+                      data-correction-status={c.status}
+                      avatar={nameOf(c.studentId)}
+                      title={nameOf(c.studentId)}
+                      meta={`${MARK_LABEL[c.fromMark]} → ${MARK_LABEL[c.toMark]} · ${c.reason}${c.statusReason ? ` · ${c.statusReason}` : ""}`}
+                      badge={CORRECTION_BADGE[c.status]}
+                      primary={c.status === "requested" ? { label: "Withdraw", ghost: true, disabled: busy, onClick: () => void run(() => api.withdrawCorrection(c.id, c.version), "Correction withdrawn"), "data-correction-withdraw": c.id } : undefined}
+                    />
+                  ))}
+                </div>
+              )}
+            </BentoTile>
+          )}
           <BentoTile span={12} data-sessions="">
             <div className="ac-th">
               <h2>Sessions</h2>

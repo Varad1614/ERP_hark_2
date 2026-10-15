@@ -279,6 +279,9 @@ export async function seedInstitution(admin, opts = {}) {
   check(readiness.ready === true, `institution ready for activation (blocking: ${readiness.items.filter((x) => x.status === "missing" || x.status === "blocking").map((x) => x.key).join(", ") || "none"})`);
   inst = await admin.get(`${I}/institutions/${id}`);
   inst = await admin.call("POST", `${I}/institutions/${id}/submit`, {}, inst.version);
+  // DEF-B-002: submit only requests activation; the Activation Authority decides.
+  check(inst.status === "pending_approval", `activation requested (${inst.status})`);
+  inst = await admin.call("POST", `${I}/institutions/${id}/decision`, { decision: "approve" }, inst.version);
   check(inst.status === "active", `institution active (${inst.status})`);
   const terms = [...v.terms].sort((x, y) => x.sequence - y.sequence);
   return { id, programmeId: p.id, curriculumVersionId: cv.id, yearId: year.id, termIds: terms.map((t) => t.id) };

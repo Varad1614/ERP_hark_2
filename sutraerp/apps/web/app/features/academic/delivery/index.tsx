@@ -268,9 +268,56 @@ export function AttendanceAdminTab({ institution }: { institution: Institution |
   const [section, setSection] = useState("");
   const policies = useQuery({ queryKey: dkeys.scoped(institution?.id ?? "-", "attendance-policies"), queryFn: () => api.listPolicies(institution!.id), enabled: !!institution });
   const summary = useQuery({ queryKey: dkeys.scoped(section || "-", "attendance-summary"), queryFn: () => api.summary(section), enabled: !!section });
+  // DEF-D-003: corrections of finalised registers wait here for an approver other than the requester.
+  const queue = useQuery({ queryKey: dkeys.scoped(institution?.id ?? "-", "attendance-corrections"), queryFn: () => api.correctionQueue(institution!.id, "requested"), enabled: !!institution });
   if (!institution) return <NoInstitutionTile />;
+  const markLabel = (m: string) => m.charAt(0).toUpperCase() + m.slice(1);
   return (
     <>
+      <BentoTile span={12} title="Correction requests" data-correction-queue="">
+        <DataTable
+          caption="Attendance corrections awaiting a decision"
+          rows={queue.data ?? []}
+          rowKey={(c) => c.id}
+          empty={
+            <EmptyState icon={ClipboardCheck} title="No corrections waiting">
+              Faculty requests to change a finalised register appear here for approval.
+            </EmptyState>
+          }
+          columns={[
+            { key: "n", header: "Student", render: (c) => <span data-correction-row={c.id}>{`${c.displayName} (${c.studentNumber})`}</span> },
+            { key: "s", header: "Session", render: (c) => `${c.offeringCode} · Section ${c.sectionCode} · ${c.sessionDate} ${c.startsAt}`, muted: true },
+            { key: "c", header: "Change", render: (c) => <Badge kind="review">{`${markLabel(c.fromMark)} → ${markLabel(c.toMark)}`}</Badge> },
+            { key: "r", header: "Reason", render: (c) => (c.evidence ? `${c.reason} · ${c.evidence}` : c.reason), muted: true },
+            { key: "b", header: "Requested by", render: (c) => (c.requestedBy ?? "—").replace(/^[a-z]+\|/, ""), muted: true },
+            {
+              key: "a",
+              header: "",
+              render: (c) => (
+                <Actions
+                  disabled={busy}
+                  actions={[
+                    { id: "correction-approve", label: "Approve", variant: "primary", onClick: () => void run(() => api.decideCorrection(c.id, c.version, "approve"), "Correction approved and applied") },
+                    {
+                      id: "correction-reject",
+                      label: "Reject",
+                      onClick: () =>
+                        ask({
+                          title: "Reject the correction",
+                          eyebrow: `${c.displayName} · ${c.sessionDate}`,
+                          name: "correction-reject",
+                          submitLabel: "Reject",
+                          fields: [REASON],
+                          onSubmit: (v) => submit(() => api.decideCorrection(c.id, c.version, "reject", v.reason!.trim()), "Correction rejected"),
+                        }),
+                    },
+                  ]}
+                />
+              ),
+            },
+          ]}
+        />
+      </BentoTile>
       <BentoTile
         span={12}
         title="Attendance policy"

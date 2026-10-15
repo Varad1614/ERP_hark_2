@@ -166,6 +166,42 @@ pub struct AttendanceCorrectionList {
     pub items: Vec<AttendanceCorrection>,
 }
 
+/// A correction in an institution's decision queue, with the student, session and section it
+/// touches (DEF-D-003: the HOD / administrator decision screen).
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AttendanceCorrectionQueueItem {
+    pub id: Uuid,
+    pub institution_id: Uuid,
+    pub session_id: Uuid,
+    pub record_id: Uuid,
+    pub student_id: Uuid,
+    pub student_number: String,
+    pub display_name: String,
+    pub section_id: Uuid,
+    pub offering_code: String,
+    pub section_code: String,
+    pub session_date: NaiveDate,
+    /// `HH:MM`.
+    pub starts_at: String,
+    pub from_mark: AttendanceMark,
+    pub to_mark: AttendanceMark,
+    pub reason: String,
+    pub evidence: Option<String>,
+    pub status: ChangeRequestStatus,
+    pub status_reason: Option<String>,
+    pub requested_by: Option<String>,
+    pub decided_by: Option<String>,
+    pub decided_at: Option<DateTime<Utc>>,
+    pub version: i64,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub struct AttendanceCorrectionQueue {
+    pub items: Vec<AttendanceCorrectionQueueItem>,
+}
+
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NewAttendanceCorrection {
@@ -1151,6 +1187,37 @@ pub async fn list_corrections(
     .await
 }
 
+/// Corrections of an institution, newest first (`status` filters, e.g. `requested` for the
+/// decision queue).
+pub async fn list_institution_corrections(
+    state: &AcademicState,
+    tenant: TenantId,
+    institution: Uuid,
+    status: Option<&str>,
+) -> Result<Vec<AttendanceCorrectionQueueItem>, KernelError> {
+    let rows: Vec<serde_json::Value> = sqlx::query_scalar(
+        "SELECT to_jsonb(t) || jsonb_build_object( \
+             'student_number', r.student_number, 'display_name', r.display_name, \
+             'section_id', s.section_id, 'offering_code', o.offering_code, \
+             'section_code', sec.section_code, 'session_date', s.session_date, \
+             'starts_at', to_char(s.starts_at, 'HH24:MI')) \
+         FROM academic.attendance_correction t \
+         JOIN academic.attendance_record r ON r.id = t.record_id \
+         JOIN academic.teaching_session s ON s.id = t.session_id \
+         JOIN academic.offering_section sec ON sec.id = s.section_id \
+         JOIN academic.course_offering o ON o.id = s.offering_id \
+         WHERE t.tenant_id = $1 AND t.institution_id = $2 AND ($3::text IS NULL OR t.status = $3) \
+         ORDER BY t.created_at DESC LIMIT 500",
+    )
+    .bind(tenant.as_uuid())
+    .bind(institution)
+    .bind(status)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(map_db_error)?;
+    rows.into_iter().map(kit::decode).collect()
+}
+
 pub async fn get_correction(
     state: &AcademicState,
     tenant: TenantId,
@@ -1176,7 +1243,7 @@ async fn apply_correction(
             AC,
             "reject",
             corr.id,
-            json!({"reason": reason}),
+            json!({"reason": reason, "requestedBy": corr.requested_by}),
             actor,
         )
         .await?;
@@ -1195,6 +1262,13 @@ async fn apply_correction(
             "the attendance record changed since the correction was requested".into(),
         ));
     }
+    // History first: the `attendance_record_finalised_guard` trigger (DEF-D-009) only lets a
+    // finalised mark change when this transaction has already recorded the matching audit row of
+    // an open correction.
+    kit::append(conn, "attendance_audit", json!({
+        "tenant_id": tenant.as_uuid(), "record_id": rec.id, "correction_id": corr.id,
+        "from_mark": corr.from_mark.as_str(), "to_mark": corr.to_mark.as_str(), "actor": actor.id,
+    })).await?;
     let rec2: RecordRow = kit::patch(
         conn,
         "attendance_record",
@@ -1203,10 +1277,6 @@ async fn apply_correction(
         json!({"mark": corr.to_mark.as_str()}),
     )
     .await?;
-    kit::append(conn, "attendance_audit", json!({
-        "tenant_id": tenant.as_uuid(), "record_id": rec.id, "correction_id": corr.id,
-        "from_mark": corr.from_mark.as_str(), "to_mark": corr.to_mark.as_str(), "actor": actor.id,
-    })).await?;
     let out: AttendanceCorrection = kit::patch(conn, AC, tenant, corr.id, json!({"status": "applied", "status_reason": reason, "decided_by": actor.id, "decided_at": Utc::now()})).await?;
     kit::modified_event(
         conn,
@@ -1220,7 +1290,7 @@ async fn apply_correction(
         actor,
     )
     .await?;
-    kit::audit(conn, &c.scope, AC, "apply", corr.id, json!({"recordId": rec.id, "studentId": rec.student_id, "from": corr.from_mark, "to": corr.to_mark, "subject": rec.subject_ref}), actor).await?;
+    kit::audit(conn, &c.scope, AC, "apply", corr.id, json!({"recordId": rec.id, "studentId": rec.student_id, "from": corr.from_mark, "to": corr.to_mark, "subject": rec.subject_ref, "requestedBy": corr.requested_by}), actor).await?;
     evaluate_section(conn, c, actor).await?;
     Ok(out)
 }
@@ -1305,23 +1375,17 @@ pub async fn request_correction(
         AC,
         "request",
         corr.id,
-        json!({"recordId": rec.id, "to": cmd.to_mark}),
+        json!({
+            "recordId": rec.id, "from": rec.mark, "to": cmd.to_mark, "reason": reason,
+            "workflow": if matches!(outcome, ApprovalOutcome::Approved { .. }) { "cleared" } else { "pending" },
+        }),
         actor,
     )
     .await?;
-    let corr = if let ApprovalOutcome::Approved { .. } = outcome {
-        apply_correction(
-            &mut tx,
-            &c,
-            &corr,
-            true,
-            None,
-            &Actor::system(actor.correlation_id.clone()),
-        )
-        .await?
-    } else {
-        corr
-    };
+    // DEF-D-002: a correction of a finalised register is never applied by its requester or by
+    // the automatic approver. Whatever the approval mode reports (the workflow step is started
+    // above in both modes), the correction stays `requested` until an authorised approver other
+    // than the requester decides it through `decide_correction` (attendance.correct + step-up).
     tx.commit().await.map_err(map_db_error)?;
     Ok(corr)
 }
@@ -1335,12 +1399,19 @@ pub async fn decide_correction(
     reason: Option<String>,
     actor: &Actor,
 ) -> Result<AttendanceCorrection, KernelError> {
+    // The approver needs attendance.correct; `require` also enforces the MFA step-up of that
+    // permission when the platform enforces step-up (DEF-D-002).
     auth.require(Permission::AttendanceCorrect)?;
     let tenant = auth.scope.tenant_id;
     if !approve && reason.is_none() {
         return Err(invalid("reason", "required", "a rejection needs a reason"));
     }
     let cur = get_correction(state, tenant, id).await?;
+    if is_requester(&cur, auth, actor) {
+        return Err(KernelError::Forbidden(
+            "the requester cannot decide their own attendance correction".into(),
+        ));
+    }
     let s: TeachingSession = kit::fetch(&state.pool, TS, TS_ENTITY, tenant, cur.session_id).await?;
     let c = kit::section_ctx(state, auth, s.section_id).await?;
     require_institution_writable(state, &c.scope, c.section.institution_id).await?;
@@ -1356,6 +1427,14 @@ pub async fn decide_correction(
     let out = apply_correction(&mut tx, &c, &corr, approve, reason.as_deref(), actor).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(out)
+}
+
+/// Maker-checker: the person who requested a correction never decides it.
+fn is_requester(corr: &AttendanceCorrection, auth: &AuthContext, actor: &Actor) -> bool {
+    match corr.requested_by.as_deref() {
+        Some(r) => r == auth.subject || actor.id.as_deref() == Some(r),
+        None => false,
+    }
 }
 
 pub async fn withdraw_correction(

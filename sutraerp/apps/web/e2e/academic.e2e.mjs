@@ -461,7 +461,7 @@ try {
     check((await page.locator("[data-faculty-timetable] [data-slot]").count()) === 3, "faculty sees the 3 weekly teaching slots");
     await shot(page, "4b-faculty-timetable");
   });
-  await step(page, "4B: faculty session → quick-grid attendance → submit (capture + complete + finalise)", async () => {
+  await step(page, "4B: faculty session → quick-grid attendance → submit (capture + submit + complete + finalise)", async () => {
     await go(page, "/attendance");
     await page.locator("[data-new-session]").first().click();
     await h4b.fillForm(page, "new-session", { topic: "Recursion" });
@@ -485,6 +485,17 @@ try {
     await row4b.filter({ hasText: "Finalised" }).waitFor({ timeout: 15000 });
     check((await row4b.textContent()).includes("Finalised"), "the Recursion session is finalised");
     await shot(page, "4b-faculty-attendance-finalised");
+  });
+  await step(page, "4B (DEF-D-003): faculty requests a correction of the finalised register → awaiting approval", async () => {
+    await page.locator("[data-request-correction]").click();
+    await page.locator('[data-form="attendance-correction"]').waitFor();
+    await shot(page, "4b-faculty-correction-request");
+    await h4b.fillForm(page, "attendance-correction", { recordId: "Absent", toMark: "present", reason: "Was at the lab practical", evidence: "Lab register p.4" });
+    const pending = page.locator('[data-corrections] [data-correction-status="requested"]');
+    await pending.first().waitFor({ timeout: 10000 });
+    check((await pending.first().textContent()).includes("Awaiting approval"), "the correction waits for an approver; the register is unchanged");
+    check((await page.locator("[data-session-row]", { hasText: "Recursion" }).first().textContent()).includes("Finalised"), "the session stays finalised");
+    await shot(page, "4b-faculty-correction-awaiting-approval");
   });
   // ==== 4B faculty end
   // ==== 4C faculty begin (Resources)
@@ -524,6 +535,16 @@ try {
     await h4b.settle(page);
     await page.getByText("0 / 1").first().waitFor();
     await shot(page, "4b-admin-attendance-after-finalise");
+    // DEF-D-003: the HOD / administrator decides the faculty's correction request.
+    const queue = page.locator("[data-correction-queue]");
+    await queue.locator("[data-correction-row]").first().waitFor({ timeout: 10000 });
+    check((await queue.textContent()).includes("Absent → Present"), "the correction request shows the requested change");
+    await shot(page, "4b-admin-correction-queue");
+    await queue.locator('[data-action="correction-approve"]').first().click();
+    await queue.getByText("No corrections waiting").waitFor({ timeout: 10000 });
+    await page.getByText("1 / 1").first().waitFor();
+    check((await page.getByText("0 / 1").count()) === 0, "after approval the corrected mark counts as present");
+    await shot(page, "4b-admin-correction-approved");
     await go(page, "/academic-delivery/monitoring");
     await pickTerm();
     await page.getByText("Moderate").first().waitFor();

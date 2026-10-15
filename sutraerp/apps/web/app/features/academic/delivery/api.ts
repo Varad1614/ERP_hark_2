@@ -11,6 +11,8 @@ import { fill } from "../../institution/api";
 import type {
   AssessmentBlueprint,
   AssessmentWindow,
+  AttendanceCorrection,
+  AttendanceCorrectionQueueItem,
   AttendanceMark,
   AttendancePolicy,
   AttendanceSummary,
@@ -19,6 +21,7 @@ import type {
   CreateRequirement,
   CreateSession,
   CreateWindow,
+  CorrectionStatus,
   InterventionCommand,
   InternalAssessmentResult,
   Items,
@@ -26,6 +29,7 @@ import type {
   MyAssignment,
   MyAttendanceLine,
   OpenCase,
+  RequestCorrection,
   SchedulingRequirement,
   SessionCommand,
   TaughtSection,
@@ -54,7 +58,14 @@ export interface DeliveryApi {
   getSession(id: string): Promise<TeachingSession>;
   sessionCommand(id: string, version: number, cmd: SessionCommand, reason?: string): Promise<TeachingSession>;
   capture(id: string, version: number, records: { studentId: string; mark: AttendanceMark }[]): Promise<TeachingSession>;
+  submitAttendance(id: string, version: number): Promise<TeachingSession>;
   finalise(id: string, version: number): Promise<TeachingSession>;
+  // governed corrections of finalised registers (faculty request; HOD / administrator decide)
+  listCorrections(sessionId: string): Promise<AttendanceCorrection[]>;
+  requestCorrection(sessionId: string, input: RequestCorrection): Promise<AttendanceCorrection>;
+  withdrawCorrection(id: string, version: number, reason?: string): Promise<AttendanceCorrection>;
+  correctionQueue(institutionId: string, status?: CorrectionStatus): Promise<AttendanceCorrectionQueueItem[]>;
+  decideCorrection(id: string, version: number, decision: "approve" | "reject", reason?: string): Promise<AttendanceCorrection>;
   listPolicies(institutionId: string): Promise<AttendancePolicy[]>;
   createPolicy(institutionId: string, input: CreatePolicy): Promise<AttendancePolicy>;
   submitPolicy(id: string, version: number): Promise<AttendancePolicy>;
@@ -111,7 +122,12 @@ export const PATHS = {
   sCancel: `${B}/sessions/{id}/cancel`,
   sLock: `${B}/sessions/{id}/lock`,
   attendance: `${B}/sessions/{id}/attendance`,
+  submitAttendance: `${B}/sessions/{id}/submit-attendance`,
   finalise: `${B}/sessions/{id}/finalise-attendance`,
+  corrections: `${B}/sessions/{id}/attendance-corrections`,
+  correctionQueue: `${B}/institutions/{id}/attendance-corrections`,
+  correctionDecision: `${B}/attendance-corrections/{id}/decision`,
+  correctionWithdraw: `${B}/attendance-corrections/{id}/withdraw`,
   policies: `${B}/institutions/{id}/attendance-policies`,
   policySubmit: `${B}/attendance-policies/{id}/submit`,
   summary: `${B}/sections/{id}/attendance-summary`,
@@ -219,7 +235,13 @@ export function createHttpDeliveryApi(fetchImpl: Fetch = (i, init) => fetch(i, i
     getSession: (i) => request("GET", fill(PATHS.session, id(i))),
     sessionCommand: (i, v, cmd, reason) => request("POST", fill(SESSION_CMD[cmd], id(i)), { body: reasonBody(reason), ifMatch: v }),
     capture: (i, v, records) => request("POST", fill(PATHS.attendance, id(i)), { body: { records }, ifMatch: v }),
+    submitAttendance: (i, v) => request("POST", fill(PATHS.submitAttendance, id(i)), { ifMatch: v }),
     finalise: (i, v) => request("POST", fill(PATHS.finalise, id(i)), { ifMatch: v }),
+    listCorrections: (s) => items(fill(PATHS.corrections, id(s))),
+    requestCorrection: (s, input) => request("POST", fill(PATHS.corrections, id(s)), { body: input, idempotent: true }),
+    withdrawCorrection: (i, v, reason) => request("POST", fill(PATHS.correctionWithdraw, id(i)), { body: reasonBody(reason), ifMatch: v }),
+    correctionQueue: (i, status) => items(fill(PATHS.correctionQueue, id(i)) + (status ? `?status=${encodeURIComponent(status)}` : "")),
+    decideCorrection: (i, v, decision, reason) => request("POST", fill(PATHS.correctionDecision, id(i)), { body: reason ? { decision, reason } : { decision }, ifMatch: v }),
     listPolicies: (i) => items(fill(PATHS.policies, id(i))),
     createPolicy: (i, input) => request("POST", fill(PATHS.policies, id(i)), { body: input, idempotent: true }),
     submitPolicy: (i, v) => request("POST", fill(PATHS.policySubmit, id(i)), { ifMatch: v }),
