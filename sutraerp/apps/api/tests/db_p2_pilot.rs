@@ -1,5 +1,7 @@
-//! Part 2 · Stage 6 (S6-pilot) — regressions for defects found by the UAT dry run
-//! (`apps/web/e2e/uat-dryrun.e2e.mjs`, synthetic data only), real PostgreSQL (`db-tests`):
+//! Part 2 · Stage 6 (S6-pilot) — regressions for defects found while preparing the UAT
+//! (DEF-P2-PILOT-001: by code review while designing dry-run case UAT-EXM-01, not by the dry
+//! run itself; `apps/web/e2e/uat-dryrun.e2e.mjs` then verifies it with synthetic data), real
+//! PostgreSQL (`db-tests`):
 //!
 //! * `malpractice_decision_is_approved_by_an_independent_controller` — DEF-P2-PILOT-001: the
 //!   governed malpractice approval (`POST /exams/malpractice-cases/{id}/approval`) had no

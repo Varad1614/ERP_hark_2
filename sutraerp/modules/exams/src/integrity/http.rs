@@ -494,7 +494,8 @@ pub async fn case_approval(
     Json(b): Json<MalpracticeApprovalBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ExamApprove)?;
-    // Part 2 · S6-pilot (DEF-P2-PILOT-001, found by the UAT dry run): the exam official who
+    // Part 2 · S6-pilot (DEF-P2-PILOT-001, found by code review while designing UAT case
+    // UAT-EXM-01; the dry run verifies the fix): the exam official who
     // proposed the committee decision / review outcome never approves it (maker ≠ checker,
     // DEF-X-002); a system or unidentified actor never decides it either.
     sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "malpractice decision").await?;
