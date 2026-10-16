@@ -88,10 +88,13 @@ def main(args):
         out.append(f"| {label} | {conn} | {act} | {lw} | {' → '.join(vols)} |")
     out.append("")
     for label, r in runs:
-        out.append(f"Breaches — {label}: " + ("none" if not r.get("breaches") else ""))
-        for b in r.get("breaches") or []:
-            out.append(f"- {b}")
+        br = r.get("breaches") or []
+        out.append(f"**Threshold breaches — {label}: {len(br) if br else 'none'}**")
         out.append("")
+        for b in br:
+            out.append(f"- {b}")
+        if br:
+            out.append("")
     return "\n".join(out)
 
 
