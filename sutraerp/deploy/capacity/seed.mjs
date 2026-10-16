@@ -564,9 +564,11 @@ await phase("examinations: end-semester CS101 → marks → approval → results
   await admin.call("POST", `${X}/mark-sheets/${sh.id}/finalise`, {}, sh.version);
   const t1 = Date.now();
   let b = await admin.call("POST", `${X}/exam-sessions/${ese.session.id}/result-batches`, {});
-  b = await admin.call("POST", `${X}/result-batches/${b.id}/compute`, {}, b.version);
-  const computed = b.computed;
-  b = await admin.get(`${X}/result-batches/${b.id}`);
+  // compute answers a ComputeSummaryView ({ computed, …, batch }), not the batch itself
+  // (capacity run 38939308465: `result-batches/undefined`).
+  const summary = await admin.call("POST", `${X}/result-batches/${b.id}/compute`, {}, b.version);
+  const computed = summary?.computed;
+  b = await admin.get(`${X}/result-batches/${summary?.batch?.id ?? b.id}`);
   b = await admin.call("POST", `${X}/result-batches/${b.id}/validate`, {}, b.version);
   b = await approve("result_batch", b.id, { client: admin, step: "capacity: results" });
   await admin.call("POST", `${X}/result-batches/${b.id}/finalise`, {}, b.version);
@@ -598,11 +600,13 @@ const PDF = (() => {
 })();
 await phase(`documents: one verified ID-card PDF per student (${(PDF.length / 1024).toFixed(0)} KiB, MinIO, SSE)`, async () => {
   const r = await pool(data.students, CONC, async (st) => {
-    let d = await admin.call("POST", `${S}/students/${st.id}/documents`, { documentType: "identity_proof", title: "College ID card" });
+    const d = await admin.call("POST", `${S}/students/${st.id}/documents`, { documentType: "identity_proof", title: "College ID card" });
     const up = await admin.upload(`${S}/students/${st.id}/documents/${d.id}/file`, PDF, "application/pdf", `id-card-${st.number.replace("/", "-")}.pdf`);
     if (up.status >= 300) throw new Error(`upload → ${up.status} ${up.text.slice(0, 200)}`);
-    d = up.json ?? d;
-    const v = await admin.call("POST", `${S}/students/${st.id}/documents/${d.id}/verify`, { outcome: "verified" }, d.version);
+    // the upload answers an AttachedFile ({ documentId, documentVersion, file }), not the
+    // document (capacity run 38939308465: `documents/undefined/verify`).
+    const version = up.json?.documentVersion ?? d.version;
+    const v = await admin.call("POST", `${S}/students/${st.id}/documents/${d.id}/verify`, { outcome: "verified" }, version);
     st.document = v?.id ?? d.id;
   });
   must(r, "documents", Math.floor(N * 0.01));
