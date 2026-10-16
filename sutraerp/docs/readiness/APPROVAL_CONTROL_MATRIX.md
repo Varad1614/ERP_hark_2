@@ -24,7 +24,7 @@ whether separation of duties (SoD) and an audit trail are enforced. Branches `pa
 
 ## Separation of duties (DEF-X-002, completed in Stage 3)
 
-Every governed decision endpoint of the API (125 POST operations whose path ends in `…/decision`,
+Every governed decision endpoint of the API (126 POST operations whose path ends in `…/decision`,
 `…-decision`, `/authorise` or `/approve` in `openapi/openapi.json`) is either **guarded** or
 **allowlisted with a written reason**. The fitness test `apps/api/tests/approval_matrix.rs` enforces
 it on every CI run: a new decision endpoint without a guard, a stale allowlist entry, or an
@@ -56,7 +56,7 @@ none of the manage permissions that raise requests (`approver_roles_hold_approve
 
 | Role | Dev persona | Approve permissions |
 |---|---|---|
-| `finance_approver` | finance.approver@sutra.dev | finance.approve, library.fine.waive.approve (S2-ops, DEF-G-002) |
+| `finance_approver` | finance.approver@sutra.dev | finance.approve, library.fine.waive.approve (S2-ops, DEF-G-002), platform.import.approve (Part 2 S4-import: opening fee balances) |
 | `exam_controller` | exam.controller@sutra.dev | exam.approve, exam.result.publish |
 | `registrar` | registrar@sutra.dev | admission.decide |
 | `payroll_approver` | payroll.approver@sutra.dev | people.payroll.approve |
@@ -82,7 +82,7 @@ needs a reason). A direct override seat under human approval is refused (409). T
 
 ## Every decision endpoint
 
-Generated from the code by `docs/readiness/tools/approval_matrix_table.py .` (port of the fitness test; total=125 allow=26 history=17 ledger=82: ledger = approval-ledger guard, history = status-history guard, allow = allowlisted).
+Generated from the code by `docs/readiness/tools/approval_matrix_table.py .` (port of the fitness test; total=126 allow=26 history=17 ledger=83: ledger = approval-ledger guard, history = status-history guard, allow = allowlisted).
 Maker permission = the manage permission(s) the slice's create/submit handlers require (where the
 checker permission equals it, the guard is what separates maker and checker). Tests always include
 the fitness test plus the DB / e2e tests that call the endpoint.
@@ -187,6 +187,7 @@ the fitness test plus the DB / e2e tests that call the endpoint.
 | `people_separation_decide` | `POST /people/separation-cases/{id}/decision` | StaffManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7a::governed_decisions_await_a_decision` | `modules/people/src/hr/separation.rs` |
 | `people_settlement_decide` | `POST /people/final-settlements/{id}/decision` | PayrollManage | PayrollApprove | Y (`ensure_independent_decider`: status history + maker columns) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p1_s3_appr::payroll_adjustment_and_final_settlement_need_an_independent_approver` | `modules/people/src/payroll/http.rs` |
 | `people_workload_plan_decide` | `POST /people/workload-plans/{id}/decision` | LeaveManage | PeopleApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b7b::await_decision_routes_leave_to_the_reporting_manager` | `modules/people/src/workload/mod.rs` |
+| `platform_import_job_decision` | `POST /platform/imports/{id}/decision` | DataImport + the entity's manage permission (opening balances: ChargeManage) | DataImportApprove (administrator, finance_approver; step-up) | Y (approval ledger `guard_decision*` in the handler + `guard_decision_by` with the job's maker columns `created_by` / `commit_requested_by` in `engine::decide`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p2_import::opening_balances_need_a_second_approver_and_reconcile_to_the_ledger` | `modules/platform/src/dataimport/http.rs` |
 | `programme_migration_decision` | `POST /student/programme-migrations/{id}/decision` | ProgressionManage, ProgressionPolicyManage | ProgressionDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/progression/http.rs` |
 | `progression_decision_decide` | `POST /student/progression-decisions/{id}/decision` | ProgressionManage, ProgressionPolicyManage | ProgressionDecide | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3b::approvals_await_a_decision` | `modules/student/src/progression/http.rs` |
 | `progression_policy_decision` | `POST /student/progression-policies/{id}/decision` | ProgressionManage | ProgressionPolicyManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3b::approvals_await_a_decision` | `modules/student/src/progression/http.rs` |
