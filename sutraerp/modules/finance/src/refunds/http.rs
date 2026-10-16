@@ -1070,8 +1070,10 @@ async fn process_common(
                 &a,
             )
             .await?;
-            sqlx::query("UPDATE finance.refund SET failure_reason = 'gateway refund failed (mock)' WHERE id = $1")
+            // Part 2 S4-pay: name the adapter (was hard-coded "(mock)").
+            sqlx::query("UPDATE finance.refund SET failure_reason = $2 WHERE id = $1")
                 .bind(id)
+                .bind(format!("gateway refund failed ({})", st.gateway.name()))
                 .execute(&mut *tx)
                 .await
                 .map_err(map_db_error)?;

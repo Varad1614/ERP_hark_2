@@ -141,7 +141,7 @@ pub fn hex(bytes: &[u8]) -> String {
 }
 
 fn unhex(s: &str) -> Option<Vec<u8>> {
-    if s.len() % 2 != 0 || !s.is_ascii() {
+    if !s.len().is_multiple_of(2) || !s.is_ascii() {
         return None;
     }
     (0..s.len())
@@ -811,12 +811,7 @@ pub mod stub {
         let Ok(mut st) = sh.state.lock() else {
             return error(500, "SERVER_ERROR", "poisoned", None);
         };
-        if !receipt.is_empty()
-            && st
-                .orders
-                .iter()
-                .any(|o| o["receipt"] == Value::from(receipt.clone()))
-        {
+        if !receipt.is_empty() && st.orders.iter().any(|o| o["receipt"] == receipt.as_str()) {
             return error(
                 400,
                 "BAD_REQUEST_ERROR",
@@ -861,7 +856,7 @@ pub mod stub {
             .orders
             .iter()
             .filter(|o| match q.get("receipt") {
-                Some(r) => o["receipt"] == Value::from(r.clone()),
+                Some(r) => o["receipt"] == r.as_str(),
                 None => true,
             })
             .cloned()
@@ -883,11 +878,7 @@ pub mod stub {
         let Ok(st) = sh.state.lock() else {
             return error(500, "SERVER_ERROR", "poisoned", None);
         };
-        if !st
-            .orders
-            .iter()
-            .any(|o| o["id"] == Value::from(order.clone()))
-        {
+        if !st.orders.iter().any(|o| o["id"] == order.as_str()) {
             return error(
                 400,
                 "BAD_REQUEST_ERROR",
@@ -898,7 +889,7 @@ pub mod stub {
         let items: Vec<Value> = st
             .payments
             .iter()
-            .filter(|p| p["order_id"] == Value::from(order.clone()))
+            .filter(|p| p["order_id"] == order.as_str())
             .cloned()
             .collect();
         (
@@ -934,11 +925,7 @@ pub mod stub {
                 );
             }
             if let Some(id) = st.refund_keys.get(k).cloned() {
-                if let Some(r) = st
-                    .refunds
-                    .iter()
-                    .find(|r| r["id"] == Value::from(id.clone()))
-                {
+                if let Some(r) = st.refunds.iter().find(|r| r["id"] == id.as_str()) {
                     return (StatusCode::OK, Json(r.clone()));
                 }
             }
@@ -946,7 +933,7 @@ pub mod stub {
         let Some(p) = st
             .payments
             .iter()
-            .find(|p| p["id"] == Value::from(payment.clone()))
+            .find(|p| p["id"] == payment.as_str())
             .cloned()
         else {
             return error(
@@ -968,7 +955,7 @@ pub mod stub {
         let refunded: i64 = st
             .refunds
             .iter()
-            .filter(|r| r["payment_id"] == Value::from(payment.clone()))
+            .filter(|r| r["payment_id"] == payment.as_str())
             .filter_map(|r| r["amount"].as_i64())
             .sum();
         let amount = body
@@ -1025,7 +1012,7 @@ pub mod stub {
         let items: Vec<Value> = st
             .refunds
             .iter()
-            .filter(|r| r["payment_id"] == Value::from(payment.clone()))
+            .filter(|r| r["payment_id"] == payment.as_str())
             .cloned()
             .collect();
         (
@@ -1101,7 +1088,7 @@ pub mod stub {
             let amount = st
                 .orders
                 .iter()
-                .find(|o| o["id"] == Value::from(order_id))
+                .find(|o| o["id"] == order_id)
                 .and_then(|o| o["amount"].as_i64())
                 .unwrap_or(0);
             st.counter += 1;
@@ -1148,11 +1135,7 @@ pub mod stub {
                 "created_at": 1_700_000_000 + st.counter,
             });
             st.payments.push(p.clone());
-            if let Some(o) = st
-                .orders
-                .iter_mut()
-                .find(|o| o["id"] == Value::from(order_id))
-            {
+            if let Some(o) = st.orders.iter_mut().find(|o| o["id"] == order_id) {
                 o["attempts"] = Value::from(o["attempts"].as_i64().unwrap_or(0) + 1);
                 o["status"] = Value::from(if captured { "paid" } else { "attempted" });
             }
@@ -1162,11 +1145,7 @@ pub mod stub {
         /// Turns an `authorized` payment into `captured` (auto-capture finishing later).
         pub fn capture(&self, payment_id: &str) {
             if let Ok(mut st) = self.state.lock() {
-                if let Some(p) = st
-                    .payments
-                    .iter_mut()
-                    .find(|p| p["id"] == Value::from(payment_id))
-                {
+                if let Some(p) = st.payments.iter_mut().find(|p| p["id"] == payment_id) {
                     p["status"] = Value::from("captured");
                     p["captured"] = Value::from(true);
                 }
@@ -1188,7 +1167,7 @@ pub mod stub {
                     .and_then(|st| {
                         st.orders
                             .iter()
-                            .find(|x| x["id"] == Value::from(order.clone()))
+                            .find(|x| x["id"] == order.as_str())
                             .cloned()
                     })
                     .unwrap_or(Value::Null);

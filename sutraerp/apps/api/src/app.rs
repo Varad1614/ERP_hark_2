@@ -208,6 +208,8 @@ pub enum BuildError {
     Mail(String),
     #[error("data platform configuration: {0}")]
     DataPlatform(String), // 9C
+    #[error("payment gateway configuration: {0}")]
+    Payments(String), // Part 2 S4-pay
 }
 
 impl AppContext {
@@ -235,6 +237,15 @@ impl AppContext {
         // ---- 9C ---- workflow adapter + decision sync, search projector / rebuild (see wire_9c)
         let (workflow, search, consumers) = wire_9c(cfg, &pool, consumers)?;
         // ---- end 9C ----
+        // Part 2 S4-pay: the configured gateway and its recovery job (runs with the sweepers).
+        let payment_gateway = payment_gateway(cfg)?;
+        let scheduler =
+            scheduler.map(
+                |s| match payment_recovery(cfg, &pool, &workflow, &payment_gateway) {
+                    Some(job) => s.with(job),
+                    None => s,
+                },
+            );
         // SEC-P1-AUTH-001: privileged-role MFA also drives dev-mode challenges / enrolment.
         let mfa = PrivilegedRoleMfaPolicy {
             enforce: cfg.dev_mfa_enforced || cfg.privileged_mfa,
@@ -404,8 +415,8 @@ impl AppContext {
                 consumers,
                 observability, // 9A
             },
-            search,                                // 9C
-            payment_gateway: payment_gateway(cfg), // INT: SEC-9D-003
+            search,          // 9C
+            payment_gateway, // INT: SEC-9D-003 (+ Part 2 S4-pay: razorpay)
         })
     }
 
@@ -645,10 +656,13 @@ impl ObservabilityTasks {
 
 /// `SUTRA_AUDIT_ANCHOR_KEY` / `_KEY_ID` as the persistence anchor key.
 /// INT: SEC-9D-003 — `SUTRA_PAYMENT_GATEWAY` → adapter (production default: disabled → 503).
-fn payment_gateway(cfg: &Config) -> Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort> {
+/// Part 2 S4-pay: `razorpay` → `payment_gateway::RazorpayGateway` (keys from `SUTRA_RAZORPAY_*`).
+pub fn payment_gateway(
+    cfg: &Config,
+) -> Result<Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort>, BuildError> {
     use crate::config_b9::PaymentGatewayMode;
     let p = &cfg.hardening.payments;
-    match p.gateway {
+    Ok(match p.gateway {
         PaymentGatewayMode::Disabled => {
             tracing::info!("payments: online gateway disabled (checkout + webhook answer 503)");
             Arc::new(sutra_finance::DisabledPaymentGateway)
@@ -662,7 +676,64 @@ fn payment_gateway(cfg: &Config) -> Arc<dyn sutra_contracts::finance::ports::Pay
                 None => Arc::new(sutra_finance::MockPaymentGateway::default()),
             }
         }
+        PaymentGatewayMode::Razorpay => {
+            let (Some(r), Some(hook)) = (&p.razorpay, &p.webhook_secret) else {
+                return Err(BuildError::Payments(
+                    "razorpay needs SUTRA_RAZORPAY_KEY_ID / _KEY_SECRET and the webhook secret"
+                        .into(),
+                ));
+            };
+            tracing::info!(
+                key_id = %r.key_id,
+                base_url = %r.base_url,
+                "payments: Razorpay gateway"
+            );
+            Arc::new(
+                crate::payment_gateway::RazorpayGateway::new(
+                    sutra_infra::razorpay::RazorpaySettings {
+                        base_url: r.base_url.clone(),
+                        key_id: r.key_id.clone(),
+                        key_secret: r.key_secret.0.clone(),
+                        webhook_secret: hook.0.clone(),
+                        timeout: r.timeout,
+                        max_retries: r.max_retries,
+                        retry_backoff: Duration::from_millis(250),
+                    },
+                )
+                .map_err(BuildError::Payments)?,
+            )
+        }
+    })
+}
+
+/// Part 2 S4-pay: the `payment_gateway_recovery` sweeper (none when the gateway is disabled or
+/// `SUTRA_PAYMENT_RECOVERY_INTERVAL_SECS=0`).
+fn payment_recovery(
+    cfg: &Config,
+    pool: &PgPool,
+    workflow: &Arc<dyn WorkflowPort>,
+    gateway: &Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort>,
+) -> Option<Arc<dyn sutra_persistence::jobs::SweepJob>> {
+    let r = &cfg.hardening.payments.recovery;
+    if r.interval.is_zero() || gateway.name() == sutra_finance::payments::gateway::DISABLED_GATEWAY
+    {
+        return None;
     }
+    let mut deps = finance_deps_with(
+        pool.clone(),
+        workflow.clone(),
+        cfg.hardening.workflow.approvals,
+    );
+    deps.gateway = gateway.clone();
+    Some(Arc::new(
+        sutra_finance::payments::recovery::GatewayRecovery {
+            state: deps.into_state(),
+            interval: r.interval,
+            min_age: r.min_age,
+            expire_after: r.expire_after,
+            batch_size: r.batch_size,
+        },
+    ))
 }
 
 fn anchor_key(cfg: &Config) -> Option<sutra_persistence::audit_chain::AnchorKey> {
