@@ -21,6 +21,7 @@
 # Host needs: Docker Engine 24+ with the compose v2 plugin, bash, curl, openssl, python3, sha256sum.
 # Set SUTRA_TIMINGS_FILE to append "<step>\t<seconds>" lines (measurements).
 set -euo pipefail
+umask 022
 
 SELF=$(readlink -f "${BASH_SOURCE[0]}")
 BUNDLE_DIR=$(cd "$(dirname "$SELF")/.." && pwd)
@@ -169,8 +170,7 @@ cmd_secrets() {
   need_root
   mkdir -p "$SUTRA_ETC"
   local f="$SUTRA_ETC/secrets.env" k added=0
-  umask 077
-  touch "$f"
+  (umask 077 && touch "$f")
   chmod 600 "$f"
   # Every credential is random and generated on this server; nothing ships in the bundle.
   local -A gen=(
@@ -272,6 +272,8 @@ cmd_render() {
   : "${SUTRA_TLS_CERT_FILE:?set SUTRA_TLS_CERT_FILE (or run tls-local-ca)}" "${SUTRA_TLS_KEY_FILE:?}"
   local t="$SUTRA_ETC/tls"
   mkdir -p "$t/public" "$SUTRA_ETC/edge" "$SUTRA_ETC/keycloak"
+  # Containers read these as their own users (edge 101, keycloak 1000:0): traversable directories.
+  chmod 755 "$SUTRA_ETC" "$t" "$t/public" "$SUTRA_ETC/edge" "$SUTRA_ETC/keycloak"
   # Public certificate for the edge (nginx-unprivileged runs as 101).
   install -m 644 "$SUTRA_TLS_CERT_FILE" "$t/public/server.crt"
   install -m 600 -o 101 -g 101 "$SUTRA_TLS_KEY_FILE" "$t/public/server.key"
@@ -286,7 +288,8 @@ cmd_render() {
   } >"$t/trust.pem"
   chmod 644 "$t/trust.pem"
 
-  umask 077
+  touch "$SUTRA_ETC/compose.env" "$SUTRA_ETC/api.env"
+  chmod 600 "$SUTRA_ETC/compose.env" "$SUTRA_ETC/api.env"
   cat >"$SUTRA_ETC/compose.env" <<EOF
 # rendered by sutra-onprem render — do not edit (edit sutraerp.conf / secrets.env)
 SUTRA_ETC=$SUTRA_ETC

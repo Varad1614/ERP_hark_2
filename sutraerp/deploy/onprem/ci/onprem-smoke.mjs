@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global process, console, Buffer, setTimeout */
 /**
  * On-prem smoke journey (Part 2 · S5-deploy) — run from a verification checkout AGAINST an
  * installed server, through its public https names exactly like a browser would (real Keycloak

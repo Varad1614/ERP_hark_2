@@ -153,7 +153,9 @@ services:
       FLOWABLE_REST_APP_ADMIN_LAST-NAME: ERP
       JAVA_OPTS: -Xms256m -Xmx${SUTRA_FLOWABLE_HEAP:-768m}
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      # The REST port opens once the engines have booted (actuator needs credentials). nc (busybox)
+      # or bash, whichever the image has.
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 2>/dev/null || bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null"]
       interval: 10s
       retries: 40
       start_period: 60s
