@@ -9,7 +9,7 @@
 
 | | |
 |---|---|
-| Branch | `part2/s5-capacity` |
+| Branch | `part2/s5-capacity` (runs 1–8); run 9 on the integrated `part2/int` |
 | Procedure | `sutraerp/deploy/capacity/` (`run.sh prepare → up → seed → load → report → logs → down`), README there |
 | Workflow | `.github/workflows/sutraerp-capacity.yml` — **SutraERP Part 2 capacity (2,000 students)**, artifact `capacity-evidence` |
 | Pass criteria | `deploy/capacity/thresholds.json` — fixed before the first measured run, **never edited** to make a run pass |
@@ -17,22 +17,39 @@
 
 ## Verdict
 
-**Not passed on the runner.** The final measured runs (5, 6 and 7) show:
+**Not passed on the runner.** Run 8 (38960531409, commit `ae097788`, the DEF-P2-CAP-007 fix; GitHub-hosted runner AMD EPYC
+7763, 4 vCPU, 15.6 GiB — NOT college hardware) is **FAILED with 30 breaches** (run 7: 61). What changed and what did not:
 
-- **Steady college day: within every threshold** apart from harness 412s on one marks endpoint
-  (run 7: 0.01 % errors, read p95 13 ms, sign-in p95 115 ms).
-- **Results-day spike: API fine, sign-in marginal.** Read/write p95 stay under 300 ms in every
-  run, but the sign-in flow p95 was 3.3 s (run 5), 4.3 s (run 6) and **6.2 s (run 7, over the 5 s
-  limit)**. Keycloak is the CPU bottleneck (up to 247 % of a 4-vCPU host).
-- **Fee-deadline spike: failed in runs 6 and 7** because the API's database pool stalls
-  (5–25 s with no request completing, then a burst of 503 "database unavailable"). This is
-  **DEF-P2-CAP-007, open and reproduced in run 7**: a product defect, not a hardware limit.
-  CPU, RAM and PostgreSQL all had spare capacity during the stalls.
-- Six defects found by this test (DEF-P2-CAP-001…006) are fixed, each with a regression test,
-  and are green in SutraERP CI. Run 7 is the first run whose seed completed every phase.
+- **Fee-deadline spike: fixed (DEF-P2-CAP-007 COMPLETED).** Errors 1.50 % → **0.08 %**, read p99 8.8 s → **551 ms**, write p99
+  9.2 s → 498 ms, **zero** "database unavailable" / pool errors. The pool hold-and-wait in `/finance/me/charges` and the
+  attendance register commands was the cause; the fix (`018d8766`) did not raise the pool size or touch a threshold.
+- **Steady college day:** read p95 14 ms, sign-in p95 103 ms, errors 0.08 % — within the phase limits; the endpoint breaches in
+  steady come from the office-desk 403s below.
+- **Results-day spike: sign-in p95 5,011 ms vs the 5,000 ms limit** (run 7: 6.2 s). Keycloak peaked at **213 % CPU** of the
+  4-vCPU host shared with k6 — a **capacity limit, not an API defect**. Sizing per Keycloak's guide (Production risks 2):
+  ≈ 5 vCPU of steady Keycloak capacity, limit ≈ 12 vCPU, for ≈ 73 full password sign-ins/s.
+- **19 breaches = one office desk answered 403 on all 344 of its requests** after a normal password + TOTP sign-in
+  (`student.record`, `student.directory.search`, `finance.student-account`, `finance.payment.counter`, `finance.payments.list`,
+  `finance.accounts.with-dues`, `exams.session.results`, `services.reports.library` across the three phases).
+  **DEF-P2-CAP-009, OPEN — cause not verified** (the other desks with the same flow got 200).
+- **8 latency breaches on heavy office reads**, p95 0.55–1.1 s against 0.5 / 0.8 s (`exams.paper.marks` GET 861–875 ms,
+  `exams.session.results` 919–1,022 ms, `finance.accounts.with-dues` 554 ms, `exams.paper.marks.put` 1,136 ms) — product,
+  whole-sheet / whole-list reads during the spikes; watch on college hardware, paginate if they repeat.
+- `exams.paper.marks.put` errors (412 stale `If-Match`) — harness, as in runs 6 and 7.
+- **DEF-P2-CAP-008 OPEN:** 93 heuristic hold-and-wait candidates (`docs/readiness/tools/hold-and-wait-scan.py`), all in office
+  write paths, none on a student self-service route.
+- DEF-P2-CAP-001…007 are fixed, each with a regression test, green in SutraERP CI.
 
-Do not take the college to production on the strength of this report. Two things must happen
-first: fix DEF-P2-CAP-007 and get a clean run of this procedure on the college's own server.
+**Run 9 — integrated head** (38961558841, `part2/int` @ `60471aab`, all Part 2 branches merged incl. the CAP-007 fix;
+GitHub-hosted runner Intel Xeon Platinum 8573C, 4 vCPU, 15.6 GiB — NOT college hardware) is **FAILED with 3 breaches**, all the
+harness 412 (stale `If-Match`) on `exams.paper.marks.put` in each phase. Everything else was inside the thresholds: errors 0.01 /
+0.00 / 0.01 %, results sign-in p95 **3,983 ms** (Keycloak 242 % CPU), fees read p99 **163 ms**, no pool / 503 errors, no office
+desk 403s. **DEF-P2-CAP-009 did not reproduce in run 9**, so it is intermittent and stays OPEN (cause unverified). The results
+sign-in margin is a function of the runner's CPU model (run 8 AMD 5,011 ms vs run 9 Intel 8573C 3,983 ms), so Keycloak sizing
+remains a production risk.
+
+Do not take the college to production on the strength of this report. Before that: close DEF-P2-CAP-009 (and review
+DEF-P2-CAP-008), size Keycloak, and get a clean run of this procedure on the college's own server with a separate load machine.
 
 ## What was run
 
@@ -71,6 +88,8 @@ reports.
 | 5 | 38930815741 | `162eeec6` | Intel Xeon Platinum 8370C @ 2.80 GHz, 4 vCPU, 15.6 GiB | full load ran; 4 breaches (harness collisions + Keycloak lockouts); seed found **DEF-P2-CAP-004/005/006** |
 | 6 | 38939308465 | `07f9b6a7` | AMD EPYC 7763, 4 vCPU, 15.6 GiB | full seed apart from 2 seed-script bugs; steady + results clean; fees: **DEF-P2-CAP-007** |
 | 7 | 38947132469 | `2ab16e69` | Intel Xeon Platinum 8370C @ 2.80 GHz, 4 vCPU, 15.6 GiB | **full seed, every phase**; steady clean; results sign-in p95 6.2 s (Keycloak CPU); fees: **DEF-P2-CAP-007 reproduced** (61 breaches) |
+| 8 | 38960531409 | `ae097788` | AMD EPYC 7763, 4 vCPU, 15.6 GiB | **DEF-P2-CAP-007 fix verified** (fees errors 0.08 %, read p99 551 ms, 0 pool errors); results sign-in p95 5,011 ms (Keycloak 213 % CPU); one office desk 403 on every request (**DEF-P2-CAP-009**); 30 breaches |
+| 9 | 38961558841 | `60471aab` (`part2/int`, integrated) | Intel Xeon Platinum 8573C, 4 vCPU, 15.6 GiB | integrated head: full seed, full load; **3 breaches, all harness 412** on `exams.paper.marks.put`; results sign-in p95 3,983 ms (Keycloak 242 % CPU); fees read p99 163 ms; no 403 desk (CAP-009 not reproduced) |
 
 Runs 1–4 never reached the load phase, so they produced no capacity numbers. Runs 5/7 and 6 ran
 on **different CPU models**: GitHub assigns the runner, and the AMD runner in run 6 was
@@ -145,13 +164,55 @@ sign-in p95 of 6.2 s (limit 5 s; Keycloak at 236 % CPU, see Production risks), a
 CPU, PostgreSQL at 131 %, the API at 58 %; RAM about 3.4 GiB across containers (sum of per-container peaks). PostgreSQL: at
 most 39 connections, 4 active, 0 lock waiters, 0 deadlocks; pgdata 153 → 1,094 → 1,270 MiB.
 
-## Generated tables (runs 5, 6 and 7)
+## Run 8 — key numbers (GitHub-hosted runner, AMD EPYC 7763, 4 vCPU, 15.6 GiB — NOT college hardware)
+
+Commit `ae097788` (DEF-P2-CAP-007 fix `018d8766`), run 38960531409, evidence artifact `capacity-evidence`. Full seed, full load.
+
+| | steady | results spike | fee spike |
+|---|---|---|---|
+| Throughput | 146 req/s | 322 req/s | 240 req/s |
+| Errors | 0.08 % | 0.05 % | **0.08 %** (run 7: 1.50 %) |
+| Read p95 / p99 | 14 / 69 ms | 227 / 465 ms | 266 / **551 ms** (run 7: 8.8 s) |
+| Write p95 / p99 | 32 / 86 ms | 227 / 480 ms | 270 / 498 ms |
+| Sign-in flow p95 | 103 ms | **5,011 ms** (limit 5,000) | 1,226 ms |
+| Sign-ins | 4,977 | 7,693 | 7,256 |
+
+Verdict **FAILED, 30 breaches**: results sign-in p95 5,011 ms (Keycloak 213 % CPU); 19 endpoint error breaches from one office
+desk that got 403 on all 344 requests after a normal TOTP sign-in (**DEF-P2-CAP-009**, open, cause unverified); 8 latency
+breaches on heavy office reads (0.55–1.1 s); `exams.paper.marks.put` 412s (harness). No pool stall and no 503 "database
+unavailable" in any phase. Peaks: Keycloak 213 % CPU / 1,325 MiB, PostgreSQL 150 %, API 70 % / 118 MiB. PostgreSQL: at most 35
+connections, 5 active, 0 lock waiters; pgdata 153 → 1,123 → 1,300 MiB.
+
+## Run 9 — integrated head (GitHub-hosted runner, Intel Xeon Platinum 8573C, 4 vCPU, 15.6 GiB — NOT college hardware)
+
+`part2/int` @ `60471aab` (every Part 2 branch merged, incl. DEF-P2-CAP-007 fix `018d8766`), run 38961558841, evidence artifact
+`capacity-evidence`. Full seed (2,000 students, 72,000 attendance records, 2,300 charges, 1,600 payments, 2,000 results and
+documents), full load.
+
+| | steady | results spike | fee spike |
+|---|---|---|---|
+| Throughput | 146 req/s | 348 req/s | 248 req/s |
+| Errors | 0.01 % | 0.00 % | 0.01 % |
+| Read p95 / p99 | 12 / 54 ms | 65 / 168 ms | 62 / 163 ms |
+| Write p95 / p99 | 25 / 73 ms | 74 / 183 ms | 68 / 167 ms |
+| Sign-in flow p95 | 91 ms | 3,983 ms (limit 5,000) | 574 ms |
+| Sign-ins | 4,987 | 8,356 | 7,529 |
+
+Verdict **FAILED, 3 breaches**, all `exams.paper.marks.put` errors 11.00 % / 6.45 % / 7.46 % (100 / 62 / 67 requests) — 412 stale
+`If-Match` from aliased k6 faculty VUs (harness, as runs 6–8). No other endpoint breached a latency or error threshold. Peaks:
+Keycloak 242 % CPU / 1,288 MiB, PostgreSQL 139 %, API 68 % / 120 MiB. PostgreSQL: at most 32 connections, 6 active, 0 lock
+waiters, 0 deadlocks; pgdata 154 → 1,119 → 1,310 MiB. Runner CPU differs from runs 5–8 (GitHub assigns it), so run 9 is not a
+like-for-like comparison with run 8.
+
+## Generated tables (runs 5–9)
 
 | Run | GitHub run id | Commit | Runner — NOT college hardware | Verdict |
 |---|---|---|---|---|
 | run 5 | 38930815741 | `162eeec6` | GitHub-hosted runner (Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz, 4 vCPU, 15.6 GiB RAM) | FAILED (4 breach(es)) |
 | run 6 | 38939308465 | `07f9b6a7` | GitHub-hosted runner (AMD EPYC 7763 64-Core Processor, 4 vCPU, 15.6 GiB RAM) | FAILED (56 breach(es)) |
 | run 7 | 38947132469 | `2ab16e69` | GitHub-hosted runner (Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz, 4 vCPU, 15.6 GiB RAM) | FAILED (61 breach(es)) |
+| run 8 | 38960531409 | `ae097788` | GitHub-hosted runner (AMD EPYC 7763 64-Core Processor, 4 vCPU, 15.6 GiB RAM) | FAILED (30 breach(es)) |
+| run 9 | 38961558841 | `60471aab` | GitHub-hosted runner (INTEL(R) XEON(R) PLATINUM 8573C, 4 vCPU, 15.6 GiB RAM) | FAILED (3 breach(es)) |
 
 | Run | Phase | Requests | req/s | Errors | Sign-in p50 / p95 | Read p50 / p95 / p99 | Write p50 / p95 / p99 | File p95 |
 |---|---|---|---|---|---|---|---|---|
@@ -164,6 +225,12 @@ most 39 connections, 4 active, 0 lock waiters, 0 deadlocks; pgdata 153 → 1,094
 | run 7 | steady | 87336 | 145.6 | 0.01 % | 60 / 115 | 4 / 13 / 61 | 7 / 28 / 72 | 13 |
 | run 7 | results | 92602 | 308.7 | 0.01 % | 4.4 s / 6.2 s | 8 / 45 / 145 | 9 / 58 / 170 | 11 |
 | run 7 | fees | 80428 | 206.2 | 1.50 % | 375 / 2.5 s | 6 / 112 / 8.8 s | 9 / 160 / 9.2 s | 0 |
+| run 8 | steady | 87293 | 145.5 | 0.08 % | 52 / 103 | 4 / 14 / 69 | 7 / 32 / 86 | 14 |
+| run 8 | results | 96620 | 322.1 | 0.05 % | 3.3 s / 5.0 s | 11 / 227 / 465 | 13 / 227 / 480 | 10 |
+| run 8 | fees | 93515 | 239.8 | 0.08 % | 360 / 1.2 s | 8 / 266 / 551 | 13 / 270 / 498 | 0 |
+| run 9 | steady | 87641 | 146.1 | 0.01 % | 53 / 91 | 4 / 12 / 54 | 7 / 25 / 73 | 12 |
+| run 9 | results | 104466 | 348.2 | 0.00 % | 1.8 s / 4.0 s | 8 / 65 / 168 | 9 / 74 / 183 | 12 |
+| run 9 | fees | 96569 | 247.6 | 0.01 % | 137 / 574 | 6 / 62 / 163 | 9 / 68 / 167 | 0 |
 
 | Run | Container | Peak CPU % (one core = 100) | Peak RAM MiB |
 |---|---|---|---|
@@ -194,12 +261,32 @@ most 39 connections, 4 active, 0 lock waiters, 0 deadlocks; pgdata 153 → 1,094
 | run 7 | postgres | 131.1 | 1080 |
 | run 7 | valkey | 3.4 | 15 |
 | run 7 | web | 77.6 | 20 |
+| run 8 | api | 70.4 | 118 |
+| run 8 | edge | 14.8 | 57 |
+| run 8 | flowable | 3.0 | 416 |
+| run 8 | keycloak | 213.3 | 1325 |
+| run 8 | minio | 11.6 | 285 |
+| run 8 | nats | 4.1 | 25 |
+| run 8 | postgres | 150.3 | 1087 |
+| run 8 | valkey | 4.4 | 18 |
+| run 8 | web | 96.2 | 14 |
+| run 9 | api | 68.2 | 120 |
+| run 9 | edge | 12.3 | 52 |
+| run 9 | flowable | 10.6 | 424 |
+| run 9 | keycloak | 242.1 | 1288 |
+| run 9 | minio | 9.7 | 385 |
+| run 9 | nats | 3.2 | 21 |
+| run 9 | postgres | 138.5 | 1017 |
+| run 9 | valkey | 3.2 | 9 |
+| run 9 | web | 86.0 | 13 |
 
 | Run | PG connections max | Active max | Lock waiters max | pgdata before seed → after seed → after load (MiB) |
 |---|---|---|---|---|
 | run 5 | 34 | 4 | 0 | 153 → 774 → 1,013 |
 | run 6 | 36 | 5 | 0 | 153 → 1,063 → 1,247 |
 | run 7 | 39 | 4 | 0 | 153 → 1,094 → 1,270 |
+| run 8 | 35 | 5 | 0 | 153 → 1,123 → 1,300 |
+| run 9 | 32 | 6 | 0 | 154 → 1,119 → 1,310 |
 
 **Threshold breaches — run 5: 4**
 
@@ -331,6 +418,45 @@ most 39 connections, 4 active, 0 lock waiters, 0 deadlocks; pgdata 153 → 1,094
 - fees exams.session.results: p99 8936 ms >= 1500 ms (284 requests)
 - fees exams.session.results: errors 5.99 % >= 0.50 % (284 requests)
 
+**Threshold breaches — run 8: 30**
+
+- phase results: sign-in flow p95 5011 ms >= 5000 ms
+- fees exams.paper.marks: p95 875 ms >= 500 ms (76 requests)
+- steady exams.paper.marks.put: errors 1.15 % >= 0.50 % (87 requests)
+- steady student.record: errors 2.08 % >= 0.50 % (720 requests)
+- fees finance.student-account: errors 5.31 % >= 0.50 % (433 requests)
+- results finance.accounts.with-dues: p95 554 ms >= 500 ms (173 requests)
+- results finance.accounts.with-dues: errors 2.31 % >= 0.50 % (173 requests)
+- results finance.payments.list: errors 2.10 % >= 0.50 % (143 requests)
+- steady finance.student-account: errors 6.73 % >= 0.50 % (104 requests)
+- fees finance.payment.counter: errors 5.30 % >= 0.50 % (434 requests)
+- results finance.student-account: errors 4.62 % >= 0.50 % (65 requests)
+- results exams.session.results: p95 919 ms >= 500 ms (121 requests)
+- results exams.session.results: errors 1.65 % >= 0.50 % (121 requests)
+- steady finance.payments.list: errors 3.61 % >= 0.50 % (194 requests)
+- results finance.payment.counter: errors 6.06 % >= 0.50 % (66 requests)
+- steady exams.session.results: errors 5.18 % >= 0.50 % (193 requests)
+- fees finance.payments.list: errors 3.08 % >= 0.50 % (325 requests)
+- results exams.paper.marks: p95 861 ms >= 500 ms (64 requests)
+- steady services.reports.library: errors 3.92 % >= 0.50 % (102 requests)
+- fees services.reports.library: errors 2.92 % >= 0.50 % (137 requests)
+- results student.directory.search: errors 2.66 % >= 0.50 % (451 requests)
+- steady student.directory.search: errors 2.06 % >= 0.50 % (727 requests)
+- fees finance.accounts.with-dues: errors 2.05 % >= 0.50 % (292 requests)
+- fees exams.session.results: p95 1022 ms >= 500 ms (299 requests)
+- fees exams.session.results: errors 1.34 % >= 0.50 % (299 requests)
+- fees exams.paper.marks.put: p95 1136 ms >= 800 ms (62 requests)
+- fees exams.paper.marks.put: errors 8.06 % >= 0.50 % (62 requests)
+- results student.record: errors 2.65 % >= 0.50 % (453 requests)
+- steady finance.accounts.with-dues: errors 2.01 % >= 0.50 % (298 requests)
+- steady finance.payment.counter: errors 5.88 % >= 0.50 % (102 requests)
+
+**Threshold breaches — run 9: 3**
+
+- fees exams.paper.marks.put: errors 7.46 % >= 0.50 % (67 requests)
+- results exams.paper.marks.put: errors 6.45 % >= 0.50 % (62 requests)
+- steady exams.paper.marks.put: errors 11.00 % >= 0.50 % (100 requests)
+
 ## Thresholds (`deploy/capacity/thresholds.json`, unchanged since before run 1)
 
 Each threshold applies per phase and per endpoint, to every endpoint with at least 50 requests in
@@ -351,12 +477,18 @@ A breach fails the workflow.
 |---|---|---|---|---|
 | 5 | `academic.session.create` errors 19–23 % (all three phases) | 409 on a duplicate session slot. VUs aliasing one teacher shared a slot counter. | harness | per-alias start minute (`22727f11`); 0 errors in run 6 |
 | 5 | results `auth.session` errors 1.76 % | Keycloak brute-force guard: concurrent sign-ins of the same account from two VUs → `user_temporarily_disabled` | harness exposed a **production risk** | VUs own disjoint accounts (`22727f11`); risk recorded below |
-| 6 | **fees phase** (50 endpoint + 3 phase breaches): read p99 8.7 s, write p99 9.2 s, errors 1.38 %, checks 99.40 % | **DEF-P2-CAP-007**: API connection-pool starvation; see below | **product defect (open)** | not fixed in this stage |
+| 6 | **fees phase** (50 endpoint + 3 phase breaches): read p99 8.7 s, write p99 9.2 s, errors 1.38 %, checks 99.40 % | **DEF-P2-CAP-007**: API connection-pool starvation; see below | product defect | fixed in `018d8766` (DEF-P2-CAP-007), verified in run 8 |
 | 6 | steady `exams.paper.marks.put` errors 2.56 % (78 requests) | 412 Precondition Failed: aliased VUs wrote the same internal-assessment sheet with a stale `If-Match`. Optimistic concurrency worked as designed. | harness | the k6 faculty flow should re-read and retry on 412 (not done; recorded) |
-| 7 | **fees phase** (58 breaches): read p99 8.8 s, write p99 9.2 s, errors 1.50 %, checks 99.34 % | **DEF-P2-CAP-007** reproduced (same signature, see below) | **product defect (open)** | not fixed in this stage |
+| 7 | **fees phase** (58 breaches): read p99 8.8 s, write p99 9.2 s, errors 1.50 %, checks 99.34 % | **DEF-P2-CAP-007** reproduced (same signature, see below) | product defect | fixed in `018d8766` (DEF-P2-CAP-007), verified in run 8 |
 | 7 | results sign-in flow p95 6.2 s ≥ 5 s | Keycloak CPU saturation (236 %) under 500 concurrent OIDC sign-ins, k6 on the same host | capacity / **production risk** | dedicated Keycloak cores, second node for results day (Production risks 2); re-measure on college hardware |
 | 7 | steady / results `exams.paper.marks.put` errors 12 % / 11 % (83 / 63 requests) | 412 stale `If-Match`, same harness cause as run 6 | harness | as above |
 | 6 | results `exams.paper.marks` (GET) p95 648 ms (61 requests) | reads a whole 2,000-candidate marks sheet during the sign-in spike on the slower AMD runner | marginal, product | watch on college hardware; paginate the sheet if it repeats |
+| 8 | results sign-in flow p95 5,011 ms ≥ 5,000 ms | Keycloak CPU (213 %) under the results-day sign-in spike, k6 on the same host | capacity / **production risk** | Keycloak sizing (Production risks 2); re-measure on college hardware |
+| 8 | 19 endpoint error breaches (`student.record`, `student.directory.search`, `finance.*` office reads / counter payment, `exams.session.results`, `services.reports.library`; 1–7 %) | one office desk got **403 on all 344 of its requests** after a normal password + TOTP sign-in; other desks with the same flow got 200 | **product defect (open) — DEF-P2-CAP-009, cause unverified** | investigate the desk's session / role / institution scope from the run 8 evidence (`api.log`) |
+| 8 | 8 latency breaches on heavy office reads, p95 0.55–1.1 s (`exams.paper.marks`, `exams.session.results`, `finance.accounts.with-dues`, `exams.paper.marks.put`) | whole marks sheet / results list / dues list read during the spikes | marginal, product | watch on college hardware; paginate if they repeat |
+| 8 | `exams.paper.marks.put` errors 1.15 % / 8.06 % | 412 stale `If-Match` | harness | as runs 6 / 7 |
+| 9 | `exams.paper.marks.put` errors 11.00 % / 6.45 % / 7.46 % (the only 3 breaches) | 412 stale `If-Match` | harness | as runs 6–8 |
+| 9 | — (no 403 desk) | DEF-P2-CAP-009 did not reproduce on the integrated head | intermittent; stays **open** | trace from the run 8 evidence |
 
 ### DEF-P2-CAP-007 — API database pool stalls under the fee-deadline spike (FIXED in `018d8766`)
 
@@ -453,8 +585,9 @@ All fixes are in SutraERP CI, green on `7feb5318` (run 38938677888) and re-run o
 | DEF-P2-CAP-004 | run 5 seed | import commit approval had no Flowable process definition | key generated and deployed (`7feb5318`) | `db_b9c.rs` asserts the process |
 | DEF-P2-CAP-005 | run 5 seed | a committed response above 1 MiB was answered 500 and its idempotency key released, so a retry could repeat the write | full response delivered; the key stores an already-processed record (`7feb5318`) | unit test in `crates/web/src/idempotency.rs` |
 | DEF-P2-CAP-006 | run 5 seed | document upload took a second pool connection under the row lock | checks and vault store run before the lock (`7feb5318`) | `db_p2_docs.rs`: 18 concurrent uploads, pool of 3 |
-| DEF-P2-CAP-007 | run 6/7 load | `/finance/me/charges` and the attendance register commands held a pooled connection while ports took a second one: pool deadlock under the fee spike (above) | reads before the connection / transaction (`018d8766`) | `db_p2_capacity.rs`: 16 + 8 concurrent self-service requests and 5 × 8 concurrent register commands, pool of 2 |
+| DEF-P2-CAP-007 | run 6/7 load | `/finance/me/charges` and the attendance register commands held a pooled connection while ports took a second one: pool deadlock under the fee spike (above) | reads before the connection / transaction (`018d8766`); **verified in run 8**: fees errors 0.08 %, read p99 551 ms, 0 pool errors | `db_p2_capacity.rs`: 16 + 8 concurrent self-service requests and 5 × 8 concurrent register commands, pool of 2 |
 | DEF-P2-CAP-008 | static scan after CAP-007 | 93 heuristic hold-and-wait candidates in office write paths (`tools/hold-and-wait-scan.py`) | **open** (lower risk: not on the spike routes) | to add per path |
+| DEF-P2-CAP-009 | run 8 (38960531409) | one office desk answered 403 on all 344 requests after a normal password + TOTP sign-in (19 threshold breaches) | **open — cause not verified** | to add with the fix |
 
 Harness fixes (not product defects): edge `keepalive_timeout` duplicate (`6bc18391`); seed
 activates imported org units (`f841f985`); seed honours 429 / `Retry-After` (`71c90e44`,
@@ -480,7 +613,7 @@ session minutes in k6 (`22727f11`); result-batch / upload response shapes in the
    - (c) Tell the help desk how to unlock a user, and put lockouts on the monitoring board.
    This config was **not** changed in this stage.
 2. **Keycloak is the CPU bottleneck in sign-in spikes** (the run 7 results-spike breach, sign-in
-   p95 6.2 s against a 5 s limit). It peaked at 247 % / 216 % / 236 % of a 4-vCPU host (runs
+   p95 6.2 s against a 5 s limit; run 8: 5,011 ms at 213 % CPU). It peaked at 247 % / 216 % / 236 % of a 4-vCPU host (runs
    5 / 6 / 7) while the API stayed at or below 58 %. In run 7's results spike k6 drove **73
    password sign-ins per second** (`login.password`, 22,026 in 5 minutes), every visit starting
    with a full OIDC sign-in — the worst case. This is a sizing limit, not an API defect, and it is
@@ -510,7 +643,8 @@ session minutes in k6 (`22727f11`); result-batch / upload response shapes in the
      p95 alert to confirm the real login rate on results day.
    Re-measure on the college hardware with a separate load machine.
 3. **DEF-P2-CAP-007** (above) is fixed; **DEF-P2-CAP-008** (similar hold-and-wait in office write
-   paths) remains open. Until it is closed, a burst of more concurrent office writes of one kind
+   paths) remains open; **DEF-P2-CAP-009** (an office desk refused 403 on every request after a normal
+   sign-in in run 8) is open with its cause unverified. Until CAP-008 is closed, a burst of more concurrent office writes of one kind
    than pool connections can stall the API for one acquire timeout (5 s).
 4. **Load generator on the same host:** k6 itself used CPU on the runner, so these numbers
    understate what the stack could do on a dedicated server. The college run must use a separate

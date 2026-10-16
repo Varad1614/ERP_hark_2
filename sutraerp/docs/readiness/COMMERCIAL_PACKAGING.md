@@ -26,7 +26,11 @@ support terms from [SUPPORT_AND_MAINTENANCE.md](SUPPORT_AND_MAINTENANCE.md).
 Registry `defaultPackage` = `complete_erp`: a tenant with no stored entitlement row gets every module
 (`SUTRA_ENTITLEMENT_DEFAULT`, `apps/api/src/config_entitlement.rs`). A commercial deployment should set
 `SUTRA_ENTITLEMENT_DEFAULT=none` or store the purchased entitlement before go-live, otherwise the college silently receives
-`complete_erp`. Add-on modules on top of a package are supported by the entitlement model (`addOnModules`, validated against the
+`complete_erp`. *(Integrator note, `part2/int`: the final S7-entitle code no longer falls back silently in production — the API
+refuses to start without an explicit `SUTRA_ENTITLEMENT_DEFAULT`; Helm fails the render without `entitlements.default`; the on-prem
+`sutraerp.conf.example` ships `complete_erp` and `sutra-onprem render` records `complete_erp` with a warning for installations that
+predate entitlements. The packages in §1 are unchanged between `bf48b7f6` and the final registry `0fc56a05`, which only added the
+`imports` entity → module map.)* Add-on modules on top of a package are supported by the entitlement model (`addOnModules`, validated against the
 dependency closure).
 
 ## 2. Always-available core (registry `core`; not licensed separately)
