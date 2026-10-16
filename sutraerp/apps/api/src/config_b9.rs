@@ -732,13 +732,11 @@ mod tests {
             );
         }
         // Secrets from files (trailing newline trimmed); an unreadable file is an error.
-        // Per-test directory next to the test binary (target/<profile>/deps), not the shared,
+        // Per-test directory under the workspace's own (git-ignored) `target/`, not the shared,
         // world-writable system temp dir (Semgrep rust.lang.security.temp-dir).
-        let dir = std::env::current_exe()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .join(format!("sutra-cfg-test-{}", std::process::id()));
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target/sutra-test-tmp")
+            .join(format!("cfg-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("razorpay_key_secret");
         std::fs::write(&file, "from-file-secret\n").unwrap();
