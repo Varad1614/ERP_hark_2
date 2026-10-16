@@ -358,7 +358,7 @@ A breach fails the workflow.
 | 7 | steady / results `exams.paper.marks.put` errors 12 % / 11 % (83 / 63 requests) | 412 stale `If-Match`, same harness cause as run 6 | harness | as above |
 | 6 | results `exams.paper.marks` (GET) p95 648 ms (61 requests) | reads a whole 2,000-candidate marks sheet during the sign-in spike on the slower AMD runner | marginal, product | watch on college hardware; paginate the sheet if it repeats |
 
-### DEF-P2-CAP-007 — API database pool stalls under the fee-deadline spike (OPEN)
+### DEF-P2-CAP-007 — API database pool stalls under the fee-deadline spike (FIXED in `018d8766`)
 
 **Evidence (run 38939308465, artifact `capacity-evidence`):**
 
@@ -382,30 +382,64 @@ warnings. Throughout the fees phase PostgreSQL showed at most 3 active connectio
 refresh hook + session creation) is therefore the first path to instrument: it is where the
 failures land, though that alone does not prove it holds the extra connection.
 
-**Root cause (established up to the mechanism; the code path is not yet identified):** this is the
-same class as DEF-P2-CAP-002 and -006. A request path holds one pooled connection while it waits
-for a second. sqlx's pool queue is first-come first-served, so once a backlog forms in a spike,
-the connections drift to tasks that hold one and queue for another. When all 10 are held this
-way, nothing can progress until the 5 s acquire timeout fails the whole queue. That is the
-"freeze, then a burst of 503s" pattern. The fees phase brings new high-rate student routes
-(`/finance/me/accounts`, `/charges`, `/receipts`, `/payment-gateway`) on top of sign-ins, which is
-why it shows there first. A static review of those handlers, the OIDC callback and session
-issuing found no second acquire in the obvious places. The culprit is still to be found.
+**Timeline from run 7's logs (reconstructed from the UUIDv7 request ids in the API log and the
+edge access log):** requests arrived at a steady ~300 req/s with no burst. At 19:07:02.65 UTC
+completions stopped completely; the edge logged nothing for ~5 s, then a burst of 500–900
+responses (half of them 503 after 5.0–5.4 s, the rest successful with `acquired_after_secs`
+≈ 5.0), and this repeated every ~5 s until 19:07:47. Only after the first acquire timeouts did
+PostgreSQL log the API dropping connections ("could not receive data from client: Connection
+reset by peer") and aborted TLS handshakes of replacement connections — a consequence of the
+timeouts cancelling in-flight acquires, not the cause. Keycloak was not involved: the stall hit
+every route equally, and the OIDC callback failures were simply the sign-ins that happened to be
+in flight.
 
-**Fix plan (next stage):**
+**Root cause (found in code):** pool hold-and-wait, the same class as DEF-P2-CAP-002 / -006, on
+the fee spike's hottest student route. `GET /api/v1/finance/me/charges`
+(`modules/finance/src/charges/http.rs`, `charge_self_list`) took a pooled connection **first** and
+then, while holding it, called `my_accounts` (charges port → pool), `business_today` (reference
+port + a pool query) and `charges_of_account` (port → pool) — each of which needs a SECOND pooled
+connection. At 15.7 req/s of this route (plus the other fee-spike traffic), as soon as 10
+overlapping requests each held one connection and queued for another, the shipped pool of 10 was
+deadlocked: nothing could progress until the 5 s acquire timeout failed the queue, which then
+re-formed. PostgreSQL saw 10 open, idle connections (checked out but unused), 0 waiters, and the
+API used 1 % CPU — exactly the observed signature. The same pattern was in the attendance register
+commands (`modules/academic/src/attendance/repo.rs`: start / capture / submit / complete /
+finalise opened the transaction and then ran the authorisation, section-context, institution and
+roster reads on other pooled connections).
 
-1. Find the path. Run the capacity stack with a pool-holder diagnostic: log the route when a
-   task acquires while already holding a connection (task-local "holding" flag in
-   `sutra_persistence::pool`), or run the fees mix against a pool of 2 in a DB test.
-2. Restructure that path so it reads its facts before it takes the connection, as was done for
-   CAP-002/006.
-3. Add a `db_p2_capacity` regression: N concurrent requests of the route on a pool of 3 must all
-   succeed.
-4. Defence in depth: give each request at most one connection. A debug assertion in the pool
-   wrapper would make every future nested acquire fail CI instead of failing production.
+The hypotheses in the brief were checked and **refuted** for this run: the OIDC callback
+(`modules/platform/src/auth/http.rs` `oidc_callback` → `issue_session`), the PostgreSQL session
+store (`session_pg.rs`), the pre-auth store, the profile sign-in hook, the replay guard and the
+`authenticate` / `pre_auth_system` middleware use one pooled statement at a time and hold **no**
+connection across the Keycloak token exchange or any other network call; the pool settings
+(`SUTRA_DB_MAX_CONNECTIONS=10`, acquire timeout 5 s) are the shipped defaults and were not the
+cause — raising them only makes the deadlock rarer.
 
-Raising `SUTRA_DB_MAX_CONNECTIONS` would make the stall rarer but would **not** remove it. It
-must not be counted as the fix.
+**Fix (`018d8766`):**
+
+1. `charge_self_list` resolves accounts, business days and the visible charge list through the
+   ports first, and only then takes one connection for the per-charge detail reads (acquire late,
+   release early; no connection at all when the student has no charge).
+2. Attendance register commands: `prepare_session` (authorisation, section context, institution
+   writable rule) and the roster read run **before** the command's transaction;
+   `lock_prepared` then locks the row, re-checks the section under the lock and the `If-Match`
+   version. `require_complete` takes the pre-read roster instead of reading through the port
+   inside the transaction.
+3. Regression tests on real PostgreSQL, pool of **2**, acquire timeout 5 s
+   (`apps/api/tests/db_p2_capacity.rs`):
+   `concurrent_fee_self_service_does_not_deadlock_a_small_pool` (16 concurrent
+   `/finance/me/charges` + 8 concurrent `/auth/session`, all 200 well inside one acquire timeout)
+   and `concurrent_attendance_registers_do_not_deadlock_a_small_pool` (8 sessions, every register
+   step run 8-way concurrently: start → capture → submit → complete → finalise, all 200).
+4. `docs/readiness/tools/hold-and-wait-scan.py`: a heuristic scan for the pattern. After the fix
+   it lists 93 candidates, all in office / administrative **write** paths (mostly "open a
+   transaction, then call `require_institution_writable` or a port"); none is on a student
+   self-service route, and the few that the load mix touches (exam marks, finance office) run at
+   ≤ 1 req/s there. They are recorded as **DEF-P2-CAP-008 (OPEN, lower risk)**: review and
+   restructure each the same way, and add the "one connection per task" debug assertion in
+   `sutra_persistence::pool` so a new nested acquire fails CI.
+
+Raising `SUTRA_DB_MAX_CONNECTIONS` was **not** used as the fix and thresholds were not touched.
 
 ## Defects found and fixed by this test
 
@@ -419,7 +453,8 @@ All fixes are in SutraERP CI, green on `7feb5318` (run 38938677888) and re-run o
 | DEF-P2-CAP-004 | run 5 seed | import commit approval had no Flowable process definition | key generated and deployed (`7feb5318`) | `db_b9c.rs` asserts the process |
 | DEF-P2-CAP-005 | run 5 seed | a committed response above 1 MiB was answered 500 and its idempotency key released, so a retry could repeat the write | full response delivered; the key stores an already-processed record (`7feb5318`) | unit test in `crates/web/src/idempotency.rs` |
 | DEF-P2-CAP-006 | run 5 seed | document upload took a second pool connection under the row lock | checks and vault store run before the lock (`7feb5318`) | `db_p2_docs.rs`: 18 concurrent uploads, pool of 3 |
-| DEF-P2-CAP-007 | run 6 load | pool starvation under the fee spike (above) | **open** | to add with the fix |
+| DEF-P2-CAP-007 | run 6/7 load | `/finance/me/charges` and the attendance register commands held a pooled connection while ports took a second one: pool deadlock under the fee spike (above) | reads before the connection / transaction (`018d8766`) | `db_p2_capacity.rs`: 16 + 8 concurrent self-service requests and 5 × 8 concurrent register commands, pool of 2 |
+| DEF-P2-CAP-008 | static scan after CAP-007 | 93 heuristic hold-and-wait candidates in office write paths (`tools/hold-and-wait-scan.py`) | **open** (lower risk: not on the spike routes) | to add per path |
 
 Harness fixes (not product defects): edge `keepalive_timeout` duplicate (`6bc18391`); seed
 activates imported org units (`f841f985`); seed honours 429 / `Retry-After` (`71c90e44`,
