@@ -366,8 +366,8 @@ try {
     e(`finance approver sees the posted adjustment (${await snap(fp, "acc-adjustment-posted")})`);
     noServerErrors(e);
     db(e, "decided by the finance approver", `SELECT status || '|' || coalesce(decided_by, '') || '|' || coalesce(created_by, '') FROM finance.adjustment WHERE id = ${q(adj.id)}`, (v) => v === `posted|${financeApprover.subject}|${admin.subject}`);
-    db(e, "charge reduced by ₹2,000", `SELECT outstanding_amount = ${before}::numeric - 2000 FROM finance.charge WHERE id = ${q(chargeId)}`, (v) => v === "t");
-    db(e, "adjustment journal balanced", `SELECT count(*) || '|' || (coalesce(sum(total_debit), 0) = coalesce(sum(total_credit), 0)) FROM finance.journal_entry WHERE source_id = ${q(adj.id)}`, (v) => /^[1-9]\d*\|t$/.test(v));
+    db(e, "charge reduced by ₹2,000", `SELECT outstanding_amount = ${before}::numeric - 2000 FROM finance.charge WHERE id = ${q(chargeId)}`, (v) => v === "t" || v === "true");
+    db(e, "adjustment journal balanced", `SELECT count(*) || '|' || (coalesce(sum(total_debit), 0) = coalesce(sum(total_credit), 0)) FROM finance.journal_entry WHERE source_id = ${q(adj.id)}`, (v) => /^[1-9]\d*\|(t|true)$/.test(v));
   });
 
   // ============================================================ examination staff: exam cell (maker) + controller of examinations (checker)
