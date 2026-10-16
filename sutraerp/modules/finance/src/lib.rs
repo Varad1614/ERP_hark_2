@@ -20,6 +20,7 @@
 /// Batch 8 foundation: campus service charges for Domain G (`CampusChargePort`).
 pub mod campus_charges;
 pub mod clearance;
+pub mod dataimport; // Part 2 · S4-import
 pub mod directory;
 /// Batch 6 foundation: examination fee charges for Domain I (`ExamFeePort`).
 pub mod exam_fees;
@@ -58,6 +59,7 @@ use utoipa_axum::router::OpenApiRouter;
 
 pub use campus_charges::PgCampusCharges;
 pub use clearance::PgFinanceClearance;
+pub use dataimport::{PgFeeHeadImport, PgOpeningBalanceImport}; // Part 2 · S4-import
 pub use directory::{PgChargeDirectory, PgPostingPort, PgReceivableReader};
 pub use exam_fees::PgExamFees;
 pub use metrics::PgFinanceMetrics;

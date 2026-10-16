@@ -47,6 +47,7 @@ use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
 pub use academic_ports::{PgCreditPosting, PgRegistrationReader};
+pub use dataimport::{PgHistoricalResultImport, PgStudentImport}; // Part 2 · S4-import
 pub use directory::PgStudentDirectory;
 pub use finance_ports::PgAidDecisionSource;
 pub use metrics::PgStudentMetrics;
