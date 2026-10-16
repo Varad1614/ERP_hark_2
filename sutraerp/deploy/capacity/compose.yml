@@ -1,0 +1,285 @@
+# Part 2 · S5-capacity: production-mode SutraERP stack for the 2,000-student capacity test
+# (deploy/capacity/README.md, docs/readiness/CAPACITY_TEST_REPORT.md).
+#
+#   CAP_DIR=$PWD/capacity-run bash deploy/capacity/run.sh up     (from sutraerp/)
+#
+# Everything a college server runs, in production mode (SUTRA_ENV=production — the API refuses
+# to start on any development shortcut):
+#   edge      nginx TLS termination for erp.<domain> (SPA + /api), sso.<domain> (Keycloak) and
+#             s3.<domain> (MinIO); host network so it sees each client's real address (rate limits
+#             per client, SUTRA_TRUSTED_PROXY_HOPS=2: edge → web nginx → api)
+#   web       the production web image (SPA + /api reverse proxy, deploy/docker/nginx.conf)
+#   api       release sutra-api in the distroless runtime image, runtime DB role under RLS,
+#             Keycloak OIDC (BFF), human approvals on Flowable, NATS outbox relay, Valkey cache,
+#             S3 documents with SSE, identity provisioning into Keycloak, rate limits on
+#   migrate   one-shot migrations as the schema owner (provisions the runtime role)
+#   postgres  PostgreSQL 18, TLS on, pg_stat_statements, durable commits (synchronous_commit on)
+#   keycloak  Keycloak 26.7 in production mode (`start`) behind the edge, its own database
+#   flowable  flowable-rest 8.0.0 (approval processes), its own database
+#   nats / valkey / minio (built from source, SSE-S3 with a static KMS key)
+# Secrets come from $CAP_DIR/env (deploy/capacity/gen-secrets.sh, random per run).
+name: sutracap
+
+x-api-env: &api-env
+  SUTRA_ENV: production
+  SUTRA_LOG_FORMAT: json
+  RUST_LOG: ${CAP_RUST_LOG:-info,tower_http=warn,sqlx=warn}
+  SUTRA_MIGRATION_DATABASE_URL: postgres://sutra:${POSTGRES_PASSWORD}@postgres:5432/sutra?sslmode=require
+  SUTRA_DB_RUNTIME_USER: sutra_api
+  SUTRA_DB_RUNTIME_PASSWORD: ${SUTRA_RUNTIME_DB_PASSWORD}
+  # Shipped default pool size (.env.example); CAP_DB_MAX_CONNECTIONS only for sizing experiments.
+  SUTRA_DB_MAX_CONNECTIONS: ${CAP_DB_MAX_CONNECTIONS:-10}
+  SUTRA_PUBLIC_URL: https://erp.${CAP_DOMAIN}
+  SUTRA_AUTH_MODE: keycloak
+  SUTRA_OIDC_ISSUER: https://sso.${CAP_DOMAIN}/realms/sutra
+  SUTRA_OIDC_BACKCHANNEL_URL: https://sso.${CAP_DOMAIN}/realms/sutra
+  SUTRA_OIDC_CLIENT_ID: sutra-web
+  SUTRA_OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+  SUTRA_OIDC_REDIRECT_URI: https://erp.${CAP_DOMAIN}/api/v1/auth/oidc/callback
+  SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI: https://erp.${CAP_DOMAIN}/sign-in
+  SUTRA_WEBAUTHN_RP_ID: erp.${CAP_DOMAIN}
+  SUTRA_WEBAUTHN_ORIGINS: https://erp.${CAP_DOMAIN}
+  SUTRA_CSRF_KEY: ${SUTRA_CSRF_KEY}
+  SUTRA_MFA_ENCRYPTION_KEY: ${SUTRA_MFA_ENCRYPTION_KEY}
+  SUTRA_AUDIT_ANCHOR_KEY: ${SUTRA_AUDIT_ANCHOR_KEY}
+  SUTRA_TRUSTED_PROXY_HOPS: "2"
+  SUTRA_OUTBOX_RELAY: nats
+  SUTRA_NATS_URL: nats://nats:4222
+  SUTRA_NATS_STREAM: SUTRA_EVENTS
+  SUTRA_CACHE: valkey
+  SUTRA_VALKEY_URL: redis://valkey:6379
+  SUTRA_NOTIFY_EMAIL: "off"
+  SUTRA_INBOX_CONSUMER: "true"
+  SUTRA_WORKFLOW: flowable
+  SUTRA_FLOWABLE_URL: http://flowable:8080/flowable-rest
+  SUTRA_FLOWABLE_USER: rest-admin
+  SUTRA_FLOWABLE_PASSWORD: ${FLOWABLE_REST_PASSWORD}
+  SUTRA_DOCUMENT_STORAGE: s3
+  SUTRA_S3_ENDPOINT: https://s3.${CAP_DOMAIN}
+  SUTRA_S3_BUCKET: sutraerp-documents
+  SUTRA_S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+  SUTRA_S3_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+  SUTRA_IDP_PROVISIONING: keycloak
+  SUTRA_IDP_URL: https://sso.${CAP_DOMAIN}
+  SUTRA_IDP_REALM: sutra
+  SUTRA_IDP_CLIENT_SECRET: ${IDP_CLIENT_SECRET}
+  # Onboarding a whole college at once: bigger batches than the 50 / 5 s default (documented).
+  SUTRA_IDP_POLL_MS: "2000"
+  SUTRA_IDP_BATCH_SIZE: "200"
+  # Part 2 · S5-capacity: the private CA of erp/sso/s3 (SUTRA_TLS_CA_FILE, config_tls.rs).
+  SUTRA_TLS_CA_FILE: /run/sutra/ca.pem
+
+x-api-hosts: &api-hosts
+  # sso./s3.<domain> are served by the edge on the host (host network): the API reaches them
+  # over TLS exactly like a browser, through the host gateway.
+  - "sso.${CAP_DOMAIN}:host-gateway"
+  - "s3.${CAP_DOMAIN}:host-gateway"
+  - "erp.${CAP_DOMAIN}:host-gateway"
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/certs/pg.crt
+      - -c
+      - ssl_key_file=/certs/pg.key
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=top
+      - -c
+      - pg_stat_statements.max=5000
+      - -c
+      - track_io_timing=on
+      - -c
+      - max_connections=${CAP_PG_MAX_CONNECTIONS:-200}
+      - -c
+      - shared_buffers=${CAP_PG_SHARED_BUFFERS:-2GB}
+      - -c
+      - effective_cache_size=${CAP_PG_EFFECTIVE_CACHE:-6GB}
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - max_wal_size=4GB
+      - -c
+      - log_min_duration_statement=${CAP_PG_SLOW_MS:-250}
+      - -c
+      - log_lock_waits=on
+    environment:
+      POSTGRES_USER: sutra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: sutra
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      FLOWABLE_DB_PASSWORD: ${FLOWABLE_DB_PASSWORD}
+    ports: ["127.0.0.1:5432:5432"]
+    shm_size: 1g
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ${CAP_DIR}/certs/pg.crt:/certs/pg.crt:ro
+      - ${CAP_DIR}/certs/pg.key:/certs/pg.key:ro
+      - ./initdb/00-capacity.sh:/docker-entrypoint-initdb.d/00-capacity.sh:ro
+      - ../flowable/init-db.sh:/docker-entrypoint-initdb.d/10-flowable.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sutra -d sutra"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7
+    restart: unless-stopped
+    command: ["start", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak?sslmode=require
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: https://sso.${CAP_DOMAIN}
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "8080"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      JAVA_OPTS_KC_HEAP: ${CAP_KC_HEAP:--XX:MaxRAMPercentage=70 -XX:InitialRAMPercentage=50}
+      QUARKUS_DATASOURCE_JDBC_VALIDATION_QUERY_SQL: "SELECT 1"
+      QUARKUS_DATASOURCE_JDBC_FOREGROUND_VALIDATION_INTERVAL: "5S"
+    mem_limit: ${CAP_KC_MEM:-2g}
+    ports: ["127.0.0.1:8180:8080"]
+    volumes:
+      - ${CAP_DIR}/realm-sutra.json:/opt/keycloak/data/import/realm-sutra.json:ro
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+      start_period: 40s
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  flowable:
+    image: flowable/flowable-rest:8.0.0
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: "8080"
+      JAVA_OPTS: ${CAP_FLOWABLE_JAVA_OPTS:--Xms256m -Xmx768m}
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flowable?sslmode=require
+      SPRING_DATASOURCE_USERNAME: flowable
+      SPRING_DATASOURCE_PASSWORD: ${FLOWABLE_DB_PASSWORD}
+      FLOWABLE_REST_APP_ADMIN_USER-ID: rest-admin
+      FLOWABLE_REST_APP_ADMIN_PASSWORD: ${FLOWABLE_REST_PASSWORD}
+      FLOWABLE_REST_APP_ADMIN_FIRST-NAME: Sutra
+      FLOWABLE_REST_APP_ADMIN_LAST-NAME: ERP
+    mem_limit: 1g
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  valkey:
+    image: valkey/valkey:8
+    restart: unless-stopped
+    command: ["valkey-server", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  nats:
+    image: nats:2.11-alpine
+    restart: unless-stopped
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    volumes:
+      - natsdata:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz?js-enabled-only=true"]
+      interval: 5s
+      retries: 10
+
+  minio:
+    image: sutraerp-minio:capacity
+    build: { context: ../.., dockerfile: deploy/docker/minio-prebuilt.Dockerfile }
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+      # SSE-S3 (the API sends AES256 in production) needs a KMS; a static key is MinIO's
+      # single-node option.
+      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY}
+    ports: ["127.0.0.1:9000:9000"]
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/minio-healthcheck"]
+      interval: 5s
+      retries: 20
+
+  migrate:
+    image: sutraerp-api:capacity
+    build: { context: ../.., dockerfile: deploy/docker/api-prebuilt.Dockerfile }
+    command: ["migrate"]
+    environment:
+      <<: *api-env
+      DATABASE_URL: postgres://sutra:${POSTGRES_PASSWORD}@postgres:5432/sutra?sslmode=require
+    extra_hosts: *api-hosts
+    volumes:
+      - ${CAP_DIR}/certs/ca.pem:/run/sutra/ca.pem:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    image: sutraerp-api:capacity
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+      DATABASE_URL: postgres://sutra_api:${SUTRA_RUNTIME_DB_PASSWORD}@postgres:5432/sutra?sslmode=require
+    extra_hosts: *api-hosts
+    ports: ["127.0.0.1:9464:9464"]
+    volumes:
+      - ${CAP_DIR}/certs/ca.pem:/run/sutra/ca.pem:ro
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      keycloak: { condition: service_healthy }
+      flowable: { condition: service_started }
+      nats: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      edge: { condition: service_started }
+
+  web:
+    image: sutraerp-web:capacity
+    build:
+      context: ../..
+      dockerfile: deploy/docker/web.Dockerfile
+      args: { VITE_AUTH_MODE: oidc }
+    restart: unless-stopped
+    ports: ["127.0.0.1:3000:8080"]
+    depends_on: [api]
+
+  edge:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      CAP_DOMAIN: ${CAP_DOMAIN}
+      NGINX_ENVSUBST_FILTER: CAP_
+    volumes:
+      - ./edge.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${CAP_DIR}/certs/edge.crt:/etc/nginx/tls/edge.crt:ro
+      - ${CAP_DIR}/certs/edge.key:/etc/nginx/tls/edge.key:ro
+
+volumes:
+  pgdata:
+  natsdata:
+  miniodata:
