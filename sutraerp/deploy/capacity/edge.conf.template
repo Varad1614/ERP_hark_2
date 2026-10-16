@@ -8,7 +8,7 @@ ssl_certificate_key /etc/nginx/tls/edge.key;
 ssl_protocols TLSv1.2 TLSv1.3;
 ssl_session_cache shared:SSL:20m;
 ssl_session_timeout 1h;
-keepalive_timeout 75s;
+# keepalive_timeout is set per server: the stock nginx.conf already sets it in http {}.
 keepalive_requests 10000;
 access_log /var/log/nginx/access.log combined buffer=64k flush=5s;
 
@@ -19,6 +19,7 @@ upstream sutra_s3   { server 127.0.0.1:9000; keepalive 32; }
 server {
   listen 443 ssl;
   http2 on;
+  keepalive_timeout 75s;
   server_name erp.${CAP_DOMAIN};
   client_max_body_size 12m;
   location / {
@@ -36,6 +37,7 @@ server {
 server {
   listen 443 ssl;
   http2 on;
+  keepalive_timeout 75s;
   server_name sso.${CAP_DOMAIN};
   location / {
     proxy_pass http://sutra_sso;
@@ -54,6 +56,7 @@ server {
 server {
   listen 443 ssl;
   http2 on;
+  keepalive_timeout 75s;
   server_name s3.${CAP_DOMAIN};
   client_max_body_size 20m;
   location / {
