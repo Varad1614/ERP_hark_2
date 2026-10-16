@@ -36,6 +36,7 @@ use sutra_kernel::auth::{AuthContext, Permission};
 use sutra_kernel::concurrency::Version;
 use sutra_kernel::error::{FieldViolation, KernelError};
 use sutra_kernel::scope::{ExecutionScope, InstitutionId, TenantId};
+use sutra_kernel::signal::{self, SecurityEvent};
 use sutra_persistence::map_db_error;
 use sutra_web::idempotency::require_idempotency_key;
 use sutra_web::{ApiResult, Authenticated, Problem};
@@ -1046,6 +1047,7 @@ async fn verify_checkout_callback(
                     "is not the order of this payment",
                 ))
             } else if st.gateway.verify_checkout(order, pay, sig).is_err() {
+                signal::security(SecurityEvent::CheckoutSignatureFailed);
                 Some((
                     "gatewaySignature",
                     "invalid_signature",
@@ -1169,11 +1171,20 @@ async fn gateway_webhook_signed(
     if st.gateway.name() == crate::payments::gateway::DISABLED_GATEWAY {
         return Err(KernelError::Unavailable("online payments are disabled".into()).into());
     }
+    // Part 2 S5-monitor: a missing or wrong signature is counted (alert on spikes).
+    let bad_signature = |e: KernelError| {
+        signal::security(SecurityEvent::WebhookSignatureFailed);
+        e
+    };
     let signature = headers
         .get("x-razorpay-signature")
         .and_then(|v| v.to_str().ok())
-        .ok_or(KernelError::Unauthenticated)?;
-    let hook = st.gateway.verify_webhook(&body, signature)?;
+        .ok_or(KernelError::Unauthenticated)
+        .map_err(bad_signature)?;
+    let hook = st
+        .gateway
+        .verify_webhook(&body, signature)
+        .map_err(bad_signature)?;
     let gateway = st.gateway.name();
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let found = sqlx::query(&format!(

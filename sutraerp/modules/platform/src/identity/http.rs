@@ -34,6 +34,7 @@ use sutra_kernel::approval::ensure_independent_decider;
 use sutra_kernel::audit::{ActorKind, AuditEntry, AuditOutcome};
 use sutra_kernel::auth::{AuthContext, Permission, Role};
 use sutra_kernel::error::{FieldViolation, KernelError};
+use sutra_kernel::signal::{self, SecurityEvent};
 use sutra_persistence::{audit, map_db_error};
 use sutra_web::{ApiResult, Authenticated, Problem};
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -487,6 +488,8 @@ async fn apply_roles(
     .fetch_one(&mut *conn)
     .await
     .map_err(map_db_error)?;
+    // Part 2 S5-monitor: privilege-change spikes are alerted on (the audit row is the evidence).
+    signal::security(SecurityEvent::PrivilegeChanged);
     LinkRow::from_row(&row).map_err(map_db_error)
 }
 

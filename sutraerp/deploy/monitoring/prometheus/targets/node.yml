@@ -1,0 +1,5 @@
+# File-SD target of node_exporter. The bundled node-exporter service (compose.yaml) reads the host's
+# /proc, /sys and / read-only; add one entry per extra host (database server, backup host).
+- targets: ["node-exporter:9100"]
+  labels:
+    service: host

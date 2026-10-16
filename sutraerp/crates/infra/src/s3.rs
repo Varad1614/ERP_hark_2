@@ -26,6 +26,7 @@ use std::fmt::Write as _;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use sutra_kernel::error::KernelError;
 use sutra_kernel::secret::{hex, hmac_sha256, sha256};
+use sutra_kernel::signal::{self, CallOutcome, Integration};
 
 /// `x-amz-content-sha256` of an empty body.
 pub const EMPTY_SHA256: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -128,14 +129,27 @@ async fn send_with_retry(
     let mut attempt = 1;
     loop {
         match build().send().await {
-            Ok(resp) => return Ok(resp),
+            Ok(resp) => {
+                // Part 2 S5-monitor: outcome of every request (`sutra_integration_calls_total`).
+                let outcome = CallOutcome::from_status(resp.status().as_u16());
+                signal::integration(Integration::S3, outcome);
+                return Ok(resp);
+            }
             Err(e) if attempt < ATTEMPTS && retryable(&e) => {
                 let e = e.without_url();
                 tracing::warn!(attempt, error = %e, "object storage request failed in transport; retrying");
                 tokio::time::sleep(Duration::from_millis(100 * u64::from(attempt))).await;
                 attempt += 1;
             }
-            Err(e) => return Err(transport(e)),
+            Err(e) => {
+                let outcome = if e.is_timeout() {
+                    CallOutcome::Timeout
+                } else {
+                    CallOutcome::Error
+                };
+                signal::integration(Integration::S3, outcome);
+                return Err(transport(e));
+            }
         }
     }
 }

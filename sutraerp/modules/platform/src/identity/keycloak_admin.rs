@@ -37,6 +37,7 @@ use sutra_contracts::platform::identity::{
 };
 use sutra_kernel::auth::Role;
 use sutra_kernel::error::KernelError;
+use sutra_kernel::signal::{self, CallOutcome, Integration};
 use tokio::sync::Mutex;
 
 /// `realm-management` roles the admin client must hold.
@@ -215,8 +216,18 @@ impl KeycloakAdmin {
             ])
             .send()
             .await
-            .map_err(|e| KernelError::Unavailable(format!("identity provider token: {e}")))?;
+            .map_err(|e| {
+                signal::integration(Integration::KeycloakAdmin, transport_outcome(&e));
+                KernelError::Unavailable(format!("identity provider token: {e}"))
+            })?;
         let status = res.status();
+        // Part 2 S5-monitor: a refused admin client (400/401) is a configuration error.
+        let outcome = if status == StatusCode::BAD_REQUEST {
+            CallOutcome::Error
+        } else {
+            CallOutcome::from_status(status.as_u16())
+        };
+        signal::integration(Integration::KeycloakAdmin, outcome);
         if status == StatusCode::UNAUTHORIZED || status == StatusCode::BAD_REQUEST {
             return Err(KernelError::Forbidden(format!(
                 "the identity admin client was refused by the token endpoint ({status}): check \
@@ -278,6 +289,7 @@ impl KeycloakAdmin {
                 req = req.json(b);
             }
             let res = req.send().await.map_err(|e| {
+                signal::integration(Integration::KeycloakAdmin, transport_outcome(&e));
                 KernelError::Unavailable(format!("identity provider {method} {path}: {e}"))
             })?;
             let status = res.status();
@@ -285,6 +297,11 @@ impl KeycloakAdmin {
                 force = true;
                 continue;
             }
+            // Part 2 S5-monitor: outcome of every admin call (`sutra_integration_calls_total`).
+            signal::integration(
+                Integration::KeycloakAdmin,
+                CallOutcome::from_status(status.as_u16()),
+            );
             let headers = res.headers().clone();
             let text = res.text().await.unwrap_or_default();
             let value = if text.trim().is_empty() {
@@ -371,6 +388,15 @@ impl KeycloakAdmin {
                 .and_then(|g| g.get("id").and_then(Value::as_str))
                 .map(str::to_owned)
         }))
+    }
+}
+
+/// Part 2 S5-monitor: a transport failure is a timeout or an error.
+fn transport_outcome(e: &reqwest::Error) -> CallOutcome {
+    if e.is_timeout() {
+        CallOutcome::Timeout
+    } else {
+        CallOutcome::Error
     }
 }
 
