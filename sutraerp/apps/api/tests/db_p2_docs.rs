@@ -76,7 +76,10 @@ fn runtime_url() -> &'static str {
 }
 
 /// Postgres + MinIO backed app in `tenant` (dev auth; `extra` overrides).
-async fn docs_app(tenant: &'static str, extra: &[(&'static str, &'static str)]) -> (Router, PgPool) {
+async fn docs_app(
+    tenant: &'static str,
+    extra: &[(&'static str, &'static str)],
+) -> (Router, PgPool) {
     let owner = owner_pool().await;
     let mut src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
@@ -140,11 +143,16 @@ fn anonymous_status(path: &str) -> u16 {
 }
 
 fn id(v: &Value) -> String {
-    v["id"].as_str().unwrap_or_else(|| panic!("no id in {v}")).to_owned()
+    v["id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("no id in {v}"))
+        .to_owned()
 }
 
 fn ver(v: &Value) -> i64 {
-    v["version"].as_i64().unwrap_or_else(|| panic!("no version in {v}"))
+    v["version"]
+        .as_i64()
+        .unwrap_or_else(|| panic!("no version in {v}"))
 }
 
 async fn call(
@@ -190,6 +198,7 @@ async fn upload(
     let q: String = url_encode(filename);
     let req = Request::put(format!("{path}?filename={q}"))
         .header("content-type", content_type)
+        .header("content-length", bytes.len())
         .header("cookie", &who.cookie)
         .header("x-csrf-token", &who.csrf)
         .body(Body::from(bytes))
@@ -345,7 +354,15 @@ async fn upload_download_round_trip_and_audit() {
     let (s, _, _) = download(&app, &admin, &path).await;
     assert_eq!(s, StatusCode::NOT_FOUND);
     // Only admission staff may attach.
-    let (s, _) = upload(&app, &faculty, &path, "a.pdf", "application/pdf", PDF.to_vec()).await;
+    let (s, _) = upload(
+        &app,
+        &faculty,
+        &path,
+        "a.pdf",
+        "application/pdf",
+        PDF.to_vec(),
+    )
+    .await;
     assert_eq!(s, StatusCode::FORBIDDEN);
 
     let (s, b) = upload(
@@ -371,7 +388,15 @@ async fn upload_download_round_trip_and_audit() {
     assert_eq!(b["documentVersion"], ver(&doc) + 1);
 
     // One file per document: a retry / second upload is refused and the first file stands.
-    let (s, _) = upload(&app, &admin, &path, "b.pdf", "application/pdf", PDF.to_vec()).await;
+    let (s, _) = upload(
+        &app,
+        &admin,
+        &path,
+        "b.pdf",
+        "application/pdf",
+        PDF.to_vec(),
+    )
+    .await;
     assert_eq!(s, StatusCode::CONFLICT);
     let docs = ok(
         &app,
@@ -404,11 +429,30 @@ async fn upload_download_round_trip_and_audit() {
     }
 
     // Presigned link only after authorisation; short-lived; signed.
-    let (s, link) = call(&app, &admin, "POST", &format!("{path}/link"), json!({}), None).await;
+    let (s, link) = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("{path}/link"),
+        json!({}),
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::OK, "{link}");
     let url = link["url"].as_str().unwrap();
-    assert!(url.contains("X-Amz-Signature=") && url.contains("X-Amz-Expires=60"), "{url}");
-    let (s, _) = call(&app, &faculty, "POST", &format!("{path}/link"), json!({}), None).await;
+    assert!(
+        url.contains("X-Amz-Signature=") && url.contains("X-Amz-Expires=60"),
+        "{url}"
+    );
+    let (s, _) = call(
+        &app,
+        &faculty,
+        "POST",
+        &format!("{path}/link"),
+        json!({}),
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::FORBIDDEN);
 
     // Tenant-rooted key, private bucket: the object is there, anonymous access is refused.
@@ -480,7 +524,15 @@ async fn cross_tenant_and_cross_institution_access_is_denied() {
     let did = id(&doc);
     let other = add_document(&app, &admin, &aid, "qualifying_marksheet").await;
     let path = file_path(&aid, &did);
-    let (s, b) = upload(&app, &admin, &path, "id.pdf", "application/pdf", PDF.to_vec()).await;
+    let (s, b) = upload(
+        &app,
+        &admin,
+        &path,
+        "id.pdf",
+        "application/pdf",
+        PDF.to_vec(),
+    )
+    .await;
     assert_eq!(s, StatusCode::CREATED, "{b}");
     let object = b["file"]["id"].as_str().unwrap().to_owned();
 
@@ -490,7 +542,15 @@ async fn cross_tenant_and_cross_institution_access_is_denied() {
     let admin2 = login(&app2, "admin@sutra.dev").await;
     let (s, _, _) = download(&app2, &admin2, &path).await;
     assert_eq!(s, StatusCode::NOT_FOUND);
-    let (s, _) = call(&app2, &admin2, "POST", &format!("{path}/link"), json!({}), None).await;
+    let (s, _) = call(
+        &app2,
+        &admin2,
+        "POST",
+        &format!("{path}/link"),
+        json!({}),
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::NOT_FOUND);
     let (s, _) = call(
         &app2,
@@ -574,13 +634,12 @@ async fn cross_tenant_and_cross_institution_access_is_denied() {
         .execute(&mut *c)
         .await
         .unwrap();
-    let seen: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM platform.document_object WHERE id = $1::uuid",
-    )
-    .bind(&object)
-    .fetch_one(&mut *c)
-    .await
-    .unwrap();
+    let seen: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM platform.document_object WHERE id = $1::uuid")
+            .bind(&object)
+            .fetch_one(&mut *c)
+            .await
+            .unwrap();
     assert_eq!(seen, 0, "RLS hides other tenants' documents");
 }
 
@@ -597,7 +656,15 @@ async fn tampered_object_is_detected_and_quarantined() {
     let doc = add_document(&app, &admin, &aid, "identity_proof").await;
     let did = id(&doc);
     let path = file_path(&aid, &did);
-    let (s, b) = upload(&app, &admin, &path, "id.pdf", "application/pdf", PDF.to_vec()).await;
+    let (s, b) = upload(
+        &app,
+        &admin,
+        &path,
+        "id.pdf",
+        "application/pdf",
+        PDF.to_vec(),
+    )
+    .await;
     assert_eq!(s, StatusCode::CREATED, "{b}");
     let object = b["file"]["id"].as_str().unwrap().to_owned();
     let version = b["documentVersion"].as_i64().unwrap();
@@ -608,11 +675,21 @@ async fn tampered_object_is_detected_and_quarantined() {
     let n = tampered.len() - 8;
     tampered[n] ^= 0x20;
     bucket()
-        .put_object(&key, "application/pdf", tampered.clone(), &sha256(&tampered))
+        .put_object(
+            &key,
+            "application/pdf",
+            tampered.clone(),
+            &sha256(&tampered),
+        )
         .await
         .unwrap();
     let (s, _, body) = download(&app, &admin, &path).await;
-    assert_eq!(s, StatusCode::CONFLICT, "{}", String::from_utf8_lossy(&body));
+    assert_eq!(
+        s,
+        StatusCode::CONFLICT,
+        "{}",
+        String::from_utf8_lossy(&body)
+    );
     assert!(String::from_utf8_lossy(&body).contains("integrity"));
     let q: Option<chrono::DateTime<chrono::Utc>> = sqlx::query_scalar(
         "SELECT quarantined_at FROM platform.document_object WHERE id = $1::uuid",
@@ -712,9 +789,24 @@ async fn oversize_and_forbidden_types_are_rejected() {
         ("big.pdf", "application/pdf", big, "too_large"),
         ("empty.pdf", "application/pdf", vec![], "empty"),
         // Content decides, not the extension or the declared type.
-        ("setup.pdf", "application/pdf", b"MZ\x90\0\x03\0\0\0".to_vec(), "type_not_allowed"),
-        ("page.pdf", "application/pdf", b"<html><script>alert(1)</script>".to_vec(), "type_not_allowed"),
-        ("doc.pdf", "application/pdf", b"PK\x03\x04docx".to_vec(), "type_not_allowed"),
+        (
+            "setup.pdf",
+            "application/pdf",
+            b"MZ\x90\0\x03\0\0\0".to_vec(),
+            "type_not_allowed",
+        ),
+        (
+            "page.pdf",
+            "application/pdf",
+            b"<html><script>alert(1)</script>".to_vec(),
+            "type_not_allowed",
+        ),
+        (
+            "doc.pdf",
+            "application/pdf",
+            b"PK\x03\x04docx".to_vec(),
+            "type_not_allowed",
+        ),
         ("scan.png", "image/png", PDF.to_vec(), "extension_mismatch"),
         ("scan.pdf", "image/png", PDF.to_vec(), "type_mismatch"),
         (
@@ -728,7 +820,10 @@ async fn oversize_and_forbidden_types_are_rejected() {
     for (name, ct, bytes, code) in cases {
         let (s, b) = upload(&app, &admin, &path, name, ct, bytes).await;
         assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{name}: {b}");
-        assert!(b.to_string().contains(code), "{name}: expected {code} in {b}");
+        assert!(
+            b.to_string().contains(code),
+            "{name}: expected {code} in {b}"
+        );
     }
     // Above the transport limit for uploads: refused before the handler (413).
     let (s, _) = upload(
@@ -750,18 +845,28 @@ async fn oversize_and_forbidden_types_are_rejected() {
     .unwrap();
     assert_eq!(stored, 0, "nothing stored for refused uploads");
     // A valid file still goes through afterwards.
-    let (s, b) = upload(&app, &admin, &path, "ok.pdf", "application/pdf", PDF.to_vec()).await;
+    let (s, b) = upload(
+        &app,
+        &admin,
+        &path,
+        "ok.pdf",
+        "application/pdf",
+        PDF.to_vec(),
+    )
+    .await;
     assert_eq!(s, StatusCode::CREATED, "{b}");
 
     // The upload limit is for `PUT …/file` only: a 3 MiB JSON body anywhere else is 413.
+    let json_body = format!(
+        "{{\"documentType\":\"x\",\"title\":\"{}\"}}",
+        "a".repeat(3 * 1024 * 1024)
+    );
     let req = Request::post(format!("{API}/admissions/{aid}/documents"))
         .header("content-type", "application/json")
+        .header("content-length", json_body.len())
         .header("cookie", &admin.cookie)
         .header("x-csrf-token", &admin.csrf)
-        .body(Body::from(format!(
-            "{{\"documentType\":\"x\",\"title\":\"{}\"}}",
-            "a".repeat(3 * 1024 * 1024)
-        )))
+        .body(Body::from(json_body))
         .unwrap();
     let (s, _, _) = send(&app, req).await;
     assert_eq!(s, StatusCode::PAYLOAD_TOO_LARGE);
@@ -801,12 +906,11 @@ async fn retention_and_legal_hold_are_enforced() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "{b}");
     assert!(b.to_string().contains("retention"), "{b}");
-    let early = sqlx::query(
-        "UPDATE platform.document_object SET deleted_at = now() WHERE id = $1::uuid",
-    )
-    .bind(&retained)
-    .execute(&pool)
-    .await;
+    let early =
+        sqlx::query("UPDATE platform.document_object SET deleted_at = now() WHERE id = $1::uuid")
+            .bind(&retained)
+            .execute(&pool)
+            .await;
     assert!(early.unwrap_err().to_string().contains("under retention"));
     let shorten = sqlx::query(
         "UPDATE platform.document_object SET retention_until = retention_until - interval '1 day' \
@@ -815,7 +919,10 @@ async fn retention_and_legal_hold_are_enforced() {
     .bind(&retained)
     .execute(&pool)
     .await;
-    assert!(shorten.unwrap_err().to_string().contains("only be extended"));
+    assert!(shorten
+        .unwrap_err()
+        .to_string()
+        .contains("only be extended"));
     let gone = sqlx::query("DELETE FROM platform.document_object WHERE id = $1::uuid")
         .bind(&retained)
         .execute(&pool)
@@ -838,7 +945,15 @@ async fn retention_and_legal_hold_are_enforced() {
     assert_eq!(s, StatusCode::CREATED, "{b}");
     let held = b["file"]["id"].as_str().unwrap().to_owned();
     let docs = format!("/api/v1/platform/documents/{held}");
-    let (s, b) = call(&app0, &admin0, "POST", &format!("{docs}/legal-hold"), json!({"hold": true, "reason": " "}), None).await;
+    let (s, b) = call(
+        &app0,
+        &admin0,
+        "POST",
+        &format!("{docs}/legal-hold"),
+        json!({"hold": true, "reason": " "}),
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "reason required: {b}");
     let b = ok(
         &app0,
@@ -851,15 +966,22 @@ async fn retention_and_legal_hold_are_enforced() {
     )
     .await;
     assert!(b["legalHold"].as_bool().unwrap());
-    let (s, b) = call(&app0, &admin0, "POST", &format!("{docs}/delete"), json!({"reason": "x"}), None).await;
+    let (s, b) = call(
+        &app0,
+        &admin0,
+        "POST",
+        &format!("{docs}/delete"),
+        json!({"reason": "x"}),
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::CONFLICT, "{b}");
     assert!(b.to_string().contains("legal hold"), "{b}");
-    let direct = sqlx::query(
-        "UPDATE platform.document_object SET deleted_at = now() WHERE id = $1::uuid",
-    )
-    .bind(&held)
-    .execute(&pool)
-    .await;
+    let direct =
+        sqlx::query("UPDATE platform.document_object SET deleted_at = now() WHERE id = $1::uuid")
+            .bind(&held)
+            .execute(&pool)
+            .await;
     assert!(direct.unwrap_err().to_string().contains("legal hold"));
     // The sweeper never touches a held document.
     let sweep = sutra_platform::documents::DocumentRetentionSweep {
@@ -871,13 +993,12 @@ async fn retention_and_legal_hold_are_enforced() {
     };
     let mut conn = pool.acquire().await.unwrap();
     sweep.run(&mut conn).await.unwrap();
-    let deleted: Option<chrono::DateTime<chrono::Utc>> = sqlx::query_scalar(
-        "SELECT deleted_at FROM platform.document_object WHERE id = $1::uuid",
-    )
-    .bind(&held)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let deleted: Option<chrono::DateTime<chrono::Utc>> =
+        sqlx::query_scalar("SELECT deleted_at FROM platform.document_object WHERE id = $1::uuid")
+            .bind(&held)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert!(deleted.is_none(), "held document survives the sweep");
     ok(
         &app0,
@@ -907,13 +1028,12 @@ async fn retention_and_legal_hold_are_enforced() {
     ));
     let (s, _, _) = download(&app0, &admin0, &file_path(&aid, &id(&doc_h))).await;
     assert_eq!(s, StatusCode::NOT_FOUND, "a deleted document is gone");
-    let purged: Option<chrono::DateTime<chrono::Utc>> = sqlx::query_scalar(
-        "SELECT purged_at FROM platform.document_object WHERE id = $1::uuid",
-    )
-    .bind(&held)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let purged: Option<chrono::DateTime<chrono::Utc>> =
+        sqlx::query_scalar("SELECT purged_at FROM platform.document_object WHERE id = $1::uuid")
+            .bind(&held)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert!(purged.is_some());
     let actions = audit_actions(&pool, &held).await;
     for a in [
@@ -965,13 +1085,12 @@ async fn retention_and_legal_hold_are_enforced() {
     assert!(audit_actions(&pool, &expiring)
         .await
         .contains(&"platform.document.expire".to_owned()));
-    let kept: Option<chrono::DateTime<chrono::Utc>> = sqlx::query_scalar(
-        "SELECT deleted_at FROM platform.document_object WHERE id = $1::uuid",
-    )
-    .bind(&retained)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let kept: Option<chrono::DateTime<chrono::Utc>> =
+        sqlx::query_scalar("SELECT deleted_at FROM platform.document_object WHERE id = $1::uuid")
+            .bind(&retained)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert!(kept.is_none(), "retained document untouched by the sweeper");
 }
 
@@ -1010,7 +1129,15 @@ async fn student_retrieves_verified_admission_documents() {
         } else {
             ("marks.png", "image/png")
         };
-        let (s, b) = upload(&app, &admin, &file_path(&aid, &id(&d)), name, ct, bytes.clone()).await;
+        let (s, b) = upload(
+            &app,
+            &admin,
+            &file_path(&aid, &id(&d)),
+            name,
+            ct,
+            bytes.clone(),
+        )
+        .await;
         assert_eq!(s, StatusCode::CREATED, "{b}");
         files.push((id(&d), b["documentVersion"].as_i64().unwrap(), bytes));
     }
@@ -1084,7 +1211,11 @@ async fn student_retrieves_verified_admission_documents() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(verified, files.len() as i64, "every verification re-checked the bytes");
+    assert_eq!(
+        verified,
+        files.len() as i64,
+        "every verification re-checked the bytes"
+    );
 
     // The student's own record carries the verified files.
     let mine = ok(
@@ -1109,19 +1240,28 @@ async fn student_retrieves_verified_admission_documents() {
     assert_eq!(with_file.len(), files.len(), "{mine}");
     for d in &with_file {
         let sdid = id(d);
-        let (s, h, bytes) = download(&app, &student, &format!("{API}/me/documents/{sdid}/file")).await;
+        let (s, h, bytes) =
+            download(&app, &student, &format!("{API}/me/documents/{sdid}/file")).await;
         assert_eq!(s, StatusCode::OK);
         assert!(files.iter().any(|(_, _, b)| *b == bytes));
         assert!(h[header::CONTENT_DISPOSITION]
             .to_str()
             .unwrap()
             .starts_with("attachment"));
-        let (s, _, bytes2) =
-            download(&app, &admin, &format!("{API}/students/{sid}/documents/{sdid}/file")).await;
+        let (s, _, bytes2) = download(
+            &app,
+            &admin,
+            &format!("{API}/students/{sid}/documents/{sdid}/file"),
+        )
+        .await;
         assert_eq!(s, StatusCode::OK);
         assert_eq!(bytes, bytes2);
-        let (s, _, _) =
-            download(&app, &faculty, &format!("{API}/students/{sid}/documents/{sdid}/file")).await;
+        let (s, _, _) = download(
+            &app,
+            &faculty,
+            &format!("{API}/students/{sid}/documents/{sdid}/file"),
+        )
+        .await;
         assert_eq!(s, StatusCode::FORBIDDEN);
         let (s, b) = call(
             &app,
