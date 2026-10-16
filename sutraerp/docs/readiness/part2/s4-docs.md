@@ -84,3 +84,35 @@ Defects found by the first real runs and fixed at the root:
   a permissive licence can use SeaweedFS (Apache-2.0); Garage is AGPL-3.0 as well.
 * No web upload control yet on the admission drawer (journey records the gap); the API and the
   generated TS client (`packages/api-client`) carry the endpoints.
+
+## UI — document file controls (S4-ui-feedocs)
+
+Branch `part2/s4-ui-feedocs` (from `part2/s4-int` @ `9b4de991`). Tracker rows:
+[`../tracker/p2-s4-ui-feedocs.md`](../tracker/p2-s4-ui-feedocs.md). Closes the "no web upload control
+on the admission drawer" gap recorded by the journey.
+
+| Screen | Controls |
+|--------|----------|
+| Students → Admissions → admission record → **Documents** drawer (staff, `admission.manage`) | each row shows the verification status badge and "File attached" / "No file yet"; **Upload file** (document `submitted`, no file, admission `initiated` / `documents_submitted`); **Replace** on a `rejected` document = hands in a new document of the same type and title (the server supersedes the rejected one) and uploads the file to it — the server keeps "one file per document"; **Download**; Verify / Reject / Waive unchanged |
+| Student 360 → Documents (administrator) | **Upload file** (submitted record document without a file), **Download** |
+| Student → Documents (`/documents`, own record) | **Download** of every document on the record that carries a file (`GET /me/documents/{id}/file`) |
+
+Upload dialog (`FileField` of the prototype): client-side hints mirror the server rules — PDF / PNG / JPEG only, the
+extension must match the content (magic bytes read from the first 8 bytes), not empty, at most 10 MiB (default
+`SUTRA_DOCS_MAX_BYTES`; nginx 11 MiB on the upload routes) — and the **server still enforces** every rule (plus the
+active-content PDF check). The request is the raw file as the body with **its own media type**
+(`application/pdf` / `image/png` / `image/jpeg`, from the extension), `?filename=`, the CSRF header and **no
+`Idempotency-Key`** (also for files above 1 MiB). Refusals are shown inline in plain words: 422 codes (`empty`,
+`too_large`, `type_not_allowed`, `type_mismatch`, `extension_mismatch`, `active_content`), 409 (already attached /
+not awaiting verification), 413, 503 (storage off), 403. Downloads stream the attachment to the browser's save
+dialog (object URL, released after the click); 409 (integrity check failed / quarantined), 404, 503 are toasts.
+
+Files: `apps/web/app/features/student/record/{files.tsx,api.ts,mock.ts,AdminTabs.tsx,Student360Tabs.tsx,StudentDocuments.tsx}`.
+
+### UI tests
+
+| Test | What it proves |
+|------|----------------|
+| `apps/web/app/features/student/record/files.test.tsx` (vitest, 9) | hints: accepted PDF / PNG / JPEG, refused empty / too large / `.docx` / no extension / PNG renamed `.pdf` / declared-type mismatch; server refusal messages; HTTP: `PUT …/admissions/{id}/documents/{docId}/file?filename=…` and `…/students/{id}/documents/{docId}/file` with the file's own `Content-Type`, the `File` as the body and no Idempotency-Key (1.5 MiB case included); 422 → `ApiProblem`; download name / type / `X-Document-SHA256`; dialog error states: wrong type blocks before any request, 422 `active_content`, 503, 409, then success; the mock keeps one file per submitted document |
+| `apps/web/e2e/journey.e2e.mjs` step "1 Admission" (Part 1 demo: compose + MinIO built from source) | both admission documents uploaded **through the drawer's Upload file control** (184 B and 1.5 MiB PDFs); the browser's PUT is asserted: `Content-Type: application/pdf`, no Idempotency-Key, 201 with matching SHA-256 / size / name; the row switches to "File attached" |
+| journey step "Document files" | API: identical bytes back, integrity, audit, 403 for the student on admission files; **browser**: the student downloads both verified files from `/documents` (Playwright download: same file name, identical SHA-256) |
