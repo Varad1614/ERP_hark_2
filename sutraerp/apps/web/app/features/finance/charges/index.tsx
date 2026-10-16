@@ -312,7 +312,7 @@ function PolicyTile({ institution, kind }: { institution: Institution; kind: Pol
   const list = useQuery({ queryKey: fkeys.scoped(institution.id, `policy-${kind}`), queryFn: () => api.policies(institution.id, kind) });
   const title = kind === "config" ? "Finance configuration" : "Financial rules";
   return (
-    <BentoTile span={6} title={title} data-policy={kind} action={
+    <BentoTile span={6} title={title} data-policy={kind} action={<div style={{ display: "flex", gap: 8 }}>
       <Button size="sm" variant="ghost" data-action={`new-${kind}`} onClick={() => ask(kind === "config"
         ? { title: "New configuration version", name: "config", submitLabel: "Create draft", fields: [
             { name: "defaultDueDays", label: "Default due days", type: "number", required: true, initial: "30" },
@@ -327,7 +327,7 @@ function PolicyTile({ institution, kind }: { institution: Institution; kind: Pol
           <CalendarClock size={14} /> Reminders
         </Button>
       )}
-    }>
+    </div>}>
       <DataTable caption={title} rows={list.data ?? []} rowKey={(p) => p.id}
         empty={<EmptyState icon={Settings2} title="No versions yet">Draft a version, approve and activate it.</EmptyState>}
         columns={[

@@ -385,7 +385,7 @@ Subject refs let pure inbox rules notify the student without a lookup.
 | 5A | `FINANCE_CONFIG_EFFECTIVE`, `FINANCE_RULE_EFFECTIVE` | `finance_config.effective`, `finance_rule.effective` | F-084/085 |
 | 5B `payments.rs` | `PAYMENT_INITIATED`, `PAYMENT_COMPLETED`, `PAYMENT_FAILED`, `PAYMENT_CANCELLED`, `PAYMENT_REVERSED`, `RECEIPT_ISSUED`, `UNIDENTIFIED_RECEIPT_RESOLVED`, `PAYMENT_BATCH_COMPLETED` | `payment.*`, `receipt.issued`, … | F-007…013 |
 | 5B | `REFUND_REQUESTED`, `REFUND_DECIDED`, `REFUND_COMPLETED`, `REFUND_CANCELLED`, `REFUND_FAILED`, `REFUND_REVERSED` | `refund.*` | F-014…019 |
-| 5B | `RECEIVABLE_RECOGNISED`, `RECEIVABLE_OVERDUE`, `DUNNING_NOTICE_SENT`, `RECEIVABLE_SETTLED`, `RECEIVABLE_WRITTEN_OFF`, `RECEIVABLE_REOPENED` | `receivable.*`, `dunning.notice_sent` | F-039…043 |
+| 5B | `RECEIVABLE_RECOGNISED`, `RECEIVABLE_OVERDUE`, `DUNNING_NOTICE_SENT`, `LATE_FEE_CHARGED`, `FEE_REMINDER_SENT` (ERP_EXTENSIONS 1D), `RECEIVABLE_SETTLED`, `RECEIVABLE_WRITTEN_OFF`, `RECEIVABLE_REOPENED` | `receivable.*`, `dunning.notice_sent`, `late_fee.charged`, `fee_reminder.sent` | F-039…043 |
 | 5C `ledger.rs` | `MANUAL_JOURNAL_SUBMITTED`, `MANUAL_JOURNAL_POSTED`, `ACCOUNTING_BATCH_POSTED`, `LEDGER_RECONCILIATION_COMPLETED`, `TRIAL_BALANCE_GENERATED` | `manual_journal.*`, … | F-025…032 |
 | 5C | `FINANCIAL_PERIOD_OPENED`, `_LOCKED`, `_CLOSED`, `_REOPENED`, `FINANCIAL_YEAR_CLOSED` | `financial_period.*`, `financial_year.closed` | F-051…055 |
 | 5C | `BANK_ACCOUNT_ACTIVATED`, `BANK_STATEMENT_RECONCILED`, `FUND_TRANSFER_SETTLED`, `BANK_TRANSACTION_FAILED` | `bank_account.activated`, … | F-056…061 |
@@ -588,7 +588,7 @@ students with `Recipient::Subject(studentSubjectRef)`; otherwise `Recipient::Rol
 |-------|-------|------------|
 | 5A | `charge.published`, `instalment.due`, `aid_allocation.allocated` | notification to the student (link `/fees`) |
 | 5A | `adjustment.submitted` (AwaitDecision), Domain C `scholarship_eligibility.handed_off` | to-do (admins) "Approve adjustment …" / "Allocate financial aid …" |
-| 5B | `payment.completed`, `payment.failed`, `refund.decided`, `refund.completed`, `receivable.overdue`, `dunning.notice_sent` | notification to the student |
+| 5B | `payment.completed`, `payment.failed`, `refund.decided`, `refund.completed`, `receivable.overdue`, `dunning.notice_sent`, `late_fee.charged`, `fee_reminder.sent` | notification to the student |
 | 5B | `refund.requested` (AwaitDecision) | to-do (admins) "Decide refund …" |
 | 5C | `manual_journal.submitted` (AwaitDecision), `bank_transaction.failed` | to-do (admins) |
 | 5C | `financial_period.closed` | notification to `Role::Administrator` |

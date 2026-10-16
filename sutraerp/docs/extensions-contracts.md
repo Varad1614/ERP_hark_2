@@ -25,7 +25,7 @@ Source: HeyPuter/everything @ `06802a1` (MIT). Credit in `THIRD_PARTY_NOTICES.md
 | 1A statement import | `modules/finance/src/treasury` | accounting `bankimport.js` | 20270101000100–199 (used: 100) — **done**: `bankfile.rs`, `POST …/statements/preview`, import `format` csv/ofx/mt940/auto, golden `modules/finance/tests/golden/bankimport_*.json` |
 | 1B reconciliation | `modules/finance/src/treasury` | accounting `reconcile.js` | 20270101000200–299 |
 | 1C financial statements | `modules/finance/src/ledger`, `features/reports` | accounting `reports.js`, `ledger.js` | 20270101000300–399 |
-| 1D late fines + reminders | `modules/finance/src/receivables` | invoicing `latefee.js`, `reminders.js`, `aging.js` | 20270101000400–499 |
+| 1D late fines + reminders | `modules/finance/src/receivables` | invoicing `latefee.js`, `reminders.js`, `aging.js` | 20270101000400–499 (used: 400) — **done**: `latefee.rs` + `latefee_http.rs`; configurable `late_fee` rule (flat / percent once or monthly / per_day / slabs, graceDays, cap, capPercent, minOverdue, roundToRupee, feeHeadCode); new `reminder_schedule` rule (beforeDays, afterDays drive the dunning run); `POST …/late-fees/preview`, `…/late-fees`, `…/fee-reminders`; events `late_fee.charged`, `fee_reminder.sent`; golden `modules/finance/tests/golden/latefee.json` |
 | 1E periodic billing runs | `modules/finance/src/campus_charges.rs` | childcare `core/billing.js` | 20270101000500–599 |
 | 2A admissions funnel | `modules/student/src/admission` | crm `funnel.js`, `forecast.js`, `dupes.js` | 20270102000100–199 |
 | 2B service-desk rules/SLA | `modules/campus/src/servicedesk` | help-desk `shared/rules.js` | 20270102000200–299 |
