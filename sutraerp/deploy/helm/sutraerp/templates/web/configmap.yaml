@@ -68,6 +68,22 @@ data:
         proxy_set_header X-Forwarded-Proto $scheme;
       }
 
+      # Part 2 · S4-docs (helm parity added by S5-deploy): document file uploads (PUT
+      # …/documents/{id}/file) up to SUTRA_DOCS_MAX_BYTES (default 10 MiB; the API enforces the exact
+      # route limit, 2 MiB everywhere else); slower clients get 120 s. Same block as
+      # deploy/docker/nginx.conf — deploy/helm/check-web-nginx-parity.py fails the chart otherwise.
+      location ~ ^/api/v1/student/(admissions|students)/[^/]+/documents/[^/]+/file$ {
+        limit_req zone=sutra_api burst=400 nodelay;
+        client_max_body_size 11m;
+        client_body_timeout 120s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+        proxy_pass http://{{ include "sutraerp.componentName" (dict "root" . "component" "api") }}:{{ .Values.api.port }};
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+
       # Part 2 · S4-ui-import: data import upload (base64 JSON of a file up to 8 MiB).
       location = /api/v1/platform/imports {
         limit_req zone=sutra_api burst=400 nodelay;

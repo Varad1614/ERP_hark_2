@@ -101,6 +101,10 @@ jobs:
           check production-refuses-api-docs "! helm template sutraerp deploy/helm/sutraerp --set-string api.extraEnv.SUTRA_API_DOCS=true >/dev/null 2>&1"
           # INT: two templates rendering the same kind/name make `helm install` fail ("already exists").
           check unique-resource-names "python3 deploy/helm/check-unique.py /tmp/rendered/*.yaml"
+          # Part 2 · S5-deploy: the chart's web nginx carries every location of the image nginx.conf
+          # with the same body-size / timeout limits (Stage 4 gap: the 11m document-upload route).
+          check web-nginx-parity-with-image "python3 deploy/helm/check-web-nginx-parity.py deploy/docker/nginx.conf /tmp/rendered/default.yaml /tmp/rendered/kind.yaml /tmp/rendered/pilot.yaml"
+          check web-document-upload-11m "grep -F -A3 '/documents/[^/]+/file\$ {' /tmp/rendered/pilot.yaml | grep -q 'client_max_body_size 11m'"
       - name: shellcheck (stage + deploy scripts)
         run: shellcheck -S warning deploy/ci/smoke.sh deploy/openbao/seed-dev.sh deploy/kind/up.sh deploy/docker/sign-verify.sh
 
