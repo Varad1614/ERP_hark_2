@@ -521,7 +521,17 @@ function useDecision() {
       </form>
     </Modal>
   );
-  return { approve, startReject: setRejecting, busy, dialogs: [dialog, modal] };
+  return {
+    approve,
+    startReject: setRejecting,
+    busy,
+    dialogs: (
+      <>
+        {dialog}
+        {modal}
+      </>
+    ),
+  };
 }
 
 function PendingTile({ job, entity }: { job: ImportJob; entity: ImportEntity | undefined }) {
@@ -625,7 +635,7 @@ function ApprovalsTab({ institution }: { institution: Institution }) {
                 icon={FileSpreadsheet}
                 tone="violet"
                 title={`${humanize(j.entity)} · ${j.fileName}`}
-                meta={`${plural(j.actions.create + j.actions.update, "row")}${j.summary.fileTotal != null ? ` · ${formatINR(j.summary.fileTotal)}` : ""}${decide ? "" : " · raised by you — another approver decides"}`}
+                meta={`${plural(j.actions.create + j.actions.update, "row")}${j.summary.fileTotal != null ? ` · ${formatINR(j.summary.fileTotal)}` : ""}${decide ? "" : isMaker(j, session.subject) ? " · raised by you — another approver decides" : ""}`}
                 onApprove={decide ? () => void approve(j) : undefined}
                 onReject={decide ? () => startReject(j) : undefined}
                 busy={busy}

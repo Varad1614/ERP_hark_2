@@ -109,49 +109,51 @@ function file(r: Result<unknown>, fallback: string): DownloadedFile {
 }
 
 type Client = typeof defaultClient;
+/** Per-request overrides (tests pass a fetch stub and a base URL). */
+export type RequestOverrides = { fetch?: (input: Request) => Promise<Response>; baseUrl?: string };
 
-export function createHttpImportApi(client: Client = defaultClient): ImportApi {
+export function createHttpImportApi(client: Client = defaultClient, o: RequestOverrides = {}): ImportApi {
   return {
     async entities() {
-      return check(await client.GET("/api/v1/platform/imports/entities")).items;
+      return check(await client.GET("/api/v1/platform/imports/entities", { ...o })).items;
     },
     async profiles(entity) {
-      return check(await client.GET("/api/v1/platform/imports/mapping-profiles", { params: { query: { entity } } })).items;
+      return check(await client.GET("/api/v1/platform/imports/mapping-profiles", { ...o, params: { query: { entity } } })).items;
     },
     async jobs(institutionId) {
-      return check(await client.GET("/api/v1/platform/imports", { params: { query: { institutionId } } })).items;
+      return check(await client.GET("/api/v1/platform/imports", { ...o, params: { query: { institutionId } } })).items;
     },
     async job(id) {
-      return check(await client.GET("/api/v1/platform/imports/{id}", { params: { path: { id } } }));
+      return check(await client.GET("/api/v1/platform/imports/{id}", { ...o, params: { path: { id } } }));
     },
     async rows(id, errorsOnly) {
-      return check(await client.GET("/api/v1/platform/imports/{id}/rows", { params: { path: { id }, query: { errorsOnly, limit: 500 } } })).items;
+      return check(await client.GET("/api/v1/platform/imports/{id}/rows", { ...o, params: { path: { id }, query: { errorsOnly, limit: 500 } } })).items;
     },
     async upload(input) {
-      return check(await client.POST("/api/v1/platform/imports", { params: { header: { "Idempotency-Key": newIdempotencyKey() } }, body: input }));
+      return check(await client.POST("/api/v1/platform/imports", { ...o, params: { header: { "Idempotency-Key": newIdempotencyKey() } }, body: input }));
     },
     async setMapping(id, input) {
-      return check(await client.PUT("/api/v1/platform/imports/{id}/mapping", { params: { path: { id } }, body: input }));
+      return check(await client.PUT("/api/v1/platform/imports/{id}/mapping", { ...o, params: { path: { id } }, body: input }));
     },
     async dryRun(id) {
-      return check(await client.POST("/api/v1/platform/imports/{id}/dry-run", { params: { path: { id } } }));
+      return check(await client.POST("/api/v1/platform/imports/{id}/dry-run", { ...o, params: { path: { id } } }));
     },
     async commit(id) {
-      return check(await client.POST("/api/v1/platform/imports/{id}/commit", { params: { path: { id } } }));
+      return check(await client.POST("/api/v1/platform/imports/{id}/commit", { ...o, params: { path: { id } } }));
     },
     async decide(id, approve, reason) {
-      return check(await client.POST("/api/v1/platform/imports/{id}/decision", { params: { path: { id } }, body: { approve, reason: reason || null } }));
+      return check(await client.POST("/api/v1/platform/imports/{id}/decision", { ...o, params: { path: { id } }, body: { approve, reason: reason || null } }));
     },
     async template(entity, format) {
-      const r = await client.GET("/api/v1/platform/imports/entities/{entity}/template", { params: { path: { entity }, query: { format } }, parseAs: "blob" });
+      const r = await client.GET("/api/v1/platform/imports/entities/{entity}/template", { ...o, params: { path: { entity }, query: { format } }, parseAs: "blob" });
       return file(r, `${entity}-template.${format}`);
     },
     async exportFile(entity, institutionId, format) {
-      const r = await client.GET("/api/v1/platform/imports/entities/{entity}/export", { params: { path: { entity }, query: { institutionId, format } }, parseAs: "blob" });
+      const r = await client.GET("/api/v1/platform/imports/entities/{entity}/export", { ...o, params: { path: { entity }, query: { institutionId, format } }, parseAs: "blob" });
       return file(r, `${entity}-export.${format}`);
     },
     async errorReport(id) {
-      const r = await client.GET("/api/v1/platform/imports/{id}/errors.csv", { params: { path: { id } }, parseAs: "blob" });
+      const r = await client.GET("/api/v1/platform/imports/{id}/errors.csv", { ...o, params: { path: { id } }, parseAs: "blob" });
       return file(r, `import-${id}-errors.csv`);
     },
   };
