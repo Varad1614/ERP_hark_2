@@ -216,9 +216,18 @@ await phase("import: departments + programmes (Stage 4 import)", async () => {
     ["BTECH-CE", "B.Tech Civil Engineering", "CIVIL"],
   ].map(([code, name, org]) => ({ code, name, level: "ug", degree_type: "btech", duration_terms: 8, org_unit_code: org }));
   const p = await runImport(admin, "programmes", inst, progs, ["code", "name", "level", "degree_type", "duration_terms", "org_unit_code"]);
-  const all_ = await admin.get(`${I}/institutions/${inst}/org-units`);
-  ids.depts = Object.fromEntries((all_.items ?? all_).map((x) => [x.code, x.id]));
-  return { orgUnits: u, programmes: p };
+  // The import registers units as `draft` (Stage 4 contract); the office activates them, as it
+  // would after reviewing the imported tree.
+  let all_ = await admin.get(`${I}/institutions/${inst}/org-units`);
+  let activated = 0;
+  for (const x of all_.items ?? all_) {
+    if (x.status !== "draft") continue;
+    await admin.call("POST", `${I}/org-units/${x.id}/activate`, {}, x.version);
+    activated++;
+  }
+  all_ = await admin.get(`${I}/institutions/${inst}/org-units`);
+  ids.depts = Object.fromEntries((all_.items ?? all_).filter((x) => x.status === "active").map((x) => [x.code, x.id]));
+  return { orgUnits: u, programmes: p, activated };
 }, { critical: false });
 
 await phase("import: 150 staff (100 teaching, 40 administrative, 10 non-teaching)", async () => {
