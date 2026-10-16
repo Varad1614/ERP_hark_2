@@ -196,12 +196,14 @@ pub async fn establish_from_admission(
             _ => map_db_error(e),
         })?;
     let ctx = context_from_row(&row).map_err(map_db_error)?;
-    // 3. Verified admission documents move onto the student's record.
+    // 3. Verified admission documents move onto the student's record (Part 2 · S4-docs: with
+    //    their stored file, so the student can retrieve it).
     sqlx::query(
         "INSERT INTO student.student_document (tenant_id, student_id, institution_id, \
-         document_type, title, file_ref, status, source, admission_document_id, note) \
-         SELECT tenant_id, $2, $3, document_type, title, file_ref, status, 'admission', id, note \
-         FROM student.admission_document WHERE admission_id = $1 \
+         document_type, title, file_ref, status, source, admission_document_id, note, \
+         document_object_id) \
+         SELECT tenant_id, $2, $3, document_type, title, file_ref, status, 'admission', id, note, \
+         document_object_id FROM student.admission_document WHERE admission_id = $1 \
          AND status IN ('verified', 'waived')",
     )
     .bind(adm.id.as_uuid())
