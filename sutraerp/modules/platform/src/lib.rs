@@ -33,6 +33,7 @@ pub mod identity; // Part 2 · S4-idp
 pub mod inbox;
 pub mod search; // 9C
 pub mod sweep;
+pub mod tls; // Part 2 · S5-capacity: SUTRA_TLS_CA_FILE
 pub mod workflow;
 pub mod workflow_flowable; // 9C
 

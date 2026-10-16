@@ -144,11 +144,13 @@ impl OpenSearchClient {
     /// Builds the HTTP client; does not connect.
     pub fn new(settings: OpenSearchSettings) -> Result<Self, String> {
         url::Url::parse(&settings.url).map_err(|e| format!("invalid SUTRA_OPENSEARCH_URL: {e}"))?;
-        let http = reqwest::Client::builder()
-            .timeout(settings.timeout)
-            .connect_timeout(settings.timeout.min(Duration::from_secs(5)))
-            .build()
-            .map_err(|e| format!("opensearch client: {e}"))?;
+        let http = crate::tls::with_extra_roots(
+            reqwest::Client::builder()
+                .timeout(settings.timeout)
+                .connect_timeout(settings.timeout.min(Duration::from_secs(5))),
+        )?
+        .build()
+        .map_err(|e| format!("opensearch client: {e}"))?;
         Ok(Self { http, settings })
     }
 

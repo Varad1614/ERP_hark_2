@@ -15,6 +15,7 @@ pub mod config_b9;
 pub mod config_docs; // Part 2 · S4-docs: document storage settings + production gate
 pub mod config_http; // Part 1 · Stage 3: transport settings + production start-up gate
 pub mod config_idp; // Part 2 · S4-idp: identity provisioning settings
+pub mod config_tls; // Part 2 · S5-capacity: SUTRA_TLS_CA_FILE (internal CA roots)
 pub mod idp_wiring; // Part 2 · S4-idp: identity provisioning composition
 pub mod metrics; // 9A
 pub mod metrics_bridge; // INT: 9C `metrics` facade → 9A registry

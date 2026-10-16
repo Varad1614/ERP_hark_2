@@ -179,6 +179,8 @@ impl KeycloakAdmin {
         if !settings.system_proxy {
             builder = builder.no_proxy();
         }
+        // Part 2 · S5-capacity: Keycloak behind the institution's own CA.
+        let builder = crate::tls::with_extra_roots(builder).map_err(KernelError::internal_msg)?;
         Ok(Self {
             http: builder.build().map_err(KernelError::internal)?,
             settings,

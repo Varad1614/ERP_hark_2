@@ -42,6 +42,7 @@ pub mod module;
 pub mod money;
 pub mod scope;
 pub mod secret;
+pub mod tls; // Part 2 · S5-capacity: SUTRA_TLS_CA_FILE extra trusted roots
 pub mod weblink;
 
 pub use error::{KernelError, KernelResult};

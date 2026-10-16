@@ -311,6 +311,9 @@ pub struct Config {
     /// Part 2 · S4-docs: document storage (`SUTRA_DOCUMENT_STORAGE`, `SUTRA_S3_*`,
     /// `SUTRA_DOCS_*`; `config_docs`). Production refuses to start without S3 storage.
     pub documents: crate::config_docs::DocumentStorageConfig,
+    /// Part 2 · S5-capacity: extra trusted CA roots for internal services (`SUTRA_TLS_CA_FILE`,
+    /// `config_tls`).
+    pub tls: crate::config_tls::TlsTrustConfig,
 }
 
 /// A secret string whose `Debug` is redacted.
@@ -757,6 +760,7 @@ impl Config {
             http: crate::config_http::HttpSecurityConfig::load(src, env)?,
             idp: crate::config_idp::IdpConfig::load(src, env)?, // Part 2 · S4-idp
             documents: crate::config_docs::DocumentStorageConfig::load(src, env)?, // Part 2 · S4-docs
+            tls: crate::config_tls::TlsTrustConfig::load(src)?, // Part 2 · S5-capacity
         };
         cfg.validate()?;
         Ok(cfg)
