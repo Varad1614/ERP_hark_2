@@ -63650,6 +63650,42 @@
         ]
       }
     },
+    "/api/v1/finance/me/payment-gateway": {
+      "get": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "Part 2 S4 (UI fees, DEF-F-007): the configured online gateway and the public checkout key\n(`finance.self`). Nothing tenant-specific is returned.",
+        "operationId": "finance_payment_self_gateway",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentGatewayInfo"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/me/payments": {
       "get": {
         "tags": [
@@ -173239,6 +173275,31 @@
           "demand_draft",
           "sponsor"
         ]
+      },
+      "PaymentGatewayInfo": {
+        "type": "object",
+        "description": "Part 2 S4 (UI fees, DEF-F-007): which online checkout the student's browser opens.",
+        "required": [
+          "gateway",
+          "onlinePayments"
+        ],
+        "properties": {
+          "checkoutKeyId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Public key id Razorpay Checkout is opened with (`rzp_test_…` / `rzp_live_…`); absent for\nthe mock / disabled adapters. Never a secret."
+          },
+          "gateway": {
+            "type": "string",
+            "description": "Configured adapter: `disabled | mock | razorpay`."
+          },
+          "onlinePayments": {
+            "type": "boolean",
+            "description": "`false` when online payment is switched off (`SUTRA_PAYMENT_GATEWAY=disabled`): the UI\nhides \"Pay now\" and points to the finance office."
+          }
+        }
       },
       "PaymentId": {
         "type": "string",

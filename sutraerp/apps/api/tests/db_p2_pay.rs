@@ -1042,18 +1042,14 @@ async fn gateway_info_tells_the_browser_which_checkout_to_open() {
     let mock = app_with_gateway(T_GATEWAY_INFO, "mock").await;
     let student = login(&mock, "aarav.desai@sutra.dev").await;
     let info = read(&mock, &student, "/me/payment-gateway").await;
-    assert_eq!(
-        (&info["gateway"], &info["onlinePayments"], &info["checkoutKeyId"]),
-        (&json!("mock"), &json!(true), &Value::Null),
-        "{info}"
-    );
+    assert_eq!(info["gateway"], "mock", "{info}");
+    assert_eq!(info["onlinePayments"], true, "{info}");
+    assert!(info["checkoutKeyId"].is_null(), "{info}");
     // Disabled (production default without a gateway): the UI hides "Pay now".
     let off = app_with_gateway(T_GATEWAY_INFO, "disabled").await;
     let student = login(&off, "aarav.desai@sutra.dev").await;
     let info = read(&off, &student, "/me/payment-gateway").await;
-    assert_eq!(
-        (&info["gateway"], &info["onlinePayments"], &info["checkoutKeyId"]),
-        (&json!("disabled"), &json!(false), &Value::Null),
-        "{info}"
-    );
+    assert_eq!(info["gateway"], "disabled", "{info}");
+    assert_eq!(info["onlinePayments"], false, "{info}");
+    assert!(info["checkoutKeyId"].is_null(), "{info}");
 }
