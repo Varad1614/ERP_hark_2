@@ -76,9 +76,10 @@ jobs:
           assert not missing, missing
           EOF
           # The production Prometheus config, with the rule files where compose mounts them.
-          docker run --rm -v "$PWD/deploy/monitoring/prometheus:/etc/prometheus:ro" \
-            -v "$PWD/deploy/monitoring/prometheus/rules:/etc/prometheus/rules:ro" \
-            -v "$PWD/deploy/observability/alerts:/etc/prometheus/rules-9a:ro" --entrypoint promtool \
+          cfg="$RUNNER_TEMP/etc-prometheus"; mkdir -p "$cfg"
+          cp -r deploy/monitoring/prometheus/prometheus.yml deploy/monitoring/prometheus/targets "$cfg/"
+          cp -r deploy/monitoring/prometheus/rules "$cfg/rules"; cp -r deploy/observability/alerts "$cfg/rules-9a"
+          docker run --rm -v "$cfg:/etc/prometheus:ro" --entrypoint promtool \
             "$PROMETHEUS_IMAGE" check config /etc/prometheus/prometheus.yml
       - name: Alertmanager receiver templates render and validate (amtool) for every chat kind
         run: |
