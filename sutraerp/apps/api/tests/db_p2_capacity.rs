@@ -19,6 +19,18 @@
 //! * `concurrent_waitlist_joins_and_overrides_do_not_starve_a_small_pool` — DEF-P2-CAP-002 on
 //!   the remaining seat-gate paths (waitlist join, eligibility override request + its seat): the
 //!   same port facts are now read before the offering lock there too.
+//! * `concurrent_fee_self_service_does_not_deadlock_a_small_pool` — DEF-P2-CAP-007: the student
+//!   charge list (`GET /finance/me/charges`) took a pool connection and then resolved the
+//!   student's accounts / business day / charges through ports that each needed a SECOND pooled
+//!   connection. In the fee-deadline spike (capacity run 38947132469) as many overlapping
+//!   requests as pool connections deadlocked the pool: every route waited the full 5 s acquire
+//!   timeout (2,478 slow-acquire warnings, 226 "database unavailable", 178 OIDC callbacks failed
+//!   at "session creation") while PostgreSQL sat idle. The port reads now finish before the
+//!   connection is taken; sign-in and other requests are not starved meanwhile.
+//! * `concurrent_attendance_registers_do_not_deadlock_a_small_pool` — DEF-P2-CAP-007 on the
+//!   attendance register commands (start / capture / submit / complete / finalise): the
+//!   authorisation, section context, institution rule and roster reads now run before the
+//!   command's transaction instead of inside it.
 #![cfg(feature = "db-tests")]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -44,6 +56,8 @@ use uuid::Uuid;
 const T_IMPORT_IDP: &str = "0192f5a0-7c3e-7000-8000-0000000ca901";
 const T_SEAT_POOL: &str = "0192f5a0-7c3e-7000-8000-0000000ca902";
 const T_WAIT_POOL: &str = "0192f5a0-7c3e-7000-8000-0000000ca903";
+const T_FEE_POOL: &str = "0192f5a0-7c3e-7000-8000-0000000ca904";
+const T_ATT_POOL: &str = "0192f5a0-7c3e-7000-8000-0000000ca905";
 const IMP: &str = "/api/v1/platform/imports";
 
 /// Postgres-backed app (runtime role) in `tenant`, identity provisioning on (memory adapter).
@@ -463,5 +477,170 @@ async fn concurrent_waitlist_joins_and_overrides_do_not_starve_a_small_pool() {
     assert!(
         elapsed < Duration::from_secs(10),
         "18 concurrent waitlist / override requests took {elapsed:?}"
+    );
+}
+
+/// DEF-P2-CAP-007: sixteen students' worth of concurrent fee self-service reads
+/// (`GET /finance/me/charges`, the fee-deadline spike's hottest route) through an API whose pool
+/// has only TWO connections and a 5 s acquire timeout, while sign-in state checks
+/// (`GET /auth/session`) run alongside. Every request succeeds well inside one acquire timeout
+/// (before the fix each request held one connection and waited for a second: 503 after 5 s).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_fee_self_service_does_not_deadlock_a_small_pool() {
+    let (app, pool) = app_with(
+        T_FEE_POOL,
+        &[
+            ("SUTRA_DB_MAX_CONNECTIONS", "2"),
+            ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "5"),
+        ],
+    )
+    .await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let setup = support::b5::finance_setup(
+        &app,
+        &admin,
+        &pool,
+        T_FEE_POOL,
+        "Capacity fee pool",
+        Some(support::b4::AARAV),
+    )
+    .await;
+    support::b5::seed_charge(&pool, &setup, "45000.00", "published", None).await;
+    support::b5::seed_charge(&pool, &setup, "1500.00", "published", None).await;
+    let aarav = login(&app, "aarav.desai@sutra.dev").await;
+    let (s, _, mine) = send(&app, get(&aarav, "/api/v1/finance/me/charges")).await;
+    assert_eq!(s, StatusCode::OK, "{mine}");
+    assert_eq!(mine["items"].as_array().unwrap().len(), 2, "{mine}");
+
+    let t0 = std::time::Instant::now();
+    let mut tasks = Vec::new();
+    for i in 0..24 {
+        let app = app.clone();
+        let path = if i % 3 == 2 {
+            "/api/v1/auth/session"
+        } else {
+            "/api/v1/finance/me/charges"
+        };
+        let req = get(&aarav, path);
+        tasks.push(tokio::spawn(async move { (path, send(&app, req).await) }));
+    }
+    for (i, t) in tasks.into_iter().enumerate() {
+        let (path, (s, _, b)) = t.await.unwrap();
+        assert_eq!(s, StatusCode::OK, "request {i} {path}: {b}");
+        if path.ends_with("/charges") {
+            assert_eq!(b["items"].as_array().unwrap().len(), 2, "request {i}: {b}");
+        }
+    }
+    let elapsed = t0.elapsed();
+    assert!(
+        elapsed < Duration::from_secs(5),
+        "24 concurrent self-service requests took {elapsed:?} (acquire timeout 5 s)"
+    );
+}
+
+fn ver(v: &Value) -> i64 {
+    v["version"]
+        .as_i64()
+        .unwrap_or_else(|| panic!("no version in {v}"))
+}
+
+/// Runs `reqs` concurrently and returns each response body (asserting `200`).
+async fn all_ok(
+    app: &Router,
+    step: &str,
+    reqs: Vec<axum::http::Request<axum::body::Body>>,
+) -> Vec<Value> {
+    let tasks: Vec<_> = reqs
+        .into_iter()
+        .map(|r| {
+            let app = app.clone();
+            tokio::spawn(async move { send(&app, r).await })
+        })
+        .collect();
+    let mut out = Vec::new();
+    for (i, t) in tasks.into_iter().enumerate() {
+        let (s, _, b) = t.await.unwrap();
+        assert_eq!(s, StatusCode::OK, "{step} {i}: {b}");
+        out.push(b);
+    }
+    out
+}
+
+/// DEF-P2-CAP-007 (attendance register commands): eight teaching sessions of one section are
+/// started, captured, submitted, completed and finalised by the section's teacher with each
+/// step's eight commands running at the same time, through an API whose pool has only TWO
+/// connections. Every command succeeds well inside one acquire timeout.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_attendance_registers_do_not_deadlock_a_small_pool() {
+    let (app, pool) = app_with(
+        T_ATT_POOL,
+        &[
+            ("SUTRA_DB_MAX_CONNECTIONS", "2"),
+            ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "5"),
+        ],
+    )
+    .await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let meera = login(&app, "meera.shah@sutra.dev").await;
+    let setup =
+        support::b4::academic_setup(&app, &admin, &pool, T_ATT_POOL, "Capacity register pool")
+            .await;
+    let cs = support::b4::seed_offering(&pool, &setup, "CS101", "active").await;
+    support::b4::seed_faculty(&pool, &setup, &cs, support::b4::MEERA, "active").await;
+    let a = support::b4::seed_student(&pool, &setup, "Aarav", Some(support::b4::AARAV)).await;
+    support::b4::seed_enrolment(&pool, &setup, &cs, &a, Some(support::b4::AARAV)).await;
+    let a_id = a.student_id;
+
+    let mut sessions = Vec::new();
+    for i in 0..8 {
+        let (s, _, b) = send(
+            &app,
+            write(
+                &meera,
+                "POST",
+                &format!("/api/v1/academic/sections/{}/sessions", cs.section_id),
+                json!({"sessionDate": format!("2026-07-{:02}", 10 + i), "startsAt": "09:00",
+                       "endsAt": "23:00", "topic": "Capacity"}),
+                None,
+            ),
+        )
+        .await;
+        assert_eq!(s, StatusCode::CREATED, "session {i}: {b}");
+        sessions.push(b);
+    }
+    let t0 = std::time::Instant::now();
+    let steps: [(&str, Option<Value>); 5] = [
+        ("start", None),
+        (
+            "attendance",
+            Some(json!({"records": [{"studentId": a_id, "mark": "present"}]})),
+        ),
+        ("submit-attendance", None),
+        ("complete", None),
+        ("finalise-attendance", None),
+    ];
+    for (step, body) in steps {
+        let reqs = sessions
+            .iter()
+            .map(|s| {
+                let sid = s["id"].as_str().unwrap();
+                write(
+                    &meera,
+                    "POST",
+                    &format!("/api/v1/academic/sessions/{sid}/{step}"),
+                    body.clone().unwrap_or_else(|| json!({})),
+                    Some(ver(s)),
+                )
+            })
+            .collect();
+        sessions = all_ok(&app, step, reqs).await;
+    }
+    let elapsed = t0.elapsed();
+    for s in &sessions {
+        assert_eq!(s["attendanceStatus"], "finalised", "{s}");
+    }
+    assert!(
+        elapsed < Duration::from_secs(20),
+        "5 rounds of 8 concurrent register commands took {elapsed:?} (acquire timeout 5 s)"
     );
 }

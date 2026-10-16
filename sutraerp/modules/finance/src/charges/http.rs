@@ -693,18 +693,30 @@ pub async fn charge_self_list(
     auth: Authenticated,
 ) -> ApiResult<Json<ChargeDetailList>> {
     let ctx = auth.require(Permission::FinanceSelfService)?;
-    let mut items = Vec::new();
-    let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+    // Part 2 · S5 (DEF-P2-CAP-007): resolve the accounts, business days and charge list through
+    // the ports (each a pooled statement of its own) BEFORE taking the connection the detail
+    // reads share. Holding that connection while the ports waited for a second one deadlocked
+    // the pool as soon as as many self-service requests as pool connections overlapped (the
+    // fee-deadline spike: every route waited the full acquire timeout, 503 "database
+    // unavailable", sign-ins failed at "session creation").
+    let mut wanted = Vec::new();
     for a in my_accounts(&st, ctx).await? {
         let scope = institution_scope(ctx, a.institution_id);
         let today = business_today(&st, &scope, a.institution_id).await?;
         for c in st.charges.charges_of_account(&scope, a.id).await? {
-            if !c.status.is_visible_to_student() {
-                continue;
+            if c.status.is_visible_to_student() {
+                wanted.push((c.id, today));
             }
-            let row = load_charge(&mut conn, ctx.scope.tenant_id, c.id).await?;
-            items.push(repo::detail(&mut conn, &row, today).await?);
         }
+    }
+    let mut items = Vec::with_capacity(wanted.len());
+    if wanted.is_empty() {
+        return Ok(Json(ChargeDetailList { items }));
+    }
+    let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+    for (id, today) in wanted {
+        let row = load_charge(&mut conn, ctx.scope.tenant_id, id).await?;
+        items.push(repo::detail(&mut conn, &row, today).await?);
     }
     Ok(Json(ChargeDetailList { items }))
 }
