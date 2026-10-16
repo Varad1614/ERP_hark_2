@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Infrastructure adapters behind kernel ports: NATS JetStream MessagePublisher (ADR-L5-0022), Valkey Cache (ADR-L5-0037), SMTP MailSender."
+description = "Infrastructure adapters behind kernel ports: NATS JetStream MessagePublisher (ADR-L5-0022), Valkey Cache (ADR-L5-0037), SMTP MailSender, S3-compatible object storage."
 
 [lints]
 workspace = true
@@ -33,3 +33,5 @@ serde.workspace = true
 nats-tests = []
 # Live tests against a local valkey/redis (SUTRA_TEST_VALKEY_URL, default redis://127.0.0.1:6379).
 valkey-tests = []
+# Part 2 · S4-docs: live tests against a local MinIO (SUTRA_TEST_S3_ENDPOINT, default http://127.0.0.1:9000).
+s3-tests = []
