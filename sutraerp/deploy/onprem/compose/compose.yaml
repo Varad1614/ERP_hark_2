@@ -1,0 +1,226 @@
+# SutraERP on-prem single-server stack (Part 2 · S5-deploy).
+#
+# Driven by bin/sutra-onprem (never by hand): it renders /etc/sutraerp/{compose.env,api.env,
+# edge/default.conf,keycloak/realm-sutra.json,tls/...} and runs
+#   docker compose -p sutraerp -f /opt/sutraerp/current/compose/compose.yaml --env-file /etc/sutraerp/compose.env …
+# Every image comes from the offline release bundle (`docker load`); pull_policy: never means the
+# server never contacts a registry. Long-running services restart unless explicitly stopped, so the
+# stack returns after a crash, a Docker restart or a host reboot.
+#
+# Network exposure: only `edge` publishes ports (80 → redirect, 443 TLS for the ERP and SSO host
+# names). MinIO listens on 127.0.0.1:9000 for the administrator's bucket commands. PostgreSQL,
+# Keycloak, Flowable, Valkey, NATS, the API and the web container are reachable only on the
+# internal Docker network.
+name: sutraerp
+
+x-service: &service
+  restart: unless-stopped
+  pull_policy: never
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+services:
+  postgres:
+    <<: *service
+    image: postgres:18
+    shm_size: 256m
+    environment:
+      POSTGRES_USER: sutra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run sutra-onprem render}
+      POSTGRES_DB: sutra
+      # Read by postgres-init/*.sh on the first start (empty volume) only.
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+      FLOWABLE_DB_PASSWORD: ${FLOWABLE_DB_PASSWORD:?}
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/sutraerp/tls/server.crt
+      - -c
+      - ssl_key_file=/etc/sutraerp/tls/server.key
+      - -c
+      - ssl_min_protocol_version=TLSv1.2
+      - -c
+      - shared_buffers=${SUTRA_PG_SHARED_BUFFERS:-512MB}
+      - -c
+      - max_connections=${SUTRA_PG_MAX_CONNECTIONS:-200}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ${SUTRA_ETC:?}/tls/internal/postgres:/etc/sutraerp/tls:ro
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sutra -d sutra"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  keycloak:
+    <<: *service
+    image: quay.io/keycloak/keycloak:26.7
+    # Production mode behind the TLS edge; the realm (production baseline with this server's host
+    # names and client secrets) is imported on the first start only.
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak?sslmode=require
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+      KC_HOSTNAME: https://${SUTRA_SSO_DOMAIN:?}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: sutra-bootstrap-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:?}
+      JAVA_OPTS_KC_HEAP: -Xms256m -Xmx${SUTRA_KC_HEAP:-768m}
+      # Pooled connections are validated after 5 s idle, so a PostgreSQL restart does not fail the
+      # next sign-in (DEF-P1-DEMO-005).
+      QUARKUS_DATASOURCE_JDBC_VALIDATION_QUERY_SQL: "SELECT 1"
+      QUARKUS_DATASOURCE_JDBC_FOREGROUND_VALIDATION_INTERVAL: "5S"
+    volumes:
+      - ${SUTRA_ETC}/keycloak/realm-sutra.json:/opt/keycloak/data/import/realm-sutra.json:ro
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+      start_period: 60s
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  valkey:
+    <<: *service
+    image: valkey/valkey:8
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?}
+    # Cache only (advisory, ADR-L5-0037): no persistence; a restart starts empty.
+    command: ["sh", "-c", "exec valkey-server --requirepass \"$$VALKEY_PASSWORD\" --save '' --appendonly no --maxmemory ${SUTRA_VALKEY_MAXMEMORY:-256mb} --maxmemory-policy allkeys-lru"]
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli -a \"$$VALKEY_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      retries: 20
+
+  nats:
+    <<: *service
+    image: nats:2.11-alpine
+    # JetStream with file storage (outbox relay, ADR-L5-0022); internal network only.
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    volumes:
+      - natsdata:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz?js-enabled-only=true"]
+      interval: 5s
+      retries: 20
+
+  minio:
+    <<: *service
+    image: sutraerp-minio:${SUTRA_MINIO_TAG:?}
+    # TLS with the internal CA's certificate (public.crt / private.key in --certs-dir); SSE-S3 with
+    # the single-key KMS (production sends x-amz-server-side-encryption: AES256).
+    command: ["server", "--address", ":9000", "--certs-dir", "/certs", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?}
+      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY:?}
+      MINIO_BROWSER: "off"
+    ports: ["127.0.0.1:${SUTRA_MINIO_PORT:-9000}:9000"]
+    volumes:
+      - miniodata:/data
+      - ${SUTRA_ETC}/tls/internal/minio:/certs:ro
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000"]
+      interval: 5s
+      retries: 30
+
+  flowable:
+    <<: *service
+    image: flowable/flowable-rest:8.0.0
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flowable?sslmode=require
+      SPRING_DATASOURCE_USERNAME: flowable
+      SPRING_DATASOURCE_PASSWORD: ${FLOWABLE_DB_PASSWORD:?}
+      FLOWABLE_REST_APP_ADMIN_USER-ID: rest-admin
+      FLOWABLE_REST_APP_ADMIN_PASSWORD: ${SUTRA_FLOWABLE_PASSWORD:?}
+      FLOWABLE_REST_APP_ADMIN_FIRST-NAME: Sutra
+      FLOWABLE_REST_APP_ADMIN_LAST-NAME: ERP
+      JAVA_OPTS: -Xms256m -Xmx${SUTRA_FLOWABLE_HEAP:-768m}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      retries: 40
+      start_period: 60s
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # One-shot: `sutra-onprem migrate` (schema owner; provisions the API's runtime login role).
+  migrate:
+    image: sutraerp-api:${SUTRA_VERSION:?}
+    pull_policy: never
+    profiles: ["migrate"]
+    restart: "no"
+    command: ["migrate"]
+    env_file: ["${SUTRA_ETC}/api.env"]
+    volumes:
+      - ${SUTRA_ETC}/tls/trust.pem:/etc/sutraerp/tls/trust.pem:ro
+      - ${SUTRA_ETC}/tls/internal/ca.crt:/etc/sutraerp/tls/internal-ca.crt:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *service
+    image: sutraerp-api:${SUTRA_VERSION}
+    env_file: ["${SUTRA_ETC}/api.env"]
+    volumes:
+      - ${SUTRA_ETC}/tls/trust.pem:/etc/sutraerp/tls/trust.pem:ro
+      - ${SUTRA_ETC}/tls/internal/ca.crt:/etc/sutraerp/tls/internal-ca.crt:ro
+    # distroless (no shell): readiness is probed from outside — https://<erp>/health/ready on the
+    # edge (status only; SUTRA_HEALTH_DETAIL is refused in production). `sutra-onprem health`.
+    depends_on:
+      postgres: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+      nats: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      flowable: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+      edge: { condition: service_started }
+
+  web:
+    <<: *service
+    image: sutraerp-web:${SUTRA_VERSION}
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      retries: 20
+    depends_on:
+      api: { condition: service_started }
+
+  # TLS edge: the only published ports. Upstreams are resolved per request (Docker DNS), so the
+  # edge starts before / independently of the services it fronts and follows restarted containers.
+  edge:
+    <<: *service
+    image: nginxinc/nginx-unprivileged:1.30-alpine
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: "0"
+    ports:
+      - "${SUTRA_HTTP_PORT:-80}:80"
+      - "${SUTRA_HTTPS_PORT:-443}:443"
+    volumes:
+      - ${SUTRA_ETC}/edge/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${SUTRA_ETC}/tls/public:/etc/sutraerp/tls:ro
+    networks:
+      default:
+        # Containers (the API's OIDC client) reach https://<sso host> through the same edge.
+        aliases: ["${SUTRA_DOMAIN}", "${SUTRA_SSO_DOMAIN}"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:80/healthz"]
+      interval: 10s
+      retries: 20
+
+volumes:
+  pgdata:
+  natsdata:
+  miniodata:
