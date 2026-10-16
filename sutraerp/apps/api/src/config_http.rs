@@ -28,6 +28,7 @@ pub const KNOWN_DEV_SECRETS: &[&str] = &[
     "sutra",
     "sutra-api-dev-only",
     "dev-only-change-me",
+    "dev-only-idp-admin-secret", // Part 2 · S4-idp: compose realm's identity admin client
     "sutra-dev-gateway-secret",
     "change-me",
     "changeme",

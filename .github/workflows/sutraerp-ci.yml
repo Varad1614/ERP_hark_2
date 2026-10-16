@@ -74,6 +74,14 @@ jobs:
       # Service containers cannot pass server flags, so JetStream runs as a plain container.
       - name: Start NATS (JetStream)
         run: docker run -d --name nats -p 4222:4222 nats:2.11 -js
+      # Part 2 · S4-idp: real Keycloak (compose dev realm import) for the identity provisioning
+      # tests; started early so it boots while the tests compile.
+      - name: Start Keycloak 26 (realm import)
+        run: |
+          docker run -d --name keycloak -p 8180:8180 \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+            -v "$PWD/deploy/keycloak/realm-sutra-dev.json:/opt/keycloak/data/import/realm-sutra-dev.json:ro" \
+            quay.io/keycloak/keycloak:26.7 start-dev --import-realm --http-port=8180
       - run: cargo test -p sutra-persistence -p sutra-platform --features db-tests --locked --no-fail-fast
       # Full api DB suite: every tests/db*.rs file (incl. db_b5_foundation, db_b5a, db_b5b) + api + architecture.
       - run: cargo test -p sutra-api --features db-tests --locked --no-fail-fast -- --test-threads 2
@@ -81,6 +89,19 @@ jobs:
         run: |
           cargo test -p sutra-infra --features nats-tests,valkey-tests --locked
           cargo test -p sutra-api --features db-tests,nats-tests --test live_relay --locked
+      - name: Live Keycloak identity provisioning (S4-idp)
+        env:
+          SUTRA_TEST_KEYCLOAK_URL: http://localhost:8180
+        run: |
+          for i in $(seq 1 120); do
+            curl -fsS http://localhost:8180/realms/sutra/.well-known/openid-configuration >/dev/null 2>&1 && break
+            [ "$i" = 120 ] && { docker logs --tail 200 keycloak; exit 1; }
+            sleep 2
+          done
+          cargo test -p sutra-api --features db-tests,keycloak-tests --test live_keycloak_idp --locked -- --test-threads 1 --nocapture
+      - name: Keycloak log (on failure)
+        if: failure()
+        run: docker logs --tail 300 keycloak || true
 
   openapi-drift:
     name: OpenAPI drift

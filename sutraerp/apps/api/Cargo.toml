@@ -70,6 +70,8 @@ chrono.workspace = true
 async-trait.workspace = true
 async-nats.workspace = true
 rust_decimal.workspace = true
+# Part 2 · S4-idp: drives the Keycloak login form and admin API in live_keycloak_idp.rs
+reqwest.workspace = true
 
 [features]
 # End-to-end tests against a live PostgreSQL 18 (set DATABASE_URL). Off by default.
@@ -79,3 +81,5 @@ nats-tests = []
 # 9C: with db-tests, live Flowable REST (SUTRA_TEST_FLOWABLE_URL) / OpenSearch (SUTRA_TEST_OPENSEARCH_URL).
 flowable-tests = []
 opensearch-tests = []
+# Part 2 · S4-idp: with db-tests, live Keycloak (SUTRA_TEST_KEYCLOAK_URL, compose dev realm).
+keycloak-tests = []

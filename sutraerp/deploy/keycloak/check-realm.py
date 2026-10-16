@@ -23,6 +23,9 @@ WEB_PARITY_ATTRS = [
     "pkce.code.challenge.method", "backchannel.logout.session.required", "use.refresh.tokens",
     "acr.loa.map", "minimum.acr.value", "id.token.signed.response.alg",
 ]
+# Part 2 S4-idp: least-privilege realm-management roles of the identity admin client.
+IDP_ADMIN_REQUIRED = {"manage-users", "view-users", "query-users", "query-groups"}
+IDP_ADMIN_ALLOWED = IDP_ADMIN_REQUIRED | {"query-clients"}
 PRIVILEGED = {"administrator", "finance_approver", "exam_controller", "registrar",
               "payroll_approver", "procurement_approver"}
 
@@ -67,6 +70,18 @@ def common(name, r):
     if api:
         check(api.get("standardFlowEnabled") is False and api.get("directAccessGrantsEnabled") is False,
               f"{name}: sutra-api has no browser / password flows")
+    idp = client(r, "sutra-idp-admin")
+    check(idp is not None, f"{name}: client sutra-idp-admin (identity provisioning) missing")
+    if idp:
+        check(idp.get("publicClient") is False and idp.get("serviceAccountsEnabled") is True,
+              f"{name}: sutra-idp-admin must be a confidential service-account client")
+        check(not idp.get("standardFlowEnabled") and not idp.get("implicitFlowEnabled")
+              and not idp.get("directAccessGrantsEnabled"),
+              f"{name}: sutra-idp-admin has no browser / password flows")
+    for m in (web or {}).get("protocolMappers", []):
+        if m.get("config", {}).get("claim.name") == "tenant_id":
+            check(m.get("protocolMapper") == "oidc-usermodel-attribute-mapper",
+                  f"{name}: tenant_id must come from the (group) attribute, not {m.get('protocolMapper')}")
     flows = json.dumps(r.get("authenticationFlows", []))
     check("auth-otp-form" in flows and "amr-otp" in flows,
           f"{name}: browser flow must include the OTP form with amr=otp")
@@ -85,6 +100,16 @@ def main():
         if PRIVILEGED & set(u.get("realmRoles", [])):
             check("CONFIGURE_TOTP" in u.get("requiredActions", []),
                   f"compose: privileged user {u['username']} needs CONFIGURE_TOTP")
+    # compose: the identity admin service account holds exactly the least-privilege roles.
+    sa = next((u for u in dev.get("users", []) if u.get("serviceAccountClientId") == "sutra-idp-admin"), None)
+    check(sa is not None, "compose: service account of sutra-idp-admin missing")
+    if sa:
+        held = set(sa.get("clientRoles", {}).get("realm-management", []))
+        check(IDP_ADMIN_REQUIRED <= held, f"compose: sutra-idp-admin lacks {sorted(IDP_ADMIN_REQUIRED - held)}")
+        check(held <= IDP_ADMIN_ALLOWED, f"compose: sutra-idp-admin over-privileged {sorted(held - IDP_ADMIN_ALLOWED)}")
+        check(not set(sa.get("realmRoles", [])) & (PRIVILEGED | {"faculty", "student"}),
+              "compose: sutra-idp-admin service account holds SutraERP roles")
+        check(len(sa.get("clientRoles", {})) == 1, "compose: sutra-idp-admin holds roles of other clients")
     # production specifics
     check(prod.get("sslRequired") == "all", "production: sslRequired must be 'all'")
     check("length(" in prod.get("passwordPolicy", ""), "production: password policy with a minimum length")
@@ -111,7 +136,7 @@ def main():
         for e in errors:
             print(f"FAIL {e}", file=sys.stderr)
         sys.exit(1)
-    print(f"ok keycloak realms ({dev_path}, {prod_path}): brute force, OTP, client flags, parity")
+    print(f"ok keycloak realms ({dev_path}, {prod_path}): brute force, OTP, client flags, identity admin client, parity")
 
 
 if __name__ == "__main__":
