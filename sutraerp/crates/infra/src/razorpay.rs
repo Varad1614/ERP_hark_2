@@ -32,6 +32,7 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::time::Duration;
 use sutra_kernel::error::KernelError;
+use sutra_kernel::signal::{self, CallOutcome, Integration};
 
 /// Production API host.
 pub const LIVE_BASE_URL: &str = "https://api.razorpay.com";
@@ -421,17 +422,22 @@ impl RazorpayClient {
             r = r.json(b);
         }
         let classify = |e: &reqwest::Error| {
+            // Part 2 S5-monitor: every failed attempt is counted (`sutra_integration_calls_total`).
             if e.is_timeout() {
+                signal::integration(Integration::Razorpay, CallOutcome::Timeout);
                 "timeout".to_owned()
             } else if e.is_connect() {
+                signal::integration(Integration::Razorpay, CallOutcome::Error);
                 "connection failed".to_owned()
             } else {
+                signal::integration(Integration::Razorpay, CallOutcome::Error);
                 "transport error".to_owned()
             }
         };
         let resp = r.send().await.map_err(|e| classify(&e))?;
         let status = resp.status().as_u16();
         let bytes = resp.bytes().await.map_err(|e| classify(&e))?;
+        signal::integration(Integration::Razorpay, CallOutcome::from_status(status));
         let v = if bytes.is_empty() {
             Value::Null
         } else {

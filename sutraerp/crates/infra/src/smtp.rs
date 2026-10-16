@@ -14,6 +14,7 @@ use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use std::fmt;
 use std::time::Duration;
 use sutra_kernel::mail::{MailError, MailMessage, MailSender};
+use sutra_kernel::signal::{self, CallOutcome, Integration};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SmtpTls {
@@ -99,7 +100,15 @@ impl MailSender for SmtpMailSender {
             .subject(m.subject.clone())
             .body(m.text.clone())
             .map_err(|e| MailError::Permanent(format!("message: {e}")))?;
-        self.transport.send(email).await.map(|_| ()).map_err(|e| {
+        let sent = self.transport.send(email).await;
+        // Part 2 S5-monitor: a rejected recipient (permanent) still means the server answered.
+        let outcome = match &sent {
+            Err(e) if e.is_timeout() => CallOutcome::Timeout,
+            Err(e) if !e.is_permanent() => CallOutcome::Error,
+            _ => CallOutcome::Ok,
+        };
+        signal::integration(Integration::Smtp, outcome);
+        sent.map(|_| ()).map_err(|e| {
             if e.is_permanent() {
                 MailError::Permanent(e.to_string())
             } else {

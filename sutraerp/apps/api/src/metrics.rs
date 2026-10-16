@@ -27,6 +27,7 @@ use prometheus_client::metrics::histogram::Histogram;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
 use std::net::SocketAddr;
+use sutra_kernel::signal::{CallOutcome, Integration, SecurityEvent};
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 use tokio_util::sync::CancellationToken;
@@ -45,7 +46,7 @@ pub const DURATION_BUCKETS: [f64; 12] = [
 pub const CONTENT_TYPE: &str = "application/openmetrics-text; version=1.0.0; charset=utf-8";
 
 /// Every metric family the API exports (contract §3.3; the 9C families are registered by 9C).
-pub const METRIC_NAMES: [&str; 14] = [
+pub const METRIC_NAMES: [&str; 16] = [
     "sutra_http_requests_total",
     "sutra_http_request_duration_seconds",
     "sutra_http_requests_in_flight",
@@ -62,6 +63,9 @@ pub const METRIC_NAMES: [&str; 14] = [
     // INT: 9C families bridged from the `metrics` facade (crate::metrics_bridge).
     "sutra_workflow_calls_total",
     "sutra_search_projection_lag_seconds",
+    // Part 2 S5-monitor: bounded signals from `sutra_kernel::signal`.
+    "sutra_security_events_total",
+    "sutra_integration_calls_total",
 ];
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
@@ -101,6 +105,19 @@ pub struct ProjectionLabels {
     pub projection: String,
 }
 
+/// Part 2 S5-monitor: `sutra_security_events_total{event}` (values: `SecurityEvent::as_str`).
+#[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct SecurityLabels {
+    pub event: String,
+}
+
+/// Part 2 S5-monitor: `sutra_integration_calls_total{integration, outcome}`.
+#[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct IntegrationLabels {
+    pub integration: String,
+    pub outcome: String,
+}
+
 /// INT: floating-point gauge (seconds).
 pub type F64Gauge = Gauge<f64, std::sync::atomic::AtomicU64>;
 
@@ -134,6 +151,9 @@ pub struct Metrics {
     /// INT: 9C families recorded through the `metrics` facade bridge.
     pub workflow_calls: Family<WorkflowLabels, Counter>,
     pub search_lag: Family<ProjectionLabels, F64Gauge>,
+    /// Part 2 S5-monitor: security events and external-call outcomes (`sutra_kernel::signal`).
+    pub security_events: Family<SecurityLabels, Counter>,
+    pub integration_calls: Family<IntegrationLabels, Counter>,
 }
 
 impl Metrics {
@@ -242,6 +262,37 @@ impl Metrics {
                 })
                 .set(0.0);
         }
+        // Part 2 S5-monitor: every label value primed at zero (bounded, known in advance).
+        let security_events = Family::<SecurityLabels, Counter>::default();
+        registry.register(
+            "sutra_security_events",
+            "Security events (failed / throttled sign-ins, MFA failures, privilege changes, \
+             cross-tenant denials, bad webhook signatures) by event",
+            security_events.clone(),
+        );
+        for e in SecurityEvent::ALL {
+            security_events
+                .get_or_create(&SecurityLabels {
+                    event: e.as_str().to_owned(),
+                })
+                .inc_by(0);
+        }
+        let integration_calls = Family::<IntegrationLabels, Counter>::default();
+        registry.register(
+            "sutra_integration_calls",
+            "Calls to external systems (Razorpay, S3, Keycloak admin, SMTP) by outcome",
+            integration_calls.clone(),
+        );
+        for i in Integration::ALL {
+            for o in CallOutcome::ALL {
+                integration_calls
+                    .get_or_create(&IntegrationLabels {
+                        integration: i.as_str().to_owned(),
+                        outcome: o.as_str().to_owned(),
+                    })
+                    .inc_by(0);
+            }
+        }
         let started = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| i64::try_from(d.as_secs()).unwrap_or(0))
@@ -271,6 +322,8 @@ impl Metrics {
             process_start,
             workflow_calls,
             search_lag,
+            security_events,
+            integration_calls,
         }
     }
 
@@ -416,6 +469,9 @@ struct EventFields {
     relay_retried: u64,
     relay_dead_lettered: u64,
     audit_chain_verify_failed: bool,
+    security_event: Option<String>,
+    integration: Option<String>,
+    integration_outcome: Option<String>,
 }
 
 impl Visit for EventFields {
@@ -423,6 +479,9 @@ impl Visit for EventFields {
         match field.name() {
             "message" => self.message = value.to_owned(),
             "job" => self.job = Some(value.to_owned()),
+            "security_event" => self.security_event = Some(value.to_owned()),
+            "integration" => self.integration = Some(value.to_owned()),
+            "integration_outcome" => self.integration_outcome = Some(value.to_owned()),
             _ => {}
         }
     }
@@ -485,6 +544,28 @@ fn apply(target: &str, f: &EventFields) {
     }
     if target == "sutra::metrics" && f.audit_chain_verify_failed {
         m.audit_verify_failures.inc();
+    }
+    if target != "sutra::metrics" {
+        return;
+    }
+    // Part 2 S5-monitor: only known label values are counted (bounded cardinality).
+    if let Some(e) = f.security_event.as_deref().and_then(SecurityEvent::parse) {
+        m.security_events
+            .get_or_create(&SecurityLabels {
+                event: e.as_str().to_owned(),
+            })
+            .inc();
+    }
+    if let (Some(i), Some(o)) = (
+        f.integration.as_deref().and_then(Integration::parse),
+        f.integration_outcome.as_deref().and_then(CallOutcome::parse),
+    ) {
+        m.integration_calls
+            .get_or_create(&IntegrationLabels {
+                integration: i.as_str().to_owned(),
+                outcome: o.as_str().to_owned(),
+            })
+            .inc();
     }
 }
 
@@ -691,6 +772,58 @@ mod tests {
             },
         );
         assert!(global().audit_verify_failures.get() > broken);
+    }
+
+    /// Part 2 S5-monitor: `sutra_kernel::signal` events become bounded counters through the
+    /// real tracing layer; unknown label values are dropped.
+    #[test]
+    fn kernel_signals_feed_security_and_integration_counters() {
+        use tracing_subscriber::layer::SubscriberExt;
+        let sec = |e: SecurityEvent| {
+            global()
+                .security_events
+                .get_or_create(&SecurityLabels {
+                    event: e.as_str().to_owned(),
+                })
+                .get()
+        };
+        let call = |i: Integration, o: CallOutcome| {
+            global()
+                .integration_calls
+                .get_or_create(&IntegrationLabels {
+                    integration: i.as_str().to_owned(),
+                    outcome: o.as_str().to_owned(),
+                })
+                .get()
+        };
+        let (login0, hook0) = (
+            sec(SecurityEvent::LoginFailed),
+            sec(SecurityEvent::WebhookSignatureFailed),
+        );
+        let (s3_0, rz0) = (
+            call(Integration::S3, CallOutcome::Error),
+            call(Integration::Razorpay, CallOutcome::Timeout),
+        );
+        let subscriber = tracing_subscriber::registry().with(EventMetricsLayer);
+        tracing::subscriber::with_default(subscriber, || {
+            sutra_kernel::signal::security(SecurityEvent::LoginFailed);
+            sutra_kernel::signal::security(SecurityEvent::LoginFailed);
+            sutra_kernel::signal::security(SecurityEvent::WebhookSignatureFailed);
+            sutra_kernel::signal::integration(Integration::S3, CallOutcome::Error);
+            sutra_kernel::signal::integration(Integration::Razorpay, CallOutcome::Timeout);
+            // A hand-written event with an unknown value is ignored.
+            tracing::info!(target: "sutra::metrics", security_event = "tenant-42", "x");
+        });
+        assert!(sec(SecurityEvent::LoginFailed) >= login0 + 2);
+        assert!(sec(SecurityEvent::WebhookSignatureFailed) > hook0);
+        assert!(call(Integration::S3, CallOutcome::Error) > s3_0);
+        assert!(call(Integration::Razorpay, CallOutcome::Timeout) > rz0);
+        let text = global().render();
+        assert!(!text.contains("tenant-42"), "{text}");
+        assert!(text.contains("sutra_security_events_total{event=\"cross_tenant_denied\"}"));
+        assert!(text.contains(
+            "sutra_integration_calls_total{integration=\"keycloak_admin\",outcome=\"timeout\"}"
+        ));
     }
 
     #[tokio::test]

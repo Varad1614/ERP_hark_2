@@ -42,6 +42,7 @@ pub mod module;
 pub mod money;
 pub mod scope;
 pub mod secret;
+pub mod signal; // Part 2 S5-monitor: security / integration signals → Prometheus
 pub mod weblink;
 
 pub use error::{KernelError, KernelResult};
