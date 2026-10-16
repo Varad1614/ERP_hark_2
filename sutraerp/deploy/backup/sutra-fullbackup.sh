@@ -69,7 +69,10 @@ nightly)
   mkdir -p "$set_dir"
 
   step "database (sutra-backup.sh: pg_dump -Fc in one exported snapshot + manifest)"
-  db_tar=$(bash "$here/sutra-backup.sh" --out-dir "$work/db" --tar | tail -1)
+  # the set encrypts every artefact itself: no second age layer inside (SUTRA_BACKUP_AGE_RECIPIENT
+  # would make sutra-backup.sh emit .tar.age)
+  db_tar=$(SUTRA_BACKUP_AGE_RECIPIENT='' bash "$here/sutra-backup.sh" --out-dir "$work/db" --tar | tail -1)
+  [[ "$db_tar" == *.tar && -f "$db_tar" ]] || die "sutra-backup.sh did not produce a .tar ($db_tar)"
   mv "$db_tar" "$work/database.tar"
   step_done "database dump ($(file_bytes "$work/database.tar") bytes)" "database dump"
 

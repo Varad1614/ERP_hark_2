@@ -212,7 +212,7 @@ restore)
     docker compose create postgres >/dev/null 2>&1 && bash '$B/sutra-fullrestore.sh' pgdata sutraerp_pgdata '$R/base' '$R/wal'"
   # 4. start postgres → WAL replay to the end of the archive → promote
   timed restore "4 postgres up + WAL replay (archive recovery) + promote" bash -c "
-    docker compose up -d --no-deps postgres >/dev/null && bash '$B/sutra-fullrestore.sh' wait-recovery \"\$(docker compose ps -q postgres)\" 1800 | tee '$EV/recovered-to.txt'"
+    set -o pipefail; docker compose up -d --no-deps postgres >/dev/null && bash '$B/sutra-fullrestore.sh' wait-recovery \"\$(docker compose ps -q postgres)\" 1800 | tee '$EV/recovered-to.txt'"
   # 5. consistency of the database BEFORE any application writes
   bash "$here/drill.sh" fingerprint after-restore
   timed verify "fingerprint compare (before disaster vs restored)" bash "$B/fingerprint.sh" --compare "$EV/fp-before.txt" "$EV/fp-after-restore.txt"
@@ -278,7 +278,7 @@ PY
   docker volume rm sutra-pitr-data >/dev/null 2>&1 || true
   timed pitr "prepare PGDATA with recovery_target_time" bash "$B/sutra-fullrestore.sh" pgdata sutra-pitr-data "$R/base" "$R/wal" --target-time "$target"
   timed pitr "postgres up + replay to the target + promote" bash -c "
-    docker run -d --name sutra-pitr -p 5433:5432 -v sutra-pitr-data:/var/lib/postgresql postgres:18 >/dev/null && bash '$B/sutra-fullrestore.sh' wait-recovery sutra-pitr 900 | tee '$EV/pitr-recovered-to.txt'"
+    set -o pipefail; docker run -d --name sutra-pitr -p 5433:5432 -v sutra-pitr-data:/var/lib/postgresql postgres:18 >/dev/null && bash '$B/sutra-fullrestore.sh' wait-recovery sutra-pitr 900 | tee '$EV/pitr-recovered-to.txt'"
   P=postgres://sutra:sutra@localhost:5433/sutra
   got=$(psql "$P" -qAtX -c "SELECT max(id) FROM drill.heartbeat")
   after=$(psql "$P" -qAtX -c "SELECT count(*) FROM drill.heartbeat WHERE at > '$target'")
@@ -303,7 +303,7 @@ logical)
     SUTRA_BACKUP_DATABASE_URL=$L SUTRA_BACKUP_KEYCLOAK_DATABASE_URL=postgres://sutra:sutra@localhost:5434/keycloak \
     SUTRA_API_BIN="${SUTRA_API_BIN:-$root/target/debug/sutra-api}" SUTRA_ENV=development \
     SUTRA_DB_RUNTIME_USER=sutra_api SUTRA_DB_RUNTIME_PASSWORD=sutra-api-dev-only \
-    bash -c "bash '$B/sutra-fullrestore.sh' logical '$R/nightly' | tee '$EV/logical-restore.log'"
+    bash -c "set -o pipefail; bash '$B/sutra-fullrestore.sh' logical '$R/nightly' | tee '$EV/logical-restore.log'"
   bash "$here/drill.sh" fingerprint logical "$L" "postgres://sutra:sutra@localhost:5434/keycloak"
   timed verify "fingerprint compare (before disaster vs logical restore)" bash "$B/fingerprint.sh" --compare "$EV/fp-before.txt" "$EV/fp-logical.txt"
   ;;
