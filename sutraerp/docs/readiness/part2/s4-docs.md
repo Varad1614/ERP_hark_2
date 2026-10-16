@@ -48,7 +48,7 @@ All on code commit `837db1c3` (later commits on the branch are documentation onl
 | SutraERP CI (workflow_dispatch) | [38885937911](https://github.com/Varad1614/ERP_hark_2/actions/runs/38885937911) | fmt · clippy · test (incl. S3 SigV4 vectors, retry regression tests, config gate), Rust integration: full DB suite + MinIO built from source → `live_s3` 3/3, `db_p2_docs` 7/7; OpenAPI drift; Web — green (Container images: see report) |
 | SutraERP Part 1 demo (full stack, keycloak) | [38886172253](https://github.com/Varad1614/ERP_hark_2/actions/runs/38886172253) | compose with MinIO (built from source, random root credentials), `check-config` → `documents=S3`; journey 30/30 incl. upload 184 B + 1 573 054 B (no Idempotency-Key) → download byte-identical → student retrieval; persistence 6/6; DB integrity 0 violations — green |
 | SutraERP Part 1 demo (previous head 4b02508f) | [38884030283](https://github.com/Varad1614/ERP_hark_2/actions/runs/38884030283) | green (same journey) |
-| SutraERP quality gates | [38885968170](https://github.com/Varad1614/ERP_hark_2/actions/runs/38885968170) | QUALITY_RESULT |
+| SutraERP quality gates | [38885968170](https://github.com/Varad1614/ERP_hark_2/actions/runs/38885968170) | quality gates 38885968170 green (all jobs incl. Capacity k6); CI 38885937911 green incl. container images |
 
 Defects found by the first real runs and fixed at the root:
 
