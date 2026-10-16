@@ -17,16 +17,19 @@
 
 ## Verdict
 
-**Not passed on the runner.** The final measured runs show:
+**Not passed on the runner.** The final measured runs (5, 6 and 7) show:
 
-- **Steady college day and results-day spike: within every threshold in run 6** (0.00 % errors,
-  read p95 13 ms / 277 ms, sign-in p95 102 ms / 4.3 s). Run 5 had the same picture apart from
-  load-harness collisions that were fixed (see Breaches).
-- **Fee-deadline spike: failed in run 6** because the API's database pool stalled twice
-  (≈ 15 s and ≈ 25 s with no request completing). This is **DEF-P2-CAP-007, open**: a product
-  defect, not a hardware limit. CPU, RAM and PostgreSQL all had spare capacity during the stalls.
+- **Steady college day: within every threshold** apart from harness 412s on one marks endpoint
+  (run 7: 0.01 % errors, read p95 13 ms, sign-in p95 115 ms).
+- **Results-day spike: API fine, sign-in marginal.** Read/write p95 stay under 300 ms in every
+  run, but the sign-in flow p95 was 3.3 s (run 5), 4.3 s (run 6) and **6.2 s (run 7, over the 5 s
+  limit)**. Keycloak is the CPU bottleneck (up to 247 % of a 4-vCPU host).
+- **Fee-deadline spike: failed in runs 6 and 7** because the API's database pool stalls
+  (5–25 s with no request completing, then a burst of 503 "database unavailable"). This is
+  **DEF-P2-CAP-007, open and reproduced in run 7**: a product defect, not a hardware limit.
+  CPU, RAM and PostgreSQL all had spare capacity during the stalls.
 - Six defects found by this test (DEF-P2-CAP-001…006) are fixed, each with a regression test,
-  and are green in SutraERP CI.
+  and are green in SutraERP CI. Run 7 is the first run whose seed completed every phase.
 
 Do not take the college to production on the strength of this report. Two things must happen
 first: fix DEF-P2-CAP-007 and get a clean run of this procedure on the college's own server.
@@ -67,12 +70,13 @@ reports.
 | 4 | 38927272309 | `4a218d3a` | — | seed: 1,948 failed (flood guard keyed by the proxy) → **DEF-P2-CAP-003** |
 | 5 | 38930815741 | `162eeec6` | Intel Xeon Platinum 8370C @ 2.80 GHz, 4 vCPU, 15.6 GiB | full load ran; 4 breaches (harness collisions + Keycloak lockouts); seed found **DEF-P2-CAP-004/005/006** |
 | 6 | 38939308465 | `07f9b6a7` | AMD EPYC 7763, 4 vCPU, 15.6 GiB | full seed apart from 2 seed-script bugs; steady + results clean; fees: **DEF-P2-CAP-007** |
-| 7 | 38947132469 | `2ab16e69` | (see Run 7) | in progress when this report was written |
+| 7 | 38947132469 | `2ab16e69` | Intel Xeon Platinum 8370C @ 2.80 GHz, 4 vCPU, 15.6 GiB | **full seed, every phase**; steady clean; results sign-in p95 6.2 s (Keycloak CPU); fees: **DEF-P2-CAP-007 reproduced** (61 breaches) |
 
-Runs 1–4 never reached the load phase, so they produced no capacity numbers. Runs 5 and 6 ran
+Runs 1–4 never reached the load phase, so they produced no capacity numbers. Runs 5/7 and 6 ran
 on **different CPU models**: GitHub assigns the runner, and the AMD runner in run 6 was
 noticeably slower under the sign-in spike (results sign-in p95 4.3 s against 3.3 s). Compare the
-runs with that in mind.
+runs with that in mind. Run 7 was on the same Intel model as run 5 and still reached 6.2 s, so
+the results-spike sign-in time is Keycloak-bound and varies run to run on a shared VM.
 
 ## Run 5 — key numbers (GitHub-hosted runner, Intel Xeon Platinum 8370C, 4 vCPU, 15.6 GiB — NOT college hardware)
 
@@ -120,12 +124,34 @@ API defects. The script read `id` from the result-batch *compute summary* and fr
 document-upload *AttachedFile* response. The API had in fact computed 2,000 term results and
 stored 2,000 documents (final counts). Fixed in `2ab16e69` (`seed.mjs`).
 
-## Generated tables (runs 5 and 6)
+## Run 7 — key numbers (GitHub-hosted runner, Intel Xeon Platinum 8370C, 4 vCPU, 15.6 GiB — NOT college hardware)
+
+Final run, commit `2ab16e69`, run 38947132469. **The seed completed every phase** (2,000 students
+and identities, 6,000 seats, 72,000 attendance records, 2,300 charges, 1,600 payments, 2,000 term
+results, 2,000 documents), so this is the first run with the full data set and the full load.
+
+| | steady | results spike | fee spike |
+|---|---|---|---|
+| Throughput | 146 req/s | 309 req/s | 206 req/s |
+| Errors | 0.01 % | 0.01 % | **1.50 %** |
+| Read p95 / p99 | 13 / 61 ms | 45 / 145 ms | 112 ms / **8.8 s** |
+| Write p95 / p99 | 28 / 72 ms | 58 / 170 ms | 160 ms / **9.2 s** |
+| Sign-in flow p95 | 115 ms | **6.2 s** | 2.5 s |
+| Sign-ins | 4,985 | 7,342 | 6,115 |
+
+Verdict **FAILED, 61 breaches**: 58 in the fee spike (DEF-P2-CAP-007 again), the results-spike
+sign-in p95 of 6.2 s (limit 5 s; Keycloak at 236 % CPU, see Production risks), and
+`exams.paper.marks.put` 412s in steady/results (harness, as in run 6). Keycloak peaked at 236 %
+CPU, PostgreSQL at 131 %, the API at 58 %; RAM about 3.4 GiB across containers (sum of per-container peaks). PostgreSQL: at
+most 39 connections, 4 active, 0 lock waiters, 0 deadlocks; pgdata 153 → 1,094 → 1,270 MiB.
+
+## Generated tables (runs 5, 6 and 7)
 
 | Run | GitHub run id | Commit | Runner — NOT college hardware | Verdict |
 |---|---|---|---|---|
 | run 5 | 38930815741 | `162eeec6` | GitHub-hosted runner (Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz, 4 vCPU, 15.6 GiB RAM) | FAILED (4 breach(es)) |
 | run 6 | 38939308465 | `07f9b6a7` | GitHub-hosted runner (AMD EPYC 7763 64-Core Processor, 4 vCPU, 15.6 GiB RAM) | FAILED (56 breach(es)) |
+| run 7 | 38947132469 | `2ab16e69` | GitHub-hosted runner (Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz, 4 vCPU, 15.6 GiB RAM) | FAILED (61 breach(es)) |
 
 | Run | Phase | Requests | req/s | Errors | Sign-in p50 / p95 | Read p50 / p95 / p99 | Write p50 / p95 / p99 | File p95 |
 |---|---|---|---|---|---|---|---|---|
@@ -135,6 +161,9 @@ stored 2,000 documents (final counts). Fixed in `2ab16e69` (`seed.mjs`).
 | run 6 | steady | 87159 | 145.3 | 0.00 % | 53 / 102 | 4 / 13 / 41 | 7 / 31 / 71 | 14 |
 | run 6 | results | 99676 | 332.3 | 0.00 % | 2.8 s / 4.3 s | 10 / 277 / 502 | 13 / 288 / 530 | 11 |
 | run 6 | fees | 82738 | 212.1 | 1.38 % | 227 / 1.9 s | 7 / 225 / 8.7 s | 11 / 352 / 9.2 s | 0 |
+| run 7 | steady | 87336 | 145.6 | 0.01 % | 60 / 115 | 4 / 13 / 61 | 7 / 28 / 72 | 13 |
+| run 7 | results | 92602 | 308.7 | 0.01 % | 4.4 s / 6.2 s | 8 / 45 / 145 | 9 / 58 / 170 | 11 |
+| run 7 | fees | 80428 | 206.2 | 1.50 % | 375 / 2.5 s | 6 / 112 / 8.8 s | 9 / 160 / 9.2 s | 0 |
 
 | Run | Container | Peak CPU % (one core = 100) | Peak RAM MiB |
 |---|---|---|---|
@@ -156,11 +185,21 @@ stored 2,000 documents (final counts). Fixed in `2ab16e69` (`seed.mjs`).
 | run 6 | postgres | 145.8 | 1037 |
 | run 6 | valkey | 4.1 | 16 |
 | run 6 | web | 100.7 | 21 |
+| run 7 | api | 57.9 | 137 |
+| run 7 | edge | 11.6 | 58 |
+| run 7 | flowable | 16.5 | 425 |
+| run 7 | keycloak | 235.8 | 1396 |
+| run 7 | minio | 8.2 | 300 |
+| run 7 | nats | 3.1 | 24 |
+| run 7 | postgres | 131.1 | 1080 |
+| run 7 | valkey | 3.4 | 15 |
+| run 7 | web | 77.6 | 20 |
 
 | Run | PG connections max | Active max | Lock waiters max | pgdata before seed → after seed → after load (MiB) |
 |---|---|---|---|---|
 | run 5 | 34 | 4 | 0 | 153 → 774 → 1,013 |
 | run 6 | 36 | 5 | 0 | 153 → 1,063 → 1,247 |
+| run 7 | 39 | 4 | 0 | 153 → 1,094 → 1,270 |
 
 **Threshold breaches — run 5: 4**
 
@@ -228,6 +267,69 @@ stored 2,000 documents (final counts). Fixed in `2ab16e69` (`seed.mjs`).
 - fees finance.payment.counter: p99 8730 ms >= 2000 ms (376 requests)
 - fees finance.payment.counter: errors 2.66 % >= 0.50 % (376 requests)
 
+**Threshold breaches — run 7: 61**
+
+- phase results: sign-in flow p95 6241 ms >= 5000 ms
+- phase fees: read p99 8767 ms >= 1500 ms
+- phase fees: write p99 9164 ms >= 2000 ms
+- phase fees: error rate 1.50 % >= 0.50 %
+- checks 99.34 % <= 99.50 %
+- fees auth.logout: p99 9289 ms >= 2000 ms (6115 requests)
+- fees auth.logout: errors 2.89 % >= 0.50 % (6115 requests)
+- fees academic.my.timetable: p95 5612 ms >= 500 ms (445 requests)
+- fees academic.my.timetable: p99 10553 ms >= 1500 ms (445 requests)
+- fees academic.my.timetable: errors 6.07 % >= 0.50 % (445 requests)
+- fees finance.me.charges: p99 9157 ms >= 1500 ms (6115 requests)
+- fees finance.me.charges: errors 2.06 % >= 0.50 % (6115 requests)
+- fees academic.session.finalise: p99 5528 ms >= 2000 ms (391 requests)
+- fees academic.session.finalise: errors 2.81 % >= 0.50 % (391 requests)
+- fees finance.payments.list: p95 5003 ms >= 500 ms (297 requests)
+- fees finance.payments.list: p99 9060 ms >= 1500 ms (297 requests)
+- fees finance.payments.list: errors 5.05 % >= 0.50 % (297 requests)
+- fees finance.accounts.with-dues: p95 8025 ms >= 500 ms (292 requests)
+- fees finance.accounts.with-dues: p99 20732 ms >= 1500 ms (292 requests)
+- fees finance.accounts.with-dues: errors 7.53 % >= 0.50 % (292 requests)
+- fees services.reports.library: p99 5928 ms >= 1500 ms (146 requests)
+- fees services.reports.library: errors 2.74 % >= 0.50 % (146 requests)
+- fees auth.session: errors 3.50 % >= 0.50 % (6337 requests)
+- fees academic.session.create: p95 6771 ms >= 800 ms (408 requests)
+- fees academic.session.create: p99 11954 ms >= 2000 ms (408 requests)
+- fees academic.session.create: errors 8.58 % >= 0.50 % (408 requests)
+- fees finance.payment.counter: p95 5002 ms >= 800 ms (316 requests)
+- fees finance.payment.counter: p99 9075 ms >= 2000 ms (316 requests)
+- fees finance.payment.counter: errors 5.06 % >= 0.50 % (316 requests)
+- fees academic.session.complete: p99 5400 ms >= 2000 ms (391 requests)
+- fees academic.session.complete: errors 2.81 % >= 0.50 % (391 requests)
+- fees finance.me.payment-gateway: p99 3956 ms >= 1500 ms (6115 requests)
+- fees academic.section.enrolments: p95 2685 ms >= 500 ms (448 requests)
+- fees academic.section.enrolments: p99 8169 ms >= 1500 ms (448 requests)
+- fees academic.section.enrolments: errors 4.69 % >= 0.50 % (448 requests)
+- fees student.me: p99 8662 ms >= 1500 ms (6115 requests)
+- fees student.me: errors 2.21 % >= 0.50 % (6115 requests)
+- fees exams.paper.marks: p95 5498 ms >= 500 ms (82 requests)
+- fees exams.paper.marks: p99 8586 ms >= 1500 ms (82 requests)
+- fees exams.paper.marks: errors 6.10 % >= 0.50 % (82 requests)
+- fees exams.paper.marks.put: p99 7350 ms >= 2000 ms (68 requests)
+- fees exams.paper.marks.put: errors 16.18 % >= 0.50 % (68 requests)
+- fees academic.session.submit: p99 5273 ms >= 2000 ms (391 requests)
+- fees academic.session.submit: errors 2.81 % >= 0.50 % (391 requests)
+- fees finance.me.accounts: p99 10987 ms >= 1500 ms (6115 requests)
+- fees finance.me.accounts: errors 1.93 % >= 0.50 % (6115 requests)
+- fees finance.student-account: p95 1970 ms >= 500 ms (316 requests)
+- fees finance.student-account: p99 9585 ms >= 1500 ms (316 requests)
+- fees finance.student-account: errors 5.06 % >= 0.50 % (316 requests)
+- fees academic.session.attendance: p99 7837 ms >= 2000 ms (391 requests)
+- fees academic.session.attendance: errors 2.56 % >= 0.50 % (391 requests)
+- fees academic.section.attendance-summary: p95 6549 ms >= 500 ms (671 requests)
+- fees academic.section.attendance-summary: p99 20042 ms >= 1500 ms (671 requests)
+- fees academic.section.attendance-summary: errors 7.60 % >= 0.50 % (671 requests)
+- steady exams.paper.marks.put: errors 12.05 % >= 0.50 % (83 requests)
+- fees finance.me.receipts: p99 9243 ms >= 1500 ms (6115 requests)
+- fees finance.me.receipts: errors 2.31 % >= 0.50 % (6115 requests)
+- results exams.paper.marks.put: errors 11.11 % >= 0.50 % (63 requests)
+- fees exams.session.results: p95 5262 ms >= 500 ms (284 requests)
+- fees exams.session.results: p99 8936 ms >= 1500 ms (284 requests)
+- fees exams.session.results: errors 5.99 % >= 0.50 % (284 requests)
 
 ## Thresholds (`deploy/capacity/thresholds.json`, unchanged since before run 1)
 
@@ -251,6 +353,9 @@ A breach fails the workflow.
 | 5 | results `auth.session` errors 1.76 % | Keycloak brute-force guard: concurrent sign-ins of the same account from two VUs → `user_temporarily_disabled` | harness exposed a **production risk** | VUs own disjoint accounts (`22727f11`); risk recorded below |
 | 6 | **fees phase** (50 endpoint + 3 phase breaches): read p99 8.7 s, write p99 9.2 s, errors 1.38 %, checks 99.40 % | **DEF-P2-CAP-007**: API connection-pool starvation; see below | **product defect (open)** | not fixed in this stage |
 | 6 | steady `exams.paper.marks.put` errors 2.56 % (78 requests) | 412 Precondition Failed: aliased VUs wrote the same internal-assessment sheet with a stale `If-Match`. Optimistic concurrency worked as designed. | harness | the k6 faculty flow should re-read and retry on 412 (not done; recorded) |
+| 7 | **fees phase** (58 breaches): read p99 8.8 s, write p99 9.2 s, errors 1.50 %, checks 99.34 % | **DEF-P2-CAP-007** reproduced (same signature, see below) | **product defect (open)** | not fixed in this stage |
+| 7 | results sign-in flow p95 6.2 s ≥ 5 s | Keycloak CPU saturation (236 %) under 500 concurrent OIDC sign-ins, k6 on the same host | capacity / **production risk** | dedicated Keycloak cores, second node for results day (Production risks 2); re-measure on college hardware |
+| 7 | steady / results `exams.paper.marks.put` errors 12 % / 11 % (83 / 63 requests) | 412 stale `If-Match`, same harness cause as run 6 | harness | as above |
 | 6 | results `exams.paper.marks` (GET) p95 648 ms (61 requests) | reads a whole 2,000-candidate marks sheet during the sign-in spike on the slower AMD runner | marginal, product | watch on college hardware; paginate the sheet if it repeats |
 
 ### DEF-P2-CAP-007 — API database pool stalls under the fee-deadline spike (OPEN)
@@ -268,6 +373,14 @@ A breach fails the workflow.
   **idle**, not active and not waiting on a lock, with 0 lock waiters.
 - So all 10 pooled connections were checked out by API tasks that were not using them. The
   database was not busy, no lock was held, and CPU and RAM were free.
+
+**Run 7 (38947132469, same signature on the Intel runner):** 226 "database unavailable" errors
+in the API log (178 of them `session creation failed` and the rest `sign-in hook failed (profile
+refresh)` on `GET /api/v1/auth/oidc/callback`), 4 "pool timed out" and 2,478 slow-acquire
+warnings. Throughout the fees phase PostgreSQL showed at most 3 active connections, 0 waiting and
+0 lock waiters, with the API's 10 connections open but idle. The **OIDC callback** (profile
+refresh hook + session creation) is therefore the first path to instrument: it is where the
+failures land, though that alone does not prove it holds the extra connection.
 
 **Root cause (established up to the mechanism; the code path is not yet identified):** this is the
 same class as DEF-P2-CAP-002 and -006. A request path holds one pooled connection while it waits
