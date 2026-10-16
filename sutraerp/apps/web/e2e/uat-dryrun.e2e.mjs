@@ -279,6 +279,13 @@ let exitCode = 0;
 try {
   log(`synthetic dry run (not UAT) · auth ${AUTH} · ${BASE} · state ${STATE}`);
   need(ids.id, "journey institution");
+  if (AUTH === "oidc") {
+    // The journey's persistence phase signed the same users in moments ago and Keycloak refuses a
+    // TOTP code twice: start in a fresh 30 s window (lib/auth.mjs then never reuses a window).
+    const wait = 30000 - (Date.now() % 30000) + 500;
+    log(`waiting ${wait} ms for a fresh TOTP window`);
+    await new Promise((r) => setTimeout(r, wait));
+  }
   const admin = await login("administrator");
   const financeApprover = await login("finance_approver");
   const examController = await login("exam_controller");
