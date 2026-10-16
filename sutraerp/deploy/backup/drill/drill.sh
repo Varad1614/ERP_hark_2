@@ -329,7 +329,8 @@ corrupt)
     bash "$B/sutra-restore.sh" "$C/database-bad.tar" --skip-migrate
   # one damaged document object in the mirror: detected, named
   mkdir -p "$C/obj" && tar -C "$C/obj" -xf "$R/nightly/objects.tar"
-  victim=$(find "$C/obj/objects" -type f | LC_ALL=C sort | sed -n 7p)
+  victim="$C/obj/objects/$(awk -F'\t' '$5 == "live"' "$C/obj/documents.tsv" | sed -n 7p | cut -f1)"
+  [[ -f "$victim" ]] || die "no document object to damage"
   flip_byte "$victim" 300
   expect_fail "document-object-sha256" "SHA256 MISMATCH .*${victim##*/}" bash "$B/sutra-objects.sh" verify "$C/obj" "$C/obj/documents.tsv"
   # one damaged WAL segment offsite
