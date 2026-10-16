@@ -249,7 +249,8 @@ pub fn parse_money(text: &str) -> i64 {
 
 static D_NUMERIC: LazyLock<Regex> =
     LazyLock::new(|| re(r"^([0-9]{1,2})[/.\-]([0-9]{1,2})[/.\-]([0-9]{2,4})"));
-static D_YMD: LazyLock<Regex> = LazyLock::new(|| re(r"^([0-9]{4})[/.]([0-9]{1,2})[/.]([0-9]{1,2})"));
+static D_YMD: LazyLock<Regex> =
+    LazyLock::new(|| re(r"^([0-9]{4})[/.]([0-9]{1,2})[/.]([0-9]{1,2})"));
 static D_MON_FIRST: LazyLock<Regex> =
     LazyLock::new(|| re(r"^([A-Za-z]{3})[a-z]*\.?\s+([0-9]{1,2}),?\s+([0-9]{4})"));
 static D_DAY_FIRST: LazyLock<Regex> =
@@ -423,7 +424,14 @@ pub fn guess_mapping(headers: &[String]) -> Mapping {
     Mapping::single(date, desc, amount)
 }
 
-const IN_DATE: &[&str] = &["txn date", "tran date", "transaction date", "date", "value dt", "value date"];
+const IN_DATE: &[&str] = &[
+    "txn date",
+    "tran date",
+    "transaction date",
+    "date",
+    "value dt",
+    "value date",
+];
 const IN_DESC: &[&str] = &[
     "narration",
     "particulars",
@@ -525,7 +533,11 @@ pub fn guess_mapping_in(headers: &[String]) -> Mapping {
         }
         if !m.split {
             if m.amount < 0 || m.amount == indicator {
-                m.amount = find_exact_or_contains(headers, &["amount", "transaction amount"], &[indicator]);
+                m.amount = find_exact_or_contains(
+                    headers,
+                    &["amount", "transaction amount"],
+                    &[indicator],
+                );
             }
             m.indicator = indicator;
         }
@@ -635,7 +647,8 @@ pub struct CsvStatement {
 }
 
 fn looks_like_header(row: &[String]) -> bool {
-    row.iter().any(|h| h.chars().any(|c| c.is_ascii_alphabetic()))
+    row.iter()
+        .any(|h| h.chars().any(|c| c.is_ascii_alphabetic()))
         && parse_statement_date(row.first().map_or("", String::as_str), DateStyle::Mdy).is_none()
 }
 
@@ -843,14 +856,18 @@ pub struct Mt940 {
 
 /// `true` when the text looks like MT940.
 pub fn is_mt940(text: &str) -> bool {
-    text.contains(":20:") && text.contains(":61:") && (text.contains(":60F:") || text.contains(":60M:"))
+    text.contains(":20:")
+        && text.contains(":61:")
+        && (text.contains(":60F:") || text.contains(":60M:"))
 }
 
 static MT_TAG: LazyLock<Regex> = LazyLock::new(|| re(r"^:([0-9]{2}[A-Z]?):(.*)$"));
 static MT_BAL: LazyLock<Regex> =
     LazyLock::new(|| re(r"^([CD])([0-9]{6})([A-Z]{3})([0-9]+(?:,[0-9]{0,2})?)"));
 static MT_61: LazyLock<Regex> = LazyLock::new(|| {
-    re(r"^([0-9]{6})([0-9]{4})?(RC|RD|C|D)([A-Z])?([0-9]+,[0-9]{0,2})([A-Z][A-Z0-9]{3})([^/\n]*)(?://([^\n]*))?")
+    re(
+        r"^([0-9]{6})([0-9]{4})?(RC|RD|C|D)([A-Z])?([0-9]+,[0-9]{0,2})([A-Z][A-Z0-9]{3})([^/\n]*)(?://([^\n]*))?",
+    )
 });
 
 fn mt_amount(s: &str) -> Option<i64> {
@@ -978,7 +995,12 @@ pub fn line_identity(l: &Line) -> String {
     if !l.fitid.is_empty() {
         return format!("f:{}", l.fitid);
     }
-    format!("d:{}|{}|{}", l.date, l.amount, squash(&l.desc).to_lowercase())
+    format!(
+        "d:{}|{}|{}",
+        l.date,
+        l.amount,
+        squash(&l.desc).to_lowercase()
+    )
 }
 
 /// Drops lines already imported. Duplicates inside one file are kept, counted against the number
@@ -996,7 +1018,7 @@ pub fn dedupe(new_lines: &[Line], existing: &[Line]) -> Vec<bool> {
             .push(i);
     }
     let mut used: HashSet<usize> = HashSet::new();
-    let mut take = |map: &mut HashMap<String, Vec<usize>>, k: &str, used: &mut HashSet<usize>| {
+    let take = |map: &mut HashMap<String, Vec<usize>>, k: &str, used: &mut HashSet<usize>| {
         if let Some(list) = map.get_mut(k) {
             while let Some(i) = list.pop() {
                 if used.insert(i) {
@@ -1063,9 +1085,18 @@ mod tests {
 
     #[test]
     fn dates_default_to_day_first_in_india() {
-        assert_eq!(parse_statement_date("03/04/2026", DateStyle::Dmy), Some(d(2026, 4, 3)));
-        assert_eq!(parse_statement_date("03/04/2026", DateStyle::Mdy), Some(d(2026, 3, 4)));
-        assert_eq!(parse_statement_date("04-Mar-26", DateStyle::Dmy), Some(d(2026, 3, 4)));
+        assert_eq!(
+            parse_statement_date("03/04/2026", DateStyle::Dmy),
+            Some(d(2026, 4, 3))
+        );
+        assert_eq!(
+            parse_statement_date("03/04/2026", DateStyle::Mdy),
+            Some(d(2026, 3, 4))
+        );
+        assert_eq!(
+            parse_statement_date("04-Mar-26", DateStyle::Dmy),
+            Some(d(2026, 3, 4))
+        );
         assert_eq!(parse_statement_date("31/02/2026", DateStyle::Dmy), None);
     }
 
@@ -1134,6 +1165,9 @@ Date,Narration,Chq./Ref.No.,Value Dt,Withdrawal Amt.,Deposit Amt.,Closing Balanc
         let new = vec![l(100, "", "COFFEE"), l(100, "", "Tea"), l(100, "", "x")];
         // first: exact identity; second: loose CSV↔OFX match on F1; third: nothing left.
         assert_eq!(dedupe(&new, &existing), [true, true, false]);
-        assert_eq!(guess_mapping(&s(&["Date", "Debit/Credit", "Amount"])).debit, -1);
+        assert_eq!(
+            guess_mapping(&s(&["Date", "Debit/Credit", "Amount"])).debit,
+            -1
+        );
     }
 }

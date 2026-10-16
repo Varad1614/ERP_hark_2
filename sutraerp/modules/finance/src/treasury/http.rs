@@ -7,6 +7,7 @@
 //! Gateway captures are found in the journal itself (`payment` / `capture` entries with a
 //! gateway clearing debit), so treasury never reads or writes 5B's tables.
 
+use super::bankfile::{self, DateStyle, Format};
 use super::domain::{can_transition_account, match_score, parse_statement, StatementLine};
 use crate::ledger::accounts::insert_account;
 use crate::ledger::common::{
@@ -1375,6 +1376,10 @@ pub struct StatementView {
     #[schema(value_type = String)]
     pub total_debits: String,
     pub line_count: i32,
+    /// `jsonl`, `csv`, `ofx` or `mt940`.
+    pub source_format: String,
+    /// Lines of the file an earlier statement of this account already held (not imported again).
+    pub duplicate_lines: i32,
     pub status: BankStatementStatus,
     pub reconciled_at: Option<DateTime<Utc>>,
     pub lines: Vec<StatementLineView>,
@@ -1495,6 +1500,8 @@ async fn statement_view(
         total_credits: fmt(r.try_get("total_credits").map_err(map_db_error)?),
         total_debits: fmt(r.try_get("total_debits").map_err(map_db_error)?),
         line_count: r.try_get("line_count").map_err(map_db_error)?,
+        source_format: r.try_get("source_format").map_err(map_db_error)?,
+        duplicate_lines: r.try_get("duplicate_lines").map_err(map_db_error)?,
         status: BankStatementStatus::parse(&st)
             .ok_or_else(|| KernelError::internal_msg(format!("statement status `{st}`")))?,
         reconciled_at: r.try_get("reconciled_at").map_err(map_db_error)?,
@@ -1505,25 +1512,494 @@ async fn statement_view(
     })
 }
 
+/// CSV column positions (0-based). An omitted column is absent from the file.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnMapping {
+    pub date: Option<u32>,
+    pub description: Option<u32>,
+    /// One signed amount column (or unsigned, signed by `indicator`).
+    pub amount: Option<u32>,
+    /// Money out of the account (`Withdrawal Amt.`), used with `credit` instead of `amount`.
+    pub debit: Option<u32>,
+    /// Money into the account (`Deposit Amt.`).
+    pub credit: Option<u32>,
+    /// A `Dr` / `Cr` column that signs `amount`.
+    pub indicator: Option<u32>,
+    /// Cheque number, UTR or other reference.
+    pub reference: Option<u32>,
+}
+
+impl ColumnMapping {
+    fn from_file(m: &bankfile::Mapping) -> Self {
+        let col = |i: i32| u32::try_from(i).ok();
+        ColumnMapping {
+            date: col(m.date),
+            description: col(m.desc),
+            amount: if m.split { None } else { col(m.amount) },
+            debit: if m.split { col(m.debit) } else { None },
+            credit: if m.split { col(m.credit) } else { None },
+            indicator: col(m.indicator),
+            reference: col(m.reference),
+        }
+    }
+
+    fn to_file(&self) -> bankfile::Mapping {
+        let col = |i: Option<u32>| i.and_then(|v| i32::try_from(v).ok()).unwrap_or(-1);
+        let split = self.amount.is_none() && (self.debit.is_some() || self.credit.is_some());
+        bankfile::Mapping {
+            date: col(self.date),
+            desc: col(self.description),
+            amount: col(self.amount),
+            debit: col(self.debit),
+            credit: col(self.credit),
+            split,
+            indicator: col(self.indicator),
+            reference: col(self.reference),
+        }
+    }
+}
+
 /// A statement to import.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct StatementImport {
-    pub statement_ref: String,
-    pub period_from: NaiveDate,
-    pub period_to: NaiveDate,
+    /// Defaults to the file's own statement reference (MT940 `:20:`) or the period.
+    pub statement_ref: Option<String>,
+    /// Required for `jsonl`; for bank files it defaults to the first and last line dates, and
+    /// when given every line must fall inside it.
+    pub period_from: Option<NaiveDate>,
+    pub period_to: Option<NaiveDate>,
     #[schema(value_type = Option<String>, example = "0.00")]
     pub opening_balance: Option<String>,
     #[schema(value_type = Option<String>, example = "99000.00")]
     pub closing_balance: Option<String>,
-    /// JSON lines, one object per statement line:
-    /// `{"valueDate":"2026-07-03","direction":"credit","amount":"99000.00","reference":"UTR123","description":"…"}`.
+    /// The statement: JSON lines (`format` `jsonl`, one object per line:
+    /// `{"valueDate":"2026-07-03","direction":"credit","amount":"99000.00","reference":"UTR123","description":"…"}`),
+    /// or the bank's CSV, OFX/QFX or MT940 file as text.
     pub content: String,
+    /// `jsonl` (default), `csv`, `ofx`, `mt940`, or `auto` to detect it from the content.
+    pub format: Option<String>,
+    /// `dmy` (default, as Indian banks write dates) or `mdy`, for numeric CSV dates like 03/04/2026.
+    pub date_style: Option<String>,
+    /// Flip every sign (card statements that show charges as positive numbers).
+    pub invert: Option<bool>,
+    /// CSV columns; guessed from the header row when omitted.
+    pub mapping: Option<ColumnMapping>,
 }
 
-/// Imports a bank statement from JSON lines (`treasury.manage`, `Idempotency-Key`; L3-F-058).
-/// The same content or statement reference is never imported twice; when both balances are
-/// given they must agree with the lines.
+/// A bank file to read without importing it.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StatementPreviewInput {
+    pub content: String,
+    /// `auto` (default), `csv`, `ofx`, `mt940` or `jsonl`.
+    pub format: Option<String>,
+    /// `dmy` (default) or `mdy`.
+    pub date_style: Option<String>,
+    pub invert: Option<bool>,
+    pub mapping: Option<ColumnMapping>,
+    pub period_from: Option<NaiveDate>,
+    pub period_to: Option<NaiveDate>,
+}
+
+/// One line of a previewed file.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StatementPreviewLine {
+    pub value_date: NaiveDate,
+    /// `credit` (into the account) or `debit` (out of it).
+    pub direction: String,
+    #[schema(value_type = String, example = "99000.00")]
+    pub amount: String,
+    pub reference: Option<String>,
+    pub description: Option<String>,
+    /// An earlier statement of this account already holds this line; import skips it.
+    pub duplicate: bool,
+}
+
+/// A row of the file that is not a transaction (a total, a blank, an unreadable date).
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StatementPreviewSkip {
+    /// 1-based row (CSV) or line (MT940) of the file.
+    pub row: i32,
+    pub reason: String,
+}
+
+/// What importing a file would do.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StatementPreview {
+    /// The format read (`csv`, `ofx`, `mt940`, `jsonl`).
+    pub format: String,
+    /// CSV header row (or `Column 1…` when the file has none).
+    pub headers: Vec<String>,
+    /// The CSV mapping used; send it back on import to keep it.
+    pub mapping: Option<ColumnMapping>,
+    pub statement_ref: Option<String>,
+    pub period_from: NaiveDate,
+    pub period_to: NaiveDate,
+    #[schema(value_type = Option<String>)]
+    pub opening_balance: Option<String>,
+    #[schema(value_type = Option<String>)]
+    pub closing_balance: Option<String>,
+    /// Totals of the lines that would be imported (duplicates excluded).
+    #[schema(value_type = String)]
+    pub total_credits: String,
+    #[schema(value_type = String)]
+    pub total_debits: String,
+    pub new_lines: i32,
+    pub duplicate_lines: i32,
+    pub lines: Vec<StatementPreviewLine>,
+    pub skipped: Vec<StatementPreviewSkip>,
+}
+
+/// A statement file read into lines.
+struct ParsedFile {
+    format: Format2,
+    headers: Vec<String>,
+    mapping: Option<ColumnMapping>,
+    lines: Vec<bankfile::Line>,
+    skipped: Vec<bankfile::Skipped>,
+    opening: Option<Decimal>,
+    closing: Option<Decimal>,
+    statement_ref: Option<String>,
+    period_from: NaiveDate,
+    period_to: NaiveDate,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Format2 {
+    Jsonl,
+    File(Format),
+}
+
+impl Format2 {
+    fn as_str(self) -> &'static str {
+        match self {
+            Format2::Jsonl => "jsonl",
+            Format2::File(Format::Csv) => "csv",
+            Format2::File(Format::Ofx) => "ofx",
+            Format2::File(Format::Mt940) => "mt940",
+        }
+    }
+}
+
+const MAX_FILE_LINES: usize = 5000;
+
+fn paise(p: i64) -> Decimal {
+    Decimal::new(p.abs(), 2)
+}
+
+fn to_paise(d: Decimal) -> i64 {
+    i64::try_from((d * Decimal::ONE_HUNDRED).trunc().mantissa()).unwrap_or(i64::MAX)
+}
+
+fn opt_text_owned(s: &str) -> Option<String> {
+    let s = s.trim();
+    (!s.is_empty()).then(|| s.chars().take(500).collect())
+}
+
+/// Reads a statement in any supported format (pure; `422` naming the field on bad input).
+#[allow(clippy::too_many_arguments)]
+fn parse_file(
+    content: &str,
+    format: Option<&str>,
+    default_format: &str,
+    date_style: Option<&str>,
+    invert: Option<bool>,
+    mapping: Option<&ColumnMapping>,
+    from: Option<NaiveDate>,
+    to: Option<NaiveDate>,
+) -> Result<ParsedFile, KernelError> {
+    let style = match date_style.unwrap_or("dmy") {
+        "dmy" => DateStyle::Dmy,
+        "mdy" => DateStyle::Mdy,
+        _ => return Err(invalid("dateStyle", "invalid", "must be dmy or mdy")),
+    };
+    let format = match format.unwrap_or(default_format) {
+        "jsonl" => Format2::Jsonl,
+        "csv" => Format2::File(Format::Csv),
+        "ofx" => Format2::File(Format::Ofx),
+        "mt940" => Format2::File(Format::Mt940),
+        "auto" => {
+            let t = content.trim_start();
+            if t.starts_with('{') {
+                Format2::Jsonl
+            } else {
+                Format2::File(bankfile::detect(content))
+            }
+        }
+        _ => {
+            return Err(invalid(
+                "format",
+                "invalid",
+                "must be jsonl, csv, ofx, mt940 or auto",
+            ))
+        }
+    };
+    let mut headers = Vec::new();
+    let mut used_mapping = None;
+    let mut skipped = Vec::new();
+    let mut opening = None;
+    let mut closing = None;
+    let mut statement_ref = None;
+    let lines: Vec<bankfile::Line> = match format {
+        Format2::Jsonl => {
+            let (Some(f), Some(t)) = (from, to) else {
+                return Err(invalid(
+                    "periodFrom",
+                    "required",
+                    "periodFrom and periodTo are required for JSON lines",
+                ));
+            };
+            parse_statement(content, f, t)?
+                .into_iter()
+                .map(|l: StatementLine| bankfile::Line {
+                    date: l.value_date,
+                    amount: if l.credit {
+                        to_paise(l.amount)
+                    } else {
+                        -to_paise(l.amount)
+                    },
+                    desc: l.description.unwrap_or_default(),
+                    fitid: String::new(),
+                    reference: l.reference.unwrap_or_default(),
+                })
+                .collect()
+        }
+        Format2::File(Format::Csv) => {
+            let opts = bankfile::CsvOptions {
+                date_style: style,
+                invert: invert.unwrap_or(false),
+            };
+            let st =
+                bankfile::parse_csv_statement(content, mapping.map(ColumnMapping::to_file), opts)
+                    .ok_or_else(|| invalid("content", "empty", "the file is empty"))?;
+            headers = st.headers;
+            used_mapping = Some(ColumnMapping::from_file(&st.mapping));
+            skipped = st.skipped;
+            st.lines
+        }
+        Format2::File(Format::Ofx) => {
+            let st = bankfile::parse_ofx(content)
+                .into_iter()
+                .find(|s| !s.lines.is_empty())
+                .ok_or_else(|| invalid("content", "empty", "the OFX file has no transactions"))?;
+            closing = st.balance.map(|b| if b < 0 { -paise(b) } else { paise(b) });
+            let flip = invert.unwrap_or(false);
+            st.lines
+                .into_iter()
+                .map(|mut l| {
+                    if flip {
+                        l.amount = -l.amount;
+                    }
+                    l
+                })
+                .collect()
+        }
+        Format2::File(Format::Mt940) => {
+            let (st, bad) = bankfile::parse_mt940(content);
+            skipped = bad;
+            let signed = |b: i64| if b < 0 { -paise(b) } else { paise(b) };
+            opening = st.opening.map(signed);
+            closing = st.closing.map(signed);
+            statement_ref = opt_text_owned(if st.statement_no.is_empty() {
+                &st.reference
+            } else {
+                &st.statement_no
+            });
+            st.lines
+        }
+    };
+    if lines.is_empty() {
+        return Err(invalid(
+            "content",
+            "empty",
+            "no transactions found in the file; check the format and column mapping",
+        ));
+    }
+    if lines.len() > MAX_FILE_LINES {
+        return Err(invalid(
+            "content",
+            "too_many",
+            format!("at most {MAX_FILE_LINES} lines per statement"),
+        ));
+    }
+    let first = lines.iter().map(|l| l.date).min().unwrap_or_default();
+    let last = lines.iter().map(|l| l.date).max().unwrap_or_default();
+    let period_from = from.unwrap_or(first);
+    let period_to = to.unwrap_or(last);
+    if period_to < period_from {
+        return Err(invalid(
+            "periodTo",
+            "invalid_range",
+            "must not be before periodFrom",
+        ));
+    }
+    if let Some(l) = lines
+        .iter()
+        .find(|l| l.date < period_from || l.date > period_to)
+    {
+        return Err(invalid(
+            "content",
+            "invalid_line",
+            format!("a line dated {} is outside the statement period", l.date),
+        ));
+    }
+    Ok(ParsedFile {
+        format,
+        headers,
+        mapping: used_mapping,
+        lines,
+        skipped,
+        opening,
+        closing,
+        statement_ref,
+        period_from,
+        period_to,
+    })
+}
+
+/// Which of `lines` an earlier statement of the account already holds.
+async fn duplicate_flags(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    account: Uuid,
+    lines: &[bankfile::Line],
+) -> Result<Vec<bool>, KernelError> {
+    let (Some(from), Some(to)) = (
+        lines.iter().map(|l| l.date).min(),
+        lines.iter().map(|l| l.date).max(),
+    ) else {
+        return Ok(Vec::new());
+    };
+    let existing = sqlx::query(
+        "SELECT l.value_date, l.direction, l.amount, coalesce(l.description, '') AS description, \
+         coalesce(l.fitid, '') AS fitid FROM finance.bank_statement_line l \
+         JOIN finance.bank_statement s ON s.id = l.bank_statement_id \
+         WHERE s.tenant_id = $1 AND s.bank_account_id = $2 AND l.value_date BETWEEN $3 AND $4 \
+         ORDER BY l.value_date, l.id",
+    )
+    .bind(tenant.as_uuid())
+    .bind(account)
+    .bind(from)
+    .bind(to)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_db_error)?
+    .iter()
+    .map(|r| -> Result<bankfile::Line, sqlx::Error> {
+        let dir: String = r.try_get("direction")?;
+        let amt = to_paise(r.try_get("amount")?);
+        Ok(bankfile::Line {
+            date: r.try_get("value_date")?,
+            amount: if dir == "credit" { amt } else { -amt },
+            desc: r.try_get("description")?,
+            fitid: r.try_get("fitid")?,
+            reference: String::new(),
+        })
+    })
+    .collect::<Result<Vec<_>, _>>()
+    .map_err(map_db_error)?;
+    Ok(bankfile::dedupe(lines, &existing))
+}
+
+fn row_i32(n: usize) -> i32 {
+    i32::try_from(n).unwrap_or(i32::MAX)
+}
+
+/// Reads a bank statement file and shows what importing it would do, without importing
+/// (`treasury.manage`): the format and CSV mapping used, every line with whether an earlier
+/// statement already holds it, and the rows that are not transactions.
+#[utoipa::path(post, path = "/api/v1/finance/bank-accounts/{id}/statements/preview", operation_id = "finance_statement_preview", tag = "finance-treasury",
+    params(("id" = String, Path, format = Uuid)), request_body = StatementPreviewInput, security(("session_cookie" = [])),
+    responses((status = 200, body = StatementPreview), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
+pub async fn statement_preview(
+    State(st): State<FinanceState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+    Json(body): Json<StatementPreviewInput>,
+) -> ApiResult<Json<StatementPreview>> {
+    let ctx = auth.require(Permission::TreasuryManage)?;
+    let f = parse_file(
+        &body.content,
+        body.format.as_deref(),
+        "auto",
+        body.date_style.as_deref(),
+        body.invert,
+        body.mapping.as_ref(),
+        body.period_from,
+        body.period_to,
+    )?;
+    let t = tenant(ctx);
+    let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+    let acc = load_account(&mut conn, t, id, false).await?;
+    require_institution(
+        &st,
+        &institution_scope(ctx, acc.institution),
+        acc.institution,
+    )
+    .await?;
+    let dup = if f.format == Format2::Jsonl {
+        vec![false; f.lines.len()]
+    } else {
+        duplicate_flags(&mut conn, t, id, &f.lines).await?
+    };
+    let (mut credits, mut debits, mut fresh) = (Decimal::ZERO, Decimal::ZERO, 0usize);
+    for (l, d) in f.lines.iter().zip(&dup) {
+        if !d {
+            fresh += 1;
+            if l.amount > 0 {
+                credits += paise(l.amount);
+            } else {
+                debits += paise(l.amount);
+            }
+        }
+    }
+    Ok(Json(StatementPreview {
+        format: f.format.as_str().to_string(),
+        headers: f.headers,
+        mapping: f.mapping,
+        statement_ref: f.statement_ref,
+        period_from: f.period_from,
+        period_to: f.period_to,
+        opening_balance: f.opening.map(fmt),
+        closing_balance: f.closing.map(fmt),
+        total_credits: fmt(credits),
+        total_debits: fmt(debits),
+        new_lines: row_i32(fresh),
+        duplicate_lines: row_i32(f.lines.len() - fresh),
+        lines: f
+            .lines
+            .iter()
+            .zip(&dup)
+            .map(|(l, d)| StatementPreviewLine {
+                value_date: l.date,
+                direction: if l.amount > 0 { "credit" } else { "debit" }.into(),
+                amount: fmt(paise(l.amount)),
+                reference: opt_text_owned(&l.reference),
+                description: opt_text_owned(&l.desc),
+                duplicate: *d,
+            })
+            .collect(),
+        skipped: f
+            .skipped
+            .iter()
+            .map(|s| StatementPreviewSkip {
+                row: row_i32(s.row),
+                reason: s.reason.clone(),
+            })
+            .collect(),
+    }))
+}
+
+/// Imports a bank statement (`treasury.manage`, `Idempotency-Key`; L3-F-058): JSON lines, or the
+/// bank's own CSV, OFX/QFX or MT940 file. The same content or statement reference is never
+/// imported twice, and lines of a bank file that an earlier statement of the account already
+/// holds are skipped (counted in `duplicateLines`). When both balances are known (given, or
+/// stated in the file) they must agree with the file's lines.
 #[utoipa::path(post, path = "/api/v1/finance/bank-accounts/{id}/statements", operation_id = "finance_statement_import", tag = "finance-treasury",
     params(("id" = String, Path, format = Uuid), ("Idempotency-Key" = String, Header)), request_body = StatementImport, security(("session_cookie" = [])),
     responses((status = 201, body = StatementView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
@@ -1536,34 +2012,60 @@ pub async fn statement_import(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::TreasuryManage)?;
     require_idempotency_key(&headers)?;
-    let sref = require_text("statementRef", Some(&body.statement_ref))?;
-    if body.period_to < body.period_from {
-        return Err(invalid("periodTo", "invalid_range", "must not be before periodFrom").into());
+    if let (Some(f), Some(t)) = (body.period_from, body.period_to) {
+        if t < f {
+            return Err(
+                invalid("periodTo", "invalid_range", "must not be before periodFrom").into(),
+            );
+        }
     }
-    let lines: Vec<StatementLine> =
-        parse_statement(&body.content, body.period_from, body.period_to)?;
-    let opening = body
-        .opening_balance
-        .as_deref()
-        .map(|s| parse_signed("openingBalance", s))
-        .transpose()?;
-    let closing = body
-        .closing_balance
-        .as_deref()
-        .map(|s| parse_signed("closingBalance", s))
-        .transpose()?;
-    let credits: Decimal = lines.iter().filter(|l| l.credit).map(|l| l.amount).sum();
-    let debits: Decimal = lines.iter().filter(|l| !l.credit).map(|l| l.amount).sum();
+    let file = parse_file(
+        &body.content,
+        body.format.as_deref(),
+        "jsonl",
+        body.date_style.as_deref(),
+        body.invert,
+        body.mapping.as_ref(),
+        body.period_from,
+        body.period_to,
+    )?;
+    let sref = match body.statement_ref.as_deref().map(str::trim) {
+        Some(s) if !s.is_empty() => require_text("statementRef", Some(s))?,
+        _ => file
+            .statement_ref
+            .clone()
+            .unwrap_or_else(|| format!("{} to {}", file.period_from, file.period_to)),
+    };
+    let opening = match body.opening_balance.as_deref() {
+        Some(s) => Some(parse_signed("openingBalance", s)?),
+        None => file.opening,
+    };
+    let closing = match body.closing_balance.as_deref() {
+        Some(s) => Some(parse_signed("closingBalance", s)?),
+        None => file.closing,
+    };
+    let all_credits: Decimal = file
+        .lines
+        .iter()
+        .filter(|l| l.amount > 0)
+        .map(|l| paise(l.amount))
+        .sum();
+    let all_debits: Decimal = file
+        .lines
+        .iter()
+        .filter(|l| l.amount < 0)
+        .map(|l| paise(l.amount))
+        .sum();
     if let (Some(o), Some(c)) = (opening, closing) {
-        if o + credits - debits != c {
+        if o + all_credits - all_debits != c {
             return Err(invalid(
                 "closingBalance",
                 "does_not_agree",
                 format!(
                     "opening {} + credits {} − debits {} ≠ closing {}",
                     fmt(o),
-                    fmt(credits),
-                    fmt(debits),
+                    fmt(all_credits),
+                    fmt(all_debits),
                     fmt(c)
                 ),
             )
@@ -1598,42 +2100,77 @@ pub async fn statement_import(
             KernelError::Conflict(format!("this statement was already imported as {d}")).into(),
         );
     }
+    // JSON lines are the machine interface and are taken as sent; bank files skip lines an
+    // earlier statement of the account already holds (overlapping downloads, CSV after OFX).
+    let flags = if file.format == Format2::Jsonl {
+        vec![false; file.lines.len()]
+    } else {
+        duplicate_flags(&mut tx, t, id, &file.lines).await?
+    };
+    let lines: Vec<&bankfile::Line> = file
+        .lines
+        .iter()
+        .zip(&flags)
+        .filter(|(_, d)| !**d)
+        .map(|(l, _)| l)
+        .collect();
+    let duplicates = file.lines.len() - lines.len();
+    if lines.is_empty() {
+        return Err(KernelError::Conflict(
+            "every line of this file was already imported in an earlier statement".into(),
+        )
+        .into());
+    }
+    let credits: Decimal = lines
+        .iter()
+        .filter(|l| l.amount > 0)
+        .map(|l| paise(l.amount))
+        .sum();
+    let debits: Decimal = lines
+        .iter()
+        .filter(|l| l.amount < 0)
+        .map(|l| paise(l.amount))
+        .sum();
     let sid = Uuid::now_v7();
     sqlx::query(
         "INSERT INTO finance.bank_statement (id, tenant_id, institution_id, bank_account_id, statement_ref, period_from, \
-         period_to, opening_balance, closing_balance, total_credits, total_debits, line_count, content_sha256, imported_by) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)",
+         period_to, opening_balance, closing_balance, total_credits, total_debits, line_count, content_sha256, imported_by, \
+         source_format, duplicate_lines) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
     )
     .bind(sid)
     .bind(t.as_uuid())
     .bind(acc.institution.as_uuid())
     .bind(id)
     .bind(&sref)
-    .bind(body.period_from)
-    .bind(body.period_to)
+    .bind(file.period_from)
+    .bind(file.period_to)
     .bind(opening)
     .bind(closing)
     .bind(credits)
     .bind(debits)
-    .bind(i32::try_from(lines.len()).unwrap_or(i32::MAX))
+    .bind(row_i32(lines.len()))
     .bind(&sha)
     .bind(a.id.as_deref())
+    .bind(file.format.as_str())
+    .bind(row_i32(duplicates))
     .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
     for (i, l) in lines.iter().enumerate() {
         sqlx::query(
             "INSERT INTO finance.bank_statement_line (tenant_id, bank_statement_id, line_no, value_date, direction, \
-             amount, reference, description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+             amount, reference, description, fitid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(t.as_uuid())
         .bind(sid)
-        .bind(i32::try_from(i + 1).unwrap_or(i32::MAX))
-        .bind(l.value_date)
-        .bind(if l.credit { "credit" } else { "debit" })
-        .bind(l.amount)
-        .bind(l.reference.as_deref())
-        .bind(l.description.as_deref())
+        .bind(row_i32(i + 1))
+        .bind(l.date)
+        .bind(if l.amount > 0 { "credit" } else { "debit" })
+        .bind(paise(l.amount))
+        .bind(opt_text_owned(&l.reference))
+        .bind(opt_text_owned(&l.desc))
+        .bind(opt_text_owned(&l.fitid))
         .execute(&mut *tx)
         .await
         .map_err(map_db_error)?;
@@ -1654,10 +2191,21 @@ pub async fn statement_import(
         &mut tx,
         &scope,
         None,
-        &changed(sid, acc.institution, None, "imported", 1, None, Some(&sref), None, None),
+        &changed(
+            sid,
+            acc.institution,
+            None,
+            "imported",
+            1,
+            None,
+            Some(&sref),
+            None,
+            None,
+        ),
         "finance.bank_statement.import",
         "bank_statement",
-        json!({"statementRef": sref, "lines": lines.len(), "credits": fmt(credits), "debits": fmt(debits)}),
+        json!({"statementRef": sref, "format": file.format.as_str(), "lines": lines.len(),
+            "duplicates": duplicates, "credits": fmt(credits), "debits": fmt(debits)}),
         &a,
     )
     .await?;

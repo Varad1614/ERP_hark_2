@@ -23,6 +23,7 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
         .routes(routes!(http::bank_transaction_list))
         .routes(routes!(http::bank_transaction_return))
         .routes(routes!(http::statement_list, http::statement_import))
+        .routes(routes!(http::statement_preview))
         .routes(routes!(http::statement_get))
         .routes(routes!(http::statement_reconcile))
         .routes(routes!(http::cash_position))
