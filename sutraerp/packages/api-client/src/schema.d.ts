@@ -12368,11 +12368,34 @@ export interface paths {
         get: operations["finance_statement_list"];
         put?: never;
         /**
-         * Imports a bank statement from JSON lines (`treasury.manage`, `Idempotency-Key`; L3-F-058).
-         *     The same content or statement reference is never imported twice; when both balances are
-         *     given they must agree with the lines.
+         * Imports a bank statement (`treasury.manage`, `Idempotency-Key`; L3-F-058): JSON lines, or the
+         *     bank's own CSV, OFX/QFX or MT940 file. The same content or statement reference is never
+         *     imported twice, and lines of a bank file that an earlier statement of the account already
+         *     holds are skipped (counted in `duplicateLines`). When both balances are known (given, or
+         *     stated in the file) they must agree with the file's lines.
          */
         post: operations["finance_statement_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/statements/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reads a bank statement file and shows what importing it would do, without importing
+         *     (`treasury.manage`): the format and CSV mapping used, every line with whether an earlier
+         *     statement already holds it, and the rows that are not transactions.
+         */
+        post: operations["finance_statement_preview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -29860,6 +29883,38 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description CSV column positions (0-based). An omitted column is absent from the file. */
+        ColumnMapping: {
+            /**
+             * Format: int32
+             * @description One signed amount column (or unsigned, signed by `indicator`).
+             */
+            amount?: number | null;
+            /**
+             * Format: int32
+             * @description Money into the account (`Deposit Amt.`).
+             */
+            credit?: number | null;
+            /** Format: int32 */
+            date?: number | null;
+            /**
+             * Format: int32
+             * @description Money out of the account (`Withdrawal Amt.`), used with `credit` instead of `amount`.
+             */
+            debit?: number | null;
+            /** Format: int32 */
+            description?: number | null;
+            /**
+             * Format: int32
+             * @description A `Dr` / `Cr` column that signs `amount`.
+             */
+            indicator?: number | null;
+            /**
+             * Format: int32
+             * @description Cheque number, UTR or other reference.
+             */
+            reference?: number | null;
+        };
         /** @description Optional body of a state command (`{ "reason": "…" }`). */
         CommandBody: {
             /** @description Business reason / decision note. */
@@ -43529,17 +43584,30 @@ export interface components {
             /** @example 99000.00 */
             closingBalance?: string | null;
             /**
-             * @description JSON lines, one object per statement line:
-             *     `{"valueDate":"2026-07-03","direction":"credit","amount":"99000.00","reference":"UTR123","description":"…"}`.
+             * @description The statement: JSON lines (`format` `jsonl`, one object per line:
+             *     `{"valueDate":"2026-07-03","direction":"credit","amount":"99000.00","reference":"UTR123","description":"…"}`),
+             *     or the bank's CSV, OFX/QFX or MT940 file as text.
              */
             content: string;
+            /** @description `dmy` (default, as Indian banks write dates) or `mdy`, for numeric CSV dates like 03/04/2026. */
+            dateStyle?: string | null;
+            /** @description `jsonl` (default), `csv`, `ofx`, `mt940`, or `auto` to detect it from the content. */
+            format?: string | null;
+            /** @description Flip every sign (card statements that show charges as positive numbers). */
+            invert?: boolean | null;
+            mapping?: null | components["schemas"]["ColumnMapping"];
             /** @example 0.00 */
             openingBalance?: string | null;
+            /**
+             * Format: date
+             * @description Required for `jsonl`; for bank files it defaults to the first and last line dates, and
+             *     when given every line must fall inside it.
+             */
+            periodFrom?: string | null;
             /** Format: date */
-            periodFrom: string;
-            /** Format: date */
-            periodTo: string;
-            statementRef: string;
+            periodTo?: string | null;
+            /** @description Defaults to the file's own statement reference (MT940 `:20:`) or the period. */
+            statementRef?: string | null;
         };
         /** @description One imported statement line. */
         StatementLineView: {
@@ -43566,12 +43634,77 @@ export interface components {
         StatementList: {
             items: components["schemas"]["StatementView"][];
         };
+        /** @description What importing a file would do. */
+        StatementPreview: {
+            closingBalance?: string | null;
+            /** Format: int32 */
+            duplicateLines: number;
+            /** @description The format read (`csv`, `ofx`, `mt940`, `jsonl`). */
+            format: string;
+            /** @description CSV header row (or `Column 1…` when the file has none). */
+            headers: string[];
+            lines: components["schemas"]["StatementPreviewLine"][];
+            mapping?: null | components["schemas"]["ColumnMapping"];
+            /** Format: int32 */
+            newLines: number;
+            openingBalance?: string | null;
+            /** Format: date */
+            periodFrom: string;
+            /** Format: date */
+            periodTo: string;
+            skipped: components["schemas"]["StatementPreviewSkip"][];
+            statementRef?: string | null;
+            /** @description Totals of the lines that would be imported (duplicates excluded). */
+            totalCredits: string;
+            totalDebits: string;
+        };
+        /** @description A bank file to read without importing it. */
+        StatementPreviewInput: {
+            content: string;
+            /** @description `dmy` (default) or `mdy`. */
+            dateStyle?: string | null;
+            /** @description `auto` (default), `csv`, `ofx`, `mt940` or `jsonl`. */
+            format?: string | null;
+            invert?: boolean | null;
+            mapping?: null | components["schemas"]["ColumnMapping"];
+            /** Format: date */
+            periodFrom?: string | null;
+            /** Format: date */
+            periodTo?: string | null;
+        };
+        /** @description One line of a previewed file. */
+        StatementPreviewLine: {
+            /** @example 99000.00 */
+            amount: string;
+            description?: string | null;
+            /** @description `credit` (into the account) or `debit` (out of it). */
+            direction: string;
+            /** @description An earlier statement of this account already holds this line; import skips it. */
+            duplicate: boolean;
+            reference?: string | null;
+            /** Format: date */
+            valueDate: string;
+        };
+        /** @description A row of the file that is not a transaction (a total, a blank, an unreadable date). */
+        StatementPreviewSkip: {
+            reason: string;
+            /**
+             * Format: int32
+             * @description 1-based row (CSV) or line (MT940) of the file.
+             */
+            row: number;
+        };
         /** @description An imported bank statement. */
         StatementView: {
             bankAccountId: components["schemas"]["BankAccountId"];
             closingBalance?: string | null;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: int32
+             * @description Lines of the file an earlier statement of this account already held (not imported again).
+             */
+            duplicateLines: number;
             id: components["schemas"]["BankStatementId"];
             /** Format: int32 */
             lineCount: number;
@@ -43584,6 +43717,8 @@ export interface components {
             /** Format: date-time */
             reconciledAt?: string | null;
             reconciliations: components["schemas"]["BankReconciliationView"][];
+            /** @description `jsonl`, `csv`, `ofx` or `mt940`. */
+            sourceFormat: string;
             statementRef: string;
             status: components["schemas"]["BankStatementStatus"];
             totalCredits: string;
@@ -76039,6 +76174,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_statement_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatementPreviewInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementPreview"];
                 };
             };
             "4XX": {

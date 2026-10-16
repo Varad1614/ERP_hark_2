@@ -13,6 +13,7 @@ Ported so far:
 | SutraERP | Original |
 |---|---|
 | `crates/kernel/src/money.rs` `allocate` | `src/accounting/src/lib/money.js` `allocate` |
+| `modules/finance/src/treasury/bankfile.rs` (CSV, dates, amounts, column guess, OFX, de-dupe) | `src/accounting/src/lib/bankimport.js`, `csv.js`, `money.js` `parseMoney` |
 
 ```
 MIT License

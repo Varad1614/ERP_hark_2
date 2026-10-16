@@ -22,7 +22,7 @@ Source: HeyPuter/everything @ `06802a1` (MIT). Credit in `THIRD_PARTY_NOTICES.md
 | Slice | Owns | Original | Migrations |
 |---|---|---|---|
 | P0 groundwork | `crates/kernel/src/money.rs`, `tools/golden/` | accounting `money.js` | none |
-| 1A statement import | `modules/finance/src/treasury` | accounting `bankimport.js` | 20270101000100–199 |
+| 1A statement import | `modules/finance/src/treasury` | accounting `bankimport.js` | 20270101000100–199 (used: 100) — **done**: `bankfile.rs`, `POST …/statements/preview`, import `format` csv/ofx/mt940/auto, golden `modules/finance/tests/golden/bankimport_*.json` |
 | 1B reconciliation | `modules/finance/src/treasury` | accounting `reconcile.js` | 20270101000200–299 |
 | 1C financial statements | `modules/finance/src/ledger`, `features/reports` | accounting `reports.js`, `ledger.js` | 20270101000300–399 |
 | 1D late fines + reminders | `modules/finance/src/receivables` | invoicing `latefee.js`, `reminders.js`, `aging.js` | 20270101000400–499 |
