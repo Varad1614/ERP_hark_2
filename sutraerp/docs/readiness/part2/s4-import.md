@@ -158,7 +158,7 @@ kernel grants — it only decides what to offer; the API enforces every request)
   route limit above 1 MiB, processed once + replayed with one, never lowered);
   `apps/api/src/storage.rs::only_the_import_upload_gets_the_import_limit`; DB
   `apps/api/tests/db_p2_ui_import.rs` — `upload_route_accepts_files_above_the_default_body_limit`
-  (2.3 MiB file / 3.1 MiB body → 201 through the composition root with its Idempotency-Key; 12
+  (2.4 MiB file / 3.2 MiB body → 201 through the composition root with its Idempotency-Key; 12
   MiB → 413, no job; 3 MiB on `mapping-profiles` and `/{id}/mapping` → 413) and
   `finance_checker_reads_only_the_imports_it_decides`.
 * Playwright `apps/web/e2e/imports.e2e.mjs` (CI job **E2E imports (preview)**, also on

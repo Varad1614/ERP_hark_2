@@ -2,7 +2,7 @@
 //! PostgreSQL through the real composition root (body limits, idempotency, session auth).
 //!
 //! * `upload_route_accepts_files_above_the_default_body_limit` — `POST /api/v1/platform/imports`
-//!   takes a 2.3 MiB file (≈ 3.1 MiB of base64 JSON, above `SUTRA_MAX_BODY_BYTES` = 2 MiB and the
+//!   takes a 2.4 MiB file (≈ 3.2 MiB of base64 JSON, above `SUTRA_MAX_BODY_BYTES` = 2 MiB and the
 //!   1 MiB idempotency buffer) with its required `Idempotency-Key`; a body above the import route
 //!   limit is 413; every other route (also the other import routes) keeps the 2 MiB limit (413).
 //! * `finance_checker_reads_only_the_imports_it_decides` — a holder of `platform.import.approve`
@@ -100,11 +100,12 @@ async fn upload_route_accepts_files_above_the_default_body_limit() {
     let admin = login(&app, ADMIN).await;
     let inst = institution(&app, &admin, T_LIMIT, "Import limits").await;
 
-    // 330 students with a 7,000-character unmapped `notes` column: a 2.3 MiB file.
+    // 360 students with a 7,000-character unmapped `notes` column: a 2.4 MiB file (≈ 3.2 MiB as
+    // base64 JSON).
     let prefix = Uuid::now_v7().simple().to_string()[20..].to_uppercase();
     let notes = "n".repeat(7000);
     let mut csv = format!("{STUDENT_HEADER}\n");
-    for i in 0..330 {
+    for i in 0..360 {
         csv.push_str(&format!("UL{prefix}-{i},Asha,Large,BTECH-CSE,{notes}\n"));
     }
     let file = csv.into_bytes();
@@ -114,7 +115,7 @@ async fn upload_route_accepts_files_above_the_default_body_limit() {
     let (s, _, job) = send(&app, sized(&admin, "POST", IMP, body)).await;
     assert_eq!(s, StatusCode::CREATED, "{job}");
     assert_eq!(job["fileBytes"].as_i64().unwrap(), file.len() as i64);
-    assert_eq!(job["summary"]["rowsInFile"], 330);
+    assert_eq!(job["summary"]["rowsInFile"], 360);
     assert_eq!(job["mapping"]["student_number"], "student_number");
     let (s, _, read) = send(&app, get(&admin, &format!("{IMP}/{}", id(&job)))).await;
     assert_eq!(s, StatusCode::OK, "{read}");
