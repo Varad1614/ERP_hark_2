@@ -10,6 +10,26 @@
 # Sourced by sutra-fullbackup.sh, sutra-backup-verify.sh, sutra-fullrestore.sh, sutra-wal-ship.sh.
 set -euo pipefail
 
+# load_backup_env [file]: reads SUTRA_BACKUP_ENV_FILE (default /etc/sutraerp/backup.env) with
+# `set -a`, but a variable the CALLER already set wins over the file. Without this the file's
+# SUTRA_BACKUP_DATABASE_URL silently replaced an explicit restore target (the drill's logical
+# restore into an empty server was pointed back at the live database) and its SUTRA_ENV label
+# reached `sutra-api migrate` (run 38926626943: "invalid value for SUTRA_ENV: drill").
+load_backup_env() {
+  local f=${1:-${SUTRA_BACKUP_ENV_FILE:-/etc/sutraerp/backup.env}} k i
+  local -a names=() vals=()
+  [[ -f "$f" ]] || return 0
+  for k in $(sed -n 's/^[[:space:]]*\(export[[:space:]]\+\)\?\([A-Za-z_][A-Za-z0-9_]*\)=.*/\2/p' "$f"); do
+    if [[ -n "${!k+x}" ]]; then names+=("$k"); vals+=("${!k}"); fi
+  done
+  set -a
+  # shellcheck disable=SC1090
+  . "$f"
+  set +a
+  for i in "${!names[@]}"; do export "${names[$i]}=${vals[$i]}"; done
+  return 0
+}
+
 set_log() { printf '%s %s\n' "$(date -u +%H:%M:%SZ)" "$*" >&2; }
 set_die() { set_log "ERROR: $*"; exit 1; }
 

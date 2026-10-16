@@ -15,10 +15,9 @@
 # from the local archive (the offsite copy is authoritative; rotate.sh prunes it).
 set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-envf=${SUTRA_BACKUP_ENV_FILE:-/etc/sutraerp/backup.env}
-if [[ -f "$envf" ]]; then set -a; . "$envf"; set +a; fi
 # shellcheck source=set-lib.sh
 . "$here/set-lib.sh"
+load_backup_env   # the caller's environment wins over backup.env
 
 src=${SUTRA_WAL_ARCHIVE_DIR:?SUTRA_WAL_ARCHIVE_DIR}
 dst=${SUTRA_WAL_OFFSITE_DIR:?SUTRA_WAL_OFFSITE_DIR}

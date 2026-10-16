@@ -25,12 +25,11 @@
 #      SUTRA_PG_IMAGE (postgres:18), SUTRA_PG_SUPERUSER (sutra).
 set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-envf=${SUTRA_BACKUP_ENV_FILE:-/etc/sutraerp/backup.env}
-if [[ -f "$envf" ]]; then set -a; . "$envf"; set +a; fi
-# shellcheck source=lib.sh
-. "$here/lib.sh"
 # shellcheck source=set-lib.sh
 . "$here/set-lib.sh"
+load_backup_env   # the caller's environment wins over backup.env
+# shellcheck source=lib.sh
+. "$here/lib.sh"
 
 cmd=${1:-}
 shift || true

@@ -10,10 +10,9 @@
 # Exit 1 on the first damaged set, naming the file.
 set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-envf=${SUTRA_BACKUP_ENV_FILE:-/etc/sutraerp/backup.env}
-if [[ -f "$envf" ]]; then set -a; . "$envf"; set +a; fi
 # shellcheck source=set-lib.sh
 . "$here/set-lib.sh"
+load_backup_env   # the caller's environment wins over backup.env
 sets=("$@")
 if [[ ${#sets[@]} -eq 0 ]]; then
   root=${SUTRA_BACKUP_DIR:-/var/backups/sutraerp}
