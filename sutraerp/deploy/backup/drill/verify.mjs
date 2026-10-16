@@ -88,7 +88,7 @@ writeFileSync(STATE, JSON.stringify(state, null, 2));
 
 // 4. a write on the restored data
 if (INST) {
-  const acct = psql(`SELECT student_account_id FROM finance.charge WHERE institution_id = ${q(INST)} AND status = 'published' AND outstanding_amount > 0 ORDER BY charge_number LIMIT 1`);
+  const acct = psql(`SELECT student_account_id FROM finance.charge WHERE institution_id = ${q(INST)} AND outstanding_amount > 0 ORDER BY charge_number LIMIT 1`);
   if (!acct) fail("no open charge in the drill institution");
   const before = psql(`SELECT count(*) FROM finance.payment WHERE student_account_id = ${q(acct)} AND status = 'completed'`);
   const p = await admin.call("POST", `/api/v1/finance/student-accounts/${acct}/payments`, { channel: "cash", amount: "100.00", externalRef: `POST-RESTORE-${randomUUID().slice(0, 8)}` });
