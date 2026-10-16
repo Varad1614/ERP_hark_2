@@ -19,6 +19,7 @@
 
 pub mod academic_ports; // Batch 4 foundation: ports Domain D calls
 pub mod adapters;
+pub mod dataimport; // Part 2 · S4-import
 pub mod directory;
 pub mod finance_ports; // Batch 5 foundation: ports Domain F calls
 pub mod metrics; // Batch 8 foundation: Domain H figures
