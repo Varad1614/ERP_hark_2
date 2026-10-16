@@ -462,6 +462,10 @@ pub(crate) mod tests {
                 "unit-test-only-flowable-password",
             ),
         ])
+        .into_iter()
+        // Part 2 · S4-docs: production needs S3 document storage.
+        .chain(crate::config_docs::tests::PROD)
+        .collect()
     }
 
     fn load(m: &HashMap<&'static str, &'static str>) -> Result<Config, ConfigError> {
