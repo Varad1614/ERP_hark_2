@@ -21,7 +21,7 @@ use crate::shared::http::actor;
 use crate::shared::lifecycle::{change_context_status, change_student_status, StatusChange};
 use crate::shared::scope::{institution_scope, tenant};
 use crate::shared::student::{
-    contexts_of, load_student, lock_context, lock_student, me, student_from_row, StudentContextRow,
+    contexts_in_institution, contexts_of, load_student, lock_context, lock_student, me, student_from_row, StudentContextRow,
     StudentRow, STUDENT_COLUMNS,
 };
 use crate::shared::time::business_today;
@@ -113,6 +113,9 @@ pub async fn directory(
          AND ($6::uuid IS NULL OR s.id < $6) \
          ORDER BY s.id DESC LIMIT $7"
     );
+    // One connection for the page: the students, then their contexts in one batch (was one
+    // query and one pool checkout per student).
+    let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let rows = sqlx::query(&sql)
         .bind(tenant(ctx).as_uuid())
         .bind(id.as_uuid())
@@ -121,7 +124,7 @@ pub async fn directory(
         .bind(pattern)
         .bind(q.cursor)
         .bind(limit + 1)
-        .fetch_all(&st.pool)
+        .fetch_all(&mut *conn)
         .await
         .map_err(map_db_error)?;
     let mut students: Vec<StudentRow> = rows
@@ -135,13 +138,15 @@ pub async fn directory(
     } else {
         None
     };
+    let ids: Vec<Uuid> = students.iter().map(|s| s.id.as_uuid()).collect();
+    let mut by_student: std::collections::HashMap<Uuid, Vec<StudentContextRow>> =
+        std::collections::HashMap::with_capacity(ids.len());
+    for c in contexts_in_institution(&mut *conn, tenant(ctx), id, &ids).await? {
+        by_student.entry(c.student_id.as_uuid()).or_default().push(c);
+    }
     let mut items = Vec::with_capacity(students.len());
     for s in &students {
-        let cs: Vec<StudentContextRow> = contexts_of(&st.pool, s.tenant_id, s.id)
-            .await?
-            .into_iter()
-            .filter(|c| c.institution_id == id)
-            .collect();
+        let cs: Vec<StudentContextRow> = by_student.remove(&s.id.as_uuid()).unwrap_or_default();
         let cur = cs
             .iter()
             .find(|c| c.status.is_live())
