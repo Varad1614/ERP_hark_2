@@ -203,18 +203,36 @@ mod tests {
     #[test]
     fn accepts_matching_files() {
         assert_eq!(
-            code(check(PDF_BYTES, "Aadhaar card.pdf", Some("application/pdf"), 1024)),
+            code(check(
+                PDF_BYTES,
+                "Aadhaar card.pdf",
+                Some("application/pdf"),
+                1024
+            )),
             "ok:application/pdf:Aadhaar card.pdf"
         );
         assert_eq!(
-            code(check(JPEG_BYTES, "scan.JPEG", Some("image/jpeg; charset=x"), 1024)),
+            code(check(
+                JPEG_BYTES,
+                "scan.JPEG",
+                Some("image/jpeg; charset=x"),
+                1024
+            )),
             "ok:image/jpeg:scan.JPEG"
         );
         assert_eq!(
-            code(check(PNG_BYTES, "a.png", Some("application/octet-stream"), 1024)),
+            code(check(
+                PNG_BYTES,
+                "a.png",
+                Some("application/octet-stream"),
+                1024
+            )),
             "ok:image/png:a.png"
         );
-        assert_eq!(code(check(PNG_BYTES, "a.png", None, 1024)), "ok:image/png:a.png");
+        assert_eq!(
+            code(check(PNG_BYTES, "a.png", None, 1024)),
+            "ok:image/png:a.png"
+        );
     }
 
     #[test]
@@ -223,7 +241,12 @@ mod tests {
         assert_eq!(code(check(PDF_BYTES, "a.pdf", None, 10)), "file:too_large");
         // An executable renamed to .pdf with a PDF content type is still refused.
         assert_eq!(
-            code(check(b"MZ\x90\0", "invoice.pdf", Some("application/pdf"), 1024)),
+            code(check(
+                b"MZ\x90\0",
+                "invoice.pdf",
+                Some("application/pdf"),
+                1024
+            )),
             "file:type_not_allowed"
         );
         assert_eq!(
@@ -238,7 +261,10 @@ mod tests {
             code(check(PDF_BYTES, "noext", None, 1024)),
             "filename:extension_mismatch"
         );
-        assert_eq!(code(check(PDF_BYTES, "../..", None, 1024)), "filename:invalid");
+        assert_eq!(
+            code(check(PDF_BYTES, "../..", None, 1024)),
+            "filename:invalid"
+        );
         assert_eq!(
             code(check(
                 b"%PDF-1.4 << /OpenAction << /S /JavaScript /JS (app.alert(1)) >> >>",

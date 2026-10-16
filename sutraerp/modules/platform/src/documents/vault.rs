@@ -628,7 +628,11 @@ impl DocumentVault for DisabledDocumentVault {
         0
     }
 
-    async fn store(&self, _: &ExecutionScope, _: NewDocument) -> Result<StoredDocument, KernelError> {
+    async fn store(
+        &self,
+        _: &ExecutionScope,
+        _: NewDocument,
+    ) -> Result<StoredDocument, KernelError> {
         Err(disabled())
     }
 
@@ -671,7 +675,11 @@ impl DocumentVault for DisabledDocumentVault {
         Err(disabled())
     }
 
-    async fn describe_any(&self, _: &ExecutionScope, _: Uuid) -> Result<StoredDocument, KernelError> {
+    async fn describe_any(
+        &self,
+        _: &ExecutionScope,
+        _: Uuid,
+    ) -> Result<StoredDocument, KernelError> {
         Err(disabled())
     }
 
