@@ -40,6 +40,21 @@ const meta = META[0];
 const NSTUD = STUDENTS.length;
 const student = (i) => STUDENTS[i];
 const randomStudent = () => STUDENTS[Math.floor(Math.random() * NSTUD)];
+// Every VU id in the test is unique and below the sum of the scenario targets.
+const MAX_VUS = 60 + 40 + 300 + 500 + 400;
+/**
+ * The student account a visiting VU signs in as. VU v owns accounts v, v + MAX_VUS, … (disjoint
+ * per VU) and rotates through them, so one account never signs in from two devices at the same
+ * moment. Run 38930815741 picked accounts at random: 167 results-day sign-ins of an account
+ * already signing in elsewhere were refused by Keycloak's brute-force guard
+ * (user_temporarily_disabled) — recorded as a finding in CAPACITY_TEST_REPORT.md.
+ */
+function ownStudent() {
+  const v = exec.vu.idInTest - 1;
+  if (v >= NSTUD) return randomStudent();
+  const owned = Math.floor((NSTUD - 1 - v) / MAX_VUS) + 1;
+  return STUDENTS[v + MAX_VUS * (exec.vu.iterationInInstance % owned)];
+}
 const divCache = {};
 /** Students of division `d` (built once per VU that needs it). */
 function division(d) {
@@ -81,6 +96,7 @@ for (const p of PHASES) {
   thresholds[`http_req_failed{phase:${p}}`] = [`rate<${TH.errorRate}`];
   for (const k of ["read", "write", "file"]) thresholds[`http_req_duration{phase:${p},kind:${k}}`] = [`p(95)<${TH[k].p95}`, `p(99)<${TH[k].p99}`];
   thresholds[`login_flow{phase:${p}}`] = [`p(95)<${TH.loginFlow[p].p95}`];
+  thresholds[`logins{phase:${p}}`] = ["count>=0"]; // per-phase sign-in count in the summary
   thresholds[`http_req_duration{phase:${p},kind:login}`] = ["max>=0"];
   for (const names of Object.values(NAMES))
     for (const n of names) {
@@ -218,7 +234,7 @@ const json = (r) => {
 // ------------------------------------------------------------------ students
 export function studentVisit() {
   const visit = __ENV.VISIT;
-  const st = randomStudent();
+  const st = ownStudent();
   const sess = signIn(st.login);
   if (!sess) return think(1, 3);
   think(1, 3);
@@ -298,7 +314,14 @@ function faculty(sess, ctx) {
     const k = (sessionCounters[key] = (sessionCounters[key] || 0) + 1);
     const date = new Date(Date.now() - (1 + Math.floor(k / 5)) * 86400000).toISOString().slice(0, 10);
     const hour = 13 + (k % 5);
-    let s = json(send(sess, "POST", "academic.session.create", `/api/v1/academic/sections/${sec.id}/sessions`, { sessionDate: date, startsAt: `${hour}:00`, endsAt: `${hour}:50`, topic: "Tutorial" }));
+    // VUs whose ids differ by a multiple of the faculty count act as the same teacher with their
+    // own counters: a per-alias start minute keeps their sessions distinct (run 38930815741:
+    // ~20 % of session.create were 409 "already has a session at that date and time").
+    // (VU ids stay below MAX_VUS = 1,300, so there are at most 13 aliases per teacher.)
+    const alias = Math.floor((exec.vu.idInTest - 1) / data.faculty.length) % 13;
+    const mm = String(alias * 4).padStart(2, "0");
+    const me = String(alias * 4 + 3).padStart(2, "0");
+    let s = json(send(sess, "POST", "academic.session.create", `/api/v1/academic/sections/${sec.id}/sessions`, { sessionDate: date, startsAt: `${hour}:${mm}`, endsAt: `${hour}:${me}`, topic: "Tutorial" }));
     if (!s || !s.id) return;
     s = json(send(sess, "POST", "academic.session.start", `/api/v1/academic/sessions/${s.id}/start`, {}, s.version)) || s;
     const students = division(sec.d);

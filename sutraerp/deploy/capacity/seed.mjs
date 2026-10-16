@@ -83,7 +83,20 @@ function polite(c) {
   c.upload = (...a) => retry(() => upload(...a));
   return c;
 }
-const login = async (who) => polite(await signIn(who));
+/** Sign-in (Keycloak OIDC through the API) that also honours the API's per-client auth limiter:
+ *  the seed signs every teacher in from ONE address, so `oidc/start` answers 429 by design
+ *  (capacity run 38930815741: 47 of 100 faculty sign-ins refused); wait and sign in again. */
+const login = async (who) => {
+  for (let k = 0; ; k++) {
+    try {
+      return polite(await signIn(who));
+    } catch (e) {
+      if (k >= 20 || !/\b429\b/.test(String(e?.message ?? e))) throw e;
+      throttled++;
+      await sleep(1000 * Math.min(2 ** k, 8) + Math.random() * 500);
+    }
+  }
+};
 
 const report = { startedAt: new Date().toISOString(), students: N, divisions: DIVS, phases: [] };
 const data = { domain: DOMAIN, students: [], sections: {}, office: STAFF.office.map((o) => ({ login: o.login, otp: o.otp })), faculty: [] };
@@ -477,8 +490,8 @@ await phase("import: previous-year dues for 300 students (opening balances → f
 }, { critical: false });
 
 // ------------------------------------------------------------------ examinations
-async function examSession(code, name, slot, scheme, pol) {
-  let ses = await admin.call("POST", `${X}/institutions/${inst}/exam-sessions`, { code, name, academicTermId: setup.termIds[0], gradingSchemeId: scheme.id, policyId: pol.id, startsOn: day(-12), endsOn: day(-5), registrationOpensOn: day(-30), registrationClosesOn: day(10) });
+async function examSession(code, name, slot, scheme, pol, kind = undefined) {
+  let ses = await admin.call("POST", `${X}/institutions/${inst}/exam-sessions`, { code, name, ...(kind ? { kind } : {}), academicTermId: setup.termIds[0], gradingSchemeId: scheme.id, policyId: pol.id, startsOn: day(-12), endsOn: day(-5), registrationOpensOn: day(-30), registrationClosesOn: day(10) });
   const paper = await admin.call("POST", `${X}/exam-sessions/${ses.id}/papers`, { offeringId: ids.offerings[slot], maxMarks: "100", internalWeight: "0", passPercent: "40", durationMinutes: 180 });
   ses = await admin.get(`${X}/exam-sessions/${ses.id}`);
   ses = await admin.call("POST", `${X}/exam-sessions/${ses.id}/submit`, {}, ses.version);
@@ -568,7 +581,9 @@ await phase("examinations: end-semester CS101 → marks → approval → results
 
 await phase("examinations: internal assessment MD101 left open for live marks entry", async () => {
   if (!ids.scheme) throw new Error("no grading scheme (end-semester phase failed)");
-  const ia = await examSession(`IA-${Date.now().toString(36).slice(-4).toUpperCase()}`, "Internal assessment 1", "MD101", ids.scheme, ids.policy);
+  const ia = await examSession(`IA-${Date.now().toString(36).slice(-4).toUpperCase()}`, "Internal assessment 1", "MD101", ids.scheme, ids.policy, "special");
+  // ("special": one regular session governs a term — the end-semester one — so a second
+  // concurrent session of the term needs another classification; there is no internal kind.)
   data.ia = { sessionId: ia.session.id, paperId: ia.paper.id, sheetId: ia.sheet.id };
   return { registered: ia.registered, sheet: ia.sheet.status };
 }, { critical: false });
