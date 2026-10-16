@@ -5,8 +5,9 @@ runbook `docs/runbooks/backup-dr.md` § *Single-server (docker compose) installa
 **SutraERP Part 2 backup and restore drill** (`.github/workflows/sutraerp-part2-backup.yml`, steps in
 `deploy/backup/drill/drill.sh`). Tracker: `docs/readiness/tracker/p2-s5-backup.md`.
 
-> **Every number below was measured on a GitHub-hosted runner (@CPU@, @VCPU@ vCPU, @RAM@ RAM,
-> @DISK@ disk, kernel @KERNEL@, Docker @DOCKER@) — NOT college hardware.** The runner stands in for a
+> **Every number below was measured on a GitHub-hosted runner (run 38932035861: AMD EPYC 7763 64-Core Processor, 4 vCPU, 15.6 GiB RAM,
+> 145G total, 97G free disk, kernel 6.17.0-1022-azure, Docker 28.0.4) — NOT college hardware.** (Hosted runners differ
+> between runs: run 38926626943 had an AMD EPYC 9V74.) The runner stands in for a
 > clean single "staging host"; the college-scale figures in § 5 are an **ESTIMATE**, not a
 > measurement. The college-server drill and a real offsite target are **BLOCKED_EXTERNAL** (§ 8).
 
@@ -14,18 +15,18 @@ runbook `docs/runbooks/backup-dr.md` § *Single-server (docker compose) installa
 
 | Measure | Measured (runner) | Target | Result |
 |---|---|---|---|
-| RTO — restore start on a rebuilt host → service verified (offsite sets, base + WAL replay, documents, Keycloak, application) | **@RTO@** | 7 200 s (2 h) | PASS |
-| RPO achieved — base backup + continuous WAL archive (`archive_timeout` 60 s, shipped every 5 s), crash with `kill -9` | **@RPO@** | 86 400 s (24 h) | PASS |
+| RTO — restore start on a rebuilt host → service verified (offsite sets, base + WAL replay, documents, Keycloak, application) | **99 s (1.7 min)** | 7 200 s (2 h) | PASS |
+| RPO achieved — base backup + continuous WAL archive (`archive_timeout` 60 s, shipped every 5 s), crash with `kill -9` | **19.4 s (19 heartbeat commits lost; 44 WAL segments shipped)** | 86 400 s (24 h) | PASS |
 | RPO of the nightly logical set alone (fallback path) | ≤ 24 h by schedule (02:00 daily) | 24 h | by design |
-| Point-in-time recovery to a chosen timestamp | @PITR@ | exact | PASS |
-| Consistency: fingerprint before disaster = after restore = PITR = logical restore | @FPROWS@ | identical | PASS |
+| Point-in-time recovery to a chosen timestamp | target `2026-10-16 16:52:10.558503+00` → heartbeat #75 is the newest row, nothing after it | exact | PASS |
+| Consistency: fingerprint before disaster = after restore = PITR = logical restore | 406 tables / 327,651 rows, trial balance balanced | identical | PASS |
 | Damaged backups refused (5 kinds of damage) | 5 / 5 detected, named | all refused | PASS |
-| Single-tenant document restore, other tenant untouched | @TENANT@ | isolated | PASS |
-| Journey persistence phase + DB integrity on restored data | green | green | PASS |
+| Single-tenant document restore, other tenant untouched | 25 tenant-B objects purged + restored alone (sha256 verified); 4002 tenant-A objects: keys + ETags identical | isolated | PASS |
+| Journey persistence phase (Keycloak sign-ins, attendance, fees, results) + DB integrity on restored data | green; `db-integrity.sh` 0 violations | green | PASS |
 
 Green full drill (2,000 students, every step incl. corrupt-backup detection, single-tenant restore,
-persistence, DB integrity, systemd units, report): **run @RUN@** on `@SHA@`.
-SutraERP CI on the final code head: **run @CIRUN@** (green).
+persistence, DB integrity, systemd units, report): **run 38932035861** on `dd5340f8`.
+SutraERP CI on the final code head: **run 38932074059** (green).
 
 Earlier drill runs (each failure root-caused and fixed in code, not worked around):
 
@@ -36,6 +37,8 @@ Earlier drill runs (each failure root-caused and fixed in code, not worked aroun
 | 38921833431 | 2,000 | restore step 9 | post-restore payment picked charges by status; part-paid charges change status → pick any charge with an outstanding amount (0981267b) |
 | 38924105868 | 300 | logical restore | nightly set wrapped an already age-encrypted database tar (double layer) → the set holds the plain tar, encrypted once (498270e7) |
 | 38926626943 | 2,000 | logical restore | `backup.env` sourced with `set -a` overrode the caller: the logical restore's explicit target URL was replaced by the live database and the file's `SUTRA_ENV=drill` reached `sutra-api migrate` → `load_backup_env` (caller wins) in every script (cd476458) |
+| 38931168827, 38931523714 | 2,000 | — | cancelled (superseded by the next push) |
+| **38932035861** | **2,000** | **every step green** | — (this report) |
 | CI 38931362476 | — | Web lint | `deploy/backup/drill/seed.mjs` failed the repo eslint (Node globals, unused assignments) → fixed (dd5340f8) |
 
 ## 2. What the drill does (fresh host, real services)
@@ -47,8 +50,8 @@ MinIO (built from source, random root credentials), NATS, Valkey, Mailpit, API, 
 1. Part 1 journey (Keycloak OIDC + TOTP, human approvals: marks, attendance, fees, documents, results).
 2. **Base backup** (`sutra-fullbackup.sh base`: `pg_basebackup` → age → checksums → offsite) and the
    WAL shipper (`sutra-wal-ship.sh --loop 5`).
-3. **Seed @STUDENTS@ students through the public API** (admission → documents uploaded to MinIO →
-   approval → student; a fee charge and a payment each; @REQUESTS@ requests, @SEEDS@ s).
+3. **Seed 2,000 students through the public API** (admission → documents uploaded to MinIO →
+   approval → student; a fee charge and a payment each; 50,080 requests, 679 s).
 4. Tenant-B fixture (25 documents of a second tenant), quiesce writers, **fingerprint before**,
    **nightly set** (database dumps + Keycloak dump + realm export + document objects with sha256
    manifest + configuration inventory → age → checksums → offsite), heartbeat writer (1 commit/s).
@@ -61,13 +64,23 @@ MinIO (built from source, random root credentials), NATS, Valkey, Mailpit, API, 
    **persistence** phase, **DB integrity** (`deploy/ci/db-integrity.sh`), **systemd units** +
    rotation dry run + monitoring textfile metrics, **report** (`drill-metrics.json`, job summary).
 
-Data at backup time (run @RUN@): @DATA@.
+Data at backup time (run 38932035861): 2,007 students · 4,027 document objects (95.7 MiB) · `sutra` DB 283.2 MiB · Keycloak DB 13.7 MiB · nightly encrypted set 138.9 MiB.
 
-## 3. Measured restore (RTO), run @RUN@
+## 3. Measured restore (RTO), run 38932035861
 
-@RESTORE_TABLE@
+| Step | Seconds |
+|---|---|
+| 1 fetch offsite sets + WAL, verify checksums | 1.0 |
+| 2 decrypt base + nightly + WAL (age) | 1.9 |
+| 3 prepare PGDATA (base backup + WAL to replay) | 6.6 |
+| 4 postgres up + WAL replay (archive recovery) + promote | 3.9 |
+| 6 keycloak, minio, nats, valkey, mailpit up (healthy) | 21.1 |
+| 7 restore document objects + verify every sha256 in MinIO | 39.9 |
+| 8 migrate + api + web up (all health checks) | 3.7 |
+| 9 verify: Keycloak sign-ins, audit chain, document downloads, a new write | 20.4 |
+| **Total (restore start → service verified, incl. the step-5 fingerprint + compare)** | **99.0** |
 
-Backup side: base backup @BASE_S@ s; nightly set @NIGHTLY_S@ s (encrypted set @NIGHTLY_MB@).
+Backup side: base backup 2.3 s; nightly set 24.7 s (encrypted set 138.9 MiB).
 
 ## 4. Consistency evidence
 
@@ -77,7 +90,12 @@ per tenant, `platform.audit_log` count / max id, the document rows (count, bytes
 sha256 / size / state) and Keycloak users / credentials (incl. TOTP) / clients / roles / groups.
 `fingerprint.sh --compare` (plain `diff`) must be empty.
 
-@FP_LINES@
+- `fp-before.txt`: 406 tables / 327,651 rows · tb-total 155275000.00 155275000.00 · audit-head 0192f5a0-7c3e-7000-8000-000000000001 66268 c67782… · `docs 4027 100349934 cbff404390fa4bd4cc41a7ae9da72dd1` · kc-users 11 ccabd738ab043ab0034f26c34462ace0 · kc-credentials 14 8034f4d3ab95ab665d446600b3e5495b
+- `fp-after-restore.txt`: 406 tables / 327,651 rows · tb-total 155275000.00 155275000.00 · audit-head 0192f5a0-7c3e-7000-8000-000000000001 66268 c67782… · `docs 4027 100349934 cbff404390fa4bd4cc41a7ae9da72dd1` · kc-users 11 ccabd738ab043ab0034f26c34462ace0 · kc-credentials 14 8034f4d3ab95ab665d446600b3e5495b
+- `fp-pitr.txt`: 406 tables / 327,651 rows · tb-total 155275000.00 155275000.00 · audit-head 0192f5a0-7c3e-7000-8000-000000000001 66268 c67782… · `docs 4027 100349934 cbff404390fa4bd4cc41a7ae9da72dd1` · kc-users 11 ccabd738ab043ab0034f26c34462ace0 · kc-credentials 14 8034f4d3ab95ab665d446600b3e5495b
+- `fp-logical.txt`: 406 tables / 327,651 rows · tb-total 155275000.00 155275000.00 · audit-head 0192f5a0-7c3e-7000-8000-000000000001 66268 c67782… · `docs 4027 100349934 cbff404390fa4bd4cc41a7ae9da72dd1` · kc-users 11 ccabd738ab043ab0034f26c34462ace0 · kc-credentials 14 8034f4d3ab95ab665d446600b3e5495b
+
+Every compare (before ↔ after-restore, before ↔ PITR, before ↔ logical) was empty.
 
 Application level after the restore (`drill/verify.mjs`, through the public web origin): Keycloak
 OIDC + TOTP sign-ins of the administrator, registrar, finance approver and student; audit chain
@@ -99,17 +117,24 @@ Method (`drill/report.py`): the runner's measured throughput of each restore ste
 student-year (≈ 57 GiB of documents), database scaled linearly per student from this run. None of
 this is college data; replace the assumptions with the college's real sizes.
 
-@EST_TABLE@
+| Item | Estimate |
+|---|---|
+| Database 3.4 GiB → PGDATA restore + WAL replay | ≈ 2 min |
+| Documents 57.2 GiB → object restore + sha256 read-back | ≈ 407 min |
+| Fetch + decrypt (scaled by bytes) | ≈ 8 min |
+| Services up + verification (fixed) | ≈ 0.8 min |
+| **Estimated RTO, whole stack** | **≈ 418 min** vs 120 min target — ESTIMATE, to be measured on the college server |
 
 Reading of the estimate: the database path (base backup + WAL replay) stays in minutes; the document
 objects dominate. Restore step 7 uploads every object and downloads it back to verify its sha256 —
-on the runner that is ≈ @OBJ_RATE@. The drill's documents average ≈ 25 KiB, so per-object
+on the runner that is ≈ 2.4 MiB/s (4,027 objects in 39.9 s). The drill's documents average ≈ 25 KiB, so per-object
 overhead dominates that rate and scaling it by bytes to 400 KiB documents is pessimistic — but it is
 the only measured figure, so it is what the estimate uses. At 57 GiB the **whole-stack** estimate
 exceeds the 2 h target; this is a risk to measure on the college server, not a pass.
-Mitigations already supported by the tooling, to be measured on the college server:
+Mitigations (the first two only reorder / split existing commands; the last two are infrastructure
+options; none of them was timed in this drill):
 - bring the service up before the documents finish (restore steps 1–6, 8, 9 first; run
-  `sutra-fullrestore.sh objects` afterwards — documents return progressively; ≈ @CORE_EST@ for the
+  `sutra-fullrestore.sh objects` afterwards — documents return progressively; ≈ 11 min for the
   core service in this estimate);
 - skip the read-back verification at restore time and run `sutra-objects.sh verify-live` after;
 - keep the document bucket replicated to the offsite store (S3 replication / `mc mirror --watch`)
@@ -139,8 +164,11 @@ Exact commands: `docs/runbooks/backup-dr.md` § *Restore after losing the server
 Single tenant's documents: `sutra-objects.sh restore <dir> --tenant <uuid>` then
 `sutra-objects.sh verify-live documents.tsv --tenant <uuid>`.
 
-Schedule installed by `systemd/install.sh` (validated in the drill with `systemd-analyze verify` +
-`calendar`): nightly 02:00 (+ base backup Sundays, rotation), WAL ship every minute, verification
+Schedule installed by `systemd/install.sh` (drill step `units`: installed into a scratch root, all 7
+unit files parsed by `systemd-analyze verify` with no syntax / unknown-directive errors — the only
+messages are scratch-root artefacts, `sysinit.target not found` and `/bin/sh is not executable`, kept
+in `evidence/systemd-verify.txt`; a full dependency check needs a real host, § 8 B1; OnCalendar
+expressions validated with `systemd-analyze calendar`): nightly 02:00 (+ base backup Sundays, rotation), WAL ship every minute, verification
 Saturday 06:00, `OnFailure=` alert unit; textfile metrics (`with-metrics.sh`) feed the S5-monitor
 backup alerts (`sutra_backup_last_run_success`, `sutra_backup_last_success_timestamp_seconds`,
 `sutra_wal_*`). Retention (`rotate.sh`): 14 daily / 8 weekly / 12 monthly nightly sets, 2 base
