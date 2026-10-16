@@ -155,6 +155,7 @@ pub const PROCESS_KEYS: &[&str] = &[
     "people.requisition_approval",
     "people.separation_approval",
     "people.workload_plan_approval",
+    "platform.import_commit_approval",
     "resources.asset_retirement",
     "resources.award_approval",
     "resources.purchase_order_approval",

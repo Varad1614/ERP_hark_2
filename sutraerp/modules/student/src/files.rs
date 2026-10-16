@@ -178,6 +178,31 @@ fn admission_doc_row(r: &PgRow) -> Result<AdmissionDocRow, sqlx::Error> {
     })
 }
 
+/// A file may be attached: the admission is open, the document `submitted` and without a file.
+fn admission_attachable(row: &AdmissionDocRow) -> Result<(), KernelError> {
+    if !matches!(
+        row.admission_status.as_str(),
+        "initiated" | "documents_submitted"
+    ) {
+        return Err(KernelError::Conflict(format!(
+            "admission is {}; files can no longer be attached",
+            row.admission_status
+        )));
+    }
+    if row.status != "submitted" {
+        return Err(KernelError::Conflict(format!(
+            "document is {}; a file is attached while the document awaits verification",
+            row.status
+        )));
+    }
+    if row.document_object_id.is_some() {
+        return Err(KernelError::Conflict(
+            "a file is already attached; hand in a new document to replace it".into(),
+        ));
+    }
+    Ok(())
+}
+
 async fn admission_doc(
     conn: &mut PgConnection,
     tenant: TenantId,
@@ -245,39 +270,22 @@ pub async fn upload_admission_file(
         return Err(storage_off().into());
     }
     let bytes = read_upload(body, st.documents.max_bytes()).await?;
-    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
-    let row = admission_doc(&mut tx, tenant(ctx), id, document_id, true).await?;
-    if !matches!(
-        row.admission_status.as_str(),
-        "initiated" | "documents_submitted"
-    ) {
-        return Err(KernelError::Conflict(format!(
-            "admission is {}; files can no longer be attached",
-            row.admission_status
-        ))
-        .into());
-    }
-    if row.status != "submitted" {
-        return Err(KernelError::Conflict(format!(
-            "document is {}; a file is attached while the document awaits verification",
-            row.status
-        ))
-        .into());
-    }
-    if row.document_object_id.is_some() {
-        return Err(KernelError::Conflict(
-            "a file is already attached; hand in a new document to replace it".into(),
-        )
-        .into());
-    }
-    let scope = institution_scope(ctx, row.institution_id);
-    require_institution_writable(&st, &scope, row.institution_id).await?;
+    // Checks, the institution read and the object (own connections) BEFORE the document row is
+    // locked (Part 2 · S5-capacity, DEF-P2-CAP-006): holding the row lock's connection while the
+    // vault took a second one starved the pool under concurrent uploads (503).
+    let row0 = {
+        let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+        admission_doc(&mut conn, tenant(ctx), id, document_id, false).await?
+    };
+    admission_attachable(&row0)?;
+    let scope = institution_scope(ctx, row0.institution_id);
+    require_institution_writable(&st, &scope, row0.institution_id).await?;
     let stored = st
         .documents
         .store(
             &scope,
             NewDocument {
-                owner: DocumentOwner::new(OWNER_ADMISSION_DOCUMENT, row.id),
+                owner: DocumentOwner::new(OWNER_ADMISSION_DOCUMENT, row0.id),
                 filename: q.filename,
                 declared_content_type: declared_type(&headers),
                 bytes,
@@ -285,6 +293,11 @@ pub async fn upload_admission_file(
             },
         )
         .await?;
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    let row = admission_doc(&mut tx, tenant(ctx), id, document_id, true).await?;
+    // Re-checked under the lock: a concurrent attach wins; this upload stays an unattached,
+    // audited document object of the same owner (never silently replaces the first file).
+    admission_attachable(&row)?;
     let version: i64 = sqlx::query_scalar(
         "UPDATE student.admission_document SET document_object_id = $2, version = version + 1, \
          updated_at = now() WHERE id = $1 RETURNING version",
@@ -444,6 +457,22 @@ fn student_doc_row(r: &PgRow) -> Result<StudentDocRow, sqlx::Error> {
     })
 }
 
+/// A file may be attached: the document is `submitted` and has none yet.
+fn student_attachable(row: &StudentDocRow) -> Result<(), KernelError> {
+    if row.status != "submitted" {
+        return Err(KernelError::Conflict(format!(
+            "document is {}; a file is attached while the document awaits verification",
+            row.status
+        )));
+    }
+    if row.document_object_id.is_some() {
+        return Err(KernelError::Conflict(
+            "a file is already attached; file a new document to replace it".into(),
+        ));
+    }
+    Ok(())
+}
+
 async fn student_doc(
     conn: &mut PgConnection,
     tenant: TenantId,
@@ -505,23 +534,16 @@ pub async fn upload_student_file(
     let s = load_student(&st.pool, tenant(ctx), id).await?;
     require_student_writable(&s)?;
     let bytes = read_upload(body, st.documents.max_bytes()).await?;
-    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
-    let row = student_doc(&mut tx, tenant(ctx), id, document_id, true).await?;
-    if row.status != "submitted" {
-        return Err(KernelError::Conflict(format!(
-            "document is {}; a file is attached while the document awaits verification",
-            row.status
-        ))
-        .into());
-    }
-    if row.document_object_id.is_some() {
-        return Err(KernelError::Conflict(
-            "a file is already attached; file a new document to replace it".into(),
-        )
-        .into());
-    }
-    let scope = row.scope(ctx);
-    if let Some(inst) = row.institution_id {
+    // Checks, the institution read and the object (own connections) BEFORE the document row is
+    // locked (DEF-P2-CAP-006: capacity run 38930815741 — every one of 12 concurrent ID-card
+    // uploads waited 5 s for a second pool connection under the row lock and failed with 503).
+    let row0 = {
+        let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+        student_doc(&mut conn, tenant(ctx), id, document_id, false).await?
+    };
+    student_attachable(&row0)?;
+    let scope = row0.scope(ctx);
+    if let Some(inst) = row0.institution_id {
         require_institution_writable(&st, &scope, inst).await?;
     }
     let stored = st
@@ -529,7 +551,7 @@ pub async fn upload_student_file(
         .store(
             &scope,
             NewDocument {
-                owner: DocumentOwner::new(OWNER_STUDENT_DOCUMENT, row.id),
+                owner: DocumentOwner::new(OWNER_STUDENT_DOCUMENT, row0.id),
                 filename: q.filename,
                 declared_content_type: declared_type(&headers),
                 bytes,
@@ -537,6 +559,10 @@ pub async fn upload_student_file(
             },
         )
         .await?;
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    let row = student_doc(&mut tx, tenant(ctx), id, document_id, true).await?;
+    // Re-checked under the lock (a concurrent attach wins; see the admission upload).
+    student_attachable(&row)?;
     let version: i64 = sqlx::query_scalar(
         "UPDATE student.student_document SET document_object_id = $2, version = version + 1, \
          updated_at = now() WHERE id = $1 RETURNING version",

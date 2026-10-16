@@ -11,7 +11,11 @@
 //!    `Idempotency-Replayed: true`; a different fingerprint is rejected with 422;
 //!    a retry while the first attempt is still running gets 409.
 //!
-//! 5xx outcomes release the key so the client may retry. Requests without the header pass
+//! 5xx outcomes release the key so the client may retry. A completed response larger than
+//! [`MAX_BODY_BYTES`] is still delivered in full; the key then stores a small
+//! `already-processed` record (same status) instead of the body, so a retry is never executed
+//! twice (Part 2 · S5-capacity, DEF-P2-CAP-005: a committed 2,000-row marks entry used to be
+//! answered 500 and its key released). Requests without the header pass
 //! through untouched; handlers that *require* a key can use [`require_idempotency_key`].
 
 use crate::problem::ApiError;
@@ -31,6 +35,31 @@ pub static IDEMPOTENCY_REPLAYED: HeaderName = HeaderName::from_static("idempoten
 
 /// Maximum request/response body buffered for fingerprinting and replay.
 pub const MAX_BODY_BYTES: usize = 1024 * 1024;
+
+/// Largest response of a keyed mutating request this layer buffers before handing it to the
+/// client (the handler has committed by then; see [`replay_marker`]).
+pub const MAX_RESPONSE_BYTES: usize = 64 * 1024 * 1024;
+
+/// What a key stores when the committed response is too large to keep for replay: the same
+/// status with a small problem body telling the client the request was already processed.
+fn replay_marker(status: StatusCode, len: usize) -> StoredResponse {
+    let body = serde_json::json!({
+        "type": "urn:sutraerp:problem:already-processed",
+        "title": "Already processed",
+        "status": status.as_u16(),
+        "detail": format!(
+            "this request was already processed (status {}); its {len}-byte response is too \
+             large to replay; read the resource again",
+            status.as_u16()
+        ),
+        "errorCode": "already-processed",
+    });
+    StoredResponse {
+        status: status.as_u16(),
+        content_type: Some("application/problem+json".to_owned()),
+        body: body.to_string().into_bytes(),
+    }
+}
 
 /// Request extension: the transport body limit of the current route, set by the composition
 /// root's body-limit middleware (which also enforces it). A route allowed a larger body than
@@ -176,7 +205,7 @@ pub async fn idempotency(
     }
 
     let (res_parts, res_body) = res.into_parts();
-    let res_bytes = match to_bytes(res_body, MAX_BODY_BYTES).await {
+    let res_bytes = match to_bytes(res_body, MAX_RESPONSE_BYTES).await {
         Ok(b) => b,
         Err(_) => {
             store.abandon(&scope_key, &key).await?;
@@ -190,17 +219,16 @@ pub async fn idempotency(
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
         .map(str::to_owned);
-    store
-        .complete(
-            &scope_key,
-            &key,
-            StoredResponse {
-                status: status.as_u16(),
-                content_type,
-                body: res_bytes.to_vec(),
-            },
-        )
-        .await?;
+    let stored = if res_bytes.len() > MAX_BODY_BYTES {
+        replay_marker(status, res_bytes.len())
+    } else {
+        StoredResponse {
+            status: status.as_u16(),
+            content_type,
+            body: res_bytes.to_vec(),
+        }
+    };
+    store.complete(&scope_key, &key, stored).await?;
     Ok(Response::from_parts(res_parts, Body::from(res_bytes)))
 }
 
@@ -329,6 +357,45 @@ mod tests {
         small.extensions_mut().insert(RouteBodyLimit(1));
         let r = a.clone().oneshot(small).await.unwrap();
         assert_eq!(r.status(), StatusCode::CREATED);
+    }
+
+    /// DEF-P2-CAP-005: a committed response above the replay buffer reaches the client in full
+    /// (not a 500), and a retry with the same key is answered from the key without running the
+    /// handler again.
+    #[tokio::test]
+    async fn large_committed_response_is_delivered_and_never_re_executed() {
+        let c = Arc::new(AtomicUsize::new(0));
+        let counter = c.clone();
+        let store: SharedIdempotencyStore = Arc::new(InMemoryIdempotencyStore::default());
+        let big = MAX_BODY_BYTES * 2;
+        let a = Router::new()
+            .route(
+                "/marks",
+                post(move || {
+                    let c = counter.clone();
+                    async move {
+                        c.fetch_add(1, Ordering::SeqCst);
+                        (StatusCode::OK, "x".repeat(big))
+                    }
+                }),
+            )
+            .layer(axum::middleware::from_fn_with_state(store, idempotency));
+        let call = |key: &str| {
+            Request::builder()
+                .method("POST")
+                .uri("/marks")
+                .header("idempotency-key", key)
+                .body(Body::from("{}"))
+                .unwrap()
+        };
+        let r1 = a.clone().oneshot(call("m1")).await.unwrap();
+        assert_eq!(r1.status(), StatusCode::OK);
+        assert_eq!(text(r1).await.len(), big, "the full response");
+        let r2 = a.clone().oneshot(call("m1")).await.unwrap();
+        assert_eq!(r2.status(), StatusCode::OK);
+        assert_eq!(r2.headers()["idempotency-replayed"], "true");
+        assert!(text(r2).await.contains("already-processed"));
+        assert_eq!(c.load(Ordering::SeqCst), 1, "handler executed once");
     }
 
     #[tokio::test]

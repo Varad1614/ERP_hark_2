@@ -33,8 +33,16 @@ use sutra_contracts::institution::InstitutionDirectory;
 use sutra_contracts::platform::dataimport::ImportTargetPort;
 use sutra_contracts::platform::workflow::WorkflowPort;
 
-/// Process definition key of the commit approval (separation of duties).
-pub const COMMIT_APPROVAL: &str = "platform.import_commit_approval";
+/// Approval process keys of the data import, read by `deploy/flowable/gen-bpmn.py` (a BPMN per
+/// key, and the key in `workflow_flowable::PROCESS_KEYS`, which the Flowable adapter deploys).
+/// Part 2 · S5-capacity, DEF-P2-CAP-004: the key used to live outside every `process` module the
+/// generator reads, so production (Flowable) had no `platform.import_commit_approval` definition
+/// and every opening-balance commit failed with 500 (capacity run 38930815741).
+pub mod process {
+    /// Process definition key of the commit approval (separation of duties).
+    pub const COMMIT_APPROVAL: &str = "platform.import_commit_approval";
+}
+pub use process::COMMIT_APPROVAL;
 
 /// Handler state.
 #[derive(Clone)]
