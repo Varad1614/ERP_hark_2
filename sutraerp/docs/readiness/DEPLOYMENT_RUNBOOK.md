@@ -131,6 +131,12 @@ api` names the setting).
   put `SUTRA_PAYMENT_GATEWAY=razorpay`, `SUTRA_RAZORPAY_KEY_ID`, `SUTRA_RAZORPAY_KEY_SECRET`,
   `SUTRA_PAYMENT_WEBHOOK_SECRET` in a file referenced by `SUTRA_EXTRA_API_ENV=/etc/sutraerp/extra-api.env`
   (mode 600) in `sutraerp.conf`, then `render`, `start`.
+* **Module entitlement** (Part 2 · S7): `SUTRA_ENTITLEMENT_DEFAULT` in `sutraerp.conf` — the licence of
+  an institution without a stored entitlement row: a package key from `catalog/entitlements.json` or
+  `none` (core only until the purchased entitlement is approved). Required in production (the API
+  refuses to start without it); `render` records `complete_erp` with a warning when an installation
+  that predates entitlements has none. A commercial installation sets the purchased package or `none`
+  (COMMERCIAL_PACKAGING.md, ENTITLEMENT_IMPLEMENTATION.md).
 * **Resource tuning**: `SUTRA_PG_SHARED_BUFFERS` (≈ 25 % of the RAM given to PostgreSQL),
   `SUTRA_KC_HEAP` / `SUTRA_FLOWABLE_HEAP` (JVM max heap), `SUTRA_VALKEY_MAXMEMORY`.
 
@@ -195,6 +201,21 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 ```
+
+**Encrypted offsite sets, point-in-time recovery, monitoring metrics** (Part 2 · S5-backup / S5-monitor):
+PostgreSQL archives every WAL segment to `SUTRA_WAL_ARCHIVE_DIR` (default `/var/lib/sutraerp/wal-archive`,
+created by `render`, owner uid 999). Copy `backup/host/backup.env.example` from the bundle to
+`/etc/sutraerp/backup.env` (mode 600; database URLs use host `postgres`, e.g.
+`postgres://sutra:<POSTGRES_PASSWORD>@postgres:5432/sutra?sslmode=require`; age **public** key; offsite
+target; MinIO on `https://127.0.0.1:9000`) and install `age`, `jq` and the AWS CLI. From then on
+`sutra-onprem backup` also runs `sutra-onprem fullbackup nightly` — `backup/sutra-fullbackup.sh` through
+`backup/with-metrics.sh`, which writes `sutra_backup_*{kind="nightly"}` textfile metrics for
+node_exporter (alerts SutraBackupFailed / SutraBackupStale, MONITORING_AND_SUPPORT.md). Weekly base
+backup for PITR: `sutra-onprem fullbackup base`; WAL shipping: `backup/systemd/sutraerp-wal-ship.timer`
+(`backup/systemd/install.sh`). Restore of a set: docs/runbooks/backup-dr.md. Status: the
+`fullbackup` integration of the on-prem tool is wired on part2/int but is **not** exercised by the
+on-prem drill (which covers the restore-point backup above); the set format itself is exercised by
+the backup drill (BACKUP_RESTORE_REPORT.md).
 
 `systemctl enable --now sutraerp-backup.timer`; copy `/var/backups/sutraerp` to a second disk / NAS
 daily and prune old copies (e.g. keep 14 daily, 8 weekly). Test a restore every term on a spare

@@ -21,8 +21,19 @@ SUTRA_SMTP_TLS=starttls
 SUTRA_SMTP_USER=
 SUTRA_SMTP_PASSWORD=
 SUTRA_MAIL_FROM=
-# Backups (sutra-onprem backup; schedule it with the systemd timer in the runbook).
+# Backups (sutra-onprem backup; schedule it with the systemd timer in the runbook). With
+# /etc/sutraerp/backup.env (bundle backup/host/backup.env.example) `backup` also writes the encrypted
+# offsite set (sutra-onprem fullbackup nightly|base) and its monitoring metrics.
 SUTRA_BACKUP_DIR=/var/backups/sutraerp
+# PostgreSQL WAL archive (point-in-time recovery) and base-backup staging (owned by uid 999).
+SUTRA_WAL_ARCHIVE_DIR=/var/lib/sutraerp/wal-archive
+SUTRA_PG_STAGING_DIR=/var/backups/sutraerp/staging
+SUTRA_PG_ARCHIVE_TIMEOUT=60
+# Module entitlement of an institution WITHOUT a stored licence (required in production — the API
+# refuses to start without it): a package key from catalog/entitlements.json (core_academic,
+# complete_erp, …) or `none` (core only until the purchased entitlement is approved and stored).
+# A commercial installation sets the purchased package or `none` (COMMERCIAL_PACKAGING.md).
+SUTRA_ENTITLEMENT_DEFAULT=complete_erp
 # Document storage bucket (created private by install).
 SUTRA_S3_BUCKET=sutraerp-documents
 # Tuning (see INFRASTRUCTURE_REPORT.md for the measured footprint): PostgreSQL shared_buffers

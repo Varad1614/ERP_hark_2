@@ -10,6 +10,8 @@
 #   sudo sutra-onprem health [--wait 600] | status | logs [svc] | restart [svc…] | stop | start
 #   sudo sutra-onprem backup [--label L]        → /var/backups/sutraerp/<name>/
 #   sudo sutra-onprem restore <backup dir>
+#   sudo sutra-onprem fullbackup [nightly|base]  → encrypted set (deploy/backup/sutra-fullbackup.sh via
+#        with-metrics.sh; needs $SUTRA_ETC/backup.env + age, jq, aws) — also run by `backup` when set up
 #   sudo sutra-onprem upgrade <new bundle dir | .tar>
 #   sudo sutra-onprem rollback [--app-only]
 #   sudo sutra-onprem verify [bundle dir] | preflight | counts
@@ -58,6 +60,9 @@ load_conf() {
   SUTRA_MINIO_PORT=${SUTRA_MINIO_PORT:-9000}
   SUTRA_S3_BUCKET=${SUTRA_S3_BUCKET:-sutraerp-documents}
   SUTRA_BACKUP_DIR=${SUTRA_BACKUP_DIR:-/var/backups/sutraerp}
+  # PostgreSQL WAL archive (point-in-time recovery, deploy/backup) and base-backup staging.
+  SUTRA_WAL_ARCHIVE_DIR=${SUTRA_WAL_ARCHIVE_DIR:-/var/lib/sutraerp/wal-archive}
+  SUTRA_PG_STAGING_DIR=${SUTRA_PG_STAGING_DIR:-$SUTRA_BACKUP_DIR/staging}
 }
 
 # bundle.env of a release directory (VERSION, MINIO tag, capabilities).
@@ -288,6 +293,18 @@ cmd_render() {
   } >"$t/trust.pem"
   chmod 644 "$t/trust.pem"
 
+  # WAL archive + base-backup staging: bind mounts written by postgres (uid 999 in postgres:18).
+  install -d -o 999 -g 999 -m 0700 "$SUTRA_WAL_ARCHIVE_DIR" "$SUTRA_PG_STAGING_DIR"
+  # Entitlement of a tenant without a stored licence row (Part 2 · S7): required in production
+  # (the API refuses to start without it). Installations that predate entitlements ran every module,
+  # so an unset value is recorded explicitly as complete_erp; a commercial installation sets `none`
+  # (or a package key) in sutraerp.conf and stores the purchased entitlement.
+  if [[ -z "${SUTRA_ENTITLEMENT_DEFAULT:-}" ]]; then
+    log "WARN SUTRA_ENTITLEMENT_DEFAULT not set in sutraerp.conf — recording complete_erp (every module)"
+    SUTRA_ENTITLEMENT_DEFAULT=complete_erp
+    conf_set SUTRA_ENTITLEMENT_DEFAULT "$SUTRA_ENTITLEMENT_DEFAULT"
+  fi
+
   touch "$SUTRA_ETC/compose.env" "$SUTRA_ETC/api.env"
   chmod 600 "$SUTRA_ETC/compose.env" "$SUTRA_ETC/api.env"
   cat >"$SUTRA_ETC/compose.env" <<EOF
@@ -302,6 +319,9 @@ SUTRA_HTTPS_PORT=$SUTRA_HTTPS_PORT
 SUTRA_MINIO_PORT=$SUTRA_MINIO_PORT
 SUTRA_PG_SHARED_BUFFERS=${SUTRA_PG_SHARED_BUFFERS:-512MB}
 SUTRA_PG_MAX_CONNECTIONS=${SUTRA_PG_MAX_CONNECTIONS:-200}
+SUTRA_PG_ARCHIVE_TIMEOUT=${SUTRA_PG_ARCHIVE_TIMEOUT:-60}
+SUTRA_WAL_ARCHIVE_DIR=$SUTRA_WAL_ARCHIVE_DIR
+SUTRA_PG_STAGING_DIR=$SUTRA_PG_STAGING_DIR
 SUTRA_KC_HEAP=${SUTRA_KC_HEAP:-768m}
 SUTRA_FLOWABLE_HEAP=${SUTRA_FLOWABLE_HEAP:-768m}
 SUTRA_VALKEY_MAXMEMORY=${SUTRA_VALKEY_MAXMEMORY:-256mb}
@@ -344,6 +364,7 @@ EOF
     echo "SUTRA_MFA_ENCRYPTION_KEY=$SUTRA_MFA_ENCRYPTION_KEY"
     echo "SUTRA_AUDIT_ANCHOR_KEY=$SUTRA_AUDIT_ANCHOR_KEY"
     echo "SUTRA_APPROVAL_MODE=human"
+    echo "SUTRA_ENTITLEMENT_DEFAULT=$SUTRA_ENTITLEMENT_DEFAULT"
     echo "SUTRA_WORKFLOW=flowable"
     echo "SUTRA_FLOWABLE_URL=http://flowable:8080/flowable-rest"
     echo "SUTRA_FLOWABLE_USER=rest-admin"
@@ -741,7 +762,48 @@ cmd_backup() {
   printf 'release=%s\ngitSha=%s\nlabel=%s\ncreated=%s\n' "$SUTRA_VERSION" "$SUTRA_GIT_SHA" "$label" "$(date -u +%FT%TZ)" >"$dir/onprem.release"
   timing "backup_$label" "$(since "$t0")"
   ok "backup $dir ($(du -sh "$dir" | cut -f1))"
+  # The encrypted, offsite-capable set with node_exporter textfile metrics (SutraBackupFailed /
+  # SutraBackupStale alerts) once the backup configuration exists. Its output goes to stderr: the
+  # last stdout line stays the restore-point directory (upgrade / rollback read it).
+  if [[ -f "$SUTRA_ETC/backup.env" ]]; then
+    cmd_fullbackup nightly >&2 || log "WARN encrypted full backup failed (restore point $dir kept; alert SutraBackupFailed)"
+  fi
   printf '%s\n' "$dir"
+}
+
+# PostgreSQL client tools for the host-side backup scripts, run in postgres:18 on the stack network
+# (PostgreSQL is not published on the host). Paths under the backup directory are mounted 1:1.
+pg_shims() {
+  local d="$SUTRA_ETC/backup-tools" t
+  mkdir -p "$d"
+  for t in psql pg_dump pg_restore; do
+    cat >"$d/$t" <<EOF
+#!/usr/bin/env bash
+exec docker run --rm -i --network ${PROJECT}_default --pull never -v "$SUTRA_BACKUP_DIR:$SUTRA_BACKUP_DIR" \\
+  -v "$SUTRA_ETC/tls/internal:$SUTRA_ETC/tls/internal:ro" postgres:18 $t "\$@"
+EOF
+    chmod 700 "$d/$t"
+  done
+  printf '%s' "$d"
+}
+
+# deploy/backup/sutra-fullbackup.sh (nightly | base) through with-metrics.sh — the same jobs the
+# deploy/backup/systemd timer runs. Configuration: $SUTRA_ETC/backup.env
+# (deploy/backup/host/backup.env.example: age recipient, offsite target, S3 read key; database URLs
+# use the host name `postgres`, e.g. postgres://sutra:…@postgres:5432/sutra?sslmode=require).
+cmd_fullbackup() {
+  need_root
+  load_conf
+  local kind=${1:-nightly} rel
+  [[ "$kind" == nightly || "$kind" == base ]] || die "fullbackup nightly|base"
+  [[ -f "$SUTRA_ETC/backup.env" ]] || die "$SUTRA_ETC/backup.env missing (copy backup/host/backup.env.example from the bundle)"
+  rel=$(current_dir)
+  local t
+  for t in age jq; do command -v "$t" >/dev/null || die "fullbackup needs $t on the host"; done
+  SUTRA_BACKUP_ENV_FILE="$SUTRA_ETC/backup.env" SUTRA_BACKUP_DIR="$SUTRA_BACKUP_DIR" \
+    SUTRA_PG_CONTAINER="${PROJECT}-postgres-1" SUTRA_PG_STAGING_DIR="$SUTRA_PG_STAGING_DIR" \
+    SUTRA_WAL_ARCHIVE_DIR="$SUTRA_WAL_ARCHIVE_DIR" PG_BIN="$(pg_shims)" \
+    bash "$rel/backup/with-metrics.sh" "$kind" bash "$rel/backup/sutra-fullbackup.sh" "$kind"
 }
 
 cmd_restore() {
@@ -922,6 +984,7 @@ case "$cmd" in
   create-tenant) cmd_create_tenant "$@" ;;
   create-user) cmd_create_user "$@" ;;
   backup) cmd_backup "$@" ;;
+  fullbackup) cmd_fullbackup "$@" ;;
   restore) cmd_restore "$@" ;;
   upgrade) cmd_upgrade "$@" ;;
   rollback) cmd_rollback "$@" ;;

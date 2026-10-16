@@ -24,7 +24,7 @@ whether separation of duties (SoD) and an audit trail are enforced. Branches `pa
 
 ## Separation of duties (DEF-X-002, completed in Stage 3)
 
-Every governed decision endpoint of the API (127 POST operations whose path ends in `…/decision`,
+Every governed decision endpoint of the API (128 POST operations whose path ends in `…/decision`,
 `…-decision`, `/authorise`, `/approve` or — since Part 2 · S6-pilot — `/approval` in `openapi/openapi.json`) is either **guarded** or
 **allowlisted with a written reason**. The fitness test `apps/api/tests/approval_matrix.rs` enforces
 it on every CI run: a new decision endpoint without a guard, a stale allowlist entry, or an

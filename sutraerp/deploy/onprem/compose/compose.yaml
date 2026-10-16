@@ -46,8 +46,23 @@ services:
       - shared_buffers=${SUTRA_PG_SHARED_BUFFERS:-512MB}
       - -c
       - max_connections=${SUTRA_PG_MAX_CONNECTIONS:-200}
+      # Point-in-time recovery (Part 2 · S5-backup, deploy/backup/compose.backup.yml): every WAL
+      # segment is archived to SUTRA_WAL_ARCHIVE_DIR (shipped offsite, encrypted, by
+      # sutra-wal-ship.sh); base backups are staged in SUTRA_PG_STAGING_DIR (sutra-onprem fullbackup base).
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=test ! -f /wal-archive/%f && cp %p /wal-archive/%f.tmp && mv /wal-archive/%f.tmp /wal-archive/%f
+      - -c
+      - archive_timeout=${SUTRA_PG_ARCHIVE_TIMEOUT:-60}
+      - -c
+      - max_wal_senders=4
     volumes:
       - pgdata:/var/lib/postgresql
+      - ${SUTRA_WAL_ARCHIVE_DIR:-/var/lib/sutraerp/wal-archive}:/wal-archive
+      - ${SUTRA_PG_STAGING_DIR:-/var/backups/sutraerp/staging}:/backup-staging
       - ${SUTRA_ETC:?}/tls/internal/postgres:/etc/sutraerp/tls:ro
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:

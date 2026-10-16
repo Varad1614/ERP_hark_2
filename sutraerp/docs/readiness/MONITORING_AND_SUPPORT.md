@@ -240,7 +240,8 @@ docker compose exec alertmanager amtool alert add SutraDeliveryTest severity=cri
 
 Format per alert: what it means → **Check** → **Fix**. Severity levels and roles are in §8. Commands
 assume the on-prem layout (`/opt/sutraerp`, systemd units, `psql -U sutra sutra`); on Kubernetes use the
-equivalent `kubectl` commands from [docs/runbooks/deploy.md](../runbooks/deploy.md).
+equivalent `kubectl` commands from [docs/runbooks/deploy.md](../runbooks/deploy.md); the on-prem
+(single college server) procedures are in [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md).
 
 ### SutraApiDown
 
@@ -261,7 +262,7 @@ equivalent `kubectl` commands from [docs/runbooks/deploy.md](../runbooks/deploy.
 *API · warning* — The API process start time changed more than twice in 30 minutes (crash loop, OOM kill or failing health checks).
 
 - **Check:** `journalctl -u sutra-api --since -1h | grep -iE 'panic|killed|refus'`; `dmesg -T | grep -i oom`.
-- **Fix:** OOM → raise the memory limit or find the request; panic → capture the log, open a defect, roll back to the previous release (docs/runbooks/deploy.md §6) if it repeats.
+- **Fix:** OOM → raise the memory limit or find the request; panic → capture the log, open a defect, roll back to the previous release ([DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) §9 on-prem; docs/runbooks/deploy.md §6 on Kubernetes) if it repeats.
 
 ### SutraPostgresDown
 
