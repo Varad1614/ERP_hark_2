@@ -742,6 +742,15 @@ cmd_restore() {
   load_bundle "$rel"
   dc stop api web keycloak flowable minio
   local owner="postgres://sutra:$POSTGRES_PASSWORD@postgres:5432"
+  # A restore REPLACES the data: the sutra and flowable databases are recreated empty first.
+  # `pg_restore --clean` alone cannot do it after an upgrade (rollback): tables created by later
+  # migrations reference the restored ones, so their DROPs fail and the COPYs hit duplicate keys
+  # (run 38922326019). The roles are cluster-wide and stay; sutra-restore.sh re-applies roles.sql.
+  pgtool -- psql -v ON_ERROR_STOP=1 -qAtX "$owner/postgres?sslmode=require" \
+    -c 'DROP DATABASE IF EXISTS sutra WITH (FORCE)' -c 'CREATE DATABASE sutra OWNER sutra' \
+    -c 'DROP DATABASE IF EXISTS flowable WITH (FORCE)' -c 'CREATE DATABASE flowable OWNER flowable' \
+    -c 'REVOKE ALL ON DATABASE flowable FROM PUBLIC'
+  log "databases sutra, flowable recreated empty for the restore"
   pgtool -v "$rel/backup:/backup:ro" -v "$dir:/in:ro" -e "SUTRA_BACKUP_DATABASE_URL=$owner/sutra?sslmode=require" \
     -e "SUTRA_BACKUP_FLOWABLE_DATABASE_URL=$owner/flowable?sslmode=require" \
     -- bash /backup/sutra-restore.sh /in --skip-migrate

@@ -31,7 +31,7 @@ $SO health
 echo | openssl s_client -connect 127.0.0.1:443 -servername "$ERP_HOST" -CAfile /etc/sutraerp/tls/local-ca/ca.crt 2>/dev/null |
   grep -E 'Verify return code|Protocol|Cipher is' | tee "$OUT/tls.txt"
 grep -q 'Verify return code: 0' "$OUT/tls.txt" || { echo "TLS verification failed" >&2; exit 1; }
-result tls "certificate for $ERP_HOST verifies against the local CA ($(grep -m1 Protocol "$OUT/tls.txt" | xargs))"
+result tls "certificate for $ERP_HOST verifies against the local CA ($(grep -m1 -oE "TLSv1\.[23]" "$OUT/tls.txt" || echo "protocol n/a"))"
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://$ERP_HOST/")
 [[ "$code" == 301 ]] || { echo "http did not redirect ($code)" >&2; exit 1; }
 result http-redirect "http://$ERP_HOST → 301 https"
@@ -50,9 +50,8 @@ resources after-smoke
 
 say "restart every service, one at a time"
 for s in postgres keycloak valkey nats minio flowable api web edge; do
-  t0=$(now)
+  # sutra-onprem records restart_<svc> itself (SUTRA_TIMINGS_FILE).
   $SO restart "$s" >/dev/null
-  record "restart_$s" "$(since "$t0")"
 done
 same_data "$c_ref" "$(counts)" "after restarting each service"
 
