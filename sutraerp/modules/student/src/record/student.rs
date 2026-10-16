@@ -21,8 +21,8 @@ use crate::shared::http::actor;
 use crate::shared::lifecycle::{change_context_status, change_student_status, StatusChange};
 use crate::shared::scope::{institution_scope, tenant};
 use crate::shared::student::{
-    contexts_in_institution, contexts_of, load_student, lock_context, lock_student, me, student_from_row, StudentContextRow,
-    StudentRow, STUDENT_COLUMNS,
+    contexts_in_institution, contexts_of, load_student, lock_context, lock_student, me,
+    student_from_row, StudentContextRow, StudentRow, STUDENT_COLUMNS,
 };
 use crate::shared::time::business_today;
 use crate::shared::{publish, Actor, StudentState};
@@ -142,7 +142,10 @@ pub async fn directory(
     let mut by_student: std::collections::HashMap<Uuid, Vec<StudentContextRow>> =
         std::collections::HashMap::with_capacity(ids.len());
     for c in contexts_in_institution(&mut *conn, tenant(ctx), id, &ids).await? {
-        by_student.entry(c.student_id.as_uuid()).or_default().push(c);
+        by_student
+            .entry(c.student_id.as_uuid())
+            .or_default()
+            .push(c);
     }
     let mut items = Vec::with_capacity(students.len());
     for s in &students {
