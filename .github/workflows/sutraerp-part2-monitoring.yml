@@ -1,0 +1,292 @@
+# Part 2 · Stage 5 (S5-monitor): on-prem monitoring proof — docs/readiness/MONITORING_AND_SUPPORT.md.
+#
+# 1. static: generated rules / tests / dashboards in sync (deploy/monitoring/gen.py), promtool
+#    check + unit tests of every alert rule (on-prem + slice 9A), promtool check config,
+#    Alertmanager receiver templates rendered for every chat kind and validated with amtool,
+#    dashboards / rules only use metrics the API or the exporters export, compose files parse.
+# 2. drill: the monitoring bundle is installed like a college admin would (tarball → /opt layout),
+#    the stack comes up with PostgreSQL 18 (WAL archiving), NATS, MinIO and the API on this
+#    "staging host" runner, then real faults are injected — bad webhook signatures, object storage
+#    blocked, WAL archive failure, PostgreSQL stopped + the backup failing — and the matching alert
+#    must fire in Prometheus, reach Alertmanager and be delivered (Mailpit e-mail, webhook sink).
+#    Numbers are GitHub-hosted runner numbers, NOT college hardware.
+name: SutraERP Part 2 monitoring
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sutraerp-part2-monitoring-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+env:
+  PROMETHEUS_IMAGE: prom/prometheus:v3.13.4
+  ALERTMANAGER_IMAGE: prom/alertmanager:v0.34.1
+
+jobs:
+  static:
+    name: Rules · promtool tests · receivers · dashboards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generated files are in sync (deploy/monitoring/gen.py, deploy/observability/gen.py)
+        run: |
+          (cd deploy/monitoring && python3 gen.py)
+          (cd deploy/observability && python3 gen.py)
+          git diff --exit-code -- deploy/monitoring deploy/observability deploy/helm \
+            || { echo "::error::run python3 gen.py and commit"; exit 1; }
+      - name: promtool check rules + unit tests (on-prem + slice 9A)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/out"
+          docker run --rm -v "$PWD/deploy:/deploy:ro" --entrypoint promtool "$PROMETHEUS_IMAGE" \
+            check rules /deploy/monitoring/prometheus/rules/sutra-onprem.rules.yaml /deploy/observability/alerts/sutra.rules.yaml
+          docker run --rm -v "$PWD/deploy:/deploy:ro" -w /deploy/monitoring/prometheus/rules/tests --entrypoint promtool \
+            "$PROMETHEUS_IMAGE" test rules sutra-onprem.rules.test.yaml | tee "$RUNNER_TEMP/out/promtool-onprem.txt"
+          docker run --rm -v "$PWD/deploy:/deploy:ro" -w /deploy/observability/alerts/tests --entrypoint promtool \
+            "$PROMETHEUS_IMAGE" test rules sutra.rules.test.yaml | tee "$RUNNER_TEMP/out/promtool-9a.txt"
+          python3 - <<'EOF' | tee "$RUNNER_TEMP/out/rule-test-coverage.txt"
+          import yaml
+          rules = yaml.safe_load(open("deploy/monitoring/prometheus/rules/sutra-onprem.rules.yaml"))
+          tests = yaml.safe_load(open("deploy/monitoring/prometheus/rules/tests/sutra-onprem.rules.test.yaml"))
+          names = [r["alert"] for g in rules["groups"] for r in g["rules"]]
+          fired = {t["alert_rule_test"][0]["alertname"] for t in tests["tests"] if t["alert_rule_test"][0]["exp_alerts"]}
+          quiet = {t["alert_rule_test"][0]["alertname"] for t in tests["tests"] if not t["alert_rule_test"][0]["exp_alerts"]}
+          missing = [n for n in names if n not in fired or (n != "SutraWatchdog" and n not in quiet)]
+          for r in (r for g in rules["groups"] for r in g["rules"]):
+              a = r["annotations"]
+              assert r["labels"]["severity"] in ("critical", "warning", "info", "none"), r["alert"]
+              assert a["runbook_url"].endswith("#" + r["alert"].lower()), r["alert"]
+              assert a["summary"] and a["description"], r["alert"]
+          print(f"{len(names)} on-prem alerts, {len(tests['tests'])} promtool tests, every alert has a firing and a quiet case")
+          assert not missing, missing
+          EOF
+          # The production Prometheus config, with the rule files where compose mounts them.
+          docker run --rm -v "$PWD/deploy/monitoring/prometheus:/etc/prometheus:ro" \
+            -v "$PWD/deploy/monitoring/prometheus/rules:/etc/prometheus/rules:ro" \
+            -v "$PWD/deploy/observability/alerts:/etc/prometheus/rules-9a:ro" --entrypoint promtool \
+            "$PROMETHEUS_IMAGE" check config /etc/prometheus/prometheus.yml
+      - name: Alertmanager receiver templates render and validate (amtool) for every chat kind
+        run: |
+          set -euo pipefail
+          for kind in webhook slack msteamsv2 discord; do
+            out="$RUNNER_TEMP/am-$kind.yml"
+            SUTRA_AM_CHAT_KIND=$kind SUTRA_AM_CHAT_URL=https://chat.example.invalid/hook \
+              SUTRA_AM_SMS_WEBHOOK_URL=https://sms.example.invalid/send SUTRA_AM_DEADMAN_URL=https://deadman.example.invalid/ping \
+              SUTRA_AM_SMTP_USERNAME=alerts SUTRA_AM_SMTP_PASSWORD=example \
+              python3 deploy/monitoring/alertmanager/render.py --env deploy/monitoring/monitoring.env.example \
+                --out "$out" --require-delivery
+            chmod 644 "$out"
+            docker run --rm -v "$out:/etc/alertmanager/alertmanager.yml:ro" \
+              -v "$PWD/deploy/monitoring/alertmanager/templates:/etc/alertmanager/templates:ro" --entrypoint amtool \
+              "$ALERTMANAGER_IMAGE" check-config /etc/alertmanager/alertmanager.yml
+            # Routing: critical → ops-critical, warning → ops-warning, watchdog → deadman.
+            for case in "severity=critical alertname=SutraPostgresDown:ops-critical" \
+                        "severity=warning alertname=SutraS3Errors:ops-warning" \
+                        "severity=info alertname=X:ops-info" "alertname=SutraWatchdog severity=none:deadman"; do
+              labels="${case%%:*}"; want="${case##*:}"
+              got="$(docker run --rm -v "$out:/am.yml:ro" --entrypoint amtool "$ALERTMANAGER_IMAGE" \
+                config routes test --config.file=/am.yml $labels)"
+              [ "$got" = "$want" ] || { echo "::error::$kind: $labels routed to '$got' (want $want)"; exit 1; }
+            done
+          done
+          # Without any delivery settings the production render refuses (no silent alerting).
+          if env -i PATH="$PATH" python3 deploy/monitoring/alertmanager/render.py --out "$RUNNER_TEMP/none.yml" --require-delivery; then
+            echo "::error::render accepted a config without delivery"; exit 1
+          fi
+      - name: Dashboards and rules only use exported metrics; dashboards follow the contract
+        run: |
+          python3 - <<'EOF'
+          import glob, json, re, sys, yaml
+          src = open("apps/api/src/metrics.rs").read()
+          block = src[src.index("pub const METRIC_NAMES"):]
+          block = block[:block.index("];")]
+          app = set(re.findall(r'"(sutra_[a-z_]+)"', block))
+          backup = {"sutra_backup_last_run_success", "sutra_backup_last_run_timestamp_seconds",
+                    "sutra_backup_last_duration_seconds", "sutra_backup_last_success_timestamp_seconds",
+                    "sutra_backup_last_size_bytes"}
+          wrapper = open("deploy/monitoring/textfile/sutra-backup-metrics.sh").read()
+          assert all(m in wrapper for m in backup)
+          def known(m):
+              base = re.sub(r"_(bucket|sum|count)$", "", m)
+              return m in app or base in app or m in backup
+          exporters = ("pg_", "node_", "jetstream_", "gnatsd_", "prometheus_", "alertmanager_")
+          errors, seen = [], 0
+          exprs = []
+          for path in glob.glob("deploy/monitoring/grafana/dashboards/*.json"):
+              d = json.load(open(path))
+              uid = path.rsplit("/", 1)[1][:-5]
+              if d["uid"] != uid: errors.append(f"{path}: uid {d['uid']}")
+              if "DS_PROMETHEUS" not in {v["name"] for v in d["templating"]["list"]}: errors.append(f"{path}: no DS_PROMETHEUS")
+              for p in d["panels"]:
+                  if p["datasource"]["uid"] != "${DS_PROMETHEUS}": errors.append(f"{path}: {p['title']} datasource")
+                  exprs += [(path, t["expr"]) for t in p["targets"]]
+          for g in yaml.safe_load(open("deploy/monitoring/prometheus/rules/sutra-onprem.rules.yaml"))["groups"]:
+              exprs += [(g["name"], r["expr"]) for r in g["rules"]]
+          for where, e in exprs:
+              for m in re.findall(r"\b((?:sutra|pg|node|jetstream|gnatsd|prometheus|alertmanager)_[a-zA-Z_]+)", e):
+                  seen += 1
+                  if m.startswith("sutra_") and not known(m): errors.append(f"{where}: {m} is not exported by the API")
+          print("\n".join(errors) or f"ok: {len(exprs)} expressions, {seen} metric references, app families {len(app)}")
+          sys.exit(1 if errors else 0)
+          EOF
+      - name: Compose files parse (stack + drill overlay)
+        working-directory: sutraerp/deploy/monitoring
+        run: |
+          printf 'SUTRA_GRAFANA_ADMIN_PASSWORD=x\nSUTRA_MON_PG_DSN=postgresql://u:p@h/db\n' > "$RUNNER_TEMP/ci.env"
+          docker compose --env-file "$RUNNER_TEMP/ci.env" -f compose.yaml config -q
+          docker compose --env-file "$RUNNER_TEMP/ci.env" -f compose.yaml -f compose.drill.yaml config -q
+          bash -n textfile/sutra-backup-metrics.sh drill/run-drill.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: monitoring-static
+          path: ${{ runner.temp }}/out
+          retention-days: 30
+
+  drill:
+    name: Fault-injection drill (staging host = GitHub runner)
+    needs: static
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      MINIO_TAG: RELEASE.2025-10-15T17-29-55Z
+      OUT: ${{ github.workspace }}/drill-out
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runner hardware (GitHub-hosted runner — NOT college hardware)
+        run: |
+          mkdir -p "$OUT"
+          {
+            echo "cpu_model=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^ //')"
+            echo "vcpu=$(nproc)"
+            echo "ram=$(free -h | awk '/^Mem:/ {print $2}')"
+            echo "label=GitHub-hosted runner ($(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^ //'), $(nproc) vCPU, $(free -h | awk '/^Mem:/ {print $2}')) — NOT college hardware"
+          } | tee "$OUT/runner.txt"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: e2e-api
+          save-if: false
+      - name: Build the API (debug)
+        run: cargo build -p sutra-api --locked
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: MinIO binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sutra-minio
+          key: minio-${{ env.MINIO_TAG }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Build MinIO from source (${{ env.MINIO_TAG }})
+        run: OUT="$HOME/.cache/sutra-minio/minio" bash deploy/minio/build-from-source.sh
+
+      - name: Install the monitoring bundle like an admin (tarball → /opt layout)
+        run: |
+          set -euo pipefail
+          tar czf "$OUT/sutraerp-monitoring-bundle.tgz" deploy/monitoring deploy/observability/alerts deploy/observability/dashboards
+          sudo mkdir -p /opt/sutraerp /etc/sutraerp /var/lib/sutraerp/node-exporter
+          sudo tar xzf "$OUT/sutraerp-monitoring-bundle.tgz" -C /opt/sutraerp
+          sudo chown -R "$USER" /opt/sutraerp /etc/sutraerp /var/lib/sutraerp
+          ls -la /opt/sutraerp/deploy/monitoring
+          echo "MON_DIR=/opt/sutraerp/deploy/monitoring" >> "$GITHUB_ENV"
+      - name: Configure (env file, drill rule copy, Alertmanager receivers → Mailpit + webhook sink)
+        working-directory: /opt/sutraerp/deploy/monitoring
+        run: |
+          set -euo pipefail
+          gpw="$(openssl rand -hex 16)"; mpw="$(openssl rand -hex 16)"
+          echo "::add-mask::$gpw"; echo "::add-mask::$mpw"
+          echo "SUTRA_GRAFANA_ADMIN_PASSWORD=$gpw" >> "$GITHUB_ENV"; echo "MON_PG_PW=$mpw" >> "$GITHUB_ENV"
+          python3 drill/ci-rules.py /opt/sutraerp/drill-rules/onprem prometheus/rules/sutra-onprem.rules.yaml
+          python3 drill/ci-rules.py /opt/sutraerp/drill-rules/9a ../observability/alerts/sutra.rules.yaml
+          cat > /etc/sutraerp/monitoring.env <<EOF
+          SUTRA_GRAFANA_ADMIN_PASSWORD=$gpw
+          SUTRA_MON_PG_DSN=postgresql://sutra_monitor:$mpw@postgres:5432/sutra?sslmode=disable
+          SUTRA_MON_NATS_MONITOR_URL=http://nats:8222
+          SUTRA_MON_TEXTFILE_DIR=/var/lib/sutraerp/node-exporter
+          SUTRA_MON_RULES_DIR=/opt/sutraerp/drill-rules/onprem
+          SUTRA_MON_RULES_9A_DIR=/opt/sutraerp/drill-rules/9a
+          SUTRA_AM_SMTP_SMARTHOST=mailpit:1025
+          SUTRA_AM_SMTP_FROM=sutraerp-alerts@drill.local
+          SUTRA_AM_SMTP_REQUIRE_TLS=false
+          SUTRA_AM_EMAIL_TO=erp-ops@drill.local
+          SUTRA_AM_CHAT_KIND=webhook
+          SUTRA_AM_CHAT_URL=http://alert-sink:8000/chat
+          SUTRA_AM_SMS_WEBHOOK_URL=http://alert-sink:8000/sms
+          SUTRA_AM_DEADMAN_URL=http://alert-sink:8000/deadman
+          SUTRA_AM_GROUP_WAIT=5s
+          EOF
+          sed -i 's/^ *//' /etc/sutraerp/monitoring.env
+          chmod 600 /etc/sutraerp/monitoring.env
+          python3 alertmanager/render.py --env /etc/sutraerp/monitoring.env --out alertmanager/alertmanager.yml --require-delivery
+          chmod 644 alertmanager/alertmanager.yml   # read by the container user (CI only)
+          echo "COMPOSE=docker compose --env-file /etc/sutraerp/monitoring.env -f /opt/sutraerp/deploy/monitoring/compose.yaml -f /opt/sutraerp/deploy/monitoring/compose.drill.yaml" >> "$GITHUB_ENV"
+      - name: Start MinIO (document storage) on the host
+        run: |
+          set -euo pipefail
+          user="mon$(openssl rand -hex 6)"; secret="$(openssl rand -hex 24)"
+          echo "::add-mask::$secret"
+          { echo "S3_USER=$user"; echo "S3_SECRET=$secret"; } >> "$GITHUB_ENV"
+          MINIO_BIN="$HOME/.cache/sutra-minio/minio" MINIO_ROOT_USER="$user" MINIO_ROOT_PASSWORD="$secret" \
+            MINIO_DATA="$RUNNER_TEMP/minio-data" MINIO_LOG="$OUT/minio.log" MINIO_BUCKETS="sutra-mon-docs" \
+            bash deploy/minio/start-local.sh
+          echo "MINIO_PID=$(pgrep -f 'minio server' | head -n1)" >> "$GITHUB_ENV"
+      - name: Bring the stack up (Prometheus, Alertmanager, Grafana, exporters + drill PostgreSQL / NATS / Mailpit / sink)
+        run: |
+          set -euo pipefail
+          t0=$(date +%s)
+          $COMPOSE up -d --wait --wait-timeout 300
+          echo "stack_up_seconds=$(( $(date +%s) - t0 ))" | tee -a "$OUT/runner.txt"
+          $COMPOSE exec -T postgres psql -U sutra -d sutra -v ON_ERROR_STOP=1 -v monitor_password="'$MON_PG_PW'" \
+            -f - < "$MON_DIR/postgres/monitor-role.sql"
+          $COMPOSE ps
+      - name: Migrate + serve the API (metrics :9464, S3 document storage)
+        run: |
+          set -euo pipefail
+          export DATABASE_URL=postgres://sutra:sutra@localhost:5432/sutra SUTRA_ENV=development
+          target/debug/sutra-api migrate
+          export SUTRA_LOG_FORMAT=json RUST_LOG=info,sqlx=warn
+          export SUTRA_METRICS=true SUTRA_METRICS_ADDR=0.0.0.0:9464 SUTRA_GIT_SHA="${GITHUB_SHA::12}"
+          export SUTRA_APPROVAL_MODE=auto
+          export SUTRA_DOCUMENT_STORAGE=s3 SUTRA_S3_ENDPOINT=http://127.0.0.1:9000 SUTRA_S3_BUCKET=sutra-mon-docs
+          export SUTRA_S3_ACCESS_KEY_ID="$S3_USER" SUTRA_S3_SECRET_ACCESS_KEY="$S3_SECRET" SUTRA_S3_TIMEOUT_MS=2000
+          nohup target/debug/sutra-api serve > "$OUT/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/health/ready >/dev/null && { echo "API ready"; exit 0; }
+            sleep 2
+          done
+          echo "::error::API not ready"; tail -n 100 "$OUT/api.log"; exit 1
+      - name: Fault-injection drill
+        env:
+          DRILL_OUT: ${{ github.workspace }}/drill-out
+          TEXTFILE_DIR: /var/lib/sutraerp/node-exporter
+        run: bash "$MON_DIR/drill/run-drill.sh"
+      - name: Resource use of the monitoring stack (runner numbers)
+        if: always()
+        run: |
+          docker stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} mem={{.MemUsage}}' | tee "$OUT/docker-stats.txt" || true
+          curl -s http://localhost:9090/api/v1/status/tsdb | jq '.data.headStats' > "$OUT/tsdb-head.json" || true
+      - name: Collect logs
+        if: always()
+        run: |
+          $COMPOSE logs --no-color --timestamps > "$OUT/compose.log" 2>&1 || true
+          curl -s http://localhost:9090/api/v1/alerts > "$OUT/prometheus-alerts.json" || true
+          curl -s http://localhost:9093/api/v2/alerts > "$OUT/alertmanager-alerts.json" || true
+          curl -s http://localhost:9464/metrics > "$OUT/api-metrics.txt" || true
+          rm -f "$OUT/sutraerp-monitoring-bundle.tgz.sig"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: monitoring-drill
+          path: drill-out
+          retention-days: 30

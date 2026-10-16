@@ -18,6 +18,7 @@ use sutra_contracts::platform::documents::{DocumentVault, ObjectStorePort};
 use sutra_infra::s3::S3Client;
 use sutra_kernel::error::KernelError;
 use sutra_kernel::health::ReadinessCheck;
+use sutra_kernel::signal::{self, CallOutcome, Integration};
 use sutra_platform::documents::{DisabledDocumentVault, PgDocumentVault, VaultSettings};
 
 /// [`ObjectStorePort`] over the S3 REST client (`sutra-infra` may only depend on the kernel).
@@ -64,6 +65,10 @@ impl ObjectStorePort for S3ObjectStore {
     }
 }
 
+/// Part 2 S5-monitor: budget of the `document-storage` readiness probe (below the 2 s per-check
+/// timeout of `/health/ready`).
+pub const STORAGE_PROBE_TIMEOUT: Duration = Duration::from_millis(1500);
+
 /// Non-critical readiness check `document-storage` (bucket answers and is private): documents
 /// are one feature, the rest of the API keeps serving while storage is down.
 pub struct ObjectStoreReadiness(pub Arc<dyn ObjectStorePort>);
@@ -75,7 +80,16 @@ impl ReadinessCheck for ObjectStoreReadiness {
     }
 
     async fn check(&self) -> Result<(), String> {
-        self.0.ready().await.map_err(|e| e.to_string())
+        // Part 2 S5-monitor: answer before the readiness endpoint's own 2 s budget drops the probe,
+        // so a hung object store is counted (`sutra_integration_calls_total{integration="s3",
+        // outcome="timeout"}` → SutraS3Errors) even when SUTRA_S3_TIMEOUT_MS is longer.
+        match tokio::time::timeout(STORAGE_PROBE_TIMEOUT, self.0.ready()).await {
+            Ok(r) => r.map_err(|e| e.to_string()),
+            Err(_) => {
+                signal::integration(Integration::S3, CallOutcome::Timeout);
+                Err("object storage did not answer within the readiness probe budget".into())
+            }
+        }
     }
 
     fn critical(&self) -> bool {
@@ -205,6 +219,68 @@ pub async fn body_limit(State(limits): State<BodyLimits>, req: Request, next: Ne
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// An object store that never answers (a frozen MinIO / blocked network).
+    struct Hung;
+
+    #[async_trait::async_trait]
+    impl ObjectStorePort for Hung {
+        fn backend(&self) -> &'static str {
+            "hung"
+        }
+
+        async fn ready(&self) -> Result<(), KernelError> {
+            std::future::pending().await
+        }
+
+        async fn put(&self, _: &str, _: &str, _: Vec<u8>, _: [u8; 32]) -> Result<(), KernelError> {
+            std::future::pending().await
+        }
+
+        async fn get(&self, _: &str, _: u64) -> Result<Vec<u8>, KernelError> {
+            std::future::pending().await
+        }
+
+        async fn delete(&self, _: &str) -> Result<(), KernelError> {
+            std::future::pending().await
+        }
+
+        fn presign_get(
+            &self,
+            _: &str,
+            _: Duration,
+            _: &str,
+            _: &str,
+        ) -> Result<String, KernelError> {
+            Err(KernelError::Unavailable("hung".into()))
+        }
+    }
+
+    /// Part 2 S5-monitor: a hung store fails the probe inside its budget and is counted as an S3
+    /// timeout, instead of being dropped silently by `/health/ready`'s 2 s check timeout.
+    #[tokio::test]
+    async fn a_hung_object_store_is_a_counted_readiness_timeout() {
+        use crate::metrics::EventMetricsLayer;
+        use tracing_subscriber::layer::SubscriberExt;
+        let timeouts = || {
+            crate::metrics::global()
+                .integration_calls
+                .get_or_create(&crate::metrics::IntegrationLabels {
+                    integration: "s3".into(),
+                    outcome: "timeout".into(),
+                })
+                .get()
+        };
+        let before = timeouts();
+        let subscriber = tracing_subscriber::registry().with(EventMetricsLayer);
+        let _guard = tracing::subscriber::set_default(subscriber);
+        let started = std::time::Instant::now();
+        let r = ObjectStoreReadiness(Arc::new(Hung)).check().await;
+        assert!(r.is_err());
+        let took = started.elapsed();
+        assert!(took < Duration::from_secs(2), "{took:?}");
+        assert!(timeouts() > before);
+    }
 
     #[test]
     fn only_document_uploads_get_the_upload_limit() {
