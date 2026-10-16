@@ -11,6 +11,8 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "test": "pnpm -r test",
+    "golden": "node tools/golden/generate.mjs",
+    "golden:check": "node tools/golden/generate.mjs --check",
     "build": "pnpm -r build",
     "dev": "pnpm --filter @sutra/web dev",
     "e2e:passkey": "pnpm --filter @sutra/web e2e:passkey",

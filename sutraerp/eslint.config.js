@@ -5,7 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/build/**", "**/node_modules/**", "**/.react-router/**", "target/**", "packages/api-client/src/schema.d.ts"] },
+  { ignores: ["**/dist/**", "**/build/**", "**/node_modules/**", "**/.react-router/**", "target/**", "packages/api-client/src/schema.d.ts", ".cache/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -27,6 +27,11 @@ export default tseslint.config(
   {
     // Image build helpers (deploy/docker/csp-hashes.mjs) run in Node; other deploy scripts declare /* global */ themselves.
     files: ["deploy/docker/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node }, ecmaVersion: 2023, sourceType: "module" },
+  },
+  {
+    // Golden-vector generator for logic ported from HeyPuter/everything (tools/golden/README.md).
+    files: ["tools/**/*.mjs"],
     languageOptions: { globals: { ...globals.node }, ecmaVersion: 2023, sourceType: "module" },
   },
 );

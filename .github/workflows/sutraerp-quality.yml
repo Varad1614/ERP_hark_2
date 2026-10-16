@@ -7,7 +7,7 @@ name: SutraERP quality gates (security · performance)
 
 on:
   push:
-    branches: [main, erp_merge, "batch9/**"]
+    branches: [ERP_EXTENSIONS, main, erp_merge, "batch9/**"]
     tags: ["v*"]
     paths: ["sutraerp/**", ".github/workflows/sutraerp-quality.yml"]
   workflow_dispatch:

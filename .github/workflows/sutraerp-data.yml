@@ -8,7 +8,7 @@ name: SutraERP data platform (Flowable · OpenSearch · DR)
 
 on:
   push:
-    branches: [main, erp_merge, "batch9/**"]
+    branches: [ERP_EXTENSIONS, main, erp_merge, "batch9/**"]
     tags: ["v*"]
     paths: ["sutraerp/**", ".github/workflows/sutraerp-data.yml"]
   workflow_dispatch:

@@ -11,7 +11,7 @@ name: SutraERP observability (OTel · LGTM · audit chain)
 
 on:
   push:
-    branches: [main, erp_merge, "batch9/**"]
+    branches: [ERP_EXTENSIONS, main, erp_merge, "batch9/**"]
     tags: ["v*"]
     paths: ["sutraerp/**", ".github/workflows/sutraerp-observability.yml"]
   workflow_dispatch:

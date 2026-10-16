@@ -140,6 +140,104 @@ impl Money {
     }
 }
 
+/// Error raised by [`allocate`].
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum AllocateError {
+    #[error("amount {0} has more than {1} decimal places")]
+    NotWholeMinorUnits(Decimal, u32),
+    #[error("allocation arithmetic overflow")]
+    Overflow,
+}
+
+/// Splits `total` across `weights` exactly, in minor units of `scale` decimal places
+/// (2 for rupees and paise).
+///
+/// The shares always sum to `total`: every exact share is floored to a whole minor unit and the
+/// leftover units go one at a time to the shares that lost the most to flooring, ties going to the
+/// earlier share. Signed weights work as they are (a discount line takes a negative share). When
+/// the weights sum to zero the whole amount goes to the first share. An empty weight list returns
+/// no shares.
+///
+/// Ported from Everything's `accounting/src/lib/money.js` `allocate()` (MIT, HeyPuter/everything
+/// @ 06802a1), reworked to exact integer arithmetic. Golden vectors: `tests/golden/`.
+pub fn allocate(
+    total: Money,
+    weights: &[Decimal],
+    scale: u32,
+) -> Result<Vec<Money>, AllocateError> {
+    let n = weights.len();
+    if n == 0 {
+        return Ok(Vec::new());
+    }
+    let factor = Decimal::from(10_i64.checked_pow(scale).ok_or(AllocateError::Overflow)?);
+    let to_minor = |d: Decimal| -> Result<i128, AllocateError> {
+        let m = d.checked_mul(factor).ok_or(AllocateError::Overflow)?;
+        if m.fract() != Decimal::ZERO {
+            return Err(AllocateError::NotWholeMinorUnits(d, scale));
+        }
+        i128::try_from(m.trunc()).map_err(|_| AllocateError::Overflow)
+    };
+    let total_minor = to_minor(total.amount)?;
+
+    // Bring every weight to a whole number on one common scale, so the shares are exact rationals.
+    let w_scale = weights.iter().map(Decimal::scale).max().unwrap_or(0);
+    let mut ints: Vec<i128> = weights
+        .iter()
+        .map(|w| {
+            let mut w = *w;
+            w.rescale(w_scale);
+            w.mantissa()
+        })
+        .collect();
+    let mut sum = ints
+        .iter()
+        .try_fold(0_i128, |a, b| a.checked_add(*b))
+        .ok_or(AllocateError::Overflow)?;
+
+    let from_minor = |m: i128| -> Result<Money, AllocateError> {
+        let v = i64::try_from(m).map_err(|_| AllocateError::Overflow)?;
+        Ok(Money::new(Decimal::new(v, scale), total.currency))
+    };
+
+    if sum == 0 {
+        let mut out = vec![from_minor(0)?; n];
+        if let Some(first) = out.first_mut() {
+            *first = from_minor(total_minor)?;
+        }
+        return Ok(out);
+    }
+    // A negative weight sum gives the same shares as the negated weights over a positive sum.
+    if sum < 0 {
+        sum = -sum;
+        for w in &mut ints {
+            *w = -*w;
+        }
+    }
+
+    let mut floors = Vec::with_capacity(n);
+    let mut rems = Vec::with_capacity(n);
+    for w in &ints {
+        let num = total_minor.checked_mul(*w).ok_or(AllocateError::Overflow)?;
+        floors.push(num.div_euclid(sum));
+        rems.push(num.rem_euclid(sum));
+    }
+    let floored = floors
+        .iter()
+        .try_fold(0_i128, |a, b| a.checked_add(*b))
+        .ok_or(AllocateError::Overflow)?;
+    // Flooring loses less than one unit per share, so 0 <= rest < n.
+    let rest = usize::try_from(total_minor - floored).map_err(|_| AllocateError::Overflow)?;
+
+    let mut order: Vec<usize> = (0..n).collect();
+    order.sort_by(|&a, &b| rems.get(b).cmp(&rems.get(a)).then(a.cmp(&b)));
+    for &i in order.iter().take(rest) {
+        if let Some(f) = floors.get_mut(i) {
+            *f += 1;
+        }
+    }
+    floors.into_iter().map(from_minor).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -162,6 +260,55 @@ mod tests {
         let usd = CurrencyCode::try_from("USD".to_string()).unwrap_or(CurrencyCode::INR);
         let r = Money::new(d("1"), CurrencyCode::INR).checked_add(Money::new(d("1"), usd));
         assert!(matches!(r, Err(MoneyError::CurrencyMismatch(_, _))));
+    }
+
+    fn inr(s: &str) -> Money {
+        Money::new(d(s), CurrencyCode::INR)
+    }
+
+    fn shares(total: &str, weights: &[&str]) -> Vec<String> {
+        let w: Vec<Decimal> = weights.iter().map(|s| d(s)).collect();
+        allocate(inr(total), &w, 2)
+            .expect("allocates")
+            .into_iter()
+            .map(|m| m.amount.to_string())
+            .collect()
+    }
+
+    #[test]
+    fn allocate_splits_evenly_remainder_first() {
+        assert_eq!(shares("1.00", &["1", "1", "1"]), ["0.34", "0.33", "0.33"]);
+    }
+
+    #[test]
+    fn allocate_keeps_discount_sign() {
+        assert_eq!(
+            shares("-0.99", &["-100", "10", "-9"]),
+            ["-1.00", "0.10", "-0.09"]
+        );
+    }
+
+    #[test]
+    fn allocate_zero_weights_go_to_first() {
+        assert_eq!(shares("5.00", &["0", "0"]), ["5.00", "0.00"]);
+        assert!(shares("5.00", &[]).is_empty());
+    }
+
+    #[test]
+    fn allocate_rejects_sub_paisa_total() {
+        assert_eq!(
+            allocate(inr("1.005"), &[d("1")], 2),
+            Err(AllocateError::NotWholeMinorUnits(d("1.005"), 2))
+        );
+    }
+
+    #[test]
+    fn allocate_fractional_weights_instalments() {
+        // 40 / 30 / 30 instalment plan of a 1,00,001 rupee fee.
+        assert_eq!(
+            shares("100001.00", &["0.4", "0.3", "0.3"]),
+            ["40000.40", "30000.30", "30000.30"]
+        );
     }
 
     #[test]
