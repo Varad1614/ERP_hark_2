@@ -95,6 +95,38 @@ jobs:
           SUTRA_CI_API_URL: http://127.0.0.1:8080
           SUTRA_CI_MODE: compose
         run: bash deploy/ci/seed-pilot.sh | tee "$RUNNER_TEMP/seed-pilot.txt"
+      # Part 2 · S6-pilot: the synthetic pilot tenant can be reset and rebuilt (deploy/pilot/reset-pilot.sh):
+      # refusals first (wrong confirmation, a non-synthetic institution, production), then a dry run,
+      # the reset (tenant verified empty), and the seed again (first run creates, second changes nothing).
+      - name: Reset the synthetic pilot tenant and seed it again
+        env:
+          SUTRA_CI_API_URL: http://127.0.0.1:8080
+          SUTRA_CI_MODE: compose
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/seed-pilot.txt"
+          { echo; echo "## reset (S6-pilot)"; } | tee -a "$OUT"
+          rc=0; bash deploy/pilot/reset-pilot.sh --confirm 00000000-0000-0000-0000-000000000000 || rc=$?
+          [ "$rc" = 2 ] || { echo "a wrong --confirm must be refused (exit 2), got $rc" >&2; exit 1; }
+          echo "ok reset-refuses-wrong-confirmation" | tee -a "$OUT"
+          rc=0; SUTRA_ENV=production bash deploy/pilot/reset-pilot.sh --confirm "$PILOT_TENANT_ID" || rc=$?
+          [ "$rc" = 2 ] || { echo "production must be refused (exit 2), got $rc" >&2; exit 1; }
+          echo "ok reset-refuses-production" | tee -a "$OUT"
+          rc=0; PILOT_RESET_INSTITUTION_CODES=OTHER bash deploy/pilot/reset-pilot.sh --confirm "$PILOT_TENANT_ID" || rc=$?
+          [ "$rc" = 2 ] || { echo "a tenant with a non-synthetic institution must be refused (exit 2), got $rc" >&2; exit 1; }
+          echo "ok reset-refuses-non-synthetic-institution" | tee -a "$OUT"
+          before="$(psql "$DATABASE_URL" -qtAX -c "SELECT count(*) FROM student.student WHERE tenant_id = '$PILOT_TENANT_ID'")"
+          bash deploy/pilot/reset-pilot.sh --dry-run --confirm "$PILOT_TENANT_ID" | tee -a "$OUT"
+          after_dry="$(psql "$DATABASE_URL" -qtAX -c "SELECT count(*) FROM student.student WHERE tenant_id = '$PILOT_TENANT_ID'")"
+          [ "$before" = "$after_dry" ] && [ "$before" -ge 50 ] || { echo "dry run changed data ($before → $after_dry)" >&2; exit 1; }
+          echo "ok reset-dry-run-changes-nothing ($before students kept)" | tee -a "$OUT"
+          other="$(psql "$DATABASE_URL" -qtAX -c "SELECT count(*) FROM platform.audit_log WHERE tenant_id <> '$PILOT_TENANT_ID'")"
+          bash deploy/pilot/reset-pilot.sh --confirm "$PILOT_TENANT_ID" | tee -a "$OUT"
+          other_after="$(psql "$DATABASE_URL" -qtAX -c "SELECT count(*) FROM platform.audit_log WHERE tenant_id <> '$PILOT_TENANT_ID'")"
+          [ "$other" = "$other_after" ] || { echo "the reset touched other tenants' audit rows ($other → $other_after)" >&2; exit 1; }
+          echo "ok reset-other-tenants-untouched ($other audit rows)" | tee -a "$OUT"
+          bash deploy/ci/seed-pilot.sh | tee -a "$OUT"
+          echo "ok reseed-after-reset" | tee -a "$OUT"
       - name: Summary
         if: always()
         run: |
