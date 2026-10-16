@@ -1,0 +1,15 @@
+{{/* SutraERP alert notification templates (Part 2 S5-monitor). */}}
+{{ define "sutra.subject" -}}
+[SutraERP {{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }} ({{ .CommonLabels.severity }})
+{{- end }}
+
+{{ define "sutra.text" -}}
+{{ range .Alerts -}}
+{{ if eq .Status "firing" }}FIRING{{ else }}RESOLVED{{ end }}: {{ .Annotations.summary }}
+{{ .Annotations.description }}
+Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}{{ if eq .Status "resolved" }} · Resolved: {{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}{{ end }}
+Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+Runbook: {{ .Annotations.runbook_url }}
+
+{{ end -}}
+{{- end }}

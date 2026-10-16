@@ -1,0 +1,18 @@
+# Provisioned dashboards: on-prem (deploy/monitoring/grafana/dashboards) and the API / audit /
+# outbox dashboards of slice 9A (deploy/observability/dashboards). Read-only: change them in gen.py.
+apiVersion: 1
+providers:
+  - name: sutraerp-onprem
+    folder: SutraERP · Operations
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards/onprem
+  - name: sutraerp-api
+    folder: SutraERP · Application
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards/api

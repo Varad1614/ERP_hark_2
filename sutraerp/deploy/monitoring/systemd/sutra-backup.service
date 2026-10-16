@@ -1,0 +1,17 @@
+# Example (Part 2 S5-monitor): the nightly SutraERP backup wrapped by the metrics writer, so
+# SutraBackupFailed / SutraBackupStale can fire. Install to /etc/systemd/system/, adjust paths and
+# the backup command / env file to the installed release (deploy/backup, docs/runbooks/backup-dr.md).
+[Unit]
+Description=SutraERP nightly backup (with Prometheus textfile metrics)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/sutraerp/backup.env
+ExecStart=/opt/sutraerp/deploy/monitoring/textfile/sutra-backup-metrics.sh --kind logical \
+  --dir /var/lib/sutraerp/node-exporter --size-of /var/backups/sutraerp/latest \
+  -- /opt/sutraerp/deploy/backup/sutra-backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

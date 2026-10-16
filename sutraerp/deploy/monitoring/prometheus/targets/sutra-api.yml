@@ -1,0 +1,6 @@
+# File-SD target of the SutraERP API metrics listener (SUTRA_METRICS=true, SUTRA_METRICS_ADDR).
+# Default: the API runs on this host (systemd / compose with the port published on the docker
+# bridge). One entry per API instance; keep the `instance` readable (it appears in alerts).
+- targets: ["host.docker.internal:9464"]
+  labels:
+    service: sutra-api
