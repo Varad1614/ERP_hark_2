@@ -123,6 +123,8 @@ Razorpay Checkout integration reference: https://razorpay.com/docs/payments/paym
 | `apps/web/e2e/finance.e2e.mjs` (CI E2E finance, mock gateway, preview build) | student pays part of an invoice → server confirms → receipt RCT-000003 → receipt view |
 | `apps/web/e2e/journey.e2e.mjs` step "4 Fees" (Part 1 demo, full stack) | checkout stage shows nothing paid and names the test gateway; after the browser's own `confirm` returns `completed`, the paid view shows that receipt number; **View receipt** opens it |
 
+CI evidence (code head `82b55439`; `9cf5b517` = same code, later commits docs only): SutraERP CI **38899332909** (fmt · clippy · test, Rust integration on PostgreSQL 18 incl. `db_p2_pay::gateway_info_tells_the_browser_which_checkout_to_open`, OpenAPI drift, Web typecheck · lint · vitest · build, E2E finance / student / academic / exams / people / campus / ui / reskin2, container images); SutraERP Part 1 demo (full stack, keycloak) **38898287708** (journey incl. browser upload 184 B + 1 573 054 B without Idempotency-Key, student browser download byte-identical, Fees checkout → server confirm → RCT-000003 → receipt view); SutraERP quality gates **38898290428** (cargo-deny · audit · pnpm audit · gitleaks, Semgrep, Trivy · Grype · ZAP baseline web + API with the new CSP, k6).
+
 ### BLOCKED_EXTERNAL (UI)
 
 | Item | What clears it |
