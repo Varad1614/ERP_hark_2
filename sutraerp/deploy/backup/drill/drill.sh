@@ -373,6 +373,17 @@ units)
     done
   fi
   bash "$B/rotate.sh" "$D/offsite/sets" --wal-dir "$D/offsite/wal" --dry-run | tee "$EV/rotate-dry-run.txt"
+  # monitoring hook: the same textfile metrics as deploy/monitoring/textfile/sutra-backup-metrics.sh
+  export SUTRA_BACKUP_METRICS_DIR=$EV/textfile SUTRA_BACKUP_METRICS_WRAPPER=/nonexistent
+  bash "$B/with-metrics.sh" verify bash "$B/sutra-backup-verify.sh" "$(latest sutra-nightly)" >/dev/null
+  grep -q '^sutra_backup_last_run_success{kind="verify"} 1$' "$EV/textfile/sutra_backup_verify.prom" || die "metrics hook: no success metric"
+  grep -q '^sutra_backup_last_success_timestamp_seconds{kind="verify"} [0-9]' "$EV/textfile/sutra_backup_verify.prom" || die "metrics hook: no success timestamp"
+  bash "$B/with-metrics.sh" verify false || true
+  grep -q '^sutra_backup_last_run_success{kind="verify"} 0$' "$EV/textfile/sutra_backup_verify.prom" || die "metrics hook: failure not recorded"
+  grep -q '^sutra_backup_last_success_timestamp_seconds{kind="verify"} [0-9]' "$EV/textfile/sutra_backup_verify.prom" || die "metrics hook: last success lost on failure"
+  bash "$B/sutra-wal-ship.sh" >/dev/null
+  grep -q '^sutra_wal_archived_total [0-9]' "$EV/textfile/sutra_wal_archive.prom" || die "metrics hook: no WAL archive status"
+  ok "monitoring textfile metrics: success / failure / last-success kept / WAL archive status ($(cat "$EV"/textfile/*.prom | grep -vc '^#') samples)"
   ok "units installed into a scratch root + verified; rotation dry run on the offsite sets"
   ;;
 

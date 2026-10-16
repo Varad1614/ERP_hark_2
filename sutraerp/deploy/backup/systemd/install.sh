@@ -10,7 +10,7 @@ src=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 R=${SUTRA_INSTALL_ROOT:-}
 install -d -m 0755 "$R/opt/sutraerp/backup" "$R/etc/systemd/system"
 for f in lib.sh set-lib.sh roles.sql sutra-backup.sh sutra-restore.sh sutra-fullbackup.sh sutra-fullrestore.sh \
-         sutra-objects.sh sutra-wal-ship.sh sutra-backup-verify.sh fingerprint.sh inventory.sh rotate.sh offsite.sh; do
+         sutra-objects.sh sutra-wal-ship.sh sutra-backup-verify.sh fingerprint.sh inventory.sh rotate.sh offsite.sh with-metrics.sh; do
   install -m 0755 "$src/$f" "$R/opt/sutraerp/backup/"
 done
 install -d -m 0700 "$R/etc/sutraerp"

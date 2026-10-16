@@ -49,11 +49,31 @@ ship_once() {
   return 0
 }
 
+# WAL archive status for node_exporter (S5-monitor): pg_stat_archiver + newest shipped file.
+archive_metrics() {
+  local dir=${SUTRA_BACKUP_METRICS_DIR:-/var/lib/sutraerp/node-exporter} row tmp shipped
+  [[ -n "${SUTRA_BACKUP_DATABASE_URL:-}" ]] && command -v psql >/dev/null 2>&1 || return 0
+  mkdir -p "$dir" 2>/dev/null || return 0
+  row=$(psql "$SUTRA_BACKUP_DATABASE_URL" -qAtX -F ' ' -c "SELECT archived_count, failed_count, coalesce(extract(epoch FROM last_archived_time)::bigint, 0), coalesce(extract(epoch FROM last_failed_time)::bigint, 0) FROM pg_stat_archiver" 2>/dev/null) || return 0
+  read -r ac fc lat lft <<<"$row"
+  shipped=$(stat -c %Y "$dst/SHA256SUMS" 2>/dev/null || echo 0)
+  tmp=$(mktemp "$dir/.sutra_wal_archive.XXXXXX") || return 0
+  {
+    echo "# TYPE sutra_wal_archived_total counter"; echo "sutra_wal_archived_total $ac"
+    echo "# TYPE sutra_wal_archive_failed_total counter"; echo "sutra_wal_archive_failed_total $fc"
+    echo "# TYPE sutra_wal_last_archived_timestamp_seconds gauge"; echo "sutra_wal_last_archived_timestamp_seconds $lat"
+    echo "# TYPE sutra_wal_last_failed_timestamp_seconds gauge"; echo "sutra_wal_last_failed_timestamp_seconds $lft"
+    echo "# TYPE sutra_wal_last_shipped_timestamp_seconds gauge"; echo "sutra_wal_last_shipped_timestamp_seconds $shipped"
+  } >"$tmp" && chmod 0644 "$tmp" && mv -f "$tmp" "$dir/sutra_wal_archive.prom"
+  return 0
+}
+
 set_need_age
 age_recipient_args
 if [[ "$loop" -gt 0 ]]; then
   while :; do ship_once; sleep "$loop"; done
 else
   ship_once
+  archive_metrics
   printf 'ok wal-ship (%s files offsite)\n' "$(wc -l <"$dst/SHA256SUMS")"
 fi

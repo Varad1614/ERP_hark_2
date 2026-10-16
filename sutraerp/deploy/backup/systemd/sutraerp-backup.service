@@ -9,9 +9,9 @@ OnFailure=sutraerp-backup-alert@%n.service
 [Service]
 Type=oneshot
 Environment=SUTRA_BACKUP_ENV_FILE=/etc/sutraerp/backup.env
-ExecStart=/opt/sutraerp/backup/sutra-fullbackup.sh nightly
+ExecStart=/opt/sutraerp/backup/with-metrics.sh nightly /opt/sutraerp/backup/sutra-fullbackup.sh nightly
 # Sunday: also a fresh base backup (point-in-time recovery starts from it).
-ExecStartPost=/bin/sh -c 'if [ "$(date +%%u)" = 7 ]; then /opt/sutraerp/backup/sutra-fullbackup.sh base; fi'
+ExecStartPost=/bin/sh -c 'if [ "$(date +%%u)" = 7 ]; then /opt/sutraerp/backup/with-metrics.sh base /opt/sutraerp/backup/sutra-fullbackup.sh base; fi'
 ExecStartPost=/bin/sh -c '. /etc/sutraerp/backup.env; /opt/sutraerp/backup/rotate.sh "$SUTRA_BACKUP_DIR/sets" --wal-dir "$SUTRA_WAL_OFFSITE_DIR"'
 Nice=10
 IOSchedulingClass=idle

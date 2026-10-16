@@ -6,4 +6,4 @@ OnFailure=sutraerp-backup-alert@%n.service
 [Service]
 Type=oneshot
 Environment=SUTRA_BACKUP_ENV_FILE=/etc/sutraerp/backup.env
-ExecStart=/opt/sutraerp/backup/sutra-wal-ship.sh
+ExecStart=/opt/sutraerp/backup/with-metrics.sh wal_ship /opt/sutraerp/backup/sutra-wal-ship.sh
