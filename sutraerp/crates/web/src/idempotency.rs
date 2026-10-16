@@ -222,9 +222,11 @@ mod tests {
                     let c = counter.clone();
                     async move {
                         let n = c.fetch_add(1, Ordering::SeqCst) + 1;
+                        // The body's length, not an echo: a route may accept a body above
+                        // MAX_BODY_BYTES, but its response must stay under the replay buffer.
                         (
                             StatusCode::CREATED,
-                            format!("{{\"n\":{n},\"echo\":{body:?}}}"),
+                            format!("{{\"n\":{n},\"len\":{}}}", body.len()),
                         )
                     }
                 }),
@@ -318,6 +320,7 @@ mod tests {
         };
         let r1 = a.clone().oneshot(with_limit("big-2")).await.unwrap();
         assert_eq!(r1.status(), StatusCode::CREATED);
+        assert!(text(r1).await.contains(&format!("\"len\":{}", big.len())));
         let r2 = a.clone().oneshot(with_limit("big-2")).await.unwrap();
         assert_eq!(r2.headers()["idempotency-replayed"], "true");
         assert_eq!(c.load(Ordering::SeqCst), 1);
