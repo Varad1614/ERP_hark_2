@@ -56,13 +56,14 @@ async fn main() -> ExitCode {
             Ok(c) => {
                 println!(
                     "configuration ok: env={:?} auth={:?} mfa_step_up={} http_addr={} \
-                     session_cookie_secure={} public_url={}",
+                     session_cookie_secure={} public_url={} documents={:?}",
                     c.env,
                     c.auth_provider,
                     c.mfa_step_up,
                     c.http_addr,
                     c.session_cookie_secure,
-                    c.public_url
+                    c.public_url,
+                    c.documents.mode
                 );
                 ExitCode::SUCCESS
             }

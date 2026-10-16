@@ -18,4 +18,5 @@ pub mod metrics; // 9A
 pub mod metrics_bridge; // INT: 9C `metrics` facade → 9A registry
 pub mod openapi;
 pub mod shutdown;
+pub mod storage; // Part 2 · S4-docs: object storage adapter, document vault, upload body limit
 pub mod telemetry;

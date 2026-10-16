@@ -117,7 +117,8 @@ pub fn build(cfg: &Config, pool: &PgPool) -> Result<DocumentStorage, String> {
         VaultSettings {
             max_bytes: d.max_bytes,
             retention_days: d.retention_days,
-            presign_ttl: (d.presign_ttl_secs > 0).then_some(Duration::from_secs(d.presign_ttl_secs)),
+            presign_ttl: (d.presign_ttl_secs > 0)
+                .then_some(Duration::from_secs(d.presign_ttl_secs)),
         },
     );
     Ok(DocumentStorage {

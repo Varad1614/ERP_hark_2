@@ -63,9 +63,10 @@ prometheus-client.workspace = true
 metrics.workspace = true
 # 9C: SearchIndex adapter over sutra_infra::opensearch
 async-trait.workspace = true
+# Part 2 · S4-docs: per-route request-body limit (document uploads)
+http-body-util.workspace = true
 
 [dev-dependencies]
-http-body-util.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
 async-nats.workspace = true
@@ -79,3 +80,5 @@ nats-tests = []
 # 9C: with db-tests, live Flowable REST (SUTRA_TEST_FLOWABLE_URL) / OpenSearch (SUTRA_TEST_OPENSEARCH_URL).
 flowable-tests = []
 opensearch-tests = []
+# Part 2 · S4-docs: with db-tests, real S3-compatible storage (MinIO; SUTRA_TEST_S3_ENDPOINT).
+s3-tests = []

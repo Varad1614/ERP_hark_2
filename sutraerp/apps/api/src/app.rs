@@ -57,7 +57,6 @@ use sutra_web::{OriginPolicy, PreSessionCsrf, SessionAuth};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tower_http::catch_panic::CatchPanicLayer;
-use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
@@ -109,6 +108,8 @@ pub struct AppContext {
     /// Part 1 · Stage 3 (S3-config): transport hardening (headers, CORS, body limit, ops
     /// endpoints) and the public-endpoint rate limiter.
     pub http: HttpLayers,
+    /// Part 2 · S4-docs: platform document service (S3-compatible storage, `SUTRA_DOCUMENT_STORAGE`).
+    pub documents: Arc<dyn sutra_contracts::platform::documents::DocumentVault>,
 }
 
 /// Part 1 · Stage 3 (S3-config): settings of the transport layers built in [`router`].
@@ -120,6 +121,8 @@ pub struct HttpLayers {
     pub max_body_bytes: usize,
     /// Serve `GET /api/openapi.json` (off in production).
     pub api_docs: bool,
+    /// Part 2 · S4-docs: body limits per route (document uploads up to `SUTRA_DOCS_MAX_BYTES`).
+    pub body_limits: crate::storage::BodyLimits,
 }
 
 impl HttpLayers {
@@ -134,6 +137,7 @@ impl HttpLayers {
             )),
             max_body_bytes: cfg.http.max_body_bytes,
             api_docs: cfg.http.api_docs,
+            body_limits: crate::storage::BodyLimits::from_config(cfg), // Part 2 · S4-docs
         }
     }
 }
@@ -208,6 +212,8 @@ pub enum BuildError {
     Mail(String),
     #[error("data platform configuration: {0}")]
     DataPlatform(String), // 9C
+    #[error("document storage configuration: {0}")]
+    Documents(String), // Part 2 · S4-docs
 }
 
 impl AppContext {
@@ -225,8 +231,23 @@ impl AppContext {
         checks.extend(cache_check);
         let (relay, relay_check) = build_relay(cfg, &pool)?;
         checks.extend(relay_check);
+        // Part 2 · S4-docs: document service (+ non-critical storage readiness, retention sweeper).
+        let docs = crate::storage::build(cfg, &pool).map_err(BuildError::Documents)?;
+        checks.extend(docs.readiness.clone());
         let readiness = Readiness::new(checks).with_detail(cfg.http.health_detail); // Part 1 · S3
-        let scheduler = cfg.sweepers.enabled.then(|| build_scheduler(cfg, &pool));
+        let scheduler = cfg.sweepers.enabled.then(|| {
+            let s = build_scheduler(cfg, &pool);
+            match &docs.store {
+                Some(store) if !cfg.documents.sweep_interval.is_zero() => s.with(Arc::new(
+                    sutra_platform::documents::DocumentRetentionSweep {
+                        store: store.clone(),
+                        interval: cfg.documents.sweep_interval,
+                        batch_limit: cfg.sweepers.batch_limit,
+                    },
+                )),
+                _ => s,
+            }
+        });
         let mailer = build_mailer(cfg)?;
         let consumers = cfg
             .inbox
@@ -406,6 +427,7 @@ impl AppContext {
             },
             search,                                // 9C
             payment_gateway: payment_gateway(cfg), // INT: SEC-9D-003
+            documents: docs.vault,                 // Part 2 · S4-docs
         })
     }
 
@@ -738,6 +760,8 @@ pub fn student_deps_with(
         results: Arc::new(sutra_exams::PgResultsPort::new(pool.clone())),
         abc: Arc::new(sutra_student::adapters::NoopAbcRegistry),
         external_scholarships: Arc::new(sutra_student::adapters::NoopExternalScholarships),
+        // Part 2 · S4-docs: `build` hands in the configured document service.
+        documents: Arc::new(sutra_platform::documents::DisabledDocumentVault),
         workflow,
         approvals,
         pool,
@@ -978,6 +1002,7 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
         .merge(sutra_platform::search::router(ctx.search.clone())) // 9C
+        .merge(sutra_platform::documents::router(ctx.documents.clone())) // Part 2 · S4-docs
         .merge(sutra_institution::router(
             sutra_institution::InstitutionDeps {
                 pool: ctx.pool.clone(),
@@ -986,11 +1011,11 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
                 approvals: ctx.approvals,
             },
         ))
-        .merge(sutra_student::router(student_deps_with(
-            ctx.pool.clone(),
-            ctx.workflow.clone(),
-            ctx.approvals,
-        )))
+        .merge(sutra_student::router({
+            let mut deps = student_deps_with(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals);
+            deps.documents = ctx.documents.clone(); // Part 2 · S4-docs
+            deps
+        }))
         .merge(sutra_academic::router(academic_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
@@ -1078,7 +1103,12 @@ pub fn router(ctx: AppContext) -> Router {
             http::StatusCode::GATEWAY_TIMEOUT,
             timeout,
         ))
-        .layer(RequestBodyLimitLayer::new(layers.max_body_bytes)) // Part 1 · S3: SUTRA_MAX_BODY_BYTES
+        // Part 1 · S3: SUTRA_MAX_BODY_BYTES on every route; Part 2 · S4-docs: document uploads
+        // (`PUT /api/v1/…/file`) up to SUTRA_DOCS_MAX_BYTES.
+        .layer(axum::middleware::from_fn_with_state(
+            layers.body_limits,
+            crate::storage::body_limit,
+        ))
         .layer(axum::extract::DefaultBodyLimit::max(layers.max_body_bytes))
         .layer(CatchPanicLayer::new())
         .layer(axum::middleware::from_fn(crate::metrics::track_http)) // 9A
