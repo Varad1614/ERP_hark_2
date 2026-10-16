@@ -20547,6 +20547,221 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import jobs of the tenant (optionally of one institution / entity), newest first. */
+        get: operations["platform_import_job_list"];
+        put?: never;
+        /**
+         * Uploads a CSV / XLSX file: parsed rows are stored and a mapping is suggested. Idempotent on
+         *     the job key (201 new job, 200 the job the key already created; 409 same key, other file).
+         */
+        post: operations["platform_import_job_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Importable entities with their columns, natural keys and the caller's access. */
+        get: operations["platform_import_entity_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities/{entity}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export of an institution's records in the import columns (formula-injection safe; audited). */
+        get: operations["platform_import_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities/{entity}/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Blank import template (canonical headers + one example row). */
+        get: operations["platform_import_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/mapping-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved mapping profiles. */
+        get: operations["platform_import_profile_list"];
+        put?: never;
+        /** Creates or replaces (by name) a mapping profile. */
+        post: operations["platform_import_profile_save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One import job with its counters and reconciliation summary. */
+        get: operations["platform_import_job_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commits a validated job (one transaction per batch), or — for opening balances — requests
+         *     the second person's approval (`pending_approval`).
+         */
+        post: operations["platform_import_job_commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a commit awaiting approval (`platform.import.approve`). The job's maker cannot
+         *     decide it (separation of duties → 403); approval runs the commit, rejection needs a reason.
+         */
+        post: operations["platform_import_job_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dry run: validates every row with the owning module's domain rules (nothing is written). */
+        post: operations["platform_import_job_dry_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/errors.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Row-level error report (CSV: line, column, code, message + the row's source cells). */
+        get: operations["platform_import_job_error_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replaces the column mapping (and on-existing policy); the job returns to `uploaded`. */
+        put: operations["platform_import_job_mapping"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rows of a job with their dry-run / commit outcome. */
+        get: operations["platform_import_job_rows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/modules": {
         parameters: {
             query?: never;
@@ -27748,6 +27963,22 @@ export interface components {
          * @enum {string}
          */
         AccrualFrequency: "monthly" | "yearly" | "none";
+        /** @description Predicted (after a dry run) or actual (after a commit) row actions. */
+        ActionCounts: {
+            /** Format: int64 */
+            create: number;
+            /** Format: int64 */
+            error: number;
+            /**
+             * Format: int64
+             * @description Rows not checked yet.
+             */
+            pending: number;
+            /** Format: int64 */
+            skip: number;
+            /** Format: int64 */
+            update: number;
+        };
         /**
          * @description Outcome chosen by the Institution Activation Authority.
          * @enum {string}
@@ -30212,7 +30443,7 @@ export interface components {
          * @description Where a charge came from.
          * @enum {string}
          */
-        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge";
+        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge" | "opening_balance";
         /**
          * @description Student charge lifecycle (L2-F01 §18–19 canonical states and transitions).
          * @enum {string}
@@ -30354,6 +30585,11 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /**
+         * @description Value type of a column (drives template examples, the mapping screen and pre-validation).
+         * @enum {string}
+         */
+        ColumnKind: "text" | "code" | "date" | "decimal" | "integer" | "email" | "phone" | "boolean" | "choice";
         /** @description Optional body of a state command (`{ "reason": "…" }`). */
         CommandBody: {
             /** @description Business reason / decision note. */
@@ -33714,6 +33950,11 @@ export interface components {
             /** @description Human readable explanation. */
             message: string;
         };
+        /**
+         * @description File format of an upload / export.
+         * @enum {string}
+         */
+        FileFormat: "csv" | "xlsx";
         FinalSettlementCreate: {
             notes?: string | null;
             recoveries?: components["schemas"]["SettlementRecovery"][] | null;
@@ -35094,6 +35335,168 @@ export interface components {
         };
         /** @enum {string} */
         ImpactSeverity: "info" | "warning" | "uncertain" | "blocking";
+        /** @description One column of an importable entity. */
+        ImportColumnView: {
+            choices: string[];
+            example: string;
+            help: string;
+            kind: components["schemas"]["ColumnKind"];
+            label: string;
+            name: string;
+            required: boolean;
+        };
+        /** @description Decision on a commit awaiting approval. */
+        ImportDecision: {
+            approve: boolean;
+            /** @description Required for a rejection. */
+            reason?: string | null;
+        };
+        ImportEntityList: {
+            items: components["schemas"]["ImportEntityView"][];
+        };
+        /** @description An importable / exportable entity. */
+        ImportEntityView: {
+            /** @description `true` when the caller holds that permission. */
+            allowed: boolean;
+            amountColumn?: string | null;
+            columns: components["schemas"]["ImportColumnView"][];
+            entity: string;
+            groupBy?: string | null;
+            label: string;
+            naturalKey: string[];
+            owner: string;
+            /** @description The owning domain's manage permission (needed in addition to `platform.import.manage`). */
+            permission: string;
+            /** @description A commit needs a second person's approval. */
+            requiresApproval: boolean;
+            supportsUpdate: boolean;
+        };
+        /** @description An import job. */
+        ImportJob: {
+            actions: components["schemas"]["ActionCounts"];
+            /** Format: int32 */
+            batchSize: number;
+            commitRequestedBy?: string | null;
+            /** Format: date-time */
+            committedAt?: string | null;
+            committedBy?: string | null;
+            /**
+             * Format: int32
+             * @description Duration of the commit.
+             */
+            committedMs?: number | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            entity: string;
+            failureReason?: string | null;
+            /** Format: int32 */
+            fileBytes: number;
+            fileFormat: components["schemas"]["FileFormat"];
+            fileName: string;
+            fileSha256: string;
+            /** @description Header cells of the file, in order. */
+            headers: string[];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            jobKey: string;
+            /** @description Source header → canonical column. */
+            mapping: {
+                [key: string]: string;
+            };
+            /** Format: uuid */
+            mappingProfileId?: string | null;
+            onExisting: components["schemas"]["OnExisting"];
+            processInstanceId?: string | null;
+            requiresApproval: boolean;
+            status: components["schemas"]["JobStatus"];
+            summary: components["schemas"]["Reconciliation"];
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            validatedAt?: string | null;
+            /**
+             * Format: int32
+             * @description Duration of the last dry run.
+             */
+            validatedMs?: number | null;
+            /** Format: int64 */
+            version: number;
+        };
+        ImportJobList: {
+            items: components["schemas"]["ImportJob"][];
+        };
+        /** @description One row of a job. */
+        ImportJobRow: {
+            action?: null | components["schemas"]["RowAction"];
+            amount?: string | null;
+            /** @description Source cells by header. */
+            cells: {
+                [key: string]: string;
+            };
+            committed: boolean;
+            errors: components["schemas"]["FieldViolation"][];
+            /** Format: int32 */
+            line: number;
+            naturalKey?: string | null;
+            /** Format: uuid */
+            recordId?: string | null;
+        };
+        ImportJobRowList: {
+            items: components["schemas"]["ImportJobRow"][];
+        };
+        ImportMappingProfileList: {
+            items: components["schemas"]["MappingProfile"][];
+        };
+        /** @description Saves (creates or replaces by name) a mapping profile. */
+        ImportMappingProfileSave: {
+            entity: string;
+            mapping: {
+                [key: string]: string;
+            };
+            name: string;
+        };
+        /** @description New column mapping of a job. */
+        ImportMappingUpdate: {
+            /** @description Source header → canonical column. */
+            mapping: {
+                [key: string]: string;
+            };
+            onExisting?: null | components["schemas"]["OnExisting"];
+            /** @description Also save the mapping as a reusable profile with this name. */
+            saveAsProfile?: string | null;
+        };
+        /** @description Upload of one CSV / XLSX file. */
+        ImportUpload: {
+            /**
+             * Format: int32
+             * @description Rows per commit transaction (1–5000, default 500).
+             */
+            batchSize?: number | null;
+            /** @description The file, base64 encoded (≤ 8 MiB decoded; the request body limit applies). */
+            contentBase64: string;
+            /** @example students */
+            entity: string;
+            /**
+             * @description `.csv` or `.xlsx`.
+             * @example students-2026.csv
+             */
+            fileName: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description Idempotency of the upload (default `<entity>:<institution>:<sha256 of the file>`). */
+            jobKey?: string | null;
+            /**
+             * Format: uuid
+             * @description Saved mapping to apply (default: headers matched to column names / labels).
+             */
+            mappingProfileId?: string | null;
+            onExisting?: null | components["schemas"]["OnExisting"];
+        };
         /** @description Change the capacity (seats / beds / persons). */
         InfrastructureCapacityBody: {
             /** Format: int32 */
@@ -35468,6 +35871,11 @@ export interface components {
          * @enum {string}
          */
         ItemStatus: "open" | "in_progress" | "done" | "verified" | "cancelled";
+        /**
+         * @description Lifecycle of an import job.
+         * @enum {string}
+         */
+        JobStatus: "uploaded" | "validated" | "invalid" | "pending_approval" | "committing" | "committed" | "failed" | "rejected";
         /**
          * Format: uuid
          * @description Posted, balanced, append-only journal entry of the general ledger (L2-F05).
@@ -37290,6 +37698,21 @@ export interface components {
             journalLineId?: string | null;
             /** Format: uuid */
             lineId: string;
+        };
+        /** @description A saved column mapping. */
+        MappingProfile: {
+            createdBy?: string | null;
+            entity: string;
+            /** Format: uuid */
+            id: string;
+            mapping: {
+                [key: string]: string;
+            };
+            name: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
         };
         MarkInput: {
             mark: components["schemas"]["AttendanceMark"];
@@ -39303,6 +39726,11 @@ export interface components {
         OfferingWindowList: {
             items: components["schemas"]["OfferingEnrolmentWindow"][];
         };
+        /**
+         * @description What to do with a row whose natural key already exists.
+         * @enum {string}
+         */
+        OnExisting: "skip" | "update";
         /** @description Opens an onboarding case. */
         OnboardingCreate: {
             /** Format: uuid */
@@ -41683,6 +42111,36 @@ export interface components {
             ignore?: components["schemas"]["IgnoreLine"][];
             matches?: components["schemas"]["ManualMatch"][];
         };
+        /** @description Reconciliation summary. */
+        Reconciliation: {
+            /** Format: int32 */
+            batchesCommitted: number;
+            /** @description Σ amounts this job posted. */
+            committedTotal?: string | null;
+            /** Format: int32 */
+            created: number;
+            /** Format: int32 */
+            duplicatesInFile: number;
+            /** Format: int32 */
+            errors: number;
+            /**
+             * Format: int32
+             * @description Rows whose natural key already existed (skipped or updated).
+             */
+            existingInDatabase: number;
+            /** @description Σ amount column of the file (entities with money). */
+            fileTotal?: string | null;
+            /** @description Σ the ledger holds for the job's records. */
+            ledgerTotal?: string | null;
+            /** @description `ledgerTotal == fileTotal` and the job committed (entities with money). */
+            reconciled?: boolean | null;
+            /** Format: int32 */
+            rowsInFile: number;
+            /** Format: int32 */
+            skipped: number;
+            /** Format: int32 */
+            updated: number;
+        };
         ReconciliationDiscrepancy: {
             institutional?: string | null;
             /**
@@ -43259,6 +43717,11 @@ export interface components {
             /** Format: int32 */
             versionNo: number;
         };
+        /**
+         * @description What happened (or, in a dry run, would happen) to a row.
+         * @enum {string}
+         */
+        RowAction: "create" | "update" | "skip" | "error";
         /**
          * @description A new rule version (`late_fee` {percent, graceDays, cap}, `rounding` {mode},
          *     `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
@@ -99040,6 +99503,449 @@ export interface operations {
                 };
             };
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_list: {
+        parameters: {
+            query?: {
+                institutionId?: string;
+                entity?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJobList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_upload: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportUpload"];
+            };
+        };
+        responses: {
+            /** @description Existing job of the job key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_entity_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportEntityList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_export: {
+        parameters: {
+            query: {
+                institutionId: string;
+                /** @description `csv` (default) or `xlsx`. */
+                format?: string;
+            };
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV or XLSX file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_template: {
+        parameters: {
+            query?: {
+                /** @description `csv` (default) or `xlsx`. */
+                format?: string;
+            };
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV or XLSX file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_profile_list: {
+        parameters: {
+            query?: {
+                entity?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportMappingProfileList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_profile_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMappingProfileSave"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MappingProfile"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_commit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_dry_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_error_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_mapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMappingUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_rows: {
+        parameters: {
+            query?: {
+                /** @description Only rows with errors. */
+                errorsOnly?: boolean;
+                /** @description 1–5000 (default 500). */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJobRowList"];
+                };
+            };
+            "4XX": {
                 headers: {
                     [name: string]: unknown;
                 };

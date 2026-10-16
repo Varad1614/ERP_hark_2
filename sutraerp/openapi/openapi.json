@@ -96000,6 +96000,744 @@
         ]
       }
     },
+    "/api/v1/platform/imports": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Import jobs of the tenant (optionally of one institution / entity), newest first.",
+        "operationId": "platform_import_job_list",
+        "parameters": [
+          {
+            "name": "institutionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Uploads a CSV / XLSX file: parsed rows are stored and a mapping is suggested. Idempotent on\nthe job key (201 new job, 200 the job the key already created; 409 same key, other file).",
+        "operationId": "platform_import_job_upload",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Existing job of the job key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/entities": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Importable entities with their columns, natural keys and the caller's access.",
+        "operationId": "platform_import_entity_list",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportEntityList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/entities/{entity}/export": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Export of an institution's records in the import columns (formula-injection safe; audited).",
+        "operationId": "platform_import_export",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "institutionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "`csv` (default) or `xlsx`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV or XLSX file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/entities/{entity}/template": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Blank import template (canonical headers + one example row).",
+        "operationId": "platform_import_template",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "`csv` (default) or `xlsx`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV or XLSX file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/mapping-profiles": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Saved mapping profiles.",
+        "operationId": "platform_import_profile_list",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportMappingProfileList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Creates or replaces (by name) a mapping profile.",
+        "operationId": "platform_import_profile_save",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportMappingProfileSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingProfile"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "One import job with its counters and reconciliation summary.",
+        "operationId": "platform_import_job_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/commit": {
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Commits a validated job (one transaction per batch), or — for opening balances — requests\nthe second person's approval (`pending_approval`).",
+        "operationId": "platform_import_job_commit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/decision": {
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Decides a commit awaiting approval (`platform.import.approve`). The job's maker cannot\ndecide it (separation of duties → 403); approval runs the commit, rejection needs a reason.",
+        "operationId": "platform_import_job_decision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/dry-run": {
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Dry run: validates every row with the owning module's domain rules (nothing is written).",
+        "operationId": "platform_import_job_dry_run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/errors.csv": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Row-level error report (CSV: line, column, code, message + the row's source cells).",
+        "operationId": "platform_import_job_error_report",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/mapping": {
+      "put": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Replaces the column mapping (and on-existing policy); the job returns to `uploaded`.",
+        "operationId": "platform_import_job_mapping",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportMappingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/rows": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Rows of a job with their dry-run / commit outcome.",
+        "operationId": "platform_import_job_rows",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "errorsOnly",
+            "in": "query",
+            "description": "Only rows with errors.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1–5000 (default 500).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobRowList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/platform/modules": {
       "get": {
         "tags": [
@@ -134290,6 +135028,40 @@
           "none"
         ]
       },
+      "ActionCounts": {
+        "type": "object",
+        "description": "Predicted (after a dry run) or actual (after a commit) row actions.",
+        "required": [
+          "create",
+          "update",
+          "skip",
+          "error",
+          "pending"
+        ],
+        "properties": {
+          "create": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "error": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Rows not checked yet."
+          },
+          "skip": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "update": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "ActivationDecision": {
         "type": "string",
         "description": "Outcome chosen by the Institution Activation Authority.",
@@ -142149,7 +142921,8 @@
           "aid_recovery",
           "fine",
           "exam_fee",
-          "campus_charge"
+          "campus_charge",
+          "opening_balance"
         ]
       },
       "ChargeStatus": {
@@ -142603,6 +143376,21 @@
             "format": "int64"
           }
         }
+      },
+      "ColumnKind": {
+        "type": "string",
+        "description": "Value type of a column (drives template examples, the mapping screen and pre-validation).",
+        "enum": [
+          "text",
+          "code",
+          "date",
+          "decimal",
+          "integer",
+          "email",
+          "phone",
+          "boolean",
+          "choice"
+        ]
       },
       "CommandBody": {
         "type": "object",
@@ -153153,6 +153941,14 @@
           }
         }
       },
+      "FileFormat": {
+        "type": "string",
+        "description": "File format of an upload / export.",
+        "enum": [
+          "csv",
+          "xlsx"
+        ]
+      },
       "FinalSettlementCreate": {
         "type": "object",
         "properties": {
@@ -157530,6 +158326,559 @@
           "blocking"
         ]
       },
+      "ImportColumnView": {
+        "type": "object",
+        "description": "One column of an importable entity.",
+        "required": [
+          "name",
+          "label",
+          "required",
+          "kind",
+          "choices",
+          "example",
+          "help"
+        ],
+        "properties": {
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "example": {
+            "type": "string"
+          },
+          "help": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ColumnKind"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportDecision": {
+        "type": "object",
+        "description": "Decision on a commit awaiting approval.",
+        "required": [
+          "approve"
+        ],
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Required for a rejection."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImportEntityList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportEntityView"
+            }
+          }
+        }
+      },
+      "ImportEntityView": {
+        "type": "object",
+        "description": "An importable / exportable entity.",
+        "required": [
+          "entity",
+          "label",
+          "owner",
+          "columns",
+          "naturalKey",
+          "supportsUpdate",
+          "requiresApproval",
+          "permission",
+          "allowed"
+        ],
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "description": "`true` when the caller holds that permission."
+          },
+          "amountColumn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportColumnView"
+            }
+          },
+          "entity": {
+            "type": "string"
+          },
+          "groupBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "naturalKey": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "owner": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string",
+            "description": "The owning domain's manage permission (needed in addition to `platform.import.manage`)."
+          },
+          "requiresApproval": {
+            "type": "boolean",
+            "description": "A commit needs a second person's approval."
+          },
+          "supportsUpdate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportJob": {
+        "type": "object",
+        "description": "An import job.",
+        "required": [
+          "id",
+          "institutionId",
+          "entity",
+          "jobKey",
+          "fileName",
+          "fileFormat",
+          "fileSha256",
+          "fileBytes",
+          "headers",
+          "mapping",
+          "onExisting",
+          "batchSize",
+          "status",
+          "requiresApproval",
+          "actions",
+          "summary",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "actions": {
+            "$ref": "#/components/schemas/ActionCounts"
+          },
+          "batchSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commitRequestedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "committedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "committedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "committedMs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Duration of the commit."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entity": {
+            "type": "string"
+          },
+          "failureReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fileBytes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileFormat": {
+            "$ref": "#/components/schemas/FileFormat"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSha256": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Header cells of the file, in order."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobKey": {
+            "type": "string"
+          },
+          "mapping": {
+            "type": "object",
+            "description": "Source header → canonical column.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "mappingProfileId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "onExisting": {
+            "$ref": "#/components/schemas/OnExisting"
+          },
+          "processInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requiresApproval": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Reconciliation"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "validatedMs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Duration of the last dry run."
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ImportJobList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportJob"
+            }
+          }
+        }
+      },
+      "ImportJobRow": {
+        "type": "object",
+        "description": "One row of a job.",
+        "required": [
+          "line",
+          "errors",
+          "committed",
+          "cells"
+        ],
+        "properties": {
+          "action": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RowAction"
+              }
+            ]
+          },
+          "amount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cells": {
+            "type": "object",
+            "description": "Source cells by header.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "committed": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldViolation"
+            }
+          },
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "naturalKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recordId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ImportJobRowList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportJobRow"
+            }
+          }
+        }
+      },
+      "ImportMappingProfileList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MappingProfile"
+            }
+          }
+        }
+      },
+      "ImportMappingProfileSave": {
+        "type": "object",
+        "description": "Saves (creates or replaces by name) a mapping profile.",
+        "required": [
+          "entity",
+          "name",
+          "mapping"
+        ],
+        "properties": {
+          "entity": {
+            "type": "string"
+          },
+          "mapping": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImportMappingUpdate": {
+        "type": "object",
+        "description": "New column mapping of a job.",
+        "required": [
+          "mapping"
+        ],
+        "properties": {
+          "mapping": {
+            "type": "object",
+            "description": "Source header → canonical column.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "onExisting": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OnExisting"
+              }
+            ]
+          },
+          "saveAsProfile": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Also save the mapping as a reusable profile with this name."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImportUpload": {
+        "type": "object",
+        "description": "Upload of one CSV / XLSX file.",
+        "required": [
+          "entity",
+          "institutionId",
+          "fileName",
+          "contentBase64"
+        ],
+        "properties": {
+          "batchSize": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Rows per commit transaction (1–5000, default 500)."
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "The file, base64 encoded (≤ 8 MiB decoded; the request body limit applies)."
+          },
+          "entity": {
+            "type": "string",
+            "example": "students"
+          },
+          "fileName": {
+            "type": "string",
+            "description": "`.csv` or `.xlsx`.",
+            "example": "students-2026.csv"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobKey": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Idempotency of the upload (default `<entity>:<institution>:<sha256 of the file>`)."
+          },
+          "mappingProfileId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Saved mapping to apply (default: headers matched to column names / labels)."
+          },
+          "onExisting": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OnExisting",
+                "description": "What to do with rows whose natural key exists (default `skip`)."
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "InfrastructureCapacityBody": {
         "type": "object",
         "description": "Change the capacity (seats / beds / persons).",
@@ -158690,6 +160039,20 @@
           "done",
           "verified",
           "cancelled"
+        ]
+      },
+      "JobStatus": {
+        "type": "string",
+        "description": "Lifecycle of an import job.",
+        "enum": [
+          "uploaded",
+          "validated",
+          "invalid",
+          "pending_approval",
+          "committing",
+          "committed",
+          "failed",
+          "rejected"
         ]
       },
       "JournalEntryId": {
@@ -164226,6 +165589,53 @@
           "lineId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "MappingProfile": {
+        "type": "object",
+        "description": "A saved column mapping.",
+        "required": [
+          "id",
+          "entity",
+          "name",
+          "mapping",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entity": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapping": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -170925,6 +172335,14 @@
             }
           }
         }
+      },
+      "OnExisting": {
+        "type": "string",
+        "description": "What to do with a row whose natural key already exists.",
+        "enum": [
+          "skip",
+          "update"
+        ]
       },
       "OnboardingCreate": {
         "type": "object",
@@ -178420,6 +179838,83 @@
           }
         }
       },
+      "Reconciliation": {
+        "type": "object",
+        "description": "Reconciliation summary.",
+        "required": [
+          "rowsInFile",
+          "created",
+          "updated",
+          "skipped",
+          "errors",
+          "duplicatesInFile",
+          "existingInDatabase",
+          "batchesCommitted"
+        ],
+        "properties": {
+          "batchesCommitted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "committedTotal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Σ amounts this job posted."
+          },
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duplicatesInFile": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "existingInDatabase": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Rows whose natural key already existed (skipped or updated)."
+          },
+          "fileTotal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Σ amount column of the file (entities with money)."
+          },
+          "ledgerTotal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Σ the ledger holds for the job's records."
+          },
+          "reconciled": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "`ledgerTotal == fileTotal` and the job committed (entities with money)."
+          },
+          "rowsInFile": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updated": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ReconciliationDiscrepancy": {
         "type": "object",
         "required": [
@@ -183325,6 +184820,16 @@
             "format": "int32"
           }
         }
+      },
+      "RowAction": {
+        "type": "string",
+        "description": "What happened (or, in a dry run, would happen) to a row.",
+        "enum": [
+          "create",
+          "update",
+          "skip",
+          "error"
+        ]
       },
       "RuleCreate": {
         "type": "object",
