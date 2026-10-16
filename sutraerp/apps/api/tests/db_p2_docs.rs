@@ -835,7 +835,12 @@ async fn oversize_and_forbidden_types_are_rejected() {
             "type_not_allowed",
         ),
         // Declared type matches the content; only the extension disagrees.
-        ("scan.png", "application/pdf", PDF.to_vec(), "extension_mismatch"),
+        (
+            "scan.png",
+            "application/pdf",
+            PDF.to_vec(),
+            "extension_mismatch",
+        ),
         ("scan.pdf", "image/png", PDF.to_vec(), "type_mismatch"),
         (
             "macro.pdf",
