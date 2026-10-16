@@ -1098,6 +1098,22 @@ pub async fn decide(
         ))
         .into());
     }
+    // Part 1 (DEF-X-002): whoever created the admission or requested its approval never decides it.
+    let makers: Vec<String> = sqlx::query_scalar(
+        "SELECT DISTINCT actor FROM student.admission_status_history \
+         WHERE tenant_id = $1 AND admission_id = $2 AND actor IS NOT NULL AND actor <> '' \
+         AND (from_status IS NULL OR to_status = 'approval_pending')",
+    )
+    .bind(scope.tenant_id.as_uuid())
+    .bind(id.as_uuid())
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    sutra_kernel::approval::ensure_independent_decider(
+        a.id.as_deref(),
+        makers.iter().map(String::as_str),
+        "admission",
+    )?;
     let next = apply_decision(&mut tx, &scope, &cur, cmd.decision, reason.as_deref(), &a).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(respond(StatusCode::OK, &next))
@@ -1729,6 +1745,58 @@ pub async fn readmit(
     refs::campus(&st, &scope, inst, campus, "campusId").await?;
     let a = actor(ctx);
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    // DEF-C-002: one closed admission reopens at most one live admission. Lock the source so
+    // concurrent readmissions serialise, then refuse when a live readmission of it exists.
+    sqlx::query("SELECT id FROM student.admission WHERE id = $1 AND tenant_id = $2 FOR UPDATE")
+        .bind(src.id.as_uuid())
+        .bind(scope.tenant_id.as_uuid())
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(map_db_error)?;
+    let open_readmission: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM student.admission WHERE tenant_id = $1 AND previous_admission_id = $2 \
+         AND status NOT IN ('cancelled', 'withdrawn', 'revoked', 'expired', 'completed') LIMIT 1",
+    )
+    .bind(scope.tenant_id.as_uuid())
+    .bind(src.id.as_uuid())
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    if let Some(open) = open_readmission {
+        return Err(KernelError::Conflict(format!(
+            "admission {} was already readmitted as admission {open}, which is still open",
+            src.id
+        ))
+        .into());
+    }
+    // Without a student yet, the person key (name + DOB + contact) guards against a second live
+    // admission / application / student for the same person (an existing student is guarded by
+    // the `admission_open_per_student` index).
+    if src.student_id.is_none() {
+        if let Some(key) = super::duplicates::PersonKey::new(
+            &src.given_name,
+            src.family_name.as_deref(),
+            src.date_of_birth,
+            src.email.as_deref(),
+            src.phone.as_deref(),
+        ) {
+            let found = super::duplicates::find(
+                &mut tx,
+                scope.tenant_id,
+                inst,
+                &key,
+                Some(src.id.as_uuid()),
+            )
+            .await?;
+            if !found.is_empty() {
+                return Err(super::duplicates::conflict(
+                    &found,
+                    "the person already has a live record in this institution; continue that one",
+                )
+                .into());
+            }
+        }
+    }
     // The student's current identity wins over the historical snapshot.
     let (given, middle, family, dob, gender, email, phone, subject) = match src.student_id {
         Some(sid) => {

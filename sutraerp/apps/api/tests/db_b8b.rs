@@ -1094,9 +1094,12 @@ async fn hostel_policy_admission_residency_and_clearance() {
     )
     .await;
     assert_eq!(s, StatusCode::CONFLICT);
+    // S3-appr (SoD): the requester is refused first; an independent administrator gets the
+    // stale-version answer.
+    let dean = login(&app, "dean@sutra.dev").await;
     let (s, _) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &format!("{C}/hostel-applications/{}/decision", id(&app_isha)),
         json!({"decision": "approve"}),
@@ -2048,6 +2051,7 @@ fn custom_app(st: sutra_campus::CampusState, tenant: &str, subject: &str) -> Rou
         mfa_level: MfaLevel::Mfa,
         amr: vec!["pwd".into(), "otp".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     };
     router.layer(axum::middleware::from_fn(
         move |mut req: Request<Body>, next: axum::middleware::Next| {

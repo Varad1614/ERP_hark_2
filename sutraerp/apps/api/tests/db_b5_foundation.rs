@@ -317,9 +317,11 @@ async fn finance_foundation_tables_posting_clearance_and_accounts() {
     );
 
     // ---- directory + receivable reader.
-    let state = sutra_api::app::finance_deps(
+    let state = sutra_api::app::finance_deps_with(
         pool.clone(),
         std::sync::Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let open = state

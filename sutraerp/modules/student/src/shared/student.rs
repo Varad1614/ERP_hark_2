@@ -278,6 +278,36 @@ pub async fn contexts_of<'e, E: PgExecutor<'e>>(
         .map_err(map_db_error)
 }
 
+/// Contexts in one institution of many students in a single statement (directory page): the
+/// same rows and order per student as [`contexts_of`] filtered to `institution_id`, without one
+/// round trip (and pool checkout) per student.
+pub async fn contexts_in_institution<'e, E: PgExecutor<'e>>(
+    executor: E,
+    tenant: TenantId,
+    institution_id: InstitutionId,
+    student_ids: &[Uuid],
+) -> Result<Vec<StudentContextRow>, KernelError> {
+    if student_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let sql = format!(
+        "SELECT {CONTEXT_COLUMNS} FROM student.student_context \
+         WHERE student_id = ANY($1) AND tenant_id = $2 AND institution_id = $3 \
+         ORDER BY student_id, created_at DESC, id DESC"
+    );
+    let rows = sqlx::query(&sql)
+        .bind(student_ids)
+        .bind(tenant.as_uuid())
+        .bind(institution_id.as_uuid())
+        .fetch_all(executor)
+        .await
+        .map_err(map_db_error)?;
+    rows.iter()
+        .map(context_from_row)
+        .collect::<Result<_, _>>()
+        .map_err(map_db_error)
+}
+
 /// The live (`pending_activation | active | suspended`) context of a student in an institution.
 pub async fn live_context<'e, E: PgExecutor<'e>>(
     executor: E,

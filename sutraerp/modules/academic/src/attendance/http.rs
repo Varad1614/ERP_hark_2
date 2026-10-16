@@ -15,7 +15,9 @@ use axum::http::HeaderMap;
 use axum::response::Response;
 use axum::Json;
 use sutra_contracts::academic::ids::OfferingSectionId;
-use sutra_contracts::academic::status::{PolicyVersionStatus, TeachingSessionStatus};
+use sutra_contracts::academic::status::{
+    ChangeRequestStatus, PolicyVersionStatus, TeachingSessionStatus,
+};
 use sutra_kernel::auth::Permission;
 use sutra_web::idempotency::require_idempotency_key;
 use sutra_web::{ApiResult, Authenticated, Problem};
@@ -34,6 +36,13 @@ pub struct SessionFilter {
 #[into_params(parameter_in = Query)]
 pub struct PolicyFilter {
     pub status: Option<PolicyVersionStatus>,
+}
+
+#[derive(Debug, Default, serde::Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct CorrectionFilter {
+    /// `requested` lists the corrections awaiting a decision.
+    pub status: Option<ChangeRequestStatus>,
 }
 
 /// Staff read of a section (`academic.read`; faculty only on sections they teach).
@@ -236,6 +245,35 @@ pub async fn correction_request(
     Ok(created(&c, c.version))
 }
 
+/// Attendance corrections of an institution: the HOD / administrator decision queue
+/// (`attendance.correct`).
+#[utoipa::path(get, path = "/api/v1/academic/institutions/{id}/attendance-corrections", operation_id = "attendance_correction_queue", tag = "attendance",
+    params(("id" = String, Path, format = Uuid), CorrectionFilter), security(("session_cookie" = [])),
+    responses((status = 200, body = AttendanceCorrectionQueue), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
+pub async fn correction_queue(
+    State(st): State<AcademicState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+    Query(f): Query<CorrectionFilter>,
+) -> ApiResult<Json<AttendanceCorrectionQueue>> {
+    // Reading the queue is not a decision: no step-up here, the decision itself requires it.
+    if !auth.0.has_permission(Permission::AttendanceCorrect) {
+        return Err(sutra_kernel::error::KernelError::Forbidden(
+            "deciding attendance corrections needs attendance.correct".into(),
+        )
+        .into());
+    }
+    Ok(Json(AttendanceCorrectionQueue {
+        items: repo::list_institution_corrections(
+            &st,
+            auth.0.scope.tenant_id,
+            id,
+            f.status.map(|s| s.as_str()),
+        )
+        .await?,
+    }))
+}
+
 /// An attendance correction.
 #[utoipa::path(get, path = "/api/v1/academic/attendance-corrections/{id}", operation_id = "attendance_correction_get", tag = "attendance",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [])),
@@ -373,6 +411,8 @@ pub async fn policy_decision(
     Json(cmd): Json<DeliveryDecision>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::AttendanceManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "attendance policy").await?;
     let v = expect_version!(headers);
     let p = repo::decide_policy(
         &st,
@@ -572,6 +612,7 @@ pub fn router(state: AcademicState) -> OpenApiRouter {
         .routes(routes!(attendance_submit))
         .routes(routes!(attendance_finalise))
         .routes(routes!(correction_list, correction_request))
+        .routes(routes!(correction_queue))
         .routes(routes!(correction_get))
         .routes(routes!(correction_decision))
         .routes(routes!(correction_withdraw))

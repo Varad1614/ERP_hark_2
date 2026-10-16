@@ -47,7 +47,7 @@ secrets:
   openbao:
     address: https://openbao.pilot.example.edu:8200   # CHANGE-ME (operator-run OpenBao)
     role: sutraerp
-    groups: [database, app, oidc, smtp, audit]
+    groups: [database, app, oidc, smtp, audit, flowable]   # Part 1: flowable (approval workflow) is required in production
 postgres:
   mode: external
   external:
@@ -71,3 +71,11 @@ observability:
   otlpEndpoint: http://otel-collector.observability.svc:4317
 backup:
   enabled: true
+# Part 1 (DEF-X-001): governed decisions wait for a human approver; Flowable runs the approval
+# processes with autoApprove off (the API refuses noop / auto / autoApprove=true in production).
+approvals:
+  mode: human
+flowable:
+  enabled: true
+  bundled: true                        # in-cluster flowable-rest, database `flowable` on the managed PostgreSQL
+  autoApprove: false

@@ -1290,6 +1290,18 @@ pub async fn decide_run(
             run.number, run.status
         )));
     }
+    // Part 1 (DEF-X-002): the preparer / submitter of a payroll run never decides it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        c.tenant,
+        RUN,
+        id,
+        &["pending_approval"],
+        &[],
+        c.actor.id.as_deref(),
+        "payroll run",
+    )
+    .await?;
     let pid = run.process_instance_id.clone();
     let out = if approve {
         let approved = move_run(

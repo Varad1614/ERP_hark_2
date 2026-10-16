@@ -5,6 +5,19 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "otpPolicyCodeReusable": false,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "accessTokenLifespan": 300,
   "roles": {
     "realm": [
       {
@@ -15,6 +28,26 @@
       },
       {
         "name": "student"
+      },
+      {
+        "name": "finance_approver",
+        "description": "Checker: finance decisions (refunds, adjustments, write-offs, fee structures)"
+      },
+      {
+        "name": "exam_controller",
+        "description": "Checker: controller of examinations (exam setup, marks, results, publication)"
+      },
+      {
+        "name": "registrar",
+        "description": "Checker: admission decisions"
+      },
+      {
+        "name": "payroll_approver",
+        "description": "Checker: payroll runs, adjustments, final settlements"
+      },
+      {
+        "name": "procurement_approver",
+        "description": "Checker: requisitions, purchase orders, vendor invoices"
       }
     ]
   },
@@ -104,21 +137,6 @@
           }
         },
         {
-          "name": "institution_id (dev: hardcoded)",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-hardcoded-claim-mapper",
-          "consentRequired": false,
-          "config": {
-            "claim.name": "institution_id",
-            "claim.value": "0192f5a0-7c3e-7000-8000-0000000000aa",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "introspection.token.claim": "true"
-          }
-        },
-        {
           "name": "amr",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-amr-mapper",
@@ -189,6 +207,132 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "username": "finance.approver@sutra.dev",
+      "email": "finance.approver@sutra.dev",
+      "firstName": "Kavita",
+      "lastName": "Rao",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "finance_approver"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "exam.controller@sutra.dev",
+      "email": "exam.controller@sutra.dev",
+      "firstName": "Anil",
+      "lastName": "Menon",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "exam_controller"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "registrar@sutra.dev",
+      "email": "registrar@sutra.dev",
+      "firstName": "Sunita",
+      "lastName": "Kulkarni",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "registrar"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "payroll.approver@sutra.dev",
+      "email": "payroll.approver@sutra.dev",
+      "firstName": "Rahul",
+      "lastName": "Iyer",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "payroll_approver"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "procurement.approver@sutra.dev",
+      "email": "procurement.approver@sutra.dev",
+      "firstName": "Farah",
+      "lastName": "Siddiqui",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "procurement_approver"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "dean@sutra.dev",
+      "email": "dean@sutra.dev",
+      "firstName": "Kiran",
+      "lastName": "Bhat",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": [
+        "administrator"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sutra",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
     }
   ],
   "sslRequired": "external",
@@ -247,6 +391,96 @@
       "defaultAction": false,
       "priority": 50,
       "config": {}
+    }
+  ],
+  "browserFlow": "browser-sutra",
+  "authenticationFlows": [
+    {
+      "alias": "browser-sutra",
+      "description": "Built-in browser steps (cookie, password, conditional OTP) with AMR references pwd/otp, so the ID token amr shows MFA to SutraERP",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "flowAlias": "browser-sutra forms",
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "browser-sutra forms",
+      "description": "Username + password, then the conditional OTP.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorConfig": "amr-pwd",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "flowAlias": "browser-sutra conditional otp",
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "browser-sutra conditional otp",
+      "description": "OTP form when the user has an OTP credential.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorConfig": "amr-otp",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "amr-pwd",
+      "config": {
+        "default.reference.value": "pwd",
+        "default.reference.maxAge": "0"
+      }
+    },
+    {
+      "alias": "amr-otp",
+      "config": {
+        "default.reference.value": "otp",
+        "default.reference.maxAge": "0"
+      }
     }
   ]
 }

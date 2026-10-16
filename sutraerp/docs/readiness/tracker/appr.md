@@ -1,0 +1,19 @@
+# Part 1 · Stage 2 — approvals core (S2-appr)
+
+Branch `part1/s2-appr` (from `part1/readiness` @ c8b0a8d3). Control matrix:
+`docs/readiness/APPROVAL_CONTROL_MATRIX.md`. CI column: workflow "SutraERP CI" run on this branch
+unless stated.
+
+| ID | Issue | Root cause | Files changed | Status | Tests | CI result + run id | Blockers | Commit |
+|---|---|---|---|---|---|---|---|---|
+| DEF-X-001 | Governed decisions (refunds, admissions, results, payroll, POs, …) were auto-approved in every environment, production included | Each module's `ApprovalMode` defaulted to `AutoApprove` and every `*Deps::into_state` hard-coded it; the Flowable adapter defaulted `autoApprove=true`; nothing stopped `SUTRA_WORKFLOW=noop` in production | `crates/kernel/src/approval.rs`; `apps/api/src/{app,config,config_b9}.rs`; every `modules/*/src/lib.rs` + `shared/approval.rs`; `modules/platform/src/workflow_flowable.rs`; Helm `values.yaml`, `values-pilot.yaml`, `ci/kind.yaml`, `values.schema.json`, `templates/core/configmap.yaml`; `docker-compose.yml`; e2e harness / student / passkey; pilot, data, observability, quality, deploy workflows; `deploy/perf/run.sh`; `deploy/pilot/seed-pilot.mjs` | Fixed | `db_p1_appr::refund_waits_for_an_independent_finance_approver`, `::result_batch_waits_for_an_independent_exam_controller`, `::production_config_refuses_noop_workflow_and_auto_approval`; `config::tests`, `config_b9::tests`, `workflow_flowable::tests`, kernel `approval::tests`; Helm checks `approvals-human-on-flowable`, `production-refuses-*` | green: SutraERP CI 38743978911 (all jobs incl. 8 e2e suites + images), deploy (Helm · kind · compose) 38743979098, pilot 38739986028 @ 62f3cf66 | — | 23e33438, 59c028de, bf0e0dce, c4236d8d, 62f3cf66 |
+| DEF-X-002 | No separation of duties: the user who raised a refund / write-off / adjustment / payroll run / payroll adjustment / settlement / result batch / result decision / publication / admission / requisition / PO / vendor invoice could approve it; no checker roles | Decision endpoints checked only the approve permission, and only `administrator` held it alongside every manage permission | `crates/kernel/src/{approval,auth}.rs`; `crates/persistence/src/approval.rs`; decision paths in finance (refunds, receivables, adjustments), people (payroll runs/adjust/settlement), exams (results repo), resources (requisitions, orders, payables), student (admission flow); migrations `20261125000100`–`102`; dev personas `modules/platform/src/auth/dev.rs`; web role mapping | Fixed for the 13 high-risk decisions; the other 101 decision endpoints are human-by-default but SoD is not yet enforced (listed in the matrix) | `db_p1_appr` (self-approval 403, no-permission 403, checker cannot raise requests, decision record + audit); `db_b3a`, `db_b5b`, `db_b8d` updated to decide with a second user and assert the requester's 403; kernel `approver_roles_hold_approve_without_manage` | green: SutraERP CI 38743978911 @ 62f3cf66 | SoD for the remaining decision kinds (follow-up) | 9edaa142, 9e7bff5b, d1b2ea14, bf0e0dce |
+| CI-P1 | CI did not run on `part1/**` branches | `SutraERP CI` push filter and e2e job condition lacked `part1/**` | `.github/workflows/sutraerp-ci.yml` | Fixed | — | CI 38743978911 ran on this branch (push trigger) | — | 59c028de |
+
+Tests that encoded the old behaviour and were updated to the correct one: the batch DB suites
+(`support::app`) and every non-approval CI/e2e/perf/pilot run now opt in to
+`SUTRA_APPROVAL_MODE=auto` explicitly; `db_b3a`/`db_b5b`/`db_b8d` decisions are made by the
+checker persona and assert the requester's 403; `live_flowable` passes `autoApprove: true`
+explicitly on an adapter that allows it; the kind install and the compose boot job (they run the
+pilot / demo seeds, not approval checks) opt in to auto in development; production values stay
+human on Flowable.

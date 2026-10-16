@@ -38,6 +38,8 @@ fn adapter() -> Arc<FlowableWorkflowAdapter> {
             ),
             timeout: Duration::from_secs(30),
             deploy_on_start: true,
+            // Part 1: this live test drives both BPMN paths, so it opts in to auto-approval.
+            allow_auto_approve: true,
         })
         .unwrap(),
     )
@@ -129,9 +131,10 @@ async fn approvals_run_on_flowable_and_decisions_sync_from_the_outbox() {
     let scope = ExecutionScope::institution(tenant, InstitutionId::new());
     let port: Arc<dyn WorkflowPort> = flowable.clone();
 
-    // 1. Auto-approved (no autoApprove variable → true): ends at `approved`, never `decide`.
+    // 1. Auto-approved (explicit autoApprove=true on an adapter that allows it): ends at
+    //    `approved`, never `decide`.
     let auto = port
-        .start_process(&scope, start("campus.reservation_approval", None))
+        .start_process(&scope, start("campus.reservation_approval", Some(true)))
         .await
         .unwrap();
     assert_eq!(

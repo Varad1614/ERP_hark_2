@@ -1049,9 +1049,11 @@ async fn procure_to_pay_end_to_end() {
         1
     );
     // Idempotent posting: the port returns the same entry for the same (source, key).
-    let state = sutra_api::app::resources_deps(
+    let state = sutra_api::app::resources_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let replay = state
@@ -1208,7 +1210,9 @@ async fn procure_to_pay_end_to_end() {
         StatusCode::CREATED,
     )
     .await;
-    assert_eq!(p1["status"], "draft");
+    // Part 1 (DEF-J-003): a payment starts VENDOR_PAYMENT_APPROVAL; this suite opts in to
+    // auto-approval, so it is approved (by the system) on create and may post.
+    assert_eq!(p1["status"], "approved");
     assert_eq!(p1["number"], "VPAY-000001");
     let (s, _) = call(
         &app,
@@ -1222,7 +1226,7 @@ async fn procure_to_pay_end_to_end() {
     assert_eq!(
         s,
         StatusCode::UNPROCESSABLE_ENTITY,
-        "draft allocations count"
+        "allocations of approved, unposted payments count"
     );
     let p1_id = id(&p1);
     let p1 = ok(
@@ -2028,6 +2032,7 @@ fn custom_app(st: sutra_resources::ResourcesState, tenant: &str, subject: &str) 
         mfa_level: MfaLevel::Mfa,
         amr: vec!["pwd".into(), "otp".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     };
     router.layer(axum::middleware::from_fn(
         move |mut req: Request<Body>, next: axum::middleware::Next| {
@@ -2052,7 +2057,9 @@ async fn governed_decisions_await_a_decision() {
     )
     .into_state();
     st.approvals = ApprovalMode::AwaitDecision;
-    let hr = custom_app(st, TENANT_AWAIT, "dev|admin@sutra.dev");
+    let hr = custom_app(st.clone(), TENANT_AWAIT, "dev|admin@sutra.dev");
+    // Part 1 (DEF-X-002): requisitions and purchase orders are decided by an independent checker.
+    let checker = custom_app(st, TENANT_AWAIT, "dev|procurement.approver@sutra.dev");
     let me = Login {
         cookie: "x=y".into(),
         csrf: "x".into(),
@@ -2096,7 +2103,7 @@ async fn governed_decisions_await_a_decision() {
         "awaiting a decision → administrators' inbox"
     );
     let (s, _) = call(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{R}/requisitions/{rid}/decision"),
@@ -2106,7 +2113,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "rejection reason");
     let r = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{R}/requisitions/{rid}/decision"),
@@ -2193,8 +2200,22 @@ async fn governed_decisions_await_a_decision() {
         StatusCode::OK,
     )
     .await;
-    let r = ok(
+    let (s_self, _) = call(
         &hr,
+        &me,
+        "POST",
+        &format!("{R}/requisitions/{rid}/decision"),
+        json!({"decision": "approve"}),
+        ver(&r),
+    )
+    .await;
+    assert_eq!(
+        s_self,
+        StatusCode::FORBIDDEN,
+        "the requester cannot approve"
+    );
+    let r = ok(
+        &checker,
         &me,
         "POST",
         &format!("{R}/requisitions/{rid}/decision"),
@@ -2205,7 +2226,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(r["status"], "released");
     assert_eq!(r["revision"], 3);
-    assert_eq!(r["decidedBy"], "dev|admin@sutra.dev");
+    assert_eq!(r["decidedBy"], "dev|procurement.approver@sutra.dev");
 
     // ---- SUPPLIER_APPROVAL stays pending until decided.
     let s = ok(
@@ -2292,7 +2313,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s2, StatusCode::CONFLICT, "already awaiting approval");
     let po = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{R}/purchase-orders/{po_id}/decision"),

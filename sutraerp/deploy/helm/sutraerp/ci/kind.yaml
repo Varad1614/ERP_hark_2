@@ -38,6 +38,13 @@ observability:
   otlpEndpoint: http://sutraerp-lgtm:4317
   lgtm: { enabled: true }
   grafanaDashboards: { enabled: true }  # 9A: dashboards provisioned into the lgtm Grafana
-flowable: { enabled: true }
+flowable: { enabled: true, bundled: true, autoApprove: false }  # Part 1: real in-cluster Flowable, BPMN waits at `decide`
+# Part 1 (DEF-X-001): kind is a development install whose stages (smoke, telemetry, the pilot seed
+# walking every governed setup step, DR drill) exercise deployment, not the approval control, so it
+# opts in to dev auto-approval exactly like the pilot / data workflows. The production render
+# (values.yaml, values-pilot.yaml) is human on Flowable and the chart refuses auto in production
+# (deploy workflow checks approvals-human-on-flowable / production-refuses-*); approval itself is
+# tested in apps/api/tests/db_p1_appr.rs.
+approvals: { mode: auto }
 opensearch: { enabled: true, securityDisabled: true }  # 9C: plain http in CI
 backup: { enabled: true, target: { kind: pvc, pvcSize: 2Gi } }

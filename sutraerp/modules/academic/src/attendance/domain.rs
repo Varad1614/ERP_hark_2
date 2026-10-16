@@ -40,14 +40,11 @@ pub fn capture_open(a: AttendanceCaptureStatus) -> bool {
     !matches!(a, AttendanceCaptureStatus::Finalised)
 }
 
-/// Finalisation needs a running or completed session and captured attendance.
+/// Finalisation needs a running or completed session and a **submitted** register
+/// (L2-D04 §23: Recorded → Submitted → Finalised; DEF-D-004 — `Capturing` cannot skip Submitted).
 pub fn can_finalise(s: TeachingSessionStatus, a: AttendanceCaptureStatus) -> bool {
     use TeachingSessionStatus::*;
-    matches!(s, Started | InProgress | Completed)
-        && matches!(
-            a,
-            AttendanceCaptureStatus::Capturing | AttendanceCaptureStatus::Submitted
-        )
+    matches!(s, Started | InProgress | Completed) && a == AttendanceCaptureStatus::Submitted
 }
 
 /// Legal policy-version transitions.
@@ -193,8 +190,12 @@ mod tests {
         assert!(!capture_open(AttendanceCaptureStatus::Finalised));
         assert!(can_finalise(
             S::Completed,
-            AttendanceCaptureStatus::Capturing
+            AttendanceCaptureStatus::Submitted
         ));
+        assert!(
+            !can_finalise(S::Completed, AttendanceCaptureStatus::Capturing),
+            "a register cannot skip Submitted"
+        );
         assert!(!can_finalise(
             S::Completed,
             AttendanceCaptureStatus::NotStarted

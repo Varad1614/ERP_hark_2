@@ -67,8 +67,10 @@ pub const MODULE: ModuleDescriptor = ModuleDescriptor {
 #[derive(Clone)]
 pub struct PeopleDeps {
     pub pool: PgPool,
-    /// Approval steps (`NoopWorkflowAdapter` in Batch 7).
+    /// Approval steps (workflow adapter selected by `SUTRA_WORKFLOW`; was `NoopWorkflowAdapter` in Batch 7).
     pub workflow: Arc<dyn WorkflowPort>,
+    /// How approval steps resolve (`SUTRA_APPROVAL_MODE`, composed by the API; never hard-coded).
+    pub approvals: shared::approval::ApprovalMode,
     /// Domain B reference data (`sutra_institution::PgInstitutionReferences`).
     pub references: Arc<dyn InstitutionReferencePort>,
     /// Domain D teaching load (`sutra_academic::PgFacultyWorkload`).
@@ -78,7 +80,7 @@ pub struct PeopleDeps {
 }
 
 impl PeopleDeps {
-    /// Handler state with the Batch 7 defaults (auto-approving approval steps, the Postgres
+    /// Handler state with the Batch 7 defaults (approval steps in the configured `approvals` mode, the Postgres
     /// workforce directory / leave reader over the foundation tables).
     pub fn into_state(self) -> PeopleState {
         PeopleState {
@@ -86,7 +88,7 @@ impl PeopleDeps {
             leave: Arc::new(PgLeaveReader::new(self.pool.clone())),
             pool: self.pool,
             workflow: self.workflow,
-            approvals: shared::approval::ApprovalMode::AutoApprove,
+            approvals: self.approvals,
             references: self.references,
             workload: self.workload,
             postings: self.postings,

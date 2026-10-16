@@ -1,0 +1,109 @@
+BEGIN
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+DO
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+CREATE TABLE
+DO
+INSERT 0 7
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+Output format is aligned.
+  category   |                                  check_name                                  | violations |                                                                   detail                                                                    
+-------------+------------------------------------------------------------------------------+------------+---------------------------------------------------------------------------------------------------------------------------------------------
+ approvals   | admission approved by someone other than its requester                       |          0 | 
+ approvals   | applied attendance corrections decided by someone other than the requester   |          0 | 
+ approvals   | no auto-approval actor in the audit log (human mode)                         |          0 | 
+ approvals   | posted adjustments decided by someone other than their creator               |          0 | 
+ approvals   | publication authorised by someone other than its requester                   |          0 | 
+ balance     | charge adjustment amount = Σ posted adjustments (debit note +, others −)     |          0 | 
+ balance     | charge outstanding within [0, total + adjustments]                           |          0 | 
+ balance     | charge settled amount = Σ live allocations                                   |          0 | 
+ balance     | completed payment has its journal entry                                      |          0 | 
+ balance     | completed payment = Σ live allocations + unapplied                           |          0 | 
+ balance     | every journal entry: ≥ 2 lines, Σdebit = Σcredit = header totals             |          0 | 
+ balance     | ledger balanced per institution (Σdebit = Σcredit)                           |          0 | 
+ balance     | receipt amount = payment amount                                              |          0 | 
+ duplicates  | live admissions per applicant (name + date of birth, per institution) ≤ 1    |          0 | 
+ duplicates  | one attendance record per session and student                                |          0 | 
+ duplicates  | one charge per student and fee structure (not cancelled)                     |          0 | 
+ duplicates  | one journal entry per (source, posting key)                                  |          0 | 
+ duplicates  | one live enrolment per student and section                                   |          0 | 
+ duplicates  | one live exam registration per session and student                           |          0 | 
+ duplicates  | one published term result per session and student                            |          0 | 
+ duplicates  | one receipt per payment                                                      |          0 | 
+ duplicates  | payments per idempotency key ≤ 1                                             |          0 | 
+ fk          | foreign keys validated                                                       |          0 | 700 foreign keys in the application schemas
+ fk          | no orphan rows behind any foreign key                                        |          0 | 700 foreign keys scanned 
+ guards      | attendance correction maker-checker constraint present                       |          0 | 
+ guards      | expected triggers present and enabled                                        |          0 |  (10 expected)
+ guards      | Part 1 unique indexes present and valid                                      |          0 | admission_open_per_student,admission_one_live_readmission
+ idempotency | completed idempotency records carry the stored response                      |          0 | 161 records
+ idempotency | journey payment key (journey-pay-*): one payment, replay stored              |          0 | 1 payment(s), 1 idempotency record(s)
+ migrations  | all applied migrations succeeded                                             |          0 | 92 applied, latest 20261201000302
+ migrations  | applied in version order                                                     |          0 | 
+ migrations  | checksums present                                                            |          0 | 
+ orphans     | attendance records → student                                                 |          0 | 
+ orphans     | charges → student                                                            |          0 | 
+ orphans     | exam registrations → student                                                 |          0 | 
+ orphans     | journal entries → source record (charge / payment / adjustment / allocation) |          0 | 
+ orphans     | section enrolments → student                                                 |          0 | 
+ orphans     | section enrolments → student context                                         |          0 | 
+ orphans     | student accounts → student                                                   |          0 | 
+ orphans     | student contexts → institution                                               |          0 | 
+ orphans     | term results → student                                                       |          0 | 
+ probes      | refused: admission_status_history UPDATE                                     |          0 | rows of student.admission_status_history are append-only (no physical deletion or rewrite)
+ probes      | refused: audit_log DELETE                                                    |          0 | platform.audit_log is append-only
+ probes      | refused: finalised attendance UPDATE                                         |          0 | attendance record 01a14016-0e9c-75ad-8330-dbe1ac799f96 belongs to a finalised register; change it through a governed correction
+ probes      | refused: journal_entry UPDATE                                                |          0 | rows of finance.journal_entry are append-only (no physical deletion or rewrite)
+ probes      | refused: journal_line DELETE                                                 |          0 | rows of finance.journal_line are append-only (no physical deletion or rewrite)
+ probes      | refused: paper_mark_history UPDATE                                           |          0 | rows of exams.paper_mark_history are append-only (no physical deletion or rewrite)
+ probes      | refused: unbalanced journal entry INSERT                                     |          0 | journal entry 7b1f8d2d-b938-49e1-9ae0-319f837d5d10 is unbalanced (lines: 0.00 debit / 0.00 credit over 0 lines; header 90000.00 / 90000.00)
+ inventory   | check / unique / exclusion constraints                                       |          0 | 1461 check, 106 unique, 0 exclusion
+ inventory   | partial unique indexes                                                       |          0 | 182
+ inventory   | triggers in application schemas                                              |          0 | 162
+
+Output format is unaligned.
+INTEGRITY_VIOLATIONS=0
+ROLLBACK
+migrations: 92 files, 92 applied
+INTEGRITY TOTAL VIOLATIONS: 0

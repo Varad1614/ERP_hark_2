@@ -1,0 +1,39 @@
+{{- /* Part 1 S3 (SEC-9D-005): a separate Ingress for /api/v1/auth carrying per-client request
+rate limits (ingress-nginx). Sign-in, MFA verification, step-up, the OIDC start/callback and the
+back-channel logout are the unauthenticated / credential-checking surface; the API adds a
+per-account failed-attempt lockout and Keycloak its brute-force detection behind this. The
+longest-prefix rule wins, so these paths leave the general /api Ingress. */ -}}
+{{- if and .Values.ingress.enabled .Values.ingress.authRateLimit.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "sutraerp.fullname" . }}-auth
+  labels:
+    {{- include "sutraerp.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    nginx.ingress.kubernetes.io/limit-rpm: {{ .Values.ingress.authRateLimit.rpm | quote }}
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: {{ .Values.ingress.authRateLimit.burstMultiplier | quote }}
+    nginx.ingress.kubernetes.io/limit-connections: {{ .Values.ingress.authRateLimit.connections | quote }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts: [{{ .Values.ingress.host | quote }}]
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /api/v1/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "sutraerp.componentName" (dict "root" . "component" "api") }}
+                port: { name: http }
+{{- end }}

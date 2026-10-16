@@ -320,7 +320,7 @@ pub async fn list(
     let ctx = auth.require(Permission::CampusRead)?;
     let institution = InstitutionId(id);
     require_institution(&st, &institution_scope(ctx, institution), institution).await?;
-    let needle = clean(q.q).map(|s| format!("%{}%", s.to_lowercase()));
+    let needle = clean(q.q).map(|s| sutra_persistence::like_contains(&s.to_lowercase()));
     let sql = format!(
         "{SELECT} WHERE m.tenant_id = $1 AND m.institution_id = $2 AND ($3::text IS NULL OR m.status = $3) \
          AND ($4::text IS NULL OR lower(m.number || ' ' || m.person_number || ' ' || m.display_name) LIKE $4) \

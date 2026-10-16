@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHttpResourcesApi, PATHS } from "./api";
 import { createMockResourcesApi, fromMilli, milli } from "./mock";
-import { assetActions, invoiceActions, orderActions, requisitionActions, supplierActions, toInvoice } from "./index";
+import { assetActions, invoiceActions, orderActions, paymentActions, requisitionActions, supplierActions, toInvoice } from "./index";
 
 beforeEach(() => {
   vi.resetModules();
@@ -40,7 +40,13 @@ describe("8D resources API (mock)", () => {
     inv = await api.matchInvoice(inv.id, inv.version);
     inv = await api.postInvoice(inv.id, inv.version);
     expect(inv.status).toBe("posted");
-    const pay = await api.createPayment("inst-1", { supplierId: inv.supplierId, paymentDate: "2026-11-30", allocations: [{ vendorInvoiceId: inv.id, amount: "4800.00" }] });
+    let pay = await api.createPayment("inst-1", { supplierId: inv.supplierId, paymentDate: "2026-11-30", allocations: [{ vendorInvoiceId: inv.id, amount: "4800.00" }] });
+    // Part 1 (DEF-J-003): a payment waits for an approver; it never posts before the decision.
+    expect(pay.status).toBe("pending_approval");
+    expect(paymentActions(pay)).toEqual(["approve", "reject"]);
+    await expect(api.postPayment(pay.id, pay.version)).rejects.toThrow();
+    pay = await api.decidePayment(pay.id, pay.version, "approve");
+    expect(paymentActions(pay)).toEqual(["post"]);
     await api.postPayment(pay.id, pay.version);
     expect((await api.invoices("inst-1")).find((x) => x.id === inv.id)?.status).toBe("paid");
   });

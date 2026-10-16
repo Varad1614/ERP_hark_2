@@ -291,7 +291,7 @@ pub async fn list(
     let pattern = q
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .map(|s| format!("%{}%", s.replace('%', "\\%").replace('_', "\\_")));
+        .map(sutra_persistence::like_contains);
     let rows = sqlx::query(
         "SELECT c.id, c.charge_number, c.student_account_id, a.display_name, a.student_number, \
          c.description, c.currency, c.total_amount, c.adjustment_amount, c.settled_amount, \

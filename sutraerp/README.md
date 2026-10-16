@@ -37,10 +37,11 @@ sutraerp/
 ├── modules/                   one crate per domain (A–J), each owns one PostgreSQL schema
 │   ├── platform/      (A)     auth boundary (login/session/MFA hook, dev stub, Keycloak interface),
 │   │                          durable sessions (platform.session, idle + absolute expiry) + CSRF tokens,
-│   │                          WorkflowPort no-op adapter, workspace catalog, module registry
+│   │                          WorkflowPort (no-op default; Flowable adapter since 9C), workspace catalog, module registry
 │   ├── institution/   (B)     reference aggregate: tx + outbox + audit + version/ETag + Idempotency-Key
-│   ├── student/       (C)  academic/ (D)  people/ (E)  finance/ (F, money model seed)
-│   └── campus/ (G)  services/ (H)  exams/ (I)  resources/ (J)      ← scaffolds
+│   ├── student/       (C)  academic/ (D)  people/ (E)  finance/ (F)
+│   └── campus/ (G)  services/ (H)  exams/ (I)  resources/ (J)      ← all implemented (Batches 2–9);
+│                              readiness, defects and gaps: docs/readiness/
 ├── apps/
 │   ├── api/                   composition root: config · telemetry · router · OpenAPI · graceful shutdown
 │   │   └── tests/             architecture fitness tests + router tests (no DB)
@@ -410,6 +411,42 @@ Module `modules/academic/src/{timetable,attendance,monitoring,assessment}` (4B-w
 <!-- batch4:4c:end -->
 
 Batch 4 click-through: `pnpm e2e:academic` (fresh migrated DB in `DATABASE_URL`, default `sutra_e2e`) seeds an active institution, two students and an active offering taught by the dev faculty persona, then walks every Academic delivery screen as admin, student and faculty and writes screenshots to `$E2E_SHOTS` (default `/workspace/work/out/b4-shots`).
+
+## Batches 5–7 — Finance (F), Examinations (I), People (E)
+
+> **Approval caveat (all batches):** every governed approval step in these modules is currently completed by
+> `system:auto-approval` in every environment, `SUTRA_WORKFLOW=flowable` included (module state hard-codes
+> `ApprovalMode::AutoApprove`). See [`docs/readiness/DEFECT_REGISTER.md`](docs/readiness/DEFECT_REGISTER.md) DEF-X-001
+> (auto-approval) and DEF-X-002 (no separation of duties) before relying on any "approve" step below.
+
+### Batch 5 — Finance (Domain F)
+
+Slices 5A (charges, adjustments, aid, configuration), 5B (payments, receipts, refunds, receivables) and 5C (ledger,
+periods, treasury); contracts and deferrals: [`docs/batch5-contracts.md`](docs/batch5-contracts.md). Money is
+`rust_decimal` / `NUMERIC(18,2)` end to end; double entry is enforced by deferred constraint triggers. Online payment
+has only the mock and disabled adapters (production default `disabled`; see `docs/security/findings.md` SEC-9D-003 and
+SEC-P1-003). Budgets (F-033…F-038) are not delivered. DB tests: `db_b5_foundation`, `db_b5a`, `db_b5b`, `db_b5c`;
+click-through: `pnpm e2e:finance`.
+
+### Batch 6 — Examinations (Domain I)
+
+Slices 6·F (foundation, grading engine), 6A (exam setup: policy, sessions, papers, schedule, venues, seating,
+invigilation, registration, hall tickets, conduct basics), 6B (marks entry, verification and approval, moderation,
+gradebook, malpractice basics) and 6C (result computation SGPA / CGPA, withholding, approval, publication, grade cards,
+revaluation, supplementary eligibility, completion, session closure); contracts, scenario coverage and the 6D
+deferrals (practical / viva conduct, detailed contingencies): [`docs/batch6-contracts.md`](docs/batch6-contracts.md).
+Web: Admin → Examinations, Faculty Assessments, Student Results. DB tests: `db_b6_foundation`, `db_b6a`, `db_b6b`,
+`db_b6c`, `db_b6_integration`; click-through: `pnpm e2e:exams`. Known gaps (DEF-I-003…I-007, I-016): conduct,
+invigilation and seating publication have no screen; CGPA ignores supplementary attempts; pending malpractice does not
+withhold a result.
+
+### Batch 7 — People & workforce (Domain E)
+
+Slices 7·F, 7A (staff records, onboarding, positions, probation, separation, certificates), 7B (leave, attendance days,
+workload) and 7C (payroll configuration, runs → Finance posting, payslips, adjustments, retro, final settlement);
+contracts: [`docs/batch7-contracts.md`](docs/batch7-contracts.md). DB tests: `db_b7_foundation`, `db_b7a`, `db_b7b`,
+`db_b7c`, `db_b7_integration`; click-through: `pnpm e2e:people`. Known gaps: net pay is never disbursed and there are no
+statutory outputs (DEF-E-005, E-007); about 66 endpoints have no screen (DEF-E-006).
 
 ## Batch 8 — Campus · Services · Resources (Domains G, H, J)
 

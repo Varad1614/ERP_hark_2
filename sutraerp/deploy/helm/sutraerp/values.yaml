@@ -91,6 +91,13 @@ ingress:
     enabled: true
     secretName: sutraerp-tls
   annotations: {}
+  # Part 1 S3 (SEC-9D-005): per-client request rate limit on /api/v1/auth/* (ingress-nginx
+  # annotations on a separate Ingress, templates/core/ingress-auth.yaml).
+  authRateLimit:
+    enabled: true
+    rpm: 30                            # requests per minute per client IP
+    burstMultiplier: 5
+    connections: 20                    # concurrent connections per client IP
 
 # Secrets: never in values. mode=openbao renders OpenBao Agent Injector annotations that write
 # /vault/secrets/sutra.env (dotenv) and sets SUTRA_ENV_FILE; mode=kubernetes reads an existing
@@ -185,9 +192,23 @@ observability:
       limits: { memory: 3Gi }
 
 # ---- 9C: workflow, search, backup ---------------------------------------------------------
+# Part 1 (DEF-X-001): how governed decisions (refunds, admissions, results, payroll, POs, …)
+# resolve. `human` (default) waits for an authorised approver who is not the requester; `auto` is a
+# development / test opt-in only — the API refuses it (and the chart refuses to render it) when
+# global.environment=production.
+approvals:
+  mode: human                          # SUTRA_APPROVAL_MODE: human | auto
+
 flowable:
-  enabled: false                       # true → SUTRA_WORKFLOW=flowable
-  bundled: true                        # run flowable-rest in-cluster (Deployment + its own database)
+  # Part 1 (DEF-X-001): on by default — production refuses SUTRA_WORKFLOW=noop.
+  enabled: true                        # true → SUTRA_WORKFLOW=flowable
+  # Part 1 (DEF-X-001): SUTRA_FLOWABLE_AUTO_APPROVE. false → every process waits at `decide` for the
+  # domain decision endpoint; true is development / test only (refused in production).
+  autoApprove: false
+  # Part 1: the production default points at an operator-run Flowable REST (`url`); set bundled=true
+  # to run flowable-rest in-cluster (needs postgres.external.host or postgres.mode=bundled), as the
+  # kind CI and pilot values do.
+  bundled: false                       # true → run flowable-rest in-cluster (Deployment + its own database)
   image: flowable/flowable-rest:8.0.0  # 9C: newest 8.x on Docker Hub (Oct 2026); ADR-L5-0042
   url: http://sutraerp-flowable:8080/flowable-rest
   user: rest-admin

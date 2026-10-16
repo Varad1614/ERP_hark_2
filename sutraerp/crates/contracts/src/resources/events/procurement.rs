@@ -54,6 +54,26 @@ event_type!(
 event_type!(
     /// Vendor payment posted to Finance (F-045).
     VENDOR_PAYMENT_POSTED, VENDOR_PAYMENT_POSTED_SCHEMA, "vendor_payment.posted");
+event_type!(
+    /// Part 1 (DEF-J-003): vendor payment awaiting `VENDOR_PAYMENT_APPROVAL`.
+    VENDOR_PAYMENT_SUBMITTED, VENDOR_PAYMENT_SUBMITTED_SCHEMA, "vendor_payment.submitted");
+event_type!(
+    /// Part 1 (DEF-J-003): vendor payment approved by an independent approver (may now post).
+    VENDOR_PAYMENT_APPROVED, VENDOR_PAYMENT_APPROVED_SCHEMA, "vendor_payment.approved");
+event_type!(
+    /// Part 1 (DEF-J-003): vendor payment rejected (never posts; its allocations are released).
+    VENDOR_PAYMENT_REJECTED, VENDOR_PAYMENT_REJECTED_SCHEMA, "vendor_payment.rejected");
+event_type!(
+    /// Part 1 · Stage 3 (DEF-J-004): new bank details requested for an approved supplier, awaiting
+    /// `SUPPLIER_BANK_CHANGE_APPROVAL` (payload reason = masked old → new account).
+    SUPPLIER_BANK_CHANGE_REQUESTED, SUPPLIER_BANK_CHANGE_REQUESTED_SCHEMA, "supplier.bank_change_requested");
+event_type!(
+    /// Part 1 · Stage 3 (DEF-J-004): bank-change request approved by an independent approver;
+    /// the new details are now live.
+    SUPPLIER_BANK_CHANGE_APPROVED, SUPPLIER_BANK_CHANGE_APPROVED_SCHEMA, "supplier.bank_change_approved");
+event_type!(
+    /// Part 1 · Stage 3 (DEF-J-004): bank-change request rejected; the old details stay.
+    SUPPLIER_BANK_CHANGE_REJECTED, SUPPLIER_BANK_CHANGE_REJECTED_SCHEMA, "supplier.bank_change_rejected");
 
 /// Event types of this file (keep in sync; `all_event_types` collects them).
 pub const EVENT_TYPES: &[&str] = &[
@@ -73,4 +93,10 @@ pub const EVENT_TYPES: &[&str] = &[
     ASSET_RETIRED,
     VENDOR_INVOICE_POSTED,
     VENDOR_PAYMENT_POSTED,
+    VENDOR_PAYMENT_SUBMITTED,
+    VENDOR_PAYMENT_APPROVED,
+    VENDOR_PAYMENT_REJECTED,
+    SUPPLIER_BANK_CHANGE_REQUESTED,
+    SUPPLIER_BANK_CHANGE_APPROVED,
+    SUPPLIER_BANK_CHANGE_REJECTED,
 ];

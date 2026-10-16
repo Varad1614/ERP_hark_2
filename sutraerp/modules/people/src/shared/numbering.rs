@@ -24,6 +24,8 @@ pub mod kind {
     pub const PAYROLL_RUN: (&str, &str) = ("payroll_run", "PR");
     pub const PAYSLIP: (&str, &str) = ("payslip", "PS");
     pub const SETTLEMENT: (&str, &str) = ("settlement", "FNF");
+    // Part 1 (DEF-E-007)
+    pub const PAYROLL_DISBURSEMENT: (&str, &str) = ("payroll_disbursement", "PD");
 }
 
 /// Formats `prefix-NNNNNN`.

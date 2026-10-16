@@ -149,8 +149,12 @@ async function ensureStaff(admin, inst, campusId, s) {
       eng = await admin.call("POST", `${P}/staff/${staff.id}/engagements`, { employmentType: "permanent", designation: s.designation, grade: s.grade, startDate: "2026-06-01", campusId });
       created(`engagement ${s.designation}`);
     }
-    // Submit (auto-approval activates at once: the start date has come); otherwise activate.
-    if (eng.status === "pending") eng = await admin.call("POST", `${P}/engagements/${eng.id}/submit`, {}, eng.version);
+    // Submit (auto-approval activates at once: the start date has come). Part 1 (DEF-X-001): with
+    // the default human approval mode the activation request waits for a decision, which the
+    // seeding administrator (people.approve) gives; then activate if still pending.
+    if (eng.status === "pending" && !eng.pendingChange) eng = await admin.call("POST", `${P}/engagements/${eng.id}/submit`, {}, eng.version);
+    if (eng.status === "pending" && eng.pendingChange?.status === "pending_approval")
+      eng = await admin.call("POST", `${P}/engagements/${eng.id}/decision`, { decision: "approve" }, eng.version);
     if (eng.status === "pending") eng = await admin.call("POST", `${P}/engagements/${eng.id}/activate`, {}, eng.version);
     if (eng.status !== "active") fail(`engagement of ${s.workEmail} is ${eng.status}`);
     changes += 1;

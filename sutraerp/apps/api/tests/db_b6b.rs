@@ -383,9 +383,11 @@ async fn marks_collection_import_entry_approval_and_gradebook() {
     ] {
         assert_eq!(outbox_count(&pool, t, &sheet_id).await, 1, "{t}");
     }
-    let marks = sutra_api::app::exams_deps(
+    let marks = sutra_api::app::exams_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state()
     .marks
@@ -1045,9 +1047,12 @@ async fn malpractice_report_decision_appeal_reopen_merge_close() {
     .await;
     assert_eq!(s, StatusCode::OK, "{c}");
     assert_eq!(c["status"], "under_investigation");
+    // S3-appr (SoD): the administrator requested the reopening, so a second administrator
+    // decides the new penalty.
+    let dean = login(&app, "dean@sutra.dev").await;
     let (s, c) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &case(&id, "decision"),
         json!({"penalty": "marks_deduction", "marksDeduction": "5", "reason": "Partial use established"}),
@@ -1126,7 +1131,15 @@ async fn malpractice_report_decision_appeal_reopen_merge_close() {
     assert_eq!(s, StatusCode::OK, "{merged}");
     assert_eq!(merged["status"], "closed");
     assert_eq!(merged["mergedIntoId"], whole["id"]);
-    let (s, list) = read(&app, &meera, &format!("{cases}?status=reported")).await;
+    // Part 1 S3 (DEF-I-006): malpractice cases are confidential to the examination office;
+    // faculty holding exam.read alone are refused.
+    let (s, body) = read(&app, &meera, &format!("{cases}?status=reported")).await;
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "faculty must not list malpractice cases: {body}"
+    );
+    let (s, list) = read(&app, &admin, &format!("{cases}?status=reported")).await;
     assert_eq!(s, StatusCode::OK, "{list}");
     let open = list["items"].as_array().unwrap();
     assert_eq!(open.len(), 1, "one authoritative open case");

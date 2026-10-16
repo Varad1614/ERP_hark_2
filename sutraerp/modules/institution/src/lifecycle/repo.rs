@@ -8,7 +8,7 @@ use super::domain::{
 };
 use crate::domain::{can_transition, illegal_transition, Institution};
 use crate::repo::{from_row, COLUMNS};
-use crate::shared::approval::{self, process, ApprovalOutcome};
+use crate::shared::approval::{self, process};
 use crate::shared::publish::{audit, event};
 use crate::shared::readiness::{self, ReadinessReport};
 use crate::shared::{Actor, InstitutionState};
@@ -210,7 +210,8 @@ fn not_ready(report: &ReadinessReport) -> KernelError {
 
 /// `configured → pending_approval` (activation request by the Institution Administrator). Refused
 /// with 409 while a required readiness item is unmet. The approval step goes through the
-/// WorkflowPort; with auto-approval the decision (`→ active`) is applied in the same transaction.
+/// WorkflowPort; the institution then stays `pending_approval` until the Activation Authority
+/// decides (`decide`) — submit never activates on its own (DEF-B-002).
 pub async fn submit(
     state: &InstitutionState,
     scope: &ExecutionScope,
@@ -272,7 +273,11 @@ pub async fn submit(
     .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    let mut next = transition(
+    // DEF-B-002: submitting (institution.manage) never activates. Whatever the approval mode
+    // reports for the workflow step, the request stays `pending` until the Institution Activation
+    // Authority decides it through `decide` (institution.activation.decide + MFA step-up), per
+    // L2-B01 Activation Authority Amendment §1.
+    let next = transition(
         &mut tx,
         scope,
         &inst,
@@ -285,18 +290,6 @@ pub async fn submit(
         actor,
     )
     .await?;
-    if let ApprovalOutcome::Approved { .. } = outcome {
-        let system = Actor::system(actor.correlation_id.clone());
-        next = apply_decision(
-            &mut tx,
-            scope,
-            &next,
-            ActivationDecision::Approve,
-            Some("auto-approved (Batch 2 approval mode)".into()),
-            &system,
-        )
-        .await?;
-    }
     tx.commit().await.map_err(map_db_error)?;
     Ok(next)
 }

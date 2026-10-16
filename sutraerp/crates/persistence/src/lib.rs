@@ -14,6 +14,7 @@
 //!
 //! All queries are runtime-checked (`sqlx::query`), so the workspace builds with no database.
 
+pub mod approval; // Part 1: DEF-X-002
 pub mod audit;
 pub mod audit_chain; // 9A
 pub mod backoff;
@@ -29,6 +30,22 @@ pub use sqlx::PgPool;
 
 use sutra_kernel::error::KernelError;
 
+/// `%…%` pattern for a "contains" search bound to `LIKE` / `ILIKE` (PostgreSQL's default escape
+/// character is the backslash): the user's `\`, `%` and `_` match literally, so a search for `%` or
+/// `_` is not a wildcard that lists every row (SEC-P1-APPSEC-003).
+pub fn like_contains(term: &str) -> String {
+    let mut out = String::with_capacity(term.len() + 2);
+    out.push('%');
+    for ch in term.chars() {
+        if matches!(ch, '\\' | '%' | '_') {
+            out.push('\\');
+        }
+        out.push(ch);
+    }
+    out.push('%');
+    out
+}
+
 /// Maps SQLx errors onto the kernel taxonomy without leaking driver details to clients.
 pub fn map_db_error(e: sqlx::Error) -> KernelError {
     match &e {
@@ -39,6 +56,31 @@ pub fn map_db_error(e: sqlx::Error) -> KernelError {
         sqlx::Error::Database(db) if db.is_unique_violation() => {
             KernelError::Conflict("a record with the same unique attributes already exists".into())
         }
+        // Part 1 S3 (DEF-X-003): a write outside the session's tenant / institution refused by
+        // row-level security (SQLSTATE 42501 "new row violates row-level security policy").
+        sqlx::Error::Database(db)
+            if db.code().as_deref() == Some("42501")
+                && db.message().contains("row-level security") =>
+        {
+            tracing::warn!(error = %db.message(), "write refused by row-level security");
+            KernelError::Forbidden(
+                "the record is outside the session's tenant or institution scope".into(),
+            )
+        }
         _ => KernelError::internal(e),
+    }
+}
+
+#[cfg(test)]
+mod like_tests {
+    use super::like_contains;
+
+    #[test]
+    fn like_wildcards_and_escape_are_literal() {
+        assert_eq!(like_contains("ann"), "%ann%");
+        assert_eq!(like_contains("%"), "%\\%%");
+        assert_eq!(like_contains("a_b"), "%a\\_b%");
+        assert_eq!(like_contains("c:\\x"), "%c:\\\\x%");
+        assert_eq!(like_contains("' OR '1'='1"), "%' OR '1'='1%");
     }
 }

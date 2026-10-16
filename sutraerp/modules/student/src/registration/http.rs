@@ -689,6 +689,8 @@ pub async fn decision(
     Json(d): Json<StepDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::RegistrationManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "registration").await?;
     let v = expect_version!(headers);
     let reason = StepReason { reason: d.reason }.validated(false)?;
     let r = repo::decide(

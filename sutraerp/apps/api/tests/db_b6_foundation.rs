@@ -256,9 +256,11 @@ async fn exams_foundation_tables_helpers_ports_and_grading_api() {
         "L3-I-032: {dup:?}"
     );
     drop(tx);
-    let state = sutra_api::app::exams_deps(
+    let state = sutra_api::app::exams_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let mine = state

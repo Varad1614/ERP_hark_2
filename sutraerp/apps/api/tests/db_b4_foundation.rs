@@ -42,6 +42,7 @@ fn auth(subject: &str, role: Role, tenant: TenantId) -> AuthContext {
         mfa_level: MfaLevel::None,
         amr: vec!["pwd".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     }
 }
 
@@ -65,9 +66,11 @@ async fn shared_delivery_tables_ports_and_access() {
     b4::seed_enrolment(&pool, &setup, &off, &bina, None).await;
 
     // ---- the state the composition root builds (ports wired as in production)
-    let state = sutra_api::app::academic_deps(
+    let state = sutra_api::app::academic_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
 

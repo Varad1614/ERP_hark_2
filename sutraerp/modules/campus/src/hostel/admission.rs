@@ -601,6 +601,8 @@ pub async fn application_decide(
     Json(b): Json<DecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::CampusApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "hostel application").await?;
     let v = expected!(headers);
     let reason = b.checked_reason()?;
     let t = ctx.scope.tenant_id;

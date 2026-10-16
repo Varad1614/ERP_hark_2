@@ -16,8 +16,11 @@
 //!   (`journalEntryId`, `entryNumber`), raises the order lines' invoiced quantity,
 //!   `vendor_invoice.posted`;
 //! * vendor payments (F-045): allocations to posted invoices of one supplier (≤ outstanding) →
-//!   `draft` (`VPAY-`), post → `VendorPayment` (Dr 2310 / Cr bank) → `posted`
-//!   (`vendor_payment.posted`); an invoice becomes `paid` once fully settled.
+//!   `pending_approval` (`VPAY-`; Part 1 DEF-J-003: `VENDOR_PAYMENT_APPROVAL` is started on
+//!   create and the payment waits for a decision by a procurement / finance approver who is not
+//!   its maker) → `approved` | `rejected`; only an approved payment posts → `VendorPayment`
+//!   (Dr 2310 / Cr bank) → `posted` (`vendor_payment.posted`); an invoice becomes `paid` once
+//!   fully settled.
 
 use crate::orders;
 use crate::shared::approval::{business_key, process, request_approval, ApprovalOutcome};
@@ -74,7 +77,9 @@ slice_status!(
 slice_status!(
     /// Vendor payment lifecycle (F-045).
     VendorPaymentStatus {
-        Draft => "draft",
+        PendingApproval => "pending_approval",
+        Approved => "approved",
+        Rejected => "rejected",
         Posted => "posted",
     }
 );
@@ -791,6 +796,18 @@ pub async fn decide_invoice(
     if !inv.approval_pending || inv.status()? != VendorInvoiceStatus::Matched {
         return Err(illegal("vendor invoice", &inv.number, &inv.status, "decided").into());
     }
+    // Part 1 (DEF-X-002): whoever recorded or matched the invoice never approves it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "vendor_invoice",
+        id,
+        &["matched"],
+        &[],
+        actor.id.as_deref(),
+        "vendor invoice",
+    )
+    .await?;
     match b.decision {
         ResourcesDecision::Approve => approve_invoice(&mut tx, t, id, &actor).await?,
         ResourcesDecision::Reject => {
@@ -961,11 +978,19 @@ pub struct VendorPaymentView {
     #[schema(value_type = String, example = "2400.00")]
     pub amount: Decimal,
     pub reference: Option<String>,
-    /// `draft | posted`.
+    /// `pending_approval | approved | rejected | posted` (Part 1 DEF-J-003).
     pub status: String,
     pub journal_entry_id: Option<Uuid>,
     pub entry_number: Option<String>,
     pub posted_at: Option<DateTime<Utc>>,
+    /// `VENDOR_PAYMENT_APPROVAL` instance.
+    pub process_instance_id: Option<String>,
+    /// Who asked for the payment (never its approver).
+    pub approval_requested_by: Option<String>,
+    /// The independent approver who decided it.
+    pub decided_by: Option<String>,
+    pub decided_at: Option<DateTime<Utc>>,
+    pub decision_reason: Option<String>,
     pub version: i64,
     pub created_at: DateTime<Utc>,
 }
@@ -997,7 +1022,9 @@ pub struct VendorPaymentList {
 
 const PSELECT: &str = "SELECT p.id, p.institution_id, p.number, p.supplier_id, \
     s.number AS supplier_number, s.legal_name AS supplier_name, p.payment_date, p.amount, \
-    p.reference, p.status, p.journal_entry_id, p.entry_number, p.posted_at, p.version, p.created_at \
+    p.reference, p.status, p.journal_entry_id, p.entry_number, p.posted_at, \
+    p.process_instance_id, p.approval_requested_by, p.decided_by, p.decided_at, p.decision_reason, \
+    p.version, p.created_at \
     FROM resources.vendor_payment p JOIN resources.supplier s ON s.id = p.supplier_id";
 
 async fn load_payment(
@@ -1067,9 +1094,172 @@ pub struct VendorPaymentCreate {
     pub allocations: Vec<VendorPaymentAllocationInput>,
 }
 
-/// Draft a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each
-/// allocation settles a **posted** invoice of the supplier, at most its outstanding amount
-/// (net of other draft payments).
+/// Validated allocations of a payment request: the supplier, the total and `(invoice, amount)`.
+struct PlannedPayment {
+    supplier_id: Uuid,
+    supplier_number: String,
+    total: Decimal,
+    allocations: Vec<(Uuid, Decimal)>,
+}
+
+/// Checks every allocation (posted invoice of the supplier, at most its outstanding amount net of
+/// other payments still pending approval or approved). `lock` row-locks the invoices.
+async fn plan_payment(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    institution: Uuid,
+    b: &VendorPaymentCreate,
+    lock: bool,
+) -> Result<PlannedPayment, KernelError> {
+    let supplier = match suppliers::load(conn, tenant, b.supplier_id, false).await {
+        Ok(s) if s.institution_id == institution => s,
+        Ok(_) | Err(KernelError::NotFound { .. }) => {
+            return Err(invalid(
+                "supplierId",
+                "unknown_supplier",
+                "no such supplier in the institution",
+            ))
+        }
+        Err(e) => return Err(e),
+    };
+    let mut total = Decimal::ZERO;
+    let mut planned: Vec<(Uuid, Decimal)> = Vec::new();
+    for (i, a) in b.allocations.iter().enumerate() {
+        let f = |n: &str| format!("allocations[{i}].{n}");
+        let amount = parse_money(&f("amount"), &a.amount)?;
+        if amount <= Decimal::ZERO {
+            return Err(invalid(
+                &f("amount"),
+                "not_positive",
+                "must be greater than zero",
+            ));
+        }
+        if planned.iter().any(|p| p.0 == a.vendor_invoice_id) {
+            return Err(invalid(
+                &f("vendorInvoiceId"),
+                "duplicate",
+                "each invoice once",
+            ));
+        }
+        let inv = match load(conn, tenant, a.vendor_invoice_id, lock).await {
+            Ok(v) if v.institution_id == institution => v,
+            Ok(_) | Err(KernelError::NotFound { .. }) => {
+                return Err(invalid(
+                    &f("vendorInvoiceId"),
+                    "unknown_invoice",
+                    "no such vendor invoice",
+                ))
+            }
+            Err(e) => return Err(e),
+        };
+        if inv.supplier_id != supplier.id {
+            return Err(invalid(
+                &f("vendorInvoiceId"),
+                "other_supplier",
+                "the invoice belongs to another supplier",
+            ));
+        }
+        if inv.status()? != VendorInvoiceStatus::Posted || inv.is_credit_note {
+            return Err(KernelError::Conflict(format!(
+                "vendor invoice {} is {}; payments settle posted invoices",
+                inv.number, inv.status
+            )));
+        }
+        // Part 1 (DEF-J-003): payments awaiting approval or approved (not yet posted) hold their
+        // allocations; rejected payments release them.
+        let held: Option<Decimal> = sqlx::query_scalar(
+            "SELECT sum(a.amount) FROM resources.vendor_payment_allocation a \
+             JOIN resources.vendor_payment p ON p.id = a.vendor_payment_id \
+             WHERE a.vendor_invoice_id = $1 AND p.status IN ('pending_approval', 'approved')",
+        )
+        .bind(inv.id)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(map_db_error)?;
+        let outstanding = inv.total_amount - inv.paid_amount - held.unwrap_or(Decimal::ZERO);
+        if amount > outstanding {
+            return Err(invalid(
+                &f("amount"),
+                "exceeds_outstanding",
+                &format!("{} has {outstanding} outstanding", inv.number),
+            ));
+        }
+        total += amount;
+        planned.push((inv.id, amount));
+    }
+    Ok(PlannedPayment {
+        supplier_id: supplier.id,
+        supplier_number: supplier.number,
+        total,
+        allocations: planned,
+    })
+}
+
+/// Records the approval of a pending payment (`approved`; it may now post).
+async fn approve_payment(
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    tenant: TenantId,
+    id: Uuid,
+    reason: Option<&str>,
+    actor: &Actor,
+) -> Result<(), KernelError> {
+    let p = load_payment(conn, tenant, id, true).await?;
+    sqlx::query(
+        "UPDATE resources.vendor_payment SET status = 'approved', decided_by = $2, \
+         decided_at = now(), decision_reason = $3, version = version + 1, updated_at = now() \
+         WHERE id = $1",
+    )
+    .bind(id)
+    .bind(actor.id.as_deref())
+    .bind(reason)
+    .execute(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    let inst = InstitutionId(p.institution_id);
+    history(
+        conn,
+        tenant,
+        inst,
+        "vendor_payment",
+        id,
+        Some(VendorPaymentStatus::PendingApproval.as_str()),
+        VendorPaymentStatus::Approved.as_str(),
+        ev::VENDOR_PAYMENT_APPROVED,
+        reason,
+        p.process_instance_id.as_deref(),
+        actor,
+    )
+    .await?;
+    emit(
+        conn,
+        scope,
+        ev::VENDOR_PAYMENT_APPROVED,
+        ev::VENDOR_PAYMENT_APPROVED_SCHEMA,
+        "vendor_payment",
+        id,
+        "resources.vendor_payment.approve",
+        &status_payload(
+            id,
+            p.institution_id,
+            Some(VendorPaymentStatus::PendingApproval.as_str()),
+            VendorPaymentStatus::Approved.as_str(),
+            p.version + 1,
+            reason,
+            p.process_instance_id.as_deref(),
+            Some(&p.number),
+            None,
+        ),
+        actor,
+    )
+    .await
+}
+
+/// Request a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each
+/// allocation settles a **posted** invoice of the supplier, at most its outstanding amount (net of
+/// other payments pending approval or approved). Part 1 (DEF-J-003): the payment starts
+/// `VENDOR_PAYMENT_APPROVAL` and stays `pending_approval` until a procurement / finance approver
+/// other than its maker decides it (`POST /vendor-payments/{id}/decision`); nothing posts before.
 #[utoipa::path(post, path = "/api/v1/resources/institutions/{id}/vendor-payments", operation_id = "resources_payable_payment_create", tag = "resources-procurement",
     params(("id" = String, Path, format = Uuid), ("Idempotency-Key" = String, Header)),
     request_body = VendorPaymentCreate, security(("session_cookie" = [], "csrf_token" = [])),
@@ -1086,100 +1276,57 @@ pub async fn create_payment(
     let institution = InstitutionId(id);
     let scope = institution_scope(ctx, institution);
     require_institution_writable(&st, &scope, institution).await?;
-    let reference = optional_text("reference", b.reference, 100)?;
+    let reference = optional_text("reference", b.reference.clone(), 100)?;
     if b.allocations.is_empty() {
         return Err(invalid("allocations", "required", "settle at least one invoice").into());
     }
     let t = ctx.scope.tenant_id;
     let actor = actor(ctx);
-    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
-    let supplier = match suppliers::load(&mut tx, t, b.supplier_id, false).await {
-        Ok(s) if s.institution_id == id => s,
-        Ok(_) | Err(KernelError::NotFound { .. }) => {
-            return Err(invalid(
-                "supplierId",
-                "unknown_supplier",
-                "no such supplier in the institution",
-            )
-            .into())
-        }
-        Err(e) => return Err(e.into()),
+    // Validate first (no locks) so a refused request never starts an approval process.
+    let pre = {
+        let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+        plan_payment(&mut conn, t, id, &b, false).await?
     };
-    let mut total = Decimal::ZERO;
-    let mut planned: Vec<(Uuid, Decimal)> = Vec::new();
-    for (i, a) in b.allocations.iter().enumerate() {
-        let f = |n: &str| format!("allocations[{i}].{n}");
-        let amount = parse_money(&f("amount"), &a.amount)?;
-        if amount <= Decimal::ZERO {
-            return Err(invalid(&f("amount"), "not_positive", "must be greater than zero").into());
-        }
-        if planned.iter().any(|p| p.0 == a.vendor_invoice_id) {
-            return Err(invalid(&f("vendorInvoiceId"), "duplicate", "each invoice once").into());
-        }
-        let inv = match load(&mut tx, t, a.vendor_invoice_id, true).await {
-            Ok(v) if v.institution_id == id => v,
-            Ok(_) | Err(KernelError::NotFound { .. }) => {
-                return Err(invalid(
-                    &f("vendorInvoiceId"),
-                    "unknown_invoice",
-                    "no such vendor invoice",
-                )
-                .into())
-            }
-            Err(e) => return Err(e.into()),
-        };
-        if inv.supplier_id != supplier.id {
-            return Err(invalid(
-                &f("vendorInvoiceId"),
-                "other_supplier",
-                "the invoice belongs to another supplier",
-            )
-            .into());
-        }
-        if inv.status()? != VendorInvoiceStatus::Posted || inv.is_credit_note {
-            return Err(KernelError::Conflict(format!(
-                "vendor invoice {} is {}; payments settle posted invoices",
-                inv.number, inv.status
-            ))
-            .into());
-        }
-        let drafted: Option<Decimal> = sqlx::query_scalar(
-            "SELECT sum(a.amount) FROM resources.vendor_payment_allocation a \
-             JOIN resources.vendor_payment p ON p.id = a.vendor_payment_id \
-             WHERE a.vendor_invoice_id = $1 AND p.status = 'draft'",
-        )
-        .bind(inv.id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(map_db_error)?;
-        let outstanding = inv.total_amount - inv.paid_amount - drafted.unwrap_or(Decimal::ZERO);
-        if amount > outstanding {
-            return Err(invalid(
-                &f("amount"),
-                "exceeds_outstanding",
-                &format!("{} has {outstanding} outstanding", inv.number),
-            )
-            .into());
-        }
-        total += amount;
-        planned.push((inv.id, amount));
-    }
-    let number = next(&mut tx, t, institution, kind::VENDOR_PAYMENT).await?;
-    let pid: Uuid = sqlx::query_scalar(
-        "INSERT INTO resources.vendor_payment (tenant_id, institution_id, number, supplier_id, \
-         payment_date, amount, reference) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+    let pid = Uuid::now_v7();
+    let mut vars = BTreeMap::new();
+    vars.insert(
+        "supplier".to_owned(),
+        serde_json::json!(pre.supplier_number),
+    );
+    vars.insert(
+        "amount".to_owned(),
+        serde_json::json!(pre.total.to_string()),
+    );
+    let outcome = request_approval(
+        &st,
+        &scope,
+        process::VENDOR_PAYMENT_APPROVAL,
+        business_key("vendor_payment", pid, 1),
+        vars,
     )
+    .await?;
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    let plan = plan_payment(&mut tx, t, id, &b, true).await?;
+    let number = next(&mut tx, t, institution, kind::VENDOR_PAYMENT).await?;
+    sqlx::query(
+        "INSERT INTO resources.vendor_payment (id, tenant_id, institution_id, number, supplier_id, \
+         payment_date, amount, reference, status, process_instance_id, approval_requested_by) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending_approval', $9, $10)",
+    )
+    .bind(pid)
     .bind(t.as_uuid())
     .bind(id)
     .bind(&number)
-    .bind(supplier.id)
+    .bind(plan.supplier_id)
     .bind(b.payment_date)
-    .bind(total)
+    .bind(plan.total)
     .bind(&reference)
-    .fetch_one(&mut *tx)
+    .bind(outcome.process_instance_id())
+    .bind(actor.id.as_deref())
+    .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    for (inv, amount) in &planned {
+    for (inv, amount) in &plan.allocations {
         sqlx::query(
             "INSERT INTO resources.vendor_payment_allocation (tenant_id, vendor_payment_id, \
              vendor_invoice_id, amount) VALUES ($1, $2, $3, $4)",
@@ -1199,10 +1346,10 @@ pub async fn create_payment(
         "vendor_payment",
         pid,
         None,
-        "draft",
-        "sutraerp.resources.vendor_payment.drafted",
+        VendorPaymentStatus::PendingApproval.as_str(),
+        ev::VENDOR_PAYMENT_SUBMITTED,
         None,
-        None,
+        Some(outcome.process_instance_id()),
         &actor,
     )
     .await?;
@@ -1212,11 +1359,165 @@ pub async fn create_payment(
         "vendor_payment",
         pid,
         "resources.vendor_payment.create",
-        serde_json::json!({ "number": number, "supplier": supplier.number, "amount": total.to_string() }),
+        serde_json::json!({ "number": number, "supplier": plan.supplier_number, "amount": plan.total.to_string() }),
         &actor,
     )
     .await?;
+    emit(
+        &mut tx,
+        &scope,
+        ev::VENDOR_PAYMENT_SUBMITTED,
+        ev::VENDOR_PAYMENT_SUBMITTED_SCHEMA,
+        "vendor_payment",
+        pid,
+        "resources.vendor_payment.submit",
+        &status_payload(
+            pid,
+            id,
+            None,
+            VendorPaymentStatus::PendingApproval.as_str(),
+            1,
+            Some(&format!("{} {}", plan.supplier_number, plan.total)),
+            Some(outcome.process_instance_id()),
+            Some(&number),
+            None,
+        ),
+        &actor,
+    )
+    .await?;
+    if let ApprovalOutcome::Approved { .. } = outcome {
+        approve_payment(
+            &mut tx,
+            &scope,
+            t,
+            pid,
+            None,
+            &Actor::system(actor.correlation_id.clone()),
+        )
+        .await?;
+    }
     let res = payment_response(&mut tx, t, pid, StatusCode::CREATED).await?;
+    tx.commit().await.map_err(map_db_error)?;
+    Ok(res)
+}
+
+/// Decide a vendor payment awaiting approval (`resources.approve` **or** `finance.approve`,
+/// step-up; If-Match; Part 1 DEF-J-003): approve → `approved` (it may now post); reject →
+/// `rejected` (reason required; allocations released). The maker of the payment — whoever
+/// requested it — is refused (`403`, separation of duties), as is a system actor.
+#[utoipa::path(post, path = "/api/v1/resources/vendor-payments/{id}/decision", operation_id = "resources_payable_payment_decide", tag = "resources-procurement",
+    params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header, description = "ETag of the payment")),
+    request_body = ResourcesDecisionBody, security(("session_cookie" = [], "csrf_token" = [])),
+    responses((status = 200, body = VendorPaymentDetail, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
+pub async fn decide_payment(
+    State(st): State<ResourcesState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(b): Json<ResourcesDecisionBody>,
+) -> ApiResult<Response> {
+    // A procurement approver or a finance approver may decide (both are checker roles).
+    let ctx = if auth.0.has_permission(Permission::FinanceApprove) {
+        auth.require(Permission::FinanceApprove)?
+    } else {
+        auth.require(Permission::ResourcesApprove)?
+    };
+    let v = expected!(headers);
+    let reason = clean(b.reason);
+    if b.decision == ResourcesDecision::Reject && reason.is_none() {
+        return Err(invalid("reason", "required", "a rejection needs a reason").into());
+    }
+    let t = ctx.scope.tenant_id;
+    let inst = {
+        let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+        institution_of(&mut conn, t, "vendor_payment", "vendor payment", id).await?
+    };
+    let scope = institution_scope(ctx, inst);
+    require_institution_writable(&st, &scope, inst).await?;
+    let actor = actor(ctx);
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    let p = load_payment(&mut tx, t, id, true).await?;
+    check_version(v, p.version)?;
+    if p.status != VendorPaymentStatus::PendingApproval.as_str() {
+        return Err(illegal("vendor payment", &p.number, &p.status, "decided").into());
+    }
+    // Part 1 (DEF-X-002 / DEF-J-003): whoever requested the payment never approves it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "vendor_payment",
+        id,
+        &[VendorPaymentStatus::PendingApproval.as_str()],
+        &[p.approval_requested_by.as_deref()],
+        actor.id.as_deref(),
+        "vendor payment",
+    )
+    .await?;
+    match b.decision {
+        ResourcesDecision::Approve => {
+            approve_payment(&mut tx, &scope, t, id, reason.as_deref(), &actor).await?;
+        }
+        ResourcesDecision::Reject => {
+            sqlx::query(
+                "UPDATE resources.vendor_payment SET status = 'rejected', decided_by = $2, \
+                 decided_at = now(), decision_reason = $3, version = version + 1, \
+                 updated_at = now() WHERE id = $1",
+            )
+            .bind(id)
+            .bind(actor.id.as_deref())
+            .bind(&reason)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_db_error)?;
+            history(
+                &mut tx,
+                t,
+                inst,
+                "vendor_payment",
+                id,
+                Some(VendorPaymentStatus::PendingApproval.as_str()),
+                VendorPaymentStatus::Rejected.as_str(),
+                ev::VENDOR_PAYMENT_REJECTED,
+                reason.as_deref(),
+                p.process_instance_id.as_deref(),
+                &actor,
+            )
+            .await?;
+            emit(
+                &mut tx,
+                &scope,
+                ev::VENDOR_PAYMENT_REJECTED,
+                ev::VENDOR_PAYMENT_REJECTED_SCHEMA,
+                "vendor_payment",
+                id,
+                "resources.vendor_payment.reject",
+                &status_payload(
+                    id,
+                    p.institution_id,
+                    Some(VendorPaymentStatus::PendingApproval.as_str()),
+                    VendorPaymentStatus::Rejected.as_str(),
+                    p.version + 1,
+                    reason.as_deref(),
+                    p.process_instance_id.as_deref(),
+                    Some(&p.number),
+                    None,
+                ),
+                &actor,
+            )
+            .await?;
+        }
+    }
+    audit_only(
+        &mut tx,
+        &scope,
+        "vendor_payment",
+        id,
+        "resources.vendor_payment.decide",
+        serde_json::json!({ "number": p.number, "amount": p.amount.to_string(), "decision": b.decision, "reason": reason }),
+        &actor,
+    )
+    .await?;
+    let res = payment_response(&mut tx, t, id, StatusCode::OK).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(res)
 }
@@ -1261,9 +1562,10 @@ pub async fn get_payment(
     Ok(payment_response(&mut conn, ctx.scope.tenant_id, id, StatusCode::OK).await?)
 }
 
-/// Post a drafted payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr
+/// Post an **approved** payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr
 /// accounts payable / Cr the main bank account through `ProcurementPostingPort` (idempotent);
-/// settles the invoices (`paid` once fully paid); `vendor_payment.posted`.
+/// settles the invoices (`paid` once fully paid); `vendor_payment.posted`. A payment still
+/// pending approval, or rejected, is refused (409; Part 1 DEF-J-003).
 #[utoipa::path(post, path = "/api/v1/resources/vendor-payments/{id}/post", operation_id = "resources_payable_payment_post", tag = "resources-procurement",
     params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header, description = "ETag of the payment")),
     request_body(content = ResourcesReasonBody, content_type = "application/json"), security(("session_cookie" = [], "csrf_token" = [])),
@@ -1287,8 +1589,12 @@ pub async fn post_payment(
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let p = load_payment(&mut tx, t, id, true).await?;
     check_version(v, p.version)?;
-    if p.status != VendorPaymentStatus::Draft.as_str() {
-        return Err(illegal("vendor payment", &p.number, &p.status, "posted").into());
+    if p.status != VendorPaymentStatus::Approved.as_str() {
+        return Err(KernelError::Conflict(format!(
+            "vendor payment {} is {}; only a payment approved by an independent approver posts",
+            p.number, p.status
+        ))
+        .into());
     }
     let allocations: Vec<(Uuid, Decimal)> = sqlx::query_as(
         "SELECT vendor_invoice_id, amount FROM resources.vendor_payment_allocation \
@@ -1352,7 +1658,7 @@ pub async fn post_payment(
         inst,
         "vendor_payment",
         id,
-        Some("draft"),
+        Some(VendorPaymentStatus::Approved.as_str()),
         "posted",
         ev::VENDOR_PAYMENT_POSTED,
         None,
@@ -1396,11 +1702,11 @@ pub async fn post_payment(
         &status_payload(
             id,
             out.institution_id,
-            Some("draft"),
+            Some(VendorPaymentStatus::Approved.as_str()),
             "posted",
             out.version,
             Some(&format!("{} {}", receipt.entry_number, out.amount)),
-            None,
+            out.process_instance_id.as_deref(),
             Some(&out.number),
             None,
         ),
@@ -1422,6 +1728,7 @@ pub fn router(state: ResourcesState) -> OpenApiRouter {
         .routes(routes!(post_invoice))
         .routes(routes!(create_payment, list_payments))
         .routes(routes!(get_payment))
+        .routes(routes!(decide_payment))
         .routes(routes!(post_payment))
         .with_state(state)
 }
@@ -1453,5 +1760,10 @@ mod tests {
         assert!(VendorInvoiceStatus::Approved.can_transition(VendorInvoiceStatus::Posted));
         assert!(!VendorInvoiceStatus::Mismatch.can_transition(VendorInvoiceStatus::Posted));
         assert_eq!(VendorPaymentStatus::Posted.as_str(), "posted");
+        assert_eq!(
+            VendorPaymentStatus::parse("pending_approval"),
+            Some(VendorPaymentStatus::PendingApproval)
+        );
+        assert_eq!(VendorPaymentStatus::parse("draft"), None);
     }
 }

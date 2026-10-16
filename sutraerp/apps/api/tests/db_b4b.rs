@@ -97,6 +97,7 @@ fn auth(subject: &str, role: Role, tenant: TenantId) -> AuthContext {
         mfa_level: MfaLevel::None,
         amr: vec!["pwd".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     }
 }
 
@@ -677,6 +678,16 @@ async fn taught_session(f: &Fixture, date: &str, aarav: &str, bina: &str) -> Val
         StatusCode::OK,
     )
     .await;
+    // DEF-D-004: the register is submitted before it is finalised
+    let s = post(
+        &f.app,
+        &f.meera,
+        &format!("/sessions/{sid}/submit-attendance"),
+        json!({}),
+        Some(ver(&s)),
+        StatusCode::OK,
+    )
+    .await;
     let s = post(
         &f.app,
         &f.meera,
@@ -985,7 +996,9 @@ async fn sessions_attendance_thresholds_corrections_and_syllabus() {
     assert_eq!(me["items"][0]["percent"], 50.0);
     assert_eq!(me["items"][0]["belowThreshold"], true);
 
-    // L4-D-025: governed correction of finalised attendance (auto-approved in Batch 4)
+    // L4-D-025: governed correction of finalised attendance. DEF-D-002: the faculty request
+    // stays `requested` (never applied by the requester or the auto-approver); an authorised
+    // approver other than the requester decides it.
     let s2id = id(&s2);
     let rec = s2["records"]
         .as_array()
@@ -1015,8 +1028,31 @@ async fn sessions_attendance_thresholds_corrections_and_syllabus() {
     .await;
     let c = post(app, meera, &format!("/sessions/{s2id}/attendance-corrections"),
         json!({"recordId": rec_id, "toMark": "present", "reason": "Was at the lab practical", "evidence": "Lab register p.4"}), None, StatusCode::CREATED).await;
-    assert_eq!(c["status"], "applied");
+    assert_eq!(c["status"], "requested");
     assert_eq!(c["fromMark"], "absent");
+    assert_eq!(events(&f.pool, inst, "attendance.corrected").await, 0);
+    let cid = id(&c);
+    // the requesting teacher cannot decide (no attendance.correct)
+    post(
+        app,
+        meera,
+        &format!("/attendance-corrections/{cid}/decision"),
+        json!({"decision": "approve"}),
+        Some(ver(&c)),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    let c = post(
+        app,
+        admin,
+        &format!("/attendance-corrections/{cid}/decision"),
+        json!({"decision": "approve"}),
+        Some(ver(&c)),
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(c["status"], "applied");
+    assert_eq!(c["decidedBy"], ADMIN);
     let s2 = get_ok(app, meera, &format!("/sessions/{s2id}")).await;
     let rec = s2["records"]
         .as_array()
@@ -1719,6 +1755,24 @@ async fn internal_assessment_and_coursework() {
         StatusCode::UNPROCESSABLE_ENTITY,
     )
     .await;
+    // SEC-P1-APPSEC-004: the attachment is shown to the teacher as a link — script / data /
+    // protocol-relative links are refused (stored XSS), nothing is stored.
+    for bad in [
+        "javascript:alert(document.cookie)",
+        "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+        "//evil.example/steal",
+        "java\tscript:alert(1)",
+    ] {
+        post(
+            app,
+            aarav,
+            &format!("/me/assignments/{a1id}/submission"),
+            json!({"attachmentUrl": bad}),
+            None,
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await;
+    }
     let mine = post(
         app,
         aarav,

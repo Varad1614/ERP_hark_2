@@ -1,6 +1,6 @@
 //! **Development-only** credential authenticator (Batch 0).
 //!
-//! Recognises three seeded personas that mirror the product prototype and a single shared dev
+//! Recognises the seeded personas (three product personas + Part 1 checker personas) that mirror the product prototype and a single shared dev
 //! password. The composition root refuses to wire it when `SUTRA_ENV=production`. It verifies
 //! the primary factor only; the platform HTTP layer applies [`MfaPolicy`] and real TOTP.
 
@@ -16,7 +16,7 @@ pub struct DevPersona {
     pub role: Role,
 }
 
-pub const DEV_PERSONAS: [DevPersona; 3] = [
+pub const DEV_PERSONAS: [DevPersona; 9] = [
     DevPersona {
         login_id: "admin@sutra.dev",
         display_name: "Dhruv Naik",
@@ -31,6 +31,41 @@ pub const DEV_PERSONAS: [DevPersona; 3] = [
         login_id: "aarav.desai@sutra.dev",
         display_name: "Aarav Desai",
         role: Role::Student,
+    },
+    // Part 1 (DEF-X-002): checker personas — a second, independent user for each governed
+    // decision kind (docs/readiness/APPROVAL_CONTROL_MATRIX.md).
+    DevPersona {
+        login_id: "finance.approver@sutra.dev",
+        display_name: "Kavita Rao",
+        role: Role::FinanceApprover,
+    },
+    DevPersona {
+        login_id: "exam.controller@sutra.dev",
+        display_name: "Dr. Anil Menon",
+        role: Role::ExamController,
+    },
+    DevPersona {
+        login_id: "registrar@sutra.dev",
+        display_name: "Sunita Kulkarni",
+        role: Role::Registrar,
+    },
+    DevPersona {
+        login_id: "payroll.approver@sutra.dev",
+        display_name: "Rahul Iyer",
+        role: Role::PayrollApprover,
+    },
+    DevPersona {
+        login_id: "procurement.approver@sutra.dev",
+        display_name: "Farah Siddiqui",
+        role: Role::ProcurementApprover,
+    },
+    // Part 1 · S3-appr (DEF-X-002): a second, independent administrator — the checker for
+    // administrator-only decisions (registration, faculty assignment, enrolment override, HR …)
+    // that the first administrator requested.
+    DevPersona {
+        login_id: "dean@sutra.dev",
+        display_name: "Prof. Kiran Bhat",
+        role: Role::Administrator,
     },
 ];
 

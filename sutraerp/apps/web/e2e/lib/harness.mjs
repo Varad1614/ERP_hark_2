@@ -30,6 +30,27 @@ export const STUDENT_SUBJECT = "dev|aarav.desai@sutra.dev";
 export const apiBin =
   process.env.SUTRA_API_BIN ?? path.join(process.env.CARGO_TARGET_DIR ?? path.join(root, "target"), "debug", "sutra-api");
 
+// Part 1 S3 (DEF-X-003): the API under test acts as the RUNTIME login role (member of sutra_app,
+// NOSUPERUSER, no BYPASSRLS), exactly like production, so PostgreSQL row-level tenant isolation
+// applies to every request the suite makes. DATABASE_URL (schema owner / superuser) is used ONLY
+// for migrations + provisioning that role and for psql seeding / teardown, never by the app.
+export const RUNTIME_DB_USER = process.env.E2E_DB_RUNTIME_USER ?? "sutra_e2e_runtime";
+const RUNTIME_DB_PASSWORD = process.env.E2E_DB_RUNTIME_PASSWORD ?? "sutra-e2e-runtime-pw";
+export function runtimeDatabaseUrl() {
+  const u = new URL(DATABASE_URL);
+  u.username = RUNTIME_DB_USER;
+  u.password = RUNTIME_DB_PASSWORD;
+  return u.toString();
+}
+/** Idempotent: `sutra-api migrate` as the owner (no-op when migrated) + provision the runtime role. */
+export function provisionRuntimeRole() {
+  const r = spawnSync(apiBin, ["migrate"], {
+    encoding: "utf8",
+    env: { ...process.env, SUTRA_ENV: "development", DATABASE_URL, SUTRA_DB_RUNTIME_USER: RUNTIME_DB_USER, SUTRA_DB_RUNTIME_PASSWORD: RUNTIME_DB_PASSWORD },
+  });
+  if (r.error || r.status !== 0) throw new Error(`provisioning the runtime DB role failed: ${r.error?.message ?? r.stderr}`);
+}
+
 export const children = new Set();
 export const failed = [];
 export const log = (...a) => console.log("[e2e]", ...a);
@@ -91,13 +112,15 @@ export async function waitFor(url, child, ms = 90000) {
 }
 
 export async function startApi() {
+  provisionRuntimeRole();
   const env = {
     ...process.env,
     SUTRA_ENV: "development",
     SUTRA_HTTP_ADDR: `127.0.0.1:${API_PORT}`,
     SUTRA_LOG_FORMAT: "pretty",
     RUST_LOG: process.env.RUST_LOG ?? "warn",
-    DATABASE_URL,
+    // The app connects as the runtime role (RLS applies); see provisionRuntimeRole().
+    DATABASE_URL: runtimeDatabaseUrl(),
     SUTRA_AUTH_MODE: "dev",
     SUTRA_DEV_MFA: "false",
     SUTRA_DEV_TENANT_ID: TENANT,
@@ -105,6 +128,9 @@ export async function startApi() {
     SUTRA_OUTBOX_RELAY: "off",
     SUTRA_CACHE: "memory",
     SUTRA_INBOX_CONSUMER: "false",
+    // Part 1 (DEF-X-001): the API defaults to human approval; this click-through suite exercises
+    // domain flows, not the approval control (covered by db_p1_appr.rs), so it opts in to dev auto-approval.
+    SUTRA_APPROVAL_MODE: "auto",
     SUTRA_WEBAUTHN_RP_ID: "localhost",
     SUTRA_WEBAUTHN_ORIGINS: "http://localhost:3000,http://localhost:5173",
   };
@@ -168,7 +194,26 @@ export const I = "/api/v1/institution";
  * `opts` (all optional; defaults = the e2e suites' SIT institution): `code`, `name`, `shortName`,
  * `domain` (e-mail domain), `city` — used by the Docker demo seed (`e2e/demo-seed.mjs`).
  */
+/**
+ * Governed set-up steps of the institution (Batch 2: org blueprint, campus activation, academic
+ * structure, curriculum version, calendar version). With SUTRA_APPROVAL_MODE=auto the command
+ * already returns the final state; in human mode (default) the record is pending and the
+ * decision endpoint completes it. These decide permissions are held by administrators only (no
+ * checker role, SoD not enforced for them — APPROVAL_CONTROL_MATRIX.md), so the decider is the
+ * administrator unless `opts.decider` names another signed-in client. Every decision made here is
+ * recorded in HARNESS_DECISIONS.
+ */
+export const HARNESS_DECISIONS = [];
+async function decideIfPending(decider, rec, path, done, label) {
+  if (done.includes(rec?.status)) return rec;
+  const d = await decider.call("POST", path, { decision: "approve", reason: `${label}: approved (harness, human approval mode)` }, rec.version);
+  HARNESS_DECISIONS.push({ kind: label, id: rec.id, before: rec.status, after: d?.status, decider: decider.login ?? "administrator" });
+  if (!done.includes(d?.status)) throw new Error(`${label}: decision left “${d?.status}” (expected ${done.join(" | ")})`);
+  return { ...rec, ...d };
+}
+
 export async function seedInstitution(admin, opts = {}) {
+  const decider = opts.decider ?? admin;
   const suffix = Date.now().toString(36).toUpperCase().slice(-5);
   const o = { code: `SIT-${suffix}`, name: "Sahyadri Institute of Technology", shortName: "SIT", domain: "sit.edu.in", city: "Pune", ...opts };
   let inst = await admin.call("POST", `${I}/institutions`, { code: o.code, name: o.name });
@@ -200,7 +245,8 @@ export async function seedInstitution(admin, opts = {}) {
       { key: "department", label: "Department", allowedParentTypes: ["university"] },
     ],
   });
-  await admin.call("POST", `${I}/org-type-blueprints/${bp.id}/publish`, {}, bp.version);
+  const bpPub = await admin.call("POST", `${I}/org-type-blueprints/${bp.id}/publish`, {}, bp.version);
+  await decideIfPending(decider, bpPub, `${I}/org-type-blueprints/${bp.id}/decision`, ["published", "active", "effective"], "org type blueprint");
   const rootUnit = await admin.call("POST", `${I}/institutions/${id}/org-units`, { unitType: "university", code: "ROOT", name: o.name });
   await admin.call("POST", `${I}/org-units/${rootUnit.id}/activate`, {}, rootUnit.version);
   // 2B: campus, structure, programme, curriculum.
@@ -215,7 +261,8 @@ export async function seedInstitution(admin, opts = {}) {
     contactEmail: `campus@${o.domain}`,
     address: { line1: "1 Campus Road", city: o.city, state: "Maharashtra", postalCode: "411007", country: "IN" },
   });
-  const activeCampus = await admin.call("POST", `${I}/campuses/${campus.id}/activate`, {}, campus.version);
+  let activeCampus = await admin.call("POST", `${I}/campuses/${campus.id}/activate`, {}, campus.version);
+  activeCampus = await decideIfPending(decider, activeCampus, `${I}/campuses/${campus.id}/decision`, ["active"], "campus activation");
   check(activeCampus.status === "active", "main campus active");
   let s = await admin.call("POST", `${I}/institutions/${id}/academic-structures`, {
     name: "University structure",
@@ -227,7 +274,8 @@ export async function seedInstitution(admin, opts = {}) {
       { kind: "degree_type", key: "btech", name: "B.Tech", parentKey: "ug", nheqfLevel: 6 },
     ],
   });
-  await admin.call("POST", `${I}/academic-structures/${s.id}/publish`, {}, s.version);
+  const sPub = await admin.call("POST", `${I}/academic-structures/${s.id}/publish`, {}, s.version);
+  await decideIfPending(decider, sPub, `${I}/academic-structures/${s.id}/decision`, ["published"], "academic structure");
   let p = await admin.call("POST", `${I}/institutions/${id}/programmes`, { code: "BTECH-CSE", name: "B.Tech Computer Science", level: "ug", degreeType: "btech", durationTerms: 4 });
   p = await admin.call("POST", `${I}/programmes/${p.id}/publish`, {}, p.version);
   const components = [];
@@ -258,6 +306,7 @@ export async function seedInstitution(admin, opts = {}) {
   });
   let cv = await admin.get(`${I}/curriculum-versions/${c.openVersionId}`);
   cv = await admin.call("POST", `${I}/curriculum-versions/${cv.id}/publish`, {}, cv.version);
+  cv = await decideIfPending(decider, cv, `${I}/curriculum-versions/${cv.id}/decision`, ["published"], "curriculum version");
   // 2C: calendar (two terms), open year, effective assignment.
   const cal = await admin.call("POST", `${I}/institutions/${id}/calendars`, { code: `CAL-${suffix}`, name: "Main calendar" });
   let year = await admin.call("POST", `${I}/institutions/${id}/academic-years`, { calendarId: cal.id, label: "2026-27", startsOn: "2026-06-01", endsOn: "2027-05-31" });
@@ -268,6 +317,7 @@ export async function seedInstitution(admin, opts = {}) {
   ])
     v = await admin.call("POST", `${I}/calendar-versions/${v.id}/terms`, { code, name: `Term ${seq}`, sequence: seq, startsOn, endsOn }, v.version);
   v = await admin.call("POST", `${I}/calendar-versions/${v.id}/publish`, {}, v.version);
+  { const terms = v.terms; v = await decideIfPending(decider, v, `${I}/calendar-versions/${v.id}/decision`, ["published", "effective", "active"], "calendar version"); v.terms ??= terms; }
   year = await admin.call("POST", `${I}/academic-years/${year.id}/open`, {}, year.version);
   const a = await admin.call("POST", `${I}/calendars/${cal.id}/assignments`, { calendarVersionId: v.id, scopeKind: "institution", effectiveFrom: "2026-06-01" });
   const effective = await admin.call("POST", `${I}/calendar-assignments/${a.id}/activate`, {}, a.version);
@@ -276,11 +326,15 @@ export async function seedInstitution(admin, opts = {}) {
   check(readiness.ready === true, `institution ready for activation (blocking: ${readiness.items.filter((x) => x.status === "missing" || x.status === "blocking").map((x) => x.key).join(", ") || "none"})`);
   inst = await admin.get(`${I}/institutions/${id}`);
   inst = await admin.call("POST", `${I}/institutions/${id}/submit`, {}, inst.version);
+  // DEF-B-002: submit only requests activation; the Activation Authority decides.
+  check(inst.status === "pending_approval", `activation requested (${inst.status})`);
+  inst = await admin.call("POST", `${I}/institutions/${id}/decision`, { decision: "approve" }, inst.version);
   check(inst.status === "active", `institution active (${inst.status})`);
   const terms = [...v.terms].sort((x, y) => x.sequence - y.sequence);
   return { id, programmeId: p.id, curriculumVersionId: cv.id, yearId: year.id, termIds: terms.map((t) => t.id) };
 }
 
+/** Seeding / teardown only: runs as the schema owner (DATABASE_URL), not as the app (see provisionRuntimeRole). */
 export function psql(sql) {
   const r = spawnSync("psql", [DATABASE_URL, "-qtAX", "-v", "ON_ERROR_STOP=1", "-c", sql], { encoding: "utf8" });
   if (r.error || r.status !== 0) throw new Error(`psql: ${r.error?.message ?? r.stderr}`);

@@ -1418,8 +1418,8 @@ pub async fn receivable_write_off_decide(
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let r = load(&mut tx, t, id, true).await?;
     require_version(v, r.version)?;
-    let pending: (Uuid, Decimal) = sqlx::query_as(
-        "SELECT id, amount FROM finance.receivable_write_off WHERE tenant_id = $1 AND receivable_id = $2 AND status = 'pending_approval' FOR UPDATE",
+    let pending: (Uuid, Decimal, Option<String>) = sqlx::query_as(
+        "SELECT id, amount, requested_by FROM finance.receivable_write_off WHERE tenant_id = $1 AND receivable_id = $2 AND status = 'pending_approval' FOR UPDATE",
     )
     .bind(t.as_uuid())
     .bind(id)
@@ -1427,6 +1427,18 @@ pub async fn receivable_write_off_decide(
     .await
     .map_err(map_db_error)?
     .ok_or_else(|| KernelError::Conflict("no write-off is awaiting a decision".into()))?;
+    // Part 1 (DEF-X-002): the requester of a write-off never decides it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "receivable_write_off",
+        pending.0,
+        &["pending_approval"],
+        &[pending.2.as_deref()],
+        a.id.as_deref(),
+        "write-off",
+    )
+    .await?;
     if approve {
         if pending.1 > r.outstanding {
             return Err(KernelError::Conflict("the outstanding amount dropped below the requested write-off; reject and request again".into()).into());

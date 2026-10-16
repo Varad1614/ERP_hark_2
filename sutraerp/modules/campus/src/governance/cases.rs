@@ -1292,6 +1292,8 @@ pub async fn case_decide(
     Json(b): Json<FacilityDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::CampusApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "governance case").await?;
     let v = expected!(headers);
     let reason = clean(b.reason.clone());
     if !b.approve() && reason.is_none() {

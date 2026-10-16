@@ -37,6 +37,7 @@ env:
   GITLEAKS_VERSION: 8.30.1
   GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
   K6_VERSION: 1.8.2
+  SEMGREP_IMAGE: semgrep/semgrep:1.181.0
 
 defaults:
   run:
@@ -119,6 +120,53 @@ jobs:
           if-no-files-found: ignore
 
   # ---------------------------------------------------------------------------------------------
+  # Part 1 · Stage 3 (appsec): static application security testing. Semgrep registry rule packs for
+  # Rust / TypeScript / React / JavaScript plus the repository's own rules (sutraerp/.semgrep.yml:
+  # no raw HTML sinks in the SPA, no SQL text built from request data). Any finding fails the job;
+  # an accepted exception carries an inline `nosemgrep: <rule-id>` with its reason and is listed in
+  # sutraerp/docs/readiness/security/appsec.md.
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Semgrep (p/rust · p/typescript · p/react · p/javascript · .semgrep.yml)
+        id: semgrep
+        working-directory: .
+        run: |
+          mkdir -p "$RUNNER_TEMP/sast"
+          docker run --rm -v "$PWD:/src" -v "$RUNNER_TEMP/sast:/out" -w /src "$SEMGREP_IMAGE" \
+            semgrep scan --metrics=off --disable-version-check \
+              --config p/rust --config p/typescript --config p/react --config p/javascript \
+              --config sutraerp/.semgrep.yml \
+              --exclude 'node_modules' --exclude 'schema.d.ts' --exclude 'e2e' --exclude 'tests' \
+              --exclude '*.test.ts' --exclude '*.test.tsx' \
+              --sarif-output /out/semgrep.sarif --json-output /out/semgrep.json \
+              --error sutraerp
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### SAST (Semgrep)"
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Semgrep (registry packs + .semgrep.yml) | ${{ steps.semgrep.outcome }} |"
+            if [ -f "$RUNNER_TEMP/sast/semgrep.json" ]; then
+              echo
+              echo "Findings: $(jq '.results | length' "$RUNNER_TEMP/sast/semgrep.json"), scan errors: $(jq '.errors | length' "$RUNNER_TEMP/sast/semgrep.json")"
+              jq -r '.results[] | "- `\(.check_id)` \(.path):\(.start.line)"' "$RUNNER_TEMP/sast/semgrep.json" | head -n 100
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: sast-reports
+          path: ${{ runner.temp }}/sast
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------------------------
   images-scan:
     name: Image scan + ZAP baseline (Trivy · Grype · ZAP)
     runs-on: ubuntu-24.04
@@ -197,7 +245,7 @@ jobs:
           docker run -d --name api --network sutra -p 8080:8080 -e SUTRA_ENV=development -e SUTRA_LOG_FORMAT=json \
             -e DATABASE_URL="postgres://sutra_api:${RUNTIME_PW}@postgres:5432/sutra" \
             -e SUTRA_AUTH_MODE=dev -e SUTRA_DEV_MFA=false -e SUTRA_OUTBOX_RELAY=off -e SUTRA_CACHE=memory \
-            -e SUTRA_INBOX_CONSUMER=false -e SUTRA_PUBLIC_URL=http://localhost:3000 \
+            -e SUTRA_INBOX_CONSUMER=false -e SUTRA_PUBLIC_URL=http://localhost:3000 -e SUTRA_APPROVAL_MODE=auto \
             -e SUTRA_WEBAUTHN_RP_ID=localhost -e SUTRA_WEBAUTHN_ORIGINS=http://localhost:3000 \
             sutraerp/api:scan
           for _ in $(seq 1 90); do curl -fsS http://localhost:8080/health/live >/dev/null 2>&1 && break; sleep 1; done

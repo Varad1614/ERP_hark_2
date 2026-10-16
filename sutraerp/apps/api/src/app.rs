@@ -19,6 +19,7 @@ use sutra_contracts::services::ports::OperationalMetricsPort;
 use sutra_infra::nats::{JetStreamPublisher, JetStreamSettings, NatsReadiness};
 use sutra_infra::smtp::{SmtpMailSender, SmtpSettings, SmtpTls};
 use sutra_infra::valkey::{ValkeyCache, ValkeyReadiness, ValkeySettings};
+use sutra_kernel::approval::ApprovalMode;
 use sutra_kernel::audit::{AuditSink, TracingAuditSink};
 use sutra_kernel::cache::{AdvisoryCache, Cache, CacheNamespace, InMemoryCache, NoCache};
 use sutra_kernel::health::ReadinessCheck;
@@ -94,6 +95,9 @@ pub struct AppContext {
     pub cache: AdvisoryCache,
     /// Workflow orchestration port for approval steps (no-op adapter until Flowable, ADR-L5-0023).
     pub workflow: Arc<dyn WorkflowPort>,
+    /// How every module's approval steps resolve (`SUTRA_APPROVAL_MODE`; default human decision,
+    /// auto-approval only as an explicit dev/test opt-in — refused in production).
+    pub approvals: ApprovalMode,
     /// Outbox relay + sweepers; started by `serve` via [`AppContext::take_background`].
     pub background: BackgroundTasks,
     /// 9A: audit anchor key handed to the audit chain API (`SUTRA_AUDIT_ANCHOR_KEY`).
@@ -102,6 +106,36 @@ pub struct AppContext {
     pub search: sutra_platform::search::SearchState, // 9C
     /// INT: SEC-9D-003 — payment gateway of the finance routes (`SUTRA_PAYMENT_GATEWAY`).
     pub payment_gateway: Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort>,
+    /// Part 1 · Stage 3 (S3-config): transport hardening (headers, CORS, body limit, ops
+    /// endpoints) and the public-endpoint rate limiter.
+    pub http: HttpLayers,
+}
+
+/// Part 1 · Stage 3 (S3-config): settings of the transport layers built in [`router`].
+#[derive(Clone, Debug)]
+pub struct HttpLayers {
+    pub headers: Arc<sutra_web::security_headers::SecurityHeaders>,
+    pub cors: Arc<sutra_web::cors::CorsPolicy>,
+    pub rate_limiter: Arc<sutra_web::rate_limit::RateLimiter>,
+    pub max_body_bytes: usize,
+    /// Serve `GET /api/openapi.json` (off in production).
+    pub api_docs: bool,
+}
+
+impl HttpLayers {
+    pub fn from_config(cfg: &Config) -> Self {
+        Self {
+            headers: Arc::new(sutra_web::security_headers::SecurityHeaders {
+                hsts_max_age_secs: cfg.http.hsts_max_age_secs,
+            }),
+            cors: Arc::new(sutra_web::cors::CorsPolicy::new(&cfg.allowed_origins)),
+            rate_limiter: Arc::new(sutra_web::rate_limit::RateLimiter::new(
+                cfg.http.rate_limit.clone(),
+            )),
+            max_body_bytes: cfg.http.max_body_bytes,
+            api_docs: cfg.http.api_docs,
+        }
+    }
 }
 
 /// Long-running workers that run next to the HTTP server.
@@ -138,7 +172,10 @@ impl BackgroundTasks {
     pub fn spawn(self, cancel: &CancellationToken) -> Vec<JoinHandle<()>> {
         let mut handles = vec![];
         if let Some(relay) = self.relay {
-            handles.push(tokio::spawn(relay.run(cancel.clone())));
+            // Part 1 S3 (DEF-X-003): the relay publishes every tenant's outbox (system context).
+            handles.push(tokio::spawn(sutra_kernel::db_context::system(
+                relay.run(cancel.clone()),
+            )));
         }
         if let Some(s) = self.scheduler {
             handles.extend(s.spawn(cancel.clone()));
@@ -188,7 +225,7 @@ impl AppContext {
         checks.extend(cache_check);
         let (relay, relay_check) = build_relay(cfg, &pool)?;
         checks.extend(relay_check);
-        let readiness = Readiness::new(checks);
+        let readiness = Readiness::new(checks).with_detail(cfg.http.health_detail); // Part 1 · S3
         let scheduler = cfg.sweepers.enabled.then(|| build_scheduler(cfg, &pool));
         let mailer = build_mailer(cfg)?;
         let consumers = cfg
@@ -198,8 +235,9 @@ impl AppContext {
         // ---- 9C ---- workflow adapter + decision sync, search projector / rebuild (see wire_9c)
         let (workflow, search, consumers) = wire_9c(cfg, &pool, consumers)?;
         // ---- end 9C ----
+        // SEC-P1-AUTH-001: privileged-role MFA also drives dev-mode challenges / enrolment.
         let mfa = PrivilegedRoleMfaPolicy {
-            enforce: cfg.dev_mfa_enforced,
+            enforce: cfg.dev_mfa_enforced || cfg.privileged_mfa,
         };
         let (authenticator, oidc): (
             Arc<dyn CredentialAuthenticator>,
@@ -231,6 +269,9 @@ impl AppContext {
                 settings.institution_claim = o.institution_claim.clone();
                 settings.mfa_acr_values = o.mfa_acr_values.clone();
                 settings.step_up_acr = o.step_up_acr.clone();
+                settings
+                    .set_algorithms(&o.algorithms)
+                    .map_err(BuildError::Auth)?;
                 let kc = Arc::new(
                     KeycloakAuthenticator::new(settings)
                         .map_err(|e| BuildError::Auth(e.to_string()))?,
@@ -321,6 +362,7 @@ impl AppContext {
             &cookie,
             pre_session.clone(),
             cfg.mfa_step_up,
+            cfg.privileged_mfa,
         );
         let observability = Some(build_observability(cfg, &pool)); // 9A
         Ok(Self {
@@ -340,13 +382,21 @@ impl AppContext {
                 pre_session,
                 replay,
                 sign_in_hook,
+                // SEC-9D-005: failed-attempt lockout (process-local, see auth::throttle).
+                throttle: Arc::new(sutra_platform::auth::throttle::AuthThrottle::new(
+                    cfg.auth_max_failures,
+                    cfg.auth_failure_window_secs,
+                    cfg.auth_lockout_secs,
+                )),
             },
             session_auth,
             origin_policy: OriginPolicy::new(&cfg.allowed_origins),
+            http: HttpLayers::from_config(cfg), // Part 1 · S3-config
             idempotency,
             request_timeout: cfg.request_timeout,
             cache,
-            workflow,                      // 9C: noop unless SUTRA_WORKFLOW=flowable
+            workflow, // 9C: noop unless SUTRA_WORKFLOW=flowable
+            approvals: cfg.hardening.workflow.approvals, // Part 1: DEF-X-001
             audit_anchor: anchor_key(cfg), // 9A
             background: BackgroundTasks {
                 relay,
@@ -581,10 +631,9 @@ impl ObservabilityTasks {
         }
         if let Some(addr) = self.metrics_addr {
             handles.push(tokio::spawn(crate::metrics::serve(addr, cancel.clone())));
-            handles.push(tokio::spawn(crate::metrics::collect(
-                self.pool.clone(),
-                Duration::from_secs(15),
-                cancel.clone(),
+            // Part 1 S3 (DEF-X-003): gauges count rows of every tenant (system context).
+            handles.push(tokio::spawn(sutra_kernel::db_context::system(
+                crate::metrics::collect(self.pool.clone(), Duration::from_secs(15), cancel.clone()),
             )));
         }
         handles.push(tokio::spawn(crate::telemetry::flush_on_shutdown(
@@ -671,6 +720,16 @@ fn build_observability(cfg: &Config, pool: &PgPool) -> ObservabilityTasks {
 /// no-op ABC and external-scholarship adapters. Tests reuse it to build a `StudentState` with
 /// `ApprovalMode::AwaitDecision` (`sutra_student::router_with_state`).
 pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_student::StudentDeps {
+    student_deps_with(pool, workflow, ApprovalMode::default())
+}
+
+/// [`student_deps`] with the configured approval mode (`SUTRA_APPROVAL_MODE`), also handed to
+/// the nested Domain F ports.
+pub fn student_deps_with(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_student::StudentDeps {
     sutra_student::StudentDeps {
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
             pool.clone(),
@@ -680,6 +739,7 @@ pub fn student_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_stud
         abc: Arc::new(sutra_student::adapters::NoopAbcRegistry),
         external_scholarships: Arc::new(sutra_student::adapters::NoopExternalScholarships),
         workflow,
+        approvals,
         pool,
     }
 }
@@ -693,6 +753,16 @@ pub fn academic_deps(
     pool: PgPool,
     workflow: Arc<dyn WorkflowPort>,
 ) -> sutra_academic::AcademicDeps {
+    academic_deps_with(pool, workflow, ApprovalMode::default())
+}
+
+/// [`academic_deps`] with the configured approval mode (`SUTRA_APPROVAL_MODE`), also handed to
+/// the nested Domain F ports.
+pub fn academic_deps_with(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_academic::AcademicDeps {
     sutra_academic::AcademicDeps {
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
             pool.clone(),
@@ -703,6 +773,7 @@ pub fn academic_deps(
         spaces: Arc::new(sutra_campus::PgTeachingSpaces::new(pool.clone())),
         staff: Arc::new(sutra_people::PgStaffDirectory::new(pool.clone())),
         workflow,
+        approvals,
         pool,
     }
 }
@@ -712,6 +783,16 @@ pub fn academic_deps(
 /// gateway. Tests reuse it to build a `FinanceState` with `ApprovalMode::AwaitDecision`
 /// (`sutra_finance::router_with_state`).
 pub fn finance_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_finance::FinanceDeps {
+    finance_deps_with(pool, workflow, ApprovalMode::default())
+}
+
+/// [`finance_deps`] with the configured approval mode (`SUTRA_APPROVAL_MODE`), also handed to
+/// the nested Domain F ports.
+pub fn finance_deps_with(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_finance::FinanceDeps {
     sutra_finance::FinanceDeps {
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
             pool.clone(),
@@ -720,6 +801,7 @@ pub fn finance_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_fina
         aid: Arc::new(sutra_student::PgAidDecisionSource::new(pool.clone())),
         gateway: Arc::new(sutra_finance::MockPaymentGateway::default()),
         workflow,
+        approvals,
         pool,
     }
 }
@@ -730,6 +812,16 @@ pub fn finance_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_fina
 /// Tests reuse it to build an `ExamsState` with `ApprovalMode::AwaitDecision`
 /// (`sutra_exams::router_with_state`).
 pub fn exams_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_exams::ExamsDeps {
+    exams_deps_with(pool, workflow, ApprovalMode::default())
+}
+
+/// [`exams_deps`] with the configured approval mode (`SUTRA_APPROVAL_MODE`), also handed to
+/// the nested Domain F ports.
+pub fn exams_deps_with(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_exams::ExamsDeps {
     sutra_exams::ExamsDeps {
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
             pool.clone(),
@@ -741,9 +833,10 @@ pub fn exams_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_exams:
         finance: Arc::new(sutra_finance::PgFinanceClearance::new(pool.clone())),
         charges: Arc::new(sutra_finance::PgChargeDirectory::new(pool.clone())),
         fees: Arc::new(sutra_finance::PgExamFees::new(
-            finance_deps(pool.clone(), workflow.clone()).into_state(),
+            finance_deps_with(pool.clone(), workflow.clone(), approvals).into_state(),
         )),
         workflow,
+        approvals,
         pool,
     }
 }
@@ -752,15 +845,26 @@ pub fn exams_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_exams:
 /// and the Domain F payroll posting port. Tests reuse it to build a `PeopleState` with
 /// `ApprovalMode::AwaitDecision` (`sutra_people::router_with_state`).
 pub fn people_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_people::PeopleDeps {
+    people_deps_with(pool, workflow, ApprovalMode::default())
+}
+
+/// [`people_deps`] with the configured approval mode (`SUTRA_APPROVAL_MODE`), also handed to
+/// the nested Domain F ports.
+pub fn people_deps_with(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_people::PeopleDeps {
     sutra_people::PeopleDeps {
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
             pool.clone(),
         )),
         workload: Arc::new(sutra_academic::PgFacultyWorkload::new(pool.clone())),
         postings: Arc::new(sutra_finance::PgPayrollPostings::new(
-            finance_deps(pool.clone(), workflow.clone()).into_state(),
+            finance_deps_with(pool.clone(), workflow.clone(), approvals).into_state(),
         )),
         workflow,
+        approvals,
         pool,
     }
 }
@@ -769,6 +873,16 @@ pub fn people_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_peopl
 /// Domain E workforce directory and the Domain F campus charge port. Tests reuse it to build a
 /// `CampusState` with `ApprovalMode::AwaitDecision` (`sutra_campus::router_with_state`).
 pub fn campus_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_campus::CampusDeps {
+    campus_deps_with(pool, workflow, ApprovalMode::default())
+}
+
+/// [`campus_deps`] with the configured approval mode (`SUTRA_APPROVAL_MODE`), also handed to
+/// the nested Domain F ports.
+pub fn campus_deps_with(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_campus::CampusDeps {
     sutra_campus::CampusDeps {
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
             pool.clone(),
@@ -776,10 +890,11 @@ pub fn campus_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_campu
         students: Arc::new(sutra_student::PgStudentDirectory::new(pool.clone())),
         workforce: Arc::new(sutra_people::PgWorkforceDirectory::new(pool.clone())),
         charges: Arc::new(sutra_finance::PgCampusCharges::new(
-            finance_deps(pool.clone(), workflow.clone()).into_state(),
+            finance_deps_with(pool.clone(), workflow.clone(), approvals).into_state(),
         )),
         finance: Arc::new(sutra_finance::PgChargeDirectory::new(pool.clone())),
         workflow,
+        approvals,
         pool,
     }
 }
@@ -790,6 +905,16 @@ pub fn campus_deps(pool: PgPool, workflow: Arc<dyn WorkflowPort>) -> sutra_campu
 pub fn services_deps(
     pool: PgPool,
     workflow: Arc<dyn WorkflowPort>,
+) -> sutra_services::ServicesDeps {
+    services_deps_with(pool, workflow, ApprovalMode::default())
+}
+
+/// [`services_deps`] with the configured approval mode (`SUTRA_APPROVAL_MODE`), also handed to
+/// the nested Domain F ports.
+pub fn services_deps_with(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
 ) -> sutra_services::ServicesDeps {
     sutra_services::ServicesDeps {
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
@@ -806,6 +931,7 @@ pub fn services_deps(
             ports
         },
         workflow,
+        approvals,
         pool,
     }
 }
@@ -817,15 +943,26 @@ pub fn resources_deps(
     pool: PgPool,
     workflow: Arc<dyn WorkflowPort>,
 ) -> sutra_resources::ResourcesDeps {
+    resources_deps_with(pool, workflow, ApprovalMode::default())
+}
+
+/// [`resources_deps`] with the configured approval mode (`SUTRA_APPROVAL_MODE`), also handed to
+/// the nested Domain F ports.
+pub fn resources_deps_with(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_resources::ResourcesDeps {
     sutra_resources::ResourcesDeps {
         references: Arc::new(sutra_institution::PgInstitutionReferences::new(
             pool.clone(),
         )),
         workforce: Arc::new(sutra_people::PgWorkforceDirectory::new(pool.clone())),
         postings: Arc::new(sutra_finance::PgProcurementPostings::new(
-            finance_deps(pool.clone(), workflow.clone()).into_state(),
+            finance_deps_with(pool.clone(), workflow.clone(), approvals).into_state(),
         )),
         workflow,
+        approvals,
         pool,
     }
 }
@@ -846,45 +983,59 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
                 pool: ctx.pool.clone(),
                 cache: ctx.cache.clone(),
                 workflow: ctx.workflow.clone(),
+                approvals: ctx.approvals,
             },
         ))
-        .merge(sutra_student::router(student_deps(
+        .merge(sutra_student::router(student_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
+            ctx.approvals,
         )))
-        .merge(sutra_academic::router(academic_deps(
+        .merge(sutra_academic::router(academic_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
+            ctx.approvals,
         )))
-        .merge(sutra_people::router(people_deps(
+        .merge(sutra_people::router(people_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
+            ctx.approvals,
         )))
         .merge(sutra_finance::router({
             // INT: SEC-9D-003 — the configured gateway, not the dev mock.
-            let mut deps = finance_deps(ctx.pool.clone(), ctx.workflow.clone());
+            let mut deps = finance_deps_with(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals);
             deps.gateway = ctx.payment_gateway.clone();
             deps
         }))
-        .merge(sutra_campus::router(campus_deps(
+        .merge(sutra_campus::router(campus_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
+            ctx.approvals,
         )))
-        .merge(sutra_services::router(services_deps(
+        .merge(sutra_services::router(services_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
+            ctx.approvals,
         )))
-        .merge(sutra_exams::router(exams_deps(
+        .merge(sutra_exams::router(exams_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
+            ctx.approvals,
         )))
-        .merge(sutra_resources::router(resources_deps(
+        .merge(sutra_resources::router(resources_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
+            ctx.approvals,
         )))
         .layer(axum::middleware::from_fn_with_state(
             ctx.idempotency,
             sutra_web::idempotency::idempotency,
+        ))
+        // Part 1 · Stage 3 (S3-config): inside the session layer, so it knows who is signed in
+        // (credential endpoints always, other requests only without a live session).
+        .layer(axum::middleware::from_fn_with_state(
+            ctx.http.rate_limiter.clone(),
+            sutra_web::rate_limit::rate_limit,
         ))
         .layer(axum::middleware::from_fn_with_state(
             ctx.session_auth,
@@ -900,27 +1051,35 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
 pub fn router(ctx: AppContext) -> Router {
     let timeout = ctx.request_timeout;
     let audit_anchor = ctx.audit_anchor.clone(); // 9A
+    let layers = ctx.http.clone(); // Part 1 · S3-config
     let (router, api) = build(ctx).split_for_parts();
     // 9A: the audit chain API checks anchor MACs with this key when it is configured.
     let router = match audit_anchor {
         Some(key) => router.layer(axum::Extension(key)),
         None => router,
     };
-    let api = Arc::new(api);
-    router
-        .route(
+    // Part 1 · Stage 3 (S3-config): the generated API description is a development aid; in
+    // production (`SUTRA_API_DOCS` refused) it is published with the release, not served.
+    let router = if layers.api_docs {
+        let api = Arc::new(api);
+        router.route(
             "/api/openapi.json",
             get(move || {
                 let api = api.clone();
                 async move { Json((*api).clone()) }
             }),
         )
+    } else {
+        router
+    };
+    router
         .fallback(sutra_web::problem::not_found)
         .layer(TimeoutLayer::with_status_code(
             http::StatusCode::GATEWAY_TIMEOUT,
             timeout,
         ))
-        .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
+        .layer(RequestBodyLimitLayer::new(layers.max_body_bytes)) // Part 1 · S3: SUTRA_MAX_BODY_BYTES
+        .layer(axum::extract::DefaultBodyLimit::max(layers.max_body_bytes))
         .layer(CatchPanicLayer::new())
         .layer(axum::middleware::from_fn(crate::metrics::track_http)) // 9A
         .layer(TraceLayer::new_for_http().make_span_with(crate::telemetry::make_span))
@@ -930,6 +1089,16 @@ pub fn router(ctx: AppContext) -> Router {
             header::SET_COOKIE,
         ]))
         .layer(axum::middleware::from_fn(sutra_web::request_id::request_id))
+        // Part 1 · Stage 3 (S3-config): outermost, so every answer — 404s, 413s, 429s, timeouts
+        // and panics included — carries the hardening headers and the CORS decision.
+        .layer(axum::middleware::from_fn_with_state(
+            layers.cors,
+            sutra_web::cors::cors,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            layers.headers,
+            sutra_web::security_headers::security_headers,
+        ))
 }
 
 // ---- 9C ---- Flowable workflow adapter, decision sync, OpenSearch projections
@@ -959,6 +1128,14 @@ fn wire_9c(
     };
     let h = &cfg.hardening;
     let mut jobs: Vec<Arc<dyn SweepJob>> = vec![];
+    tracing::info!(
+        approvals = h.workflow.approvals.as_str(),
+        "approvals: governed decisions {}",
+        match h.workflow.approvals {
+            ApprovalMode::AwaitDecision => "wait for an authorised human approver",
+            ApprovalMode::AutoApprove => "are AUTO-APPROVED (development / test opt-in)",
+        }
+    );
     let workflow: Arc<dyn WorkflowPort> = match h.workflow.mode {
         WorkflowMode::Noop => Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
         WorkflowMode::Flowable => {
@@ -970,6 +1147,7 @@ fn wire_9c(
                     password: w.flowable_password.as_ref().map(|p| p.0.clone()),
                     timeout: w.timeout,
                     deploy_on_start: w.deploy_on_start,
+                    allow_auto_approve: w.flowable_auto_approve, // Part 1: DEF-X-001
                 })
                 .map_err(BuildError::DataPlatform)?,
             );

@@ -489,6 +489,7 @@ pub async fn update_blueprint(
     cmd: UpdateAssessmentBlueprint,
     actor: &Actor,
 ) -> Result<AssessmentBlueprint, KernelError> {
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let tenant = auth.scope.tenant_id;
     let cur = get_blueprint(state, tenant, id).await?;
     let c = teaching_ctx(state, auth, cur.section_id, Permission::AssessmentManage).await?;
@@ -717,6 +718,7 @@ pub async fn window_command(
     actor: &Actor,
 ) -> Result<AssessmentWindow, KernelError> {
     use AssessmentWindowStatus as W;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let tenant = auth.scope.tenant_id;
     let cur = get_window(state, tenant, id).await?;
     if cmd == "extend" {
@@ -885,9 +887,11 @@ pub async fn submit_own(
         })?;
     let c = kit::section_ctx(state, auth, w.section_id).await?;
     require_institution_writable(state, &c.scope, c.section.institution_id).await?;
-    if kit::opt_text(cmd.content.as_deref()).is_none()
-        && kit::opt_text(cmd.attachment_url.as_deref()).is_none()
-    {
+    // SEC-P1-APPSEC-004: the attachment is rendered as a link for the teacher, so only an
+    // absolute http(s) URL is stored (no `javascript:` / `data:` links).
+    let attachment_url =
+        sutra_kernel::weblink::opt_http_link("attachmentUrl", cmd.attachment_url.as_deref())?;
+    if kit::opt_text(cmd.content.as_deref()).is_none() && attachment_url.is_none() {
         return Err(invalid(
             "content",
             "required",
@@ -929,7 +933,7 @@ pub async fn submit_own(
         "tenant_id": tenant.as_uuid(), "institution_id": c.institution_uuid(), "window_id": window_id, "section_id": w.section_id,
         "student_id": me.id.as_uuid(), "student_number": entry.student_number, "display_name": entry.display_name,
         "subject_ref": entry.subject_ref, "status": status.as_str(), "content": kit::opt_text(cmd.content.as_deref()),
-        "attachment_url": kit::opt_text(cmd.attachment_url.as_deref()), "submitted_at": now,
+        "attachment_url": attachment_url, "submitted_at": now,
     }))
     .await
     .map_err(|e| match e {
@@ -979,6 +983,7 @@ pub async fn mark(
     actor: &Actor,
 ) -> Result<AssessmentSubmission, KernelError> {
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let w = get_window(state, tenant, window_id).await?;
     let c = teaching_ctx(state, auth, w.section_id, Permission::AssessmentManage).await?;
     if cmd.marks < 0.0 || cmd.marks > w.max_marks {
@@ -1045,6 +1050,7 @@ pub async fn record_outcome(
     actor: &Actor,
 ) -> Result<AssessmentSubmission, KernelError> {
     let tenant = auth.scope.tenant_id;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let w = get_window(state, tenant, window_id).await?;
     let c = teaching_ctx(state, auth, w.section_id, Permission::AssessmentManage).await?;
     if matches!(
@@ -1210,6 +1216,7 @@ pub async fn request_moderation(
 ) -> Result<AssessmentModeration, KernelError> {
     let tenant = auth.scope.tenant_id;
     let reason = required_text("reason", Some(&cmd.reason))?;
+    crate::shared::faculty::require_teaching_role(auth, Permission::AssessmentManage)?;
     let w = get_window(state, tenant, window_id).await?;
     let c = teaching_ctx(state, auth, w.section_id, Permission::AssessmentManage).await?;
     if cmd.proposed_marks < 0.0 || cmd.proposed_marks > w.max_marks {
@@ -1324,6 +1331,16 @@ pub async fn decide_moderation(
             "the requester cannot decide their own moderation".into(),
         ));
     }
+    // Part 1 · S3-appr (DEF-X-002): also no system actor, and not who asked for the moderation.
+    sutra_persistence::approval::guard_decision_by(
+        &state.pool,
+        tenant.as_uuid(),
+        actor.id.as_deref(),
+        &m.submission_id,
+        &[m.requested_by.as_deref()],
+        "moderation",
+    )
+    .await?;
     let out = apply_moderation(&mut tx, &c, &m, approve, reason.as_deref(), actor).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(out)
@@ -1614,6 +1631,21 @@ pub async fn decide_finalization(
             "no internal assessment of this section is awaiting a finalisation decision".into(),
         ));
     }
+    // Part 1 · S3-appr (DEF-X-002): whoever asked for the finalisation never decides it.
+    let mut blueprints: Vec<Uuid> = pending.iter().map(|r| r.blueprint_id).collect();
+    blueprints.sort();
+    blueprints.dedup();
+    for bp in blueprints {
+        sutra_persistence::approval::guard_decision_by(
+            &state.pool,
+            tenant.as_uuid(),
+            actor.id.as_deref(),
+            &bp,
+            &[],
+            "internal assessment finalisation",
+        )
+        .await?;
+    }
     if approve {
         finalize_rows(&mut tx, &c, pending, actor).await?;
     } else {
@@ -1869,6 +1901,16 @@ pub async fn decide_correction(
             corr.status
         )));
     }
+    // Part 1 · S3-appr (DEF-X-002): the requester of the correction never decides it.
+    sutra_persistence::approval::guard_decision_by(
+        &state.pool,
+        tenant.as_uuid(),
+        actor.id.as_deref(),
+        &corr.result_id,
+        &[corr.requested_by.as_deref()],
+        "assessment correction",
+    )
+    .await?;
     let out = apply_correction(&mut tx, &c, &corr, approve, reason.as_deref(), actor).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(out)

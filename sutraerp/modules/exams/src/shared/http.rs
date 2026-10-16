@@ -5,7 +5,7 @@ use crate::shared::Actor;
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use sutra_kernel::auth::AuthContext;
+use sutra_kernel::auth::{is_granted, AuthContext, Permission};
 use sutra_kernel::concurrency::Version;
 use sutra_kernel::error::KernelError;
 use sutra_web::request_id::current_correlation_id;
@@ -47,5 +47,32 @@ pub fn actor(ctx: &AuthContext) -> Actor {
     Actor {
         id: Some(ctx.subject.clone()),
         correlation_id: current_correlation_id(),
+    }
+}
+
+/// Part 1 S3 (DEF-I-006): unpublished results, result batches, grade cards and malpractice cases
+/// are confidential to the examination office. `exam.read` alone (held by every faculty member
+/// for timetables and their own marks entry) is not enough: the caller must also hold one of the
+/// examination-office permissions (result manage / publish, exam approve, marks manage).
+/// Students read their own published results through `/me/*`.
+pub fn require_exam_official(
+    auth: &sutra_web::Authenticated,
+) -> sutra_web::ApiResult<&AuthContext> {
+    let ctx = auth.require(Permission::ExamRead)?;
+    let official = [
+        Permission::ResultManage,
+        Permission::ResultPublish,
+        Permission::ExamApprove,
+        Permission::MarksManage,
+    ]
+    .into_iter()
+    .any(|p| is_granted(&ctx.roles, p));
+    if official {
+        Ok(ctx)
+    } else {
+        Err(KernelError::Forbidden(
+            "results and malpractice cases are restricted to the examination office".into(),
+        )
+        .into())
     }
 }

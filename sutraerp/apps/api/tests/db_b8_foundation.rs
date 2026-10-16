@@ -369,9 +369,11 @@ async fn campus_foundation_tables_helpers_ports_and_directory_api() {
     );
 
     // ---- CampusChargePort → a published, idempotent `campus_charge` in Finance.
-    let state = sutra_api::app::campus_deps(
+    let state = sutra_api::app::campus_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let source = Uuid::now_v7();
@@ -604,9 +606,11 @@ async fn resources_foundation_stock_ledger_procurement_postings_and_stock_api() 
     assert_eq!(s, StatusCode::FORBIDDEN);
 
     // ---- ProcurementPostingPort → balanced, idempotent AP entries in Finance.
-    let state = sutra_api::app::resources_deps(
+    let state = sutra_api::app::resources_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let invoice_id = Uuid::now_v7();

@@ -4,6 +4,12 @@
 //! `LIB-LOST`, category `library`, idempotent on the fine id) and is settled when Finance shows
 //! the charge with nothing outstanding. A waiver (`FINE_WAIVER`) happens before billing. Staff
 //! fines are recorded but not billed in Batch 8.
+//!
+//! Part 1 (DEF-G-002): a waiver is a **request** — `campus.library.manage` only asks for it
+//! (`waiver_requested`); it is decided by a different user holding `library.fine.waive.approve`
+//! (finance checker / administrator) and never by whoever assessed the fine or asked for the
+//! waiver (`403`). There is no amount below which a librarian may waive alone: every waiver
+//! needs the decision. Request and decision are both audited (`campus.library_fine.*`).
 
 use super::common::{
     check_version, clean, expected, invalid, page_limit, required_reason, transition,
@@ -364,7 +370,7 @@ pub async fn list(
     Path(id): Path<Uuid>,
     Query(q): Query<LibraryFineQuery>,
 ) -> ApiResult<Json<LibraryFineList>> {
-    let ctx = auth.require(Permission::CampusRead)?;
+    let ctx = fine_reader(&auth)?;
     let institution = InstitutionId(id);
     let scope = institution_scope(ctx, institution);
     require_institution(&st, &scope, institution).await?;
@@ -398,10 +404,23 @@ pub async fn get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::CampusRead)?;
+    let ctx = fine_reader(&auth)?;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let f = load_fine(&mut conn, ctx.scope.tenant_id, id, false).await?;
     Ok(with_etag(StatusCode::OK, &f, Version(f.version)))
+}
+
+/// Fines are read with `campus.read`, or by a waiver checker (`library.fine.waive.approve`) who
+/// must see the fine they decide (Part 1 DEF-G-002).
+fn fine_reader(
+    auth: &Authenticated,
+) -> Result<&sutra_kernel::auth::AuthContext, sutra_web::ApiError> {
+    if auth.0.has_permission(Permission::LibraryFineWaiveApprove)
+        && !auth.0.has_permission(Permission::CampusRead)
+    {
+        return auth.require(Permission::LibraryFineWaiveApprove);
+    }
+    auth.require(Permission::CampusRead)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -460,7 +479,9 @@ async fn set_status(
 }
 
 /// Request a waiver of an assessed fine (`campus.library.manage`; If-Match; reason required;
-/// `FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final).
+/// `FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final). Part 1
+/// (DEF-G-002): the fine stays `waiver_requested` until another user with
+/// `library.fine.waive.approve` decides it.
 #[utoipa::path(post, path = "/api/v1/campus/library-fines/{id}/waiver", operation_id = "campus_library_fine_waiver", tag = "campus-library",
     params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header)),
     request_body = LibraryReasonBody, security(("session_cookie" = [], "csrf_token" = [])),
@@ -547,8 +568,9 @@ pub async fn waiver(
     Ok(with_etag(StatusCode::OK, &f, Version(f.version)))
 }
 
-/// Decide a fine waiver (`campus.approve`, step-up; If-Match): approve → `waived`, reject →
-/// back to `assessed` (billable).
+/// Decide a fine waiver (`library.fine.waive.approve`, step-up; If-Match; Part 1 DEF-G-002):
+/// approve → `waived`, reject → back to `assessed` (billable). The decider must not be whoever
+/// assessed the fine or requested the waiver (`403`, separation of duties).
 #[utoipa::path(post, path = "/api/v1/campus/library-fines/{id}/decision", operation_id = "campus_library_fine_decide", tag = "campus-library",
     params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header)),
     request_body = LibraryDecisionBody, security(("session_cookie" = [], "csrf_token" = [])),
@@ -560,7 +582,7 @@ pub async fn decide(
     headers: HeaderMap,
     Json(b): Json<LibraryDecisionBody>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::CampusApprove)?;
+    let ctx = auth.require(Permission::LibraryFineWaiveApprove)?;
     let v = expected!(headers);
     let reason = clean(b.reason);
     if b.decision == LibraryDecision::Reject && reason.is_none() {
@@ -585,6 +607,18 @@ pub async fn decide(
         ))
         .into());
     }
+    // Part 1 (DEF-G-002): whoever assessed the fine or asked for the waiver never decides it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "library_fine",
+        f.id,
+        &[LibraryFineStatus::WaiverRequested.as_str()],
+        &[],
+        actor.id.as_deref(),
+        "library fine waiver",
+    )
+    .await?;
     let f = match b.decision {
         LibraryDecision::Approve => {
             set_status(

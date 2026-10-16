@@ -22,7 +22,7 @@ import type { Institution } from "../../institution/types";
 import { useWorkforceApi, wkeys } from "../../people/workforce/hooks";
 import { fkeys, useFacilitiesApi } from "../facilities/hooks";
 import { rkeys, useResourcesApi } from "./hooks";
-import type { Asset, GoodsReceipt, PurchaseOrder, Requisition, SourcingEvent, Supplier, VendorInvoice } from "./types";
+import type { Asset, GoodsReceipt, PurchaseOrder, Requisition, SourcingEvent, Supplier, VendorInvoice, VendorPayment } from "./types";
 import { formatInr } from "../../finance";
 
 export { ResourcesApiProvider } from "./hooks";
@@ -111,6 +111,18 @@ export function invoiceActions(i: Pick<VendorInvoice, "status" | "approvalPendin
 }
 
 /** Next steps offered for an asset. */
+/** Part 1 (DEF-J-003): a payment is decided by an approver, and only an approved payment posts. */
+export function paymentActions(p: Pick<VendorPayment, "status">): Array<"approve" | "reject" | "post"> {
+  switch (p.status) {
+    case "pending_approval":
+      return ["approve", "reject"];
+    case "approved":
+      return ["post"];
+    default:
+      return [];
+  }
+}
+
 export function assetActions(a: Pick<Asset, "status" | "retirementPending">): Array<"assign" | "return" | "condition" | "retire" | "approve" | "reject"> {
   if (a.retirementPending) return ["approve", "reject"];
   switch (a.status) {
@@ -363,18 +375,28 @@ function Procurement({ institution }: { institution: Institution }) {
         return ask({
           title: `Pay · ${i.number}`,
           name: "payment-create",
-          submitLabel: "Pay and post",
+          submitLabel: "Request payment",
           fields: [
             { name: "amount", label: "Amount (₹)", required: true, initial: toInvoice(i.totalAmount, i.paidAmount).replace(/0$/, "") },
             { name: "paymentDate", label: "Payment date", type: "date", required: true, initial: todayIso() },
             { name: "reference", label: "Bank reference" },
           ],
           onSubmit: (v) =>
-            submit(async () => {
-              const p = await api.createPayment(inst, { supplierId: i.supplierId, paymentDate: v.paymentDate ?? todayIso(), reference: v.reference || undefined, allocations: [{ vendorInvoiceId: i.id, amount: v.amount ?? "" }] });
-              return api.postPayment(p.id, p.version);
-            }, (p) => `${p.number} posted (${dash(p.entryNumber)})`),
+            submit(
+              () => api.createPayment(inst, { supplierId: i.supplierId, paymentDate: v.paymentDate ?? todayIso(), reference: v.reference || undefined, allocations: [{ vendorInvoiceId: i.id, amount: v.amount ?? "" }] }),
+              (p) => (p.status === "approved" ? `${p.number} approved — post it from Vendor payments` : `${p.number} sent for approval`),
+            ),
         });
+    }
+  };
+  const onPayment = (p: VendorPayment, a: ReturnType<typeof paymentActions>[number]) => {
+    switch (a) {
+      case "approve":
+        return run(() => api.decidePayment(p.id, p.version, "approve"), `${p.number} approved`);
+      case "reject":
+        return ask({ title: `Reject · ${p.number}`, name: "payment-reject", submitLabel: "Reject", fields: [REASON], onSubmit: (v) => submit(() => api.decidePayment(p.id, p.version, "reject", v.reason), `${p.number} rejected`) });
+      case "post":
+        return run(() => api.postPayment(p.id, p.version), (x) => `${x.number} posted (${dash(x.entryNumber)})`);
     }
   };
 
@@ -518,6 +540,11 @@ function Procurement({ institution }: { institution: Institution }) {
             { key: "amount", header: "Amount", render: (p) => inr(p.amount) },
             { key: "entry", header: "Journal", render: (p) => dash(p.entryNumber), muted: true },
             { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
+            {
+              key: "actions",
+              header: "",
+              render: (p) => <Actions disabled={busy} actions={paymentActions(p).map((a): RowAction => ({ id: `payment-${a}`, label: statusLabel(a), variant: a === "post" || a === "approve" ? "primary" : "ghost", onClick: () => void onPayment(p, a) }))} />,
+            },
           ]}
         />
       </BentoTile>

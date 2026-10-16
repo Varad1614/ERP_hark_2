@@ -877,6 +877,7 @@ async fn step_up_app(tenant: &'static str) -> (Router, sqlx::PgPool) {
         ("SUTRA_SWEEPERS", "false"),
         ("SUTRA_INBOX_CONSUMER", "false"),
         ("SUTRA_DEV_MFA", "true"),
+        ("SUTRA_APPROVAL_MODE", "auto"), // Part 1: explicit dev opt-in (subject is step-up)
     ]);
     let cfg = Config::load(&src).expect("config");
     (

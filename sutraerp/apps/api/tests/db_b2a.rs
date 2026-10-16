@@ -313,8 +313,9 @@ fn violation_fields(b: &Value) -> Vec<String> {
 
 // --------------------------------------------------------------------------------- tests
 
-/// L3-B-001 / -002 / -003 with auto-approval: Draft → Configured → (readiness gate) →
-/// submitted → auto-approved Active → Suspended → Reactivated → Archived, every illegal
+/// L3-B-001 / -002 / -003 in the auto-approval composition: Draft → Configured → (readiness
+/// gate) → submitted (pending) → Activation Authority approves → Active → Suspended → Reactivated
+/// → Archived, every illegal
 /// transition refused, audit and outbox rows in the owner-local transaction.
 #[tokio::test]
 async fn institution_lifecycle_with_readiness_gate_and_auto_approval() {
@@ -421,7 +422,8 @@ async fn institution_lifecycle_with_readiness_gate_and_auto_approval() {
     activate_unit(&app, &admin, &root).await;
     other_slices_ready(&app, &admin, &inst).await;
 
-    // Submit → pending_approval → auto-approved → active, one transaction.
+    // Submit → pending_approval. DEF-B-002: submitting (institution.manage) never activates,
+    // even in the auto-approval mode; the Activation Authority decides.
     let cur = institution(&app, &admin, &inst).await;
     let (s, b) = post(
         &app,
@@ -432,13 +434,27 @@ async fn institution_lifecycle_with_readiness_gate_and_auto_approval() {
     )
     .await;
     assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(b["status"], "pending_approval");
+    let (s, reqs) = read(&app, &admin, &inst_path(&inst, "/activation-requests")).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(reqs["items"][0]["status"], "pending", "{reqs}");
+    // Activation Authority decision (institution.activation.decide) → active.
+    let (s, b) = post(
+        &app,
+        &admin,
+        &inst_path(&inst, "/decision"),
+        json!({"decision": "approve"}),
+        Some(ver(&b)),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
     assert_eq!(b["status"], "active");
     let (s, reqs) = read(&app, &admin, &inst_path(&inst, "/activation-requests")).await;
     assert_eq!(s, StatusCode::OK);
     let reqs = reqs["items"].as_array().unwrap().clone();
     assert_eq!(reqs.len(), 1);
     assert_eq!(reqs[0]["status"], "approved");
-    assert_eq!(reqs[0]["decidedBy"], "system:auto-approval");
+    assert_eq!(reqs[0]["decidedBy"], "dev|admin@sutra.dev");
     assert!(reqs[0]["processInstanceId"]
         .as_str()
         .unwrap()
@@ -616,7 +632,10 @@ async fn institution_lifecycle_with_readiness_gate_and_auto_approval() {
         .iter()
         .find(|(x, _)| x == "institution.institution.activate")
         .unwrap();
-    assert_eq!(activate.1, "system", "auto-approval is a system decision");
+    assert_eq!(
+        activate.1, "user",
+        "activation is the Activation Authority's decision, never a system auto-approval"
+    );
     let suspend = a
         .iter()
         .find(|(x, _)| x == "institution.institution.suspend")
@@ -2670,6 +2689,7 @@ async fn app_with_env(
         ("SUTRA_DEV_TENANT_ID", tenant),
         ("SUTRA_SWEEPERS", "false"),
         ("SUTRA_INBOX_CONSUMER", "false"),
+        ("SUTRA_APPROVAL_MODE", "auto"), // Part 1: explicit dev opt-in (subject is not approval)
     ]);
     src.extend(extra.iter().copied());
     let cfg = sutra_api::config::Config::load(&src).expect("config");

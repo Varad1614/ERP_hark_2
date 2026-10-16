@@ -2111,6 +2111,183 @@
         ]
       }
     },
+    "/api/v1/academic/enrolment-overrides/{id}": {
+      "get": {
+        "tags": [
+          "offerings"
+        ],
+        "summary": "One eligibility override request (`academic.read`).",
+        "operationId": "section_enrolment_override_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolmentOverrideRequest"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/academic/enrolment-overrides/{id}/decision": {
+      "post": {
+        "tags": [
+          "offerings"
+        ],
+        "summary": "Decide an eligibility override (`academic.offering.decide`, step-up; never the requester):\napprove seats the student through the seat gate (capacity is never overridden); reject\n(reason required) closes the request.",
+        "operationId": "section_enrolment_override_decision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the override request",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Required. Session CSRF token.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferingStepDecisionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolmentOverrideRequest"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission, or the requester deciding their own override",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not pending, or the seat gate fails (e.g. the section is full)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/academic/enrolments/{id}": {
       "get": {
         "tags": [
@@ -5951,6 +6128,62 @@
         "security": [
           {
             "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/academic/institutions/{id}/attendance-corrections": {
+      "get": {
+        "tags": [
+          "attendance"
+        ],
+        "summary": "Attendance corrections of an institution: the HOD / administrator decision queue\n(`attendance.correct`).",
+        "operationId": "attendance_correction_queue",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`requested` lists the corrections awaiting a decision.",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ChangeRequestStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceCorrectionQueue"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
             "session_cookie": []
           }
         ]
@@ -19065,6 +19298,110 @@
         ]
       }
     },
+    "/api/v1/academic/sections/{id}/enrolment-overrides": {
+      "post": {
+        "tags": [
+          "offerings"
+        ],
+        "summary": "Request an eligibility override (`offering.enrolment.manage`): the student fails the seat\ngate only on overridable checks (registration, restrictions, window). Pending until an\nindependent approver decides it (auto-approval in development seats at once).",
+        "operationId": "section_enrolment_override_request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Section id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Required. Session CSRF token.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrolmentOverrideCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolmentOverrideRequest"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No override needed, not overridable (full, inactive) or already requested",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/academic/sections/{id}/enrolments": {
       "get": {
         "tags": [
@@ -31960,7 +32297,7 @@
         "tags": [
           "campus-library"
         ],
-        "summary": "Decide a fine waiver (`campus.approve`, step-up; If-Match): approve → `waived`, reject →\nback to `assessed` (billable).",
+        "summary": "Decide a fine waiver (`library.fine.waive.approve`, step-up; If-Match; Part 1 DEF-G-002):\napprove → `waived`, reject → back to `assessed` (billable). The decider must not be whoever\nassessed the fine or requested the waiver (`403`, separation of duties).",
         "operationId": "campus_library_fine_decide",
         "parameters": [
           {
@@ -32033,7 +32370,7 @@
         "tags": [
           "campus-library"
         ],
-        "summary": "Request a waiver of an assessed fine (`campus.library.manage`; If-Match; reason required;\n`FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final).",
+        "summary": "Request a waiver of an assessed fine (`campus.library.manage`; If-Match; reason required;\n`FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final). Part 1\n(DEF-G-002): the fine stays `waiver_requested` until another user with\n`library.fine.waive.approve` decides it.",
         "operationId": "campus_library_fine_waiver",
         "parameters": [
           {
@@ -74322,7 +74659,7 @@
           "institution"
         ],
         "summary": "Submit the activation request (`configured → pending_approval`).",
-        "description": "Refused with 409 while a required activation-readiness item is unmet (the detail lists the\nblocking keys). The approval step runs through the WorkflowPort; in the Batch 2 auto-approval\nmode the response already shows the decided (`active`) institution. Requires\n`institution.manage`.",
+        "description": "Refused with 409 while a required activation-readiness item is unmet (the detail lists the\nblocking keys). The approval step runs through the WorkflowPort; the institution stays\n`pending_approval` until the Institution Activation Authority decides (`/decision`,\n`institution.activation.decide` + MFA step-up). Submitting never activates. Requires\n`institution.manage`.",
         "operationId": "institution_submit",
         "parameters": [
           {
@@ -83786,6 +84123,53 @@
         ]
       }
     },
+    "/api/v1/people/institutions/{id}/payroll-disbursements": {
+      "get": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "Disbursement batches of an institution, newest first (`people.payroll.manage`).",
+        "operationId": "people_payroll_disbursement_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollDisbursementList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/people/institutions/{id}/payroll-periods": {
       "get": {
         "tags": [
@@ -87938,6 +88322,255 @@
         ]
       }
     },
+    "/api/v1/people/payroll-disbursements/{id}": {
+      "get": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "One disbursement batch with its lines (`people.payroll.manage`).",
+        "operationId": "people_payroll_disbursement_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollDisbursementDetail"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/payroll-disbursements/{id}/decision": {
+      "post": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "Decide a pending disbursement batch (`people.payroll.approve`, step-up).",
+        "operationId": "people_payroll_disbursement_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the batch",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayrollDecisionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollDisbursementView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/payroll-disbursements/{id}/file": {
+      "get": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "Download the batch's file (`people.payroll.manage`; approved or paid batches): the generic\nNEFT bulk transfer CSV for net pay, the remittance advice CSV for statutory dues. Bank\nsubmission is BLOCKED_EXTERNAL (no bank API): upload the file to the bank portal.",
+        "operationId": "people_payroll_disbursement_file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/payroll-disbursements/{id}/mark-paid": {
+      "post": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "Mark an approved batch paid with the bank / challan reference (`people.payroll.approve`,\nstep-up): posts Dr salaries payable (or statutory dues payable) / Cr bank in Finance. A paid\nbatch cannot be paid again (409).",
+        "operationId": "people_payroll_disbursement_mark_paid",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the batch",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayrollDisbursementMarkPaid"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollDisbursementView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/people/payroll-periods/{id}/runs": {
       "get": {
         "tags": [
@@ -88472,6 +89105,142 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PayrollRunView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/payroll-runs/{id}/disbursements": {
+      "get": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "Disbursement batches of a payroll run (`people.payroll.manage`).",
+        "operationId": "people_payroll_disbursement_list_for_run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollDisbursementList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "Create the disbursement batch of a posted payroll run (`people.payroll.manage`). Idempotent:\n201 with the new batch, or 200 with the live batch of that run and kind. Requests approval\n(`people.payroll_disbursement_approval`).",
+        "operationId": "people_payroll_disbursement_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayrollDisbursementCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollDisbursementView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollDisbursementView"
                 }
               }
             }
@@ -91411,6 +92180,109 @@
         },
         "security": [
           {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/staff/{id}/bank-account": {
+      "get": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "A staff member's salary bank account (`people.payroll.manage`; 404 when none is recorded).",
+        "operationId": "people_pay_bank_account_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollBankAccountView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "people-payroll"
+        ],
+        "summary": "Record or replace a staff member's salary bank account (`people.payroll.manage`). Batches\nalready created keep the details they snapshotted.",
+        "operationId": "people_pay_bank_account_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayrollBankAccountPut"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayrollBankAccountView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
             "session_cookie": []
           }
         ]
@@ -96316,7 +97188,7 @@
         "tags": [
           "resources-procurement"
         ],
-        "summary": "Draft a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each\nallocation settles a **posted** invoice of the supplier, at most its outstanding amount\n(net of other draft payments).",
+        "summary": "Request a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each\nallocation settles a **posted** invoice of the supplier, at most its outstanding amount (net of\nother payments pending approval or approved). Part 1 (DEF-J-003): the payment starts\n`VENDOR_PAYMENT_APPROVAL` and stays `pending_approval` until a procurement / finance approver\nother than its maker decides it (`POST /vendor-payments/{id}/decision`); nothing posts before.",
         "operationId": "resources_payable_payment_create",
         "parameters": [
           {
@@ -98884,6 +99756,154 @@
         ]
       }
     },
+    "/api/v1/resources/suppliers/{id}/bank-change": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Request new bank details for an approved supplier (`resources.procurement.manage`; If-Match;\nPart 1 · Stage 3, DEF-J-004). The live details stay in use; the request waits for\n`SUPPLIER_BANK_CHANGE_APPROVAL` (approvers notified, audited with masked accounts). One open\nrequest at a time (`409`).",
+        "operationId": "resources_supplier_bank_change_request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the supplier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierBankChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/suppliers/{id}/bank-change/decision": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Decide a supplier's pending bank-change request (`resources.approve` **or**\n`finance.approve`, step-up; If-Match; Part 1 · Stage 3, DEF-J-004): approve → the new details\ngo live (`supplier.bank_change_approved` warns finance); reject → discarded (reason\nrequired). Whoever requested the change — or a system actor — is refused (`403`).",
+        "operationId": "resources_supplier_bank_change_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the supplier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcesDecisionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/resources/suppliers/{id}/decision": {
       "post": {
         "tags": [
@@ -99658,12 +100678,86 @@
         ]
       }
     },
+    "/api/v1/resources/vendor-payments/{id}/decision": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Decide a vendor payment awaiting approval (`resources.approve` **or** `finance.approve`,\nstep-up; If-Match; Part 1 DEF-J-003): approve → `approved` (it may now post); reject →\n`rejected` (reason required; allocations released). The maker of the payment — whoever\nrequested it — is refused (`403`, separation of duties), as is a system actor.",
+        "operationId": "resources_payable_payment_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the payment",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcesDecisionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorPaymentDetail"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/resources/vendor-payments/{id}/post": {
       "post": {
         "tags": [
           "resources-procurement"
         ],
-        "summary": "Post a drafted payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr\naccounts payable / Cr the main bank account through `ProcurementPostingPort` (idempotent);\nsettles the invoices (`paid` once fully paid); `vendor_payment.posted`.",
+        "summary": "Post an **approved** payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr\naccounts payable / Cr the main bank account through `ProcurementPostingPort` (idempotent);\nsettles the invoices (`paid` once fully paid); `vendor_payment.posted`. A payment still\npending approval, or rejected, is refused (409; Part 1 DEF-J-003).",
         "operationId": "resources_payable_payment_post",
         "parameters": [
           {
@@ -134501,6 +135595,141 @@
           }
         }
       },
+      "AttendanceCorrectionQueue": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttendanceCorrectionQueueItem"
+            }
+          }
+        }
+      },
+      "AttendanceCorrectionQueueItem": {
+        "type": "object",
+        "description": "A correction in an institution's decision queue, with the student, session and section it\ntouches (DEF-D-003: the HOD / administrator decision screen).",
+        "required": [
+          "id",
+          "institutionId",
+          "sessionId",
+          "recordId",
+          "studentId",
+          "studentNumber",
+          "displayName",
+          "sectionId",
+          "offeringCode",
+          "sectionCode",
+          "sessionDate",
+          "startsAt",
+          "fromMark",
+          "toMark",
+          "reason",
+          "status",
+          "version",
+          "createdAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fromMark": {
+            "$ref": "#/components/schemas/AttendanceMark"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "offeringCode": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "recordId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sectionCode": {
+            "type": "string"
+          },
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "description": "`HH:MM`."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChangeRequestStatus"
+          },
+          "statusReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentNumber": {
+            "type": "string"
+          },
+          "toMark": {
+            "$ref": "#/components/schemas/AttendanceMark"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "AttendanceDayId": {
         "type": "string",
         "format": "uuid",
@@ -140034,6 +141263,17 @@
             ],
             "format": "date"
           },
+          "duplicateOverride": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DuplicateOverride",
+                "description": "Explicit override of a detected duplicate applicant (409): the candidate id the 409 named\nand why this is a different person (or a deliberate second application). Recorded in the\naudit trail (`student.admission_application.duplicate_override`)."
+              }
+            ]
+          },
           "email": {
             "type": [
               "string",
@@ -143479,6 +144719,25 @@
           }
         }
       },
+      "DuplicateOverride": {
+        "type": "object",
+        "description": "Override of duplicate-applicant detection (DEF-C-003).",
+        "required": [
+          "candidateId",
+          "reason"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "One of the candidates the 409 reported."
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "EligibilityAction": {
         "type": "string",
         "description": "Eligibility commands (L3-E-029).",
@@ -144334,6 +145593,125 @@
           },
           "status": {
             "$ref": "#/components/schemas/EngagementStatus"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "EnrolmentOverrideCreate": {
+        "type": "object",
+        "description": "Request an eligibility override for one student in a section.",
+        "required": [
+          "studentId",
+          "reason"
+        ],
+        "properties": {
+          "homeInstitutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Home institution of a cross-institution student."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the student should be seated despite the failed eligibility checks (required)."
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "EnrolmentOverrideRequest": {
+        "type": "object",
+        "description": "An eligibility override request (`pending` → `approved` with the seat, or `rejected`).",
+        "required": [
+          "id",
+          "offeringId",
+          "sectionId",
+          "studentId",
+          "reason",
+          "status",
+          "version",
+          "createdAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enrolmentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The seat created by the approval."
+          },
+          "homeInstitutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "offeringId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "processInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "description": "`pending` | `approved` | `rejected`."
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
           },
           "version": {
             "type": "integer",
@@ -168123,6 +169501,82 @@
           }
         }
       },
+      "PayrollBankAccountPut": {
+        "type": "object",
+        "description": "Bank account body (`PUT /staff/{id}/bank-account`).",
+        "required": [
+          "accountHolderName",
+          "accountNumber",
+          "ifsc"
+        ],
+        "properties": {
+          "accountHolderName": {
+            "type": "string"
+          },
+          "accountNumber": {
+            "type": "string",
+            "example": "001234567890"
+          },
+          "bankName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ifsc": {
+            "type": "string",
+            "example": "HDFC0001234"
+          }
+        }
+      },
+      "PayrollBankAccountView": {
+        "type": "object",
+        "description": "A staff member's salary bank account (the account number is masked).",
+        "required": [
+          "staffId",
+          "institutionId",
+          "accountHolderName",
+          "accountNumberMasked",
+          "ifsc",
+          "updatedAt",
+          "version"
+        ],
+        "properties": {
+          "accountHolderName": {
+            "type": "string"
+          },
+          "accountNumberMasked": {
+            "type": "string",
+            "example": "XXXXXXXX7890"
+          },
+          "bankName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ifsc": {
+            "type": "string",
+            "example": "HDFC0001234"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "staffId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "PayrollBulkFailure": {
         "type": "object",
         "required": [
@@ -168359,6 +169813,296 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "PayrollDisbursementCreate": {
+        "type": "object",
+        "description": "Create body (`POST /payroll-runs/{id}/disbursements`).",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/PayrollDisbursementKind"
+          }
+        }
+      },
+      "PayrollDisbursementDetail": {
+        "type": "object",
+        "description": "A batch with its lines.",
+        "required": [
+          "batch",
+          "lines"
+        ],
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/PayrollDisbursementView"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayrollDisbursementLineView"
+            }
+          }
+        }
+      },
+      "PayrollDisbursementKind": {
+        "type": "string",
+        "description": "Wire name of a payout kind (`net_pay` / `statutory_dues`).",
+        "enum": [
+          "net_pay",
+          "statutory_dues"
+        ]
+      },
+      "PayrollDisbursementLineView": {
+        "type": "object",
+        "description": "One payee or due of a batch (the account number is masked).",
+        "required": [
+          "lineNo",
+          "amount"
+        ],
+        "properties": {
+          "accountHolderName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "accountNumberMasked": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "XXXXXXXX7890"
+          },
+          "amount": {
+            "type": "string",
+            "example": "43800.00"
+          },
+          "componentCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "componentName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ifsc": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lineNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "staffId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "staffNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "PayrollDisbursementList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayrollDisbursementView"
+            }
+          }
+        }
+      },
+      "PayrollDisbursementMarkPaid": {
+        "type": "object",
+        "description": "Mark-paid body: the bank transaction reference (UTR) or the challan reference.",
+        "required": [
+          "reference"
+        ],
+        "properties": {
+          "paidOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Payment value date (default: today in the institution's timezone; never in the future)."
+          },
+          "reference": {
+            "type": "string",
+            "example": "UTR2026113000123"
+          }
+        }
+      },
+      "PayrollDisbursementStatus": {
+        "type": "string",
+        "description": "Status of a disbursement batch.",
+        "enum": [
+          "pending_approval",
+          "approved",
+          "rejected",
+          "paid"
+        ]
+      },
+      "PayrollDisbursementView": {
+        "type": "object",
+        "description": "A payroll disbursement batch (net pay transfer or statutory remittance).",
+        "required": [
+          "id",
+          "institutionId",
+          "payrollRunId",
+          "payrollRunNumber",
+          "number",
+          "kind",
+          "status",
+          "lineCount",
+          "totalAmount",
+          "bankSubmission",
+          "createdAt",
+          "version"
+        ],
+        "properties": {
+          "approvedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "bankSubmission": {
+            "type": "string",
+            "description": "`BLOCKED_EXTERNAL`: no bank API is integrated; upload the file to the bank portal.",
+            "example": "BLOCKED_EXTERNAL"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fileGeneratedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "journalEntryId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "journalEntryNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PayrollDisbursementKind"
+          },
+          "lineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "number": {
+            "type": "string",
+            "example": "PD-000001"
+          },
+          "paidAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "paidBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paidOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "paymentReference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payrollRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payrollRunNumber": {
+            "type": "string",
+            "example": "PR-000001"
+          },
+          "processInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/PayrollDisbursementStatus"
+          },
+          "statusReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "totalAmount": {
+            "type": "string",
+            "example": "43800.00"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -178119,7 +179863,12 @@
         "enum": [
           "administrator",
           "faculty",
-          "student"
+          "student",
+          "finance_approver",
+          "exam_controller",
+          "registrar",
+          "payroll_approver",
+          "procurement_approver"
         ]
       },
       "RoomInspectionComplete": {
@@ -184442,6 +186191,36 @@
           "cancelled"
         ]
       },
+      "SupplierBankChangeRequest": {
+        "type": "object",
+        "description": "New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`).",
+        "required": [
+          "bankAccountNumber",
+          "bankIfsc",
+          "reason"
+        ],
+        "properties": {
+          "bankAccountName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Defaults to the current account name."
+          },
+          "bankAccountNumber": {
+            "type": "string",
+            "example": "001234567890"
+          },
+          "bankIfsc": {
+            "type": "string",
+            "example": "HDFC0001234"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the details change (shown to the approver; required)."
+          }
+        }
+      },
       "SupplierList": {
         "type": "object",
         "required": [
@@ -184559,7 +186338,8 @@
           "approvalPending",
           "approvalState",
           "version",
-          "createdAt"
+          "createdAt",
+          "bankChangePending"
         ],
         "properties": {
           "address": {
@@ -184595,6 +186375,43 @@
               "null"
             ],
             "description": "Masked (`XXXXXX7890`)."
+          },
+          "bankChangePending": {
+            "type": "boolean",
+            "description": "Part 1 · Stage 3 (DEF-J-004): a bank-change request awaits an independent decision."
+          },
+          "bankChangeProcessInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bankChangeReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bankChangeRequestId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Id of the open bank-change request (its status history is keyed by it)."
+          },
+          "bankChangeRequestedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "bankChangeRequestedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "bankIfsc": {
             "type": [
@@ -184653,6 +186470,25 @@
               "null"
             ],
             "example": "ABCDE1234F"
+          },
+          "pendingBankAccountName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pendingBankAccountNumber": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Masked (`XXXXXX7890`)."
+          },
+          "pendingBankIfsc": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "phone": {
             "type": [
@@ -188660,9 +190496,36 @@
             "type": "string",
             "example": "2400.00"
           },
+          "approvalRequestedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who asked for the payment (never its approver)."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The independent approver who decided it."
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "entryNumber": {
             "type": [
@@ -188700,6 +190563,13 @@
             ],
             "format": "date-time"
           },
+          "processInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`VENDOR_PAYMENT_APPROVAL` instance."
+          },
           "reference": {
             "type": [
               "string",
@@ -188708,7 +190578,7 @@
           },
           "status": {
             "type": "string",
-            "description": "`draft | posted`."
+            "description": "`pending_approval | approved | rejected | posted` (Part 1 DEF-J-003)."
           },
           "supplierId": {
             "type": "string",

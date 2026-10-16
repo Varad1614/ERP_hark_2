@@ -501,9 +501,11 @@ async fn meme_intermediate_exit_with_mee_curriculum() {
     use sutra_student::completion::qualification as q;
     let t = env("MEME University").await;
     let s = t.student("Chitra").await;
-    let mut deps = sutra_api::app::student_deps(
+    let mut deps = sutra_api::app::student_deps_with(
         t.pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     );
     deps.references = Arc::new(MeeReferences(
         sutra_institution::PgInstitutionReferences::new(t.pool.clone()),
@@ -767,9 +769,11 @@ async fn outstanding_finance_blocks_exit_clearance() {
     }
     let t = env("Dues College").await;
     let s = t.student("Esha").await;
-    let mut deps = sutra_api::app::student_deps(
+    let mut deps = sutra_api::app::student_deps_with(
         t.pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     );
     deps.finance = Arc::new(Dues);
     let st = deps.into_state();
@@ -2704,6 +2708,7 @@ fn admin_ctx() -> sutra_kernel::auth::AuthContext {
         mfa_level: sutra_kernel::auth::MfaLevel::Mfa,
         amr: vec!["pwd".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     }
 }
 

@@ -26,17 +26,59 @@ pub enum Role {
     Administrator,
     Faculty,
     Student,
+    // Part 1 (DEF-X-002): checker for finance decisions (refunds, adjustments, write-offs, …).
+    #[serde(rename = "finance_approver")]
+    FinanceApprover,
+    // Part 1 (DEF-X-002): controller of examinations (result approval / publication).
+    #[serde(rename = "exam_controller")]
+    ExamController,
+    // Part 1 (DEF-X-002): registrar deciding admissions.
+    #[serde(rename = "registrar")]
+    Registrar,
+    // Part 1 (DEF-X-002): checker for payroll runs, adjustments and final settlements.
+    #[serde(rename = "payroll_approver")]
+    PayrollApprover,
+    // Part 1 (DEF-X-002): checker for requisitions, purchase orders and vendor invoices.
+    #[serde(rename = "procurement_approver")]
+    ProcurementApprover,
 }
 
 impl Role {
-    pub const ALL: [Role; 3] = [Role::Administrator, Role::Faculty, Role::Student];
+    pub const ALL: [Role; 8] = [
+        Role::Administrator,
+        Role::Faculty,
+        Role::Student,
+        Role::FinanceApprover,
+        Role::ExamController,
+        Role::Registrar,
+        Role::PayrollApprover,
+        Role::ProcurementApprover,
+    ];
 
     pub fn as_str(&self) -> &'static str {
         match self {
             Role::Administrator => "administrator",
             Role::Faculty => "faculty",
             Role::Student => "student",
+            Role::FinanceApprover => "finance_approver",
+            Role::ExamController => "exam_controller",
+            Role::Registrar => "registrar",
+            Role::PayrollApprover => "payroll_approver",
+            Role::ProcurementApprover => "procurement_approver",
         }
+    }
+
+    /// Part 1 (DEF-X-002): approver (checker) roles that hold a domain's approve permission
+    /// without its manage permissions.
+    pub fn is_approver(&self) -> bool {
+        matches!(
+            self,
+            Role::FinanceApprover
+                | Role::ExamController
+                | Role::Registrar
+                | Role::PayrollApprover
+                | Role::ProcurementApprover
+        )
     }
 
     /// Strict parse of the stored/wire name. Unknown names yield `None` (and therefore no grants).
@@ -46,7 +88,7 @@ impl Role {
 
     /// Privileged roles require MFA (ADR-L5-0038 §3.8).
     pub fn is_privileged(&self) -> bool {
-        matches!(self, Role::Administrator)
+        matches!(self, Role::Administrator) || self.is_approver()
     }
 }
 
@@ -312,8 +354,10 @@ pub enum Permission {
     TransportManage,
     /// 8C: library policy, memberships, catalogue, copies, circulation, reservations, fines and waivers, clearance.
     LibraryManage,
-    /// Batch 8: decide governed campus approvals — infrastructure decommissioning, hostel admission, policy activation, fine waivers, library clearance (step-up).
+    /// Batch 8: decide governed campus approvals — infrastructure decommissioning, hostel admission, policy activation, library clearance (step-up).
     CampusApprove,
+    /// Part 1 (DEF-G-002): decide a library fine waiver requested by someone else (checker; step-up). Fine waivers are a financial concession, so this sits with the finance checker, never with the librarian's `campus.library.manage`.
+    LibraryFineWaiveApprove,
     /// Batch 8 (Domain H): read dashboards, operational metrics and regulatory reporting cycles (administrators).
     ReportRead,
     /// 8C: dashboards, widgets, assignments, reporting frameworks, cycles and snapshots.
@@ -340,7 +384,7 @@ pub enum Permission {
 }
 
 impl Permission {
-    pub const ALL: [Permission; 112] = [
+    pub const ALL: [Permission; 113] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -442,6 +486,7 @@ impl Permission {
         Permission::TransportManage,
         Permission::LibraryManage,
         Permission::CampusApprove,
+        Permission::LibraryFineWaiveApprove,
         Permission::ReportRead,
         Permission::ReportManage,
         Permission::ReportApprove,
@@ -558,6 +603,7 @@ impl Permission {
             Permission::TransportManage => "campus.transport.manage",
             Permission::LibraryManage => "campus.library.manage",
             Permission::CampusApprove => "campus.approve",
+            Permission::LibraryFineWaiveApprove => "library.fine.waive.approve",
             Permission::ReportRead => "services.report.read",
             Permission::ReportManage => "services.report.manage",
             Permission::ReportApprove => "services.report.approve",
@@ -599,9 +645,21 @@ impl Permission {
                 | Permission::PayrollApprove
                 | Permission::PeopleApprove
                 | Permission::CampusApprove
+                | Permission::LibraryFineWaiveApprove
                 | Permission::ReportApprove
                 | Permission::ResourcesApprove
         )
+    }
+}
+
+impl Permission {
+    /// Personal self-service permissions every role holds (own notifications, notices, to-dos,
+    /// profile). They stay usable by a privileged session that has not verified MFA yet, so the
+    /// signed-in shell works while the user steps up (SEC-P1-AUTH-001).
+    pub fn is_personal_baseline(&self) -> bool {
+        Role::ALL
+            .iter()
+            .all(|r| role_permissions(*r).contains(self))
     }
 }
 
@@ -715,6 +773,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             TransportManage,
             LibraryManage,
             CampusApprove,
+            // Part 1 (DEF-G-002): an administrator may decide a fine waiver someone else asked for.
+            LibraryFineWaiveApprove,
             ReportRead,
             ReportManage,
             ReportApprove,
@@ -766,6 +826,58 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             // Batch 8: own service requests, hostel residency, transport pass, library loans and fines.
             CampusSelfService,
         ],
+        // Part 1 (DEF-X-002): checker roles — the domain's read + approve permissions only, never
+        // the manage permissions that create the requests they decide. docs/readiness/APPROVAL_CONTROL_MATRIX.md.
+        Role::FinanceApprover => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            StudentRead,
+            FinanceRead,
+            FinanceApprove,
+            // Part 1 (DEF-G-002): library fine waivers are decided by a finance checker.
+            LibraryFineWaiveApprove,
+        ],
+        Role::ExamController => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            StudentRead,
+            ExamRead,
+            ExamApprove,
+            ResultPublish,
+        ],
+        Role::Registrar => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            StudentRead,
+            AdmissionDecide,
+        ],
+        Role::PayrollApprover => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            PeopleRead,
+            PayrollApprove,
+        ],
+        Role::ProcurementApprover => &[
+            InstitutionRead,
+            NotificationRead,
+            NoticeRead,
+            TodoUse,
+            ProfileManage,
+            ResourcesRead,
+            ResourcesApprove,
+        ],
     }
 }
 
@@ -801,6 +913,12 @@ pub struct AuthContext {
     /// Whether step-up permissions ([`Permission::requires_step_up`]) need `mfa_level = Mfa`.
     /// Set by the session resolver from configuration.
     pub step_up_enforced: bool,
+    /// Part 1 S3 (SEC-P1-AUTH-001): privileged roles require MFA (ADR-L5-0038 §3.8). When set,
+    /// a session without a verified second factor may not exercise any permission it holds
+    /// only through a privileged role ([`Role::is_privileged`]): `require` answers
+    /// `StepUpRequired`. Set by the session resolver from configuration (`SUTRA_PRIVILEGED_MFA`,
+    /// always on in production).
+    pub privileged_mfa_enforced: bool,
 }
 
 impl fmt::Debug for AuthContext {
@@ -836,7 +954,26 @@ impl AuthContext {
         {
             return Err(KernelError::StepUpRequired(permission.as_str()));
         }
+        if self.privileged_mfa_enforced
+            && self.mfa_level < MfaLevel::Mfa
+            && !permission.is_personal_baseline()
+            && !self
+                .roles
+                .iter()
+                .any(|r| !r.is_privileged() && role_permissions(*r).contains(&permission))
+        {
+            // Granted only through a privileged role: that role needs an MFA session.
+            return Err(KernelError::StepUpRequired(permission.as_str()));
+        }
         Ok(())
+    }
+
+    /// `true` when the session holds a privileged role but has not verified a second factor
+    /// while privileged-role MFA is enforced (its privileged permissions are refused).
+    pub fn privileged_mfa_pending(&self) -> bool {
+        self.privileged_mfa_enforced
+            && self.mfa_level < MfaLevel::Mfa
+            && self.roles.iter().any(Role::is_privileged)
     }
 
     /// Constant-time check of a presented synchronizer token.
@@ -873,7 +1010,89 @@ mod tests {
             mfa_level: MfaLevel::None,
             amr: vec!["pwd".into()],
             step_up_enforced: false,
+            privileged_mfa_enforced: false,
         }
+    }
+
+    /// SEC-P1-AUTH-001: with privileged-role MFA enforced, a password-only privileged session
+    /// cannot use *any* permission it holds through the privileged role (not just step-up ones);
+    /// permissions a non-privileged role of the same caller grants stay usable.
+    #[test]
+    fn privileged_roles_need_mfa_for_every_privileged_permission() {
+        let mut a = ctx(vec![Role::Administrator]);
+        assert!(
+            a.require(Permission::InstitutionManage).is_ok(),
+            "off by default"
+        );
+        a.privileged_mfa_enforced = true;
+        assert!(a.privileged_mfa_pending());
+        assert!(
+            a.require(Permission::NotificationRead).is_ok(),
+            "personal baseline stays usable while stepping up"
+        );
+        assert!(Permission::ProfileManage.is_personal_baseline());
+        assert!(!Permission::InstitutionManage.is_personal_baseline());
+        for p in [
+            Permission::InstitutionManage,
+            Permission::StudentManage,
+            Permission::ChargeManage,
+        ] {
+            assert!(
+                matches!(a.require(p), Err(KernelError::StepUpRequired(_))),
+                "{p:?} must need MFA for a password-only administrator"
+            );
+        }
+        a.mfa_level = MfaLevel::Mfa;
+        assert!(!a.privileged_mfa_pending());
+        assert!(a.require(Permission::InstitutionManage).is_ok());
+        // Every approver (checker) role is privileged too.
+        for role in Role::ALL.into_iter().filter(Role::is_approver) {
+            let mut c = ctx(vec![role]);
+            c.privileged_mfa_enforced = true;
+            let held = role_permissions(role)
+                .iter()
+                .find(|p| !p.is_personal_baseline())
+                .copied()
+                .unwrap();
+            assert!(
+                matches!(c.require(held), Err(KernelError::StepUpRequired(_))),
+                "{role:?}"
+            );
+        }
+        // Non-privileged roles are unaffected; a faculty member who is also an approver keeps
+        // the faculty permissions at aal1 but not the approver ones.
+        let mut f = ctx(vec![Role::Faculty]);
+        f.privileged_mfa_enforced = true;
+        assert!(!f.privileged_mfa_pending());
+        for p in role_permissions(Role::Faculty) {
+            if !p.requires_step_up() {
+                assert!(f.require(*p).is_ok(), "{p:?}");
+            }
+        }
+        let mut both = ctx(vec![Role::Faculty, Role::ExamController]);
+        both.privileged_mfa_enforced = true;
+        let faculty_only = role_permissions(Role::Faculty)
+            .iter()
+            .find(|p| !p.requires_step_up())
+            .copied()
+            .unwrap();
+        assert!(both.require(faculty_only).is_ok());
+        let approver_only = role_permissions(Role::ExamController)
+            .iter()
+            .find(|p| !role_permissions(Role::Faculty).contains(p) && !p.is_personal_baseline())
+            .copied()
+            .unwrap();
+        assert!(matches!(
+            both.require(approver_only),
+            Err(KernelError::StepUpRequired(_))
+        ));
+        // Still never grants: a student is refused outright.
+        let mut s = ctx(vec![Role::Student]);
+        s.privileged_mfa_enforced = true;
+        assert!(matches!(
+            s.require(Permission::InstitutionManage),
+            Err(KernelError::Forbidden(_))
+        ));
     }
 
     #[test]
@@ -1289,6 +1508,53 @@ mod tests {
             Permission::ALL.len(),
             "permission names are unique"
         );
+    }
+
+    #[test]
+    fn approver_roles_hold_approve_without_manage() {
+        use Permission::*;
+        for (role, approve, manage) in [
+            (
+                Role::FinanceApprover,
+                &[FinanceApprove, LibraryFineWaiveApprove][..],
+                &[
+                    RefundManage,
+                    AdjustmentManage,
+                    ReceivableManage,
+                    ChargeManage,
+                    LibraryManage,
+                ][..],
+            ),
+            (
+                Role::ExamController,
+                &[ExamApprove, ResultPublish][..],
+                &[ResultManage, MarksManage][..],
+            ),
+            (
+                Role::Registrar,
+                &[AdmissionDecide][..],
+                &[AdmissionManage, StudentManage][..],
+            ),
+            (
+                Role::PayrollApprover,
+                &[PayrollApprove][..],
+                &[PayrollManage, StaffManage][..],
+            ),
+            (
+                Role::ProcurementApprover,
+                &[ResourcesApprove][..],
+                &[ProcurementManage, InventoryManage][..],
+            ),
+        ] {
+            assert!(role.is_approver() && role.is_privileged(), "{role:?}");
+            for p in approve {
+                assert!(is_granted(&[role], *p), "{role:?} needs {p:?}");
+            }
+            for p in manage {
+                assert!(!is_granted(&[role], *p), "{role:?} must not hold {p:?}");
+            }
+        }
+        assert!(!Role::Administrator.is_approver());
     }
 
     #[test]

@@ -4,6 +4,7 @@
 use super::domain::{
     application_can_transition, display_name, AdmissionApplication, DEFAULT_REQUIRED_DOCUMENTS,
 };
+use super::duplicates;
 use super::flow::{self as adm, history as admission_history};
 use crate::record::refs;
 use crate::record::support::{
@@ -126,6 +127,19 @@ pub struct CreateApplication {
     pub subject_ref: Option<String>,
     pub prior_qualification: Option<String>,
     pub notes: Option<String>,
+    /// Explicit override of a detected duplicate applicant (409): the candidate id the 409 named
+    /// and why this is a different person (or a deliberate second application). Recorded in the
+    /// audit trail (`student.admission_application.duplicate_override`).
+    pub duplicate_override: Option<DuplicateOverride>,
+}
+
+/// Override of duplicate-applicant detection (DEF-C-003).
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DuplicateOverride {
+    /// One of the candidates the 409 reported.
+    pub candidate_id: Uuid,
+    pub reason: String,
 }
 
 /// Editable applicant fields of a draft / submitted application (present = replace).
@@ -289,6 +303,53 @@ pub async fn create(
     .await?;
     let a = actor(ctx);
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    // DEF-C-003: duplicate-applicant detection at intake (name + DOB + e-mail / phone).
+    let overridden = match duplicates::PersonKey::new(
+        &cmd.given_name,
+        cmd.family_name.as_deref(),
+        cmd.date_of_birth,
+        cmd.email.as_deref(),
+        cmd.phone.as_deref(),
+    ) {
+        None => None,
+        Some(key) => {
+            // Serialise concurrent intakes of the same institution so two requests cannot both
+            // miss each other.
+            sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1))")
+                .bind(format!("student.applicant:{}", id.as_uuid()))
+                .execute(&mut *tx)
+                .await
+                .map_err(map_db_error)?;
+            let found = duplicates::find(&mut tx, tenant(ctx), id, &key, None).await?;
+            if found.is_empty() {
+                None
+            } else {
+                let Some(o) = cmd.duplicate_override.as_ref() else {
+                    return Err(duplicates::conflict(
+                        &found,
+                        "check the candidate, or resend with duplicateOverride                          { candidateId, reason } to record a deliberate override",
+                    )
+                    .into());
+                };
+                let reason = norm(Some(&o.reason)).ok_or_else(|| {
+                    invalid(
+                        "duplicateOverride.reason",
+                        "required",
+                        "an override needs a reason",
+                    )
+                })?;
+                if !found.iter().any(|c| c.id == o.candidate_id) {
+                    return Err(invalid(
+                        "duplicateOverride.candidateId",
+                        "not-a-candidate",
+                        "the override must name one of the detected duplicate candidates",
+                    )
+                    .into());
+                }
+                Some((found, o.candidate_id, reason))
+            }
+        }
+    };
     let sql = format!(
         "INSERT INTO student.admission_application (tenant_id, institution_id, programme_id, \
          curriculum_version_id, campus_id, admission_term_id, admission_year_id, given_name, \
@@ -319,6 +380,20 @@ pub async fn create(
         .map_err(map_db_error)?;
     let app = from_row(&row).map_err(map_db_error)?;
     audit_app(&mut tx, &scope, "create", &app, &a).await?;
+    if let Some((candidates, candidate_id, reason)) = overridden {
+        publish::audit(
+            &mut tx,
+            &scope,
+            "student.admission_application.duplicate_override",
+            "admission_application",
+            app.id.to_string(),
+            serde_json::json!({
+                "candidateId": candidate_id, "candidates": candidates, "reason": reason,
+            }),
+            &a,
+        )
+        .await?;
+    }
     tx.commit().await.map_err(map_db_error)?;
     Ok(respond(StatusCode::CREATED, &app))
 }

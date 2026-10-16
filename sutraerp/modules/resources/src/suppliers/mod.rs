@@ -12,6 +12,15 @@
 //!   (`merged`, `canonicalSupplierId`; not while it has open purchase orders).
 //!
 //! Bank account numbers are masked on every read.
+//!
+//! Part 1 · Stage 3 (DEF-J-004): once a supplier has been approved its bank details are no longer
+//! profile fields. `POST /suppliers/{id}/bank-change` records the new details as a pending request
+//! (`SUPPLIER_BANK_CHANGE_APPROVAL`, `supplier.bank_change_requested` notifies the approvers; the
+//! live details stay in use) and `POST /suppliers/{id}/bank-change/decision` by **another** user
+//! with `resources.approve` / `finance.approve` promotes or discards it. Every step is audited with
+//! masked old / new accounts and recorded in the status history (`supplier_bank_change`). A
+//! profile PATCH that would change the bank details of an approved (or approval-pending) supplier
+//! is refused (`409`), and a database trigger refuses any other path.
 
 pub mod common;
 
@@ -117,6 +126,18 @@ pub struct SupplierView {
     pub approved_at: Option<DateTime<Utc>>,
     pub version: i64,
     pub created_at: DateTime<Utc>,
+    /// Part 1 · Stage 3 (DEF-J-004): a bank-change request awaits an independent decision.
+    pub bank_change_pending: bool,
+    pub pending_bank_account_name: Option<String>,
+    /// Masked (`XXXXXX7890`).
+    pub pending_bank_account_number: Option<String>,
+    pub pending_bank_ifsc: Option<String>,
+    pub bank_change_reason: Option<String>,
+    pub bank_change_requested_by: Option<String>,
+    pub bank_change_requested_at: Option<DateTime<Utc>>,
+    pub bank_change_process_instance_id: Option<String>,
+    /// Id of the open bank-change request (its status history is keyed by it).
+    pub bank_change_request_id: Option<Uuid>,
 }
 
 impl SupplierView {
@@ -143,7 +164,11 @@ const SELECT: &str = "SELECT id, institution_id, number, legal_name, trade_name,
     approved_at, version, created_at, \
     CASE WHEN approval_pending THEN 'pending' \
          WHEN approved_at IS NOT NULL OR status IN ('approved', 'active', 'suspended') THEN 'approved' \
-         ELSE 'not_requested' END AS approval_state FROM resources.supplier"; // 9E: approvalState
+         ELSE 'not_requested' END AS approval_state, \
+    (pending_bank_account_number IS NOT NULL) AS bank_change_pending, pending_bank_account_name, \
+    pending_bank_account_number, pending_bank_ifsc, bank_change_reason, bank_change_requested_by, \
+    bank_change_requested_at, bank_change_process_instance_id, bank_change_request_id \
+    FROM resources.supplier"; // 9E: approvalState · Part 1 S3: DEF-J-004 pending bank change
 
 /// A supplier of the tenant (404 when missing); `lock` takes the row lock. The bank account
 /// number is **not** masked here (internal use); views mask it.
@@ -167,6 +192,7 @@ pub async fn load(
 
 fn masked(mut s: SupplierView) -> SupplierView {
     s.bank_account_number = mask_account(s.bank_account_number.take());
+    s.pending_bank_account_number = mask_account(s.pending_bank_account_number.take());
     s
 }
 
@@ -621,7 +647,7 @@ pub async fn update(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ProcurementManage)?;
     let v = expected!(headers);
-    let p = validate_profile(b)?;
+    let mut p = validate_profile(b)?;
     let t = ctx.scope.tenant_id;
     let scope = supplier_scope(&st, ctx, id).await?;
     let actor = actor(ctx);
@@ -637,6 +663,28 @@ pub async fn update(
             s.number, s.status
         ))
         .into());
+    }
+    // Part 1 · Stage 3 (DEF-J-004): approved bank details change only through an independently
+    // approved bank-change request; while the registration awaits its decision they are frozen
+    // (the approver decides on what was submitted). Unchanged values are accepted (no-op).
+    if s.approved_at.is_some() || s.approval_pending {
+        let differs = |new: &Option<String>, old: &Option<String>| {
+            new.as_ref().is_some_and(|v| Some(v) != old.as_ref())
+        };
+        if differs(&p.bank_account_name, &s.bank_account_name)
+            || differs(&p.bank_account_number, &s.bank_account_number)
+            || differs(&p.bank_ifsc, &s.bank_ifsc)
+        {
+            return Err(KernelError::Conflict(format!(
+                "supplier {}: bank details of an approved or approval-pending supplier change only \
+                 through POST /api/v1/resources/suppliers/{id}/bank-change (independent approval)",
+                s.number
+            ))
+            .into());
+        }
+        p.bank_account_name = None;
+        p.bank_account_number = None;
+        p.bank_ifsc = None;
     }
     apply_profile(&mut tx, id, &p).await?;
     let after = load(&mut tx, t, id, false).await?;
@@ -829,6 +877,8 @@ pub async fn decide(
     Json(b): Json<ResourcesDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ResourcesApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "supplier approval").await?;
     let v = expected!(headers);
     let reason = clean(b.reason);
     if b.decision == ResourcesDecision::Reject && reason.is_none() {
@@ -1117,6 +1167,420 @@ pub async fn merge(
     Ok(res)
 }
 
+// ------------------------------------------------------------------ Part 1 · Stage 3 (DEF-J-004)
+
+/// New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`).
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplierBankChangeRequest {
+    /// Defaults to the current account name.
+    pub bank_account_name: Option<String>,
+    #[schema(example = "001234567890")]
+    pub bank_account_number: String,
+    #[schema(example = "HDFC0001234")]
+    pub bank_ifsc: String,
+    /// Why the details change (shown to the approver; required).
+    pub reason: String,
+}
+
+/// `XXXXXX7890 (HDFC0001234)`.
+fn masked_bank(number: Option<&str>, ifsc: Option<&str>) -> String {
+    format!(
+        "{} ({})",
+        mask_account(number.map(str::to_owned)).unwrap_or_else(|| "none".into()),
+        ifsc.unwrap_or("no IFSC")
+    )
+}
+
+/// Promotes the pending bank details of an approved supplier (approval of the request).
+async fn apply_bank_change(
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    tenant: TenantId,
+    s: &SupplierView,
+    reason: Option<&str>,
+    actor: &Actor,
+) -> Result<(), KernelError> {
+    let new = masked_bank(
+        s.pending_bank_account_number.as_deref(),
+        s.pending_bank_ifsc.as_deref(),
+    );
+    let old = masked_bank(s.bank_account_number.as_deref(), s.bank_ifsc.as_deref());
+    sqlx::query(
+        "UPDATE resources.supplier SET bank_account_name = pending_bank_account_name, \
+         bank_account_number = pending_bank_account_number, bank_ifsc = pending_bank_ifsc, \
+         pending_bank_account_name = NULL, pending_bank_account_number = NULL, \
+         pending_bank_ifsc = NULL, bank_change_reason = NULL, bank_change_requested_by = NULL, \
+         bank_change_requested_at = NULL, bank_change_request_id = NULL, version = version + 1, \
+         updated_at = now() WHERE id = $1 AND pending_bank_account_number IS NOT NULL",
+    )
+    .bind(s.id)
+    .execute(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    let request = s.bank_change_request_id.ok_or_else(|| {
+        KernelError::Conflict(format!(
+            "supplier {} has no open bank-change request",
+            s.number
+        ))
+    })?;
+    history(
+        conn,
+        tenant,
+        InstitutionId(s.institution_id),
+        "supplier_bank_change",
+        request,
+        Some("pending"),
+        "approved",
+        ev::SUPPLIER_BANK_CHANGE_APPROVED,
+        reason,
+        s.bank_change_process_instance_id.as_deref(),
+        actor,
+    )
+    .await?;
+    emit(
+        conn,
+        scope,
+        ev::SUPPLIER_BANK_CHANGE_APPROVED,
+        ev::SUPPLIER_BANK_CHANGE_APPROVED_SCHEMA,
+        "supplier",
+        s.id,
+        "resources.supplier.bank_change.approve",
+        &status_payload(
+            s.id,
+            s.institution_id,
+            Some("pending"),
+            "approved",
+            s.version + 1,
+            Some(&format!("{old} → {new}")),
+            s.bank_change_process_instance_id.as_deref(),
+            Some(&s.number),
+            None,
+        ),
+        actor,
+    )
+    .await
+}
+
+/// Request new bank details for an approved supplier (`resources.procurement.manage`; If-Match;
+/// Part 1 · Stage 3, DEF-J-004). The live details stay in use; the request waits for
+/// `SUPPLIER_BANK_CHANGE_APPROVAL` (approvers notified, audited with masked accounts). One open
+/// request at a time (`409`).
+#[utoipa::path(post, path = "/api/v1/resources/suppliers/{id}/bank-change", operation_id = "resources_supplier_bank_change_request", tag = "resources-procurement",
+    params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header, description = "ETag of the supplier")),
+    request_body = SupplierBankChangeRequest, security(("session_cookie" = [], "csrf_token" = [])),
+    responses((status = 200, body = SupplierView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
+pub async fn request_bank_change(
+    State(st): State<ResourcesState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(b): Json<SupplierBankChangeRequest>,
+) -> ApiResult<Response> {
+    let ctx = auth.require(Permission::ProcurementManage)?;
+    let v = expected!(headers);
+    let clean_req = validate_profile(SupplierProfile {
+        bank_account_name: b.bank_account_name.clone(),
+        bank_account_number: Some(b.bank_account_number.clone()),
+        bank_ifsc: Some(b.bank_ifsc.clone()),
+        ..SupplierProfile::default()
+    })?;
+    let (Some(number), Some(ifsc)) = (
+        clean_req.bank_account_number.clone(),
+        clean_req.bank_ifsc.clone(),
+    ) else {
+        return Err(invalid(
+            "bankAccountNumber",
+            "required",
+            "bank account number and IFSC are required",
+        )
+        .into());
+    };
+    let reason = required_reason(Some(b.reason.clone()))?;
+    let t = ctx.scope.tenant_id;
+    let scope = supplier_scope(&st, ctx, id).await?;
+    // Validate first (no locks) so a refused request never starts an approval process.
+    let s = {
+        let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+        load(&mut conn, t, id, false).await?
+    };
+    check_version(v, s.version)?;
+    let status = s.status()?;
+    if s.approved_at.is_none()
+        || !matches!(
+            status,
+            SupplierStatus::Approved | SupplierStatus::Active | SupplierStatus::Suspended
+        )
+    {
+        return Err(KernelError::Conflict(format!(
+            "supplier {} is {}; bank details of a supplier that is not approved are edited on its \
+             profile and approved with its registration",
+            s.number, s.status
+        ))
+        .into());
+    }
+    if s.bank_change_pending {
+        return Err(KernelError::Conflict(format!(
+            "supplier {} already has a bank-change request awaiting a decision",
+            s.number
+        ))
+        .into());
+    }
+    let name = clean_req
+        .bank_account_name
+        .clone()
+        .or_else(|| s.bank_account_name.clone());
+    if (name.as_deref(), Some(number.as_str()), Some(ifsc.as_str()))
+        == (
+            s.bank_account_name.as_deref(),
+            s.bank_account_number.as_deref(),
+            s.bank_ifsc.as_deref(),
+        )
+    {
+        return Err(invalid(
+            "bankAccountNumber",
+            "unchanged",
+            "these are the supplier's current bank details",
+        )
+        .into());
+    }
+    let mut vars = BTreeMap::new();
+    vars.insert("supplierNumber".to_owned(), serde_json::json!(s.number));
+    vars.insert(
+        "newAccount".to_owned(),
+        serde_json::json!(masked_bank(Some(&number), Some(&ifsc))),
+    );
+    let outcome = request_approval(
+        &st,
+        &scope,
+        process::SUPPLIER_BANK_CHANGE_APPROVAL,
+        business_key("supplier_bank_change", id, s.version),
+        vars,
+    )
+    .await?;
+    let actor = actor(ctx);
+    let request = Uuid::now_v7();
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    let s = load(&mut tx, t, id, true).await?;
+    check_version(v, s.version)?;
+    if s.bank_change_pending {
+        return Err(KernelError::Conflict(format!(
+            "supplier {} already has a bank-change request awaiting a decision",
+            s.number
+        ))
+        .into());
+    }
+    sqlx::query(
+        "UPDATE resources.supplier SET pending_bank_account_name = $2, \
+         pending_bank_account_number = $3, pending_bank_ifsc = $4, bank_change_reason = $5, \
+         bank_change_requested_by = $6, bank_change_requested_at = now(), \
+         bank_change_process_instance_id = $7, bank_change_request_id = $8, \
+         version = version + 1, updated_at = now() WHERE id = $1",
+    )
+    .bind(id)
+    .bind(&name)
+    .bind(&number)
+    .bind(&ifsc)
+    .bind(&reason)
+    .bind(actor.id.as_deref())
+    .bind(outcome.process_instance_id())
+    .bind(request)
+    .execute(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    history(
+        &mut tx,
+        t,
+        InstitutionId(s.institution_id),
+        "supplier_bank_change",
+        request,
+        None,
+        "pending",
+        ev::SUPPLIER_BANK_CHANGE_REQUESTED,
+        Some(&reason),
+        Some(outcome.process_instance_id()),
+        &actor,
+    )
+    .await?;
+    let old = masked_bank(s.bank_account_number.as_deref(), s.bank_ifsc.as_deref());
+    let new = masked_bank(Some(&number), Some(&ifsc));
+    emit(
+        &mut tx,
+        &scope,
+        ev::SUPPLIER_BANK_CHANGE_REQUESTED,
+        ev::SUPPLIER_BANK_CHANGE_REQUESTED_SCHEMA,
+        "supplier",
+        id,
+        "resources.supplier.bank_change.request",
+        &status_payload(
+            id,
+            s.institution_id,
+            None,
+            "pending",
+            s.version + 1,
+            Some(&format!("{old} → {new}: {reason}")),
+            Some(outcome.process_instance_id()),
+            Some(&s.number),
+            None,
+        ),
+        &actor,
+    )
+    .await?;
+    if let ApprovalOutcome::Approved { .. } = outcome {
+        let pending = load(&mut tx, t, id, true).await?;
+        apply_bank_change(
+            &mut tx,
+            &scope,
+            t,
+            &pending,
+            None,
+            &Actor::system(actor.correlation_id.clone()),
+        )
+        .await?;
+    }
+    let res = respond(&mut tx, t, id, StatusCode::OK).await?;
+    tx.commit().await.map_err(map_db_error)?;
+    Ok(res)
+}
+
+/// Decide a supplier's pending bank-change request (`resources.approve` **or**
+/// `finance.approve`, step-up; If-Match; Part 1 · Stage 3, DEF-J-004): approve → the new details
+/// go live (`supplier.bank_change_approved` warns finance); reject → discarded (reason
+/// required). Whoever requested the change — or a system actor — is refused (`403`).
+#[utoipa::path(post, path = "/api/v1/resources/suppliers/{id}/bank-change/decision", operation_id = "resources_supplier_bank_change_decide", tag = "resources-procurement",
+    params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header, description = "ETag of the supplier")),
+    request_body = ResourcesDecisionBody, security(("session_cookie" = [], "csrf_token" = [])),
+    responses((status = 200, body = SupplierView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
+pub async fn decide_bank_change(
+    State(st): State<ResourcesState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(b): Json<ResourcesDecisionBody>,
+) -> ApiResult<Response> {
+    let ctx = if auth.0.has_permission(Permission::FinanceApprove) {
+        auth.require(Permission::FinanceApprove)?
+    } else {
+        auth.require(Permission::ResourcesApprove)?
+    };
+    let v = expected!(headers);
+    let reason = clean(b.reason);
+    if b.decision == ResourcesDecision::Reject && reason.is_none() {
+        return Err(invalid("reason", "required", "a rejection needs a reason").into());
+    }
+    let t = ctx.scope.tenant_id;
+    let scope = supplier_scope(&st, ctx, id).await?;
+    let actor = actor(ctx);
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    let s = load(&mut tx, t, id, true).await?;
+    check_version(v, s.version)?;
+    if !s.bank_change_pending {
+        return Err(KernelError::Conflict(format!(
+            "supplier {} has no bank-change request awaiting a decision",
+            s.number
+        ))
+        .into());
+    }
+    // Whoever asked for new bank details never approves them (DEF-X-002 / DEF-J-004).
+    let request = s.bank_change_request_id.ok_or_else(|| {
+        KernelError::Conflict(format!(
+            "supplier {} has no open bank-change request",
+            s.number
+        ))
+    })?;
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "supplier_bank_change",
+        request,
+        &["pending"],
+        &[s.bank_change_requested_by.as_deref()],
+        actor.id.as_deref(),
+        "supplier bank-change request",
+    )
+    .await?;
+    let old = masked_bank(s.bank_account_number.as_deref(), s.bank_ifsc.as_deref());
+    let new = masked_bank(
+        s.pending_bank_account_number.as_deref(),
+        s.pending_bank_ifsc.as_deref(),
+    );
+    match b.decision {
+        ResourcesDecision::Approve => {
+            apply_bank_change(&mut tx, &scope, t, &s, reason.as_deref(), &actor).await?;
+        }
+        ResourcesDecision::Reject => {
+            sqlx::query(
+                "UPDATE resources.supplier SET pending_bank_account_name = NULL, \
+                 pending_bank_account_number = NULL, pending_bank_ifsc = NULL, \
+                 bank_change_reason = NULL, bank_change_requested_by = NULL, \
+                 bank_change_requested_at = NULL, bank_change_request_id = NULL, \
+                 version = version + 1, updated_at = now() WHERE id = $1",
+            )
+            .bind(id)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_db_error)?;
+            history(
+                &mut tx,
+                t,
+                InstitutionId(s.institution_id),
+                "supplier_bank_change",
+                request,
+                Some("pending"),
+                "rejected",
+                ev::SUPPLIER_BANK_CHANGE_REJECTED,
+                reason.as_deref(),
+                s.bank_change_process_instance_id.as_deref(),
+                &actor,
+            )
+            .await?;
+            emit(
+                &mut tx,
+                &scope,
+                ev::SUPPLIER_BANK_CHANGE_REJECTED,
+                ev::SUPPLIER_BANK_CHANGE_REJECTED_SCHEMA,
+                "supplier",
+                id,
+                "resources.supplier.bank_change.reject",
+                &status_payload(
+                    id,
+                    s.institution_id,
+                    Some("pending"),
+                    "rejected",
+                    s.version + 1,
+                    reason.as_deref(),
+                    s.bank_change_process_instance_id.as_deref(),
+                    Some(&s.number),
+                    None,
+                ),
+                &actor,
+            )
+            .await?;
+        }
+    }
+    audit_only(
+        &mut tx,
+        &scope,
+        "supplier",
+        id,
+        "resources.supplier.bank_change.decide",
+        serde_json::json!({
+            "number": s.number,
+            "decision": b.decision,
+            "reason": reason,
+            "oldAccount": old,
+            "newAccount": new,
+            "requestedBy": s.bank_change_requested_by,
+            "requestId": request,
+        }),
+        &actor,
+    )
+    .await?;
+    let res = respond(&mut tx, t, id, StatusCode::OK).await?;
+    tx.commit().await.map_err(map_db_error)?;
+    Ok(res)
+}
+
 /// Routes of this area.
 pub fn router(state: ResourcesState) -> OpenApiRouter {
     OpenApiRouter::new()
@@ -1128,6 +1592,8 @@ pub fn router(state: ResourcesState) -> OpenApiRouter {
         .routes(routes!(suspend))
         .routes(routes!(restore))
         .routes(routes!(merge))
+        .routes(routes!(request_bank_change)) // Part 1 · S3: DEF-J-004
+        .routes(routes!(decide_bank_change))
         .with_state(state)
 }
 

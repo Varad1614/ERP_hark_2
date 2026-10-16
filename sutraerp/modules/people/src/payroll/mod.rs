@@ -15,10 +15,14 @@
 //! * [`adjust`] — corrective adjustments on finalised results.
 //! * [`settlement`] — separation final settlements.
 //! * [`views`] / [`http`] — the API.
+//! * [`disbursement`] / [`disbursement_http`] — payroll disbursement (Part 1, DEF-E-007): bank
+//!   transfer batches of net pay and statutory remittances, settled in Finance.
 
 pub mod adjust;
 pub mod common;
 pub mod config;
+pub mod disbursement; // Part 1 (DEF-E-007)
+pub mod disbursement_http; // Part 1 (DEF-E-007)
 pub mod domain;
 pub mod http;
 pub mod rows;
@@ -31,5 +35,5 @@ use utoipa_axum::router::OpenApiRouter;
 
 /// Routes of this area.
 pub fn router(state: PeopleState) -> OpenApiRouter {
-    http::router(state)
+    http::router(state.clone()).merge(disbursement_http::router(state))
 }

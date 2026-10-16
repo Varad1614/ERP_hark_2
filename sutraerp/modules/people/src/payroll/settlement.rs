@@ -600,6 +600,18 @@ pub async fn decide_settlement(
             s.status
         )));
     }
+    // Part 1 (DEF-X-002): the preparer / submitter of a final settlement never decides it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        c.tenant,
+        FNF,
+        id,
+        &["pending_approval"],
+        &[],
+        c.actor.id.as_deref(),
+        "final settlement",
+    )
+    .await?;
     let run_id = s
         .run_id
         .ok_or_else(|| KernelError::internal_msg("pending settlement without a run"))?;

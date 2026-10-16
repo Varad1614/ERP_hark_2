@@ -615,6 +615,8 @@ pub async fn bank_account_decide(
     Json(body): Json<DecisionRequest>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::FinanceApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "bank account").await?;
     let v = match if_match(&headers)? {
         Ok(v) => v,
         Err(r) => return Ok(r),

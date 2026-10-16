@@ -829,6 +829,18 @@ pub async fn decide(
     if r.status()? != RequisitionStatus::Submitted {
         return Err(illegal("purchase requisition", &r.number, &r.status, "decided").into());
     }
+    // Part 1 (DEF-X-002): the requester / submitter of a requisition never decides it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        t,
+        "purchase_requisition",
+        id,
+        &["submitted"],
+        &[],
+        actor.id.as_deref(),
+        "purchase requisition",
+    )
+    .await?;
     match b.decision {
         ResourcesDecision::Approve => approve(&mut tx, &scope, t, id, &actor).await?,
         ResourcesDecision::Reject => {

@@ -1,4 +1,5 @@
 import { useParams } from "react-router";
+import { ConductAdminTab } from "../../features/exams/conduct";
 import { MalpracticeAdminTab, MarksAdminTab } from "../../features/exams/marks";
 import { ExamsFrame, ExamsOverview } from "../../features/exams/overview";
 import { ResultsAdminTab, RevaluationAdminTab } from "../../features/exams/results";
@@ -24,6 +25,8 @@ export default function Examinations() {
             return <ScheduleAdminTab institution={institution} />;
           case "registrations":
             return <RegistrationsAdminTab institution={institution} />;
+          case "conduct":
+            return <ConductAdminTab institution={institution} />;
           case "marks":
             return <MarksAdminTab institution={institution} />;
           case "malpractice":

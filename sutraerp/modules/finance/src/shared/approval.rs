@@ -16,7 +16,8 @@
 //! 4. With [`ApprovalMode::AwaitDecision`] (Batch 9, Flowable) the aggregate stays pending;
 //!    a human with the decide/publish permission calls the slice's decision endpoint.
 //!
-//! Batch 5 runs [`ApprovalMode::AutoApprove`] with the platform `NoopWorkflowAdapter`; tests build a
+//! The mode comes from `SUTRA_APPROVAL_MODE` (default [`ApprovalMode::AwaitDecision`];
+//! [`ApprovalMode::AutoApprove`] is a dev/test opt-in refused in production); tests build a
 //! [`FinanceState`] with [`ApprovalMode::AwaitDecision`] to cover the explicit decision endpoint.
 
 use crate::shared::FinanceState;
@@ -89,15 +90,9 @@ pub mod process {
     ];
 }
 
-/// How approval steps resolve.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-pub enum ApprovalMode {
-    /// Batch 5 default: the process is started (no-op adapter) and approved at once.
-    #[default]
-    AutoApprove,
-    /// The aggregate stays pending until a decision endpoint is called.
-    AwaitDecision,
-}
+/// How approval steps resolve: the one config-driven mode shared by every module
+/// (`SUTRA_APPROVAL_MODE`; default human decision, auto-approval is a dev/test opt-in).
+pub use sutra_kernel::approval::ApprovalMode;
 
 /// Result of [`request_approval`].
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -145,6 +140,16 @@ pub async fn request_approval(
             },
         )
         .await?;
+    // Part 1 · S3-appr: who asked for this decision (separation of duties on its decision path).
+    sutra_persistence::approval::record_request(
+        &state.pool,
+        scope.tenant_id.as_uuid(),
+        &r.process_definition_key,
+        &r.business_key,
+        &r.process_instance_id,
+        sutra_kernel::approval::current_requester().as_deref(),
+    )
+    .await?;
     Ok(match state.approvals {
         ApprovalMode::AutoApprove => ApprovalOutcome::Approved {
             process_instance_id: r.process_instance_id,
@@ -153,6 +158,39 @@ pub async fn request_approval(
             process_instance_id: r.process_instance_id,
         },
     })
+}
+
+/// Part 1 (DEF-X-002): separation of duties on the shared decision path. Refuses (`403`) a
+/// decision by an unidentified / system actor or by one of the request's makers: whoever created
+/// the aggregate or moved it into one of `pending` statuses (from `finance.status_history`), plus
+/// `also` (e.g. the aggregate's own `requested_by` / `created_by` column). `what` names the
+/// governed kind in the problem detail.
+#[allow(clippy::too_many_arguments)]
+pub async fn ensure_independent_decider(
+    conn: &mut sqlx::PgConnection,
+    tenant: sutra_kernel::scope::TenantId,
+    aggregate_type: &str,
+    aggregate_id: uuid::Uuid,
+    pending: &[&str],
+    also: &[Option<&str>],
+    decider: Option<&str>,
+    what: &str,
+) -> Result<(), KernelError> {
+    let mut makers = sutra_persistence::approval::requesters(
+        conn,
+        sutra_persistence::approval::HistoryTable::Finance,
+        tenant.as_uuid(),
+        aggregate_type,
+        aggregate_id,
+        pending,
+    )
+    .await?;
+    makers.extend(also.iter().flatten().map(|s| (*s).to_owned()));
+    sutra_kernel::approval::ensure_independent_decider(
+        decider,
+        makers.iter().map(String::as_str),
+        what,
+    )
 }
 
 #[cfg(test)]
@@ -165,7 +203,7 @@ mod tests {
         let keys: std::collections::HashSet<_> = process::ALL.iter().collect();
         assert_eq!(keys.len(), process::ALL.len());
         assert!(process::ALL.iter().all(|k| k.starts_with("finance.")));
-        assert_eq!(ApprovalMode::default(), ApprovalMode::AutoApprove);
+        assert_eq!(ApprovalMode::default(), ApprovalMode::AwaitDecision);
         let o = ApprovalOutcome::Pending {
             process_instance_id: "p".into(),
         };

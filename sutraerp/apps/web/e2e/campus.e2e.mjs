@@ -451,7 +451,11 @@ try {
     await page.waitForTimeout(300);
     const loans = (await admin.get(`${C}/institutions/${inst}/library-loans`)).items;
     ids.loan = loans.find((l) => l.status === "active" && l.title === "Fluid Mechanics");
-    psql(`UPDATE campus.library_loan SET issued_on = current_date - 19, due_on = current_date - 5 WHERE id = '${ids.loan.id}'`);
+    // Back-date relative to the institution's business date (what the API's fine maths uses),
+    // not the DB server's UTC current_date: between 18:30 and 24:00 UTC they differ by a day.
+    psql(`UPDATE campus.library_loan l SET issued_on = d.today - 19, due_on = d.today - 5
+          FROM (SELECT (now() AT TIME ZONE i.timezone)::date AS today FROM institution.institution i WHERE i.id = '${inst}') d
+          WHERE l.id = '${ids.loan.id}'`);
     await go(page, "/campus/library");
     await action(page, "overdue-sweep", tile(page, "Circulation"));
     await expectRowStatus(page, "Fluid Mechanics", "Overdue", tile(page, "Circulation"));

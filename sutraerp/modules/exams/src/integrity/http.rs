@@ -5,7 +5,7 @@
 use super::repo::{self, CaseRow, DecisionRow, NewCase};
 use crate::marks::repo::invalid;
 use crate::shared::grading::fmt2;
-use crate::shared::http::{actor, if_match, with_etag};
+use crate::shared::http::{actor, if_match, require_exam_official, with_etag};
 use crate::shared::scope::tenant;
 use crate::shared::ExamsState;
 use axum::extract::{Path, Query, State};
@@ -261,7 +261,7 @@ pub async fn case_list(
     Path(id): Path<Uuid>,
     Query(q): Query<MalpracticeListQuery>,
 ) -> ApiResult<Json<MalpracticeCaseList>> {
-    let ctx = auth.require(Permission::ExamRead)?;
+    let ctx = require_exam_official(&auth)?;
     let t = tenant(ctx);
     crate::marks::repo::load_session(&st, t, ExamSessionId(id)).await?;
     let mut items = Vec::new();
@@ -313,7 +313,7 @@ pub async fn case_get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::ExamRead)?;
+    let ctx = require_exam_official(&auth)?;
     let t = tenant(ctx);
     let c = repo::get_case(&st, t, MalpracticeCaseId(id)).await?;
     Ok(respond(&st, t, &c, StatusCode::OK).await?)
@@ -403,6 +403,8 @@ pub async fn case_decide(
     Json(b): Json<MalpracticeDecisionCreate>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::MarksManage)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "malpractice decision").await?;
     let v = if_match_or_return!(headers);
     let t = tenant(ctx);
     let c = repo::propose_decision(

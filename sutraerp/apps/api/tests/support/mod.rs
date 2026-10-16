@@ -93,6 +93,10 @@ pub async fn app(tenant: &'static str) -> (Router, sqlx::PgPool) {
         ("SUTRA_DEV_TENANT_ID", tenant),
         ("SUTRA_SWEEPERS", "false"),
         ("SUTRA_INBOX_CONSUMER", "false"),
+        // Part 1 (DEF-X-001): the default is human decision. These batch suites test domain
+        // behaviour, not approval, so they opt in to dev auto-approval explicitly; approval itself
+        // is covered with the default mode (db_p1_appr.rs and each suite's AwaitDecision tests).
+        ("SUTRA_APPROVAL_MODE", "auto"),
     ]);
     let cfg = Config::load(&src).expect("config");
     let ctx = AppContext::from_config(&cfg).expect("context");

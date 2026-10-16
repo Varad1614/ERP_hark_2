@@ -1013,6 +1013,8 @@ pub async fn session_decision(
     Json(b): Json<ExamSetupDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ExamApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "exam session").await?;
     let expected = match if_match(&headers)? {
         Ok(v) => v,
         Err(resp) => return Ok(resp),

@@ -343,8 +343,8 @@ function LibraryScreen({ institutionId }: { institutionId: string }) {
         case "waive":
           return {
             id: "fine-waive",
-            label: "Waive",
-            onClick: () => ask({ title: `Waive ${formatInr(f.amount)}`, name: "fine-waive", fields: [REASON], submitLabel: "Waive", onSubmit: (v) => submit(() => api.fineCommand(f.id, f.version, "waiver", v.reason), (r) => `Fine ${statusLabel(r.status).toLowerCase()}`) }),
+            label: "Request waiver",
+            onClick: () => ask({ title: `Request a waiver of ${formatInr(f.amount)}`, name: "fine-waive", fields: [REASON], submitLabel: "Request waiver", onSubmit: (v) => submit(() => api.fineCommand(f.id, f.version, "waiver", v.reason), (r) => `Fine ${statusLabel(r.status).toLowerCase()}`) }),
           };
         case "approve":
           return { id: "fine-approve", label: "Approve waiver", variant: "primary", onClick: d.approve };

@@ -57,8 +57,10 @@ pub const MODULE: ModuleDescriptor = ModuleDescriptor {
 #[derive(Clone)]
 pub struct ResourcesDeps {
     pub pool: PgPool,
-    /// Approval steps (`NoopWorkflowAdapter` in Batch 8).
+    /// Approval steps (workflow adapter selected by `SUTRA_WORKFLOW`; was `NoopWorkflowAdapter` in Batch 8).
     pub workflow: Arc<dyn WorkflowPort>,
+    /// How approval steps resolve (`SUTRA_APPROVAL_MODE`, composed by the API; never hard-coded).
+    pub approvals: shared::approval::ApprovalMode,
     /// Domain B reference data (`sutra_institution::PgInstitutionReferences`).
     pub references: Arc<dyn InstitutionReferencePort>,
     /// Domain E staff records (`sutra_people::PgWorkforceDirectory`).
@@ -68,12 +70,12 @@ pub struct ResourcesDeps {
 }
 
 impl ResourcesDeps {
-    /// Handler state with the Batch 8 defaults (auto-approving approval steps).
+    /// Handler state with the Batch 8 defaults (approval steps in the configured `approvals` mode).
     pub fn into_state(self) -> ResourcesState {
         ResourcesState {
             pool: self.pool,
             workflow: self.workflow,
-            approvals: shared::approval::ApprovalMode::AutoApprove,
+            approvals: self.approvals,
             references: self.references,
             workforce: self.workforce,
             postings: self.postings,

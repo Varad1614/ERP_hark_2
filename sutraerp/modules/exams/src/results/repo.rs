@@ -13,14 +13,14 @@ use super::domain::{
     publication_can_transition, same_content, CandidateComputation, DecidedPenalty,
 };
 use crate::shared::approval::{business_key, process, request_approval, ApprovalOutcome};
-use crate::shared::grading::{cgpa, fmt2};
+use crate::shared::grading::{cumulative, fmt2, AttemptLine};
 use crate::shared::guard::{require_institution_writable, require_operational};
 use crate::shared::lifecycle::StatusChange;
 use crate::shared::marks::{lock_mark, revise_final, MarkValues};
 use crate::shared::numbering::{self, kind};
 use crate::shared::publish::{audit, event};
 use crate::shared::results::{
-    change_result_status, insert_result, load_result, NewResult, ResultRow,
+    change_result_status, insert_result, load_result, NewResult, NewResultLine, ResultRow,
 };
 use crate::shared::rows::{
     decode, lock_registration, mark_from_row, paper_from_row, MARK_COLUMNS, PAPER_COLUMNS,
@@ -335,32 +335,115 @@ pub async fn decided_penalties(
         .collect()
 }
 
-/// CGPA over the student's latest published results of every *other* term plus this term's
-/// aggregate (contract §3.5).
+/// Open malpractice cases of a registration that must withhold its result (contract §1 6C
+/// "pending malpractice", DEF-I-004): a case still being established (`reported |
+/// under_investigation | hearing`) or whose decision is under appeal (`appealed |
+/// under_review`). Duplicates merged into another case are skipped. Returns the case numbers.
+pub async fn open_malpractice_cases(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    registration: Uuid,
+) -> Result<Vec<String>, KernelError> {
+    sqlx::query_scalar(
+        "SELECT case_number FROM exams.malpractice_case \
+         WHERE tenant_id = $1 AND registration_id = $2 AND merged_into_id IS NULL \
+         AND status IN ('reported', 'under_investigation', 'hearing', 'appealed', 'under_review') \
+         ORDER BY created_at",
+    )
+    .bind(tenant.as_uuid())
+    .bind(registration)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_db_error)
+}
+
+/// `(first published, component, credits, grade point, passed)` of one published line.
+type AttemptRow = (Option<DateTime<Utc>>, Uuid, Decimal, Option<Decimal>, bool);
+
+/// Every graded line of the student's current **published** results in sessions other than
+/// `except_session`, oldest attempt first, each with the time the student's result in that
+/// session was first published (sessions are ordered by it) — the input of [`cumulative`].
+pub async fn published_attempts(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    institution: Option<InstitutionId>,
+    student: StudentId,
+    except_session: Option<ExamSessionId>,
+) -> Result<Vec<(Option<DateTime<Utc>>, AttemptLine)>, KernelError> {
+    let rows: Vec<AttemptRow> = sqlx::query_as(
+        "SELECT fp.first_published, l.curriculum_component_id, l.credits, l.grade_point, \
+             l.passed FROM exams.term_result r \
+             JOIN exams.term_result_line l ON l.result_id = r.id \
+             CROSS JOIN LATERAL ( \
+                 SELECT min(f.published_at) AS first_published FROM exams.term_result f \
+                 WHERE f.tenant_id = r.tenant_id AND f.session_id = r.session_id \
+                 AND f.student_id = r.student_id AND f.published_at IS NOT NULL) fp \
+             WHERE r.tenant_id = $1 AND r.student_id = $2 AND r.status = 'published' \
+             AND ($3::uuid IS NULL OR r.session_id <> $3) \
+             AND ($4::uuid IS NULL OR r.institution_id = $4) \
+             ORDER BY fp.first_published NULLS LAST, r.session_id, l.line_no",
+    )
+    .bind(tenant.as_uuid())
+    .bind(student.as_uuid())
+    .bind(except_session.map(|s| s.as_uuid()))
+    .bind(institution.map(|i| i.as_uuid()))
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    Ok(rows
+        .into_iter()
+        .map(|(at, component, credits, grade_point, passed)| {
+            (
+                at,
+                AttemptLine {
+                    component,
+                    credits,
+                    grade_point,
+                    passed,
+                },
+            )
+        })
+        .collect())
+}
+
+/// CGPA under the grade-replacement policy ([`cumulative`], DEF-I-005): every published
+/// attempt of the student in *other* sessions plus this session's computed lines, in attempt
+/// order. A session not yet published for the student is the newest attempt; one already
+/// published (a post-publication correction / revaluation) keeps its original place, so a
+/// correction of the regular session never overtakes a later supplementary. A supplementary
+/// result replaces only the course(s) it re-examined; no credit is counted twice.
 pub async fn cgpa_with(
     conn: &mut PgConnection,
     tenant: TenantId,
     student: StudentId,
-    term: Uuid,
-    this_term: Option<(Decimal, Decimal)>,
+    session: ExamSessionId,
+    this_session: &[NewResultLine],
 ) -> Result<Option<Decimal>, KernelError> {
-    let rows: Vec<(Decimal, Decimal)> = sqlx::query_as(
-        "SELECT DISTINCT ON (academic_term_id) credits_attempted, grade_points \
-         FROM exams.term_result WHERE tenant_id = $1 AND student_id = $2 \
-         AND academic_term_id <> $3 AND status = 'published' \
-         ORDER BY academic_term_id, published_at DESC",
+    let others = published_attempts(conn, tenant, None, student, Some(session)).await?;
+    let first_published: Option<DateTime<Utc>> = sqlx::query_scalar(
+        "SELECT min(published_at) FROM exams.term_result WHERE tenant_id = $1 \
+         AND session_id = $2 AND student_id = $3 AND published_at IS NOT NULL",
     )
     .bind(tenant.as_uuid())
+    .bind(session.as_uuid())
     .bind(student.as_uuid())
-    .bind(term)
-    .fetch_all(&mut *conn)
+    .fetch_one(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    let mut terms = rows;
-    if let Some(t) = this_term {
-        terms.push(t);
-    }
-    Ok(cgpa(&terms))
+    let split = match first_published {
+        None => others.len(),
+        Some(at) => others.partition_point(|(t, _)| t.is_some_and(|t| t <= at)),
+    };
+    let mut attempts: Vec<AttemptLine> = Vec::with_capacity(others.len() + this_session.len());
+    attempts.extend(others[..split].iter().map(|(_, l)| l.clone()));
+    attempts.extend(this_session.iter().map(|l| AttemptLine {
+        component: l.curriculum_component_id,
+        credits: l.credits,
+        grade_point: l.grade_point,
+        passed: l.passed,
+    }));
+    attempts.extend(others[split..].iter().map(|(_, l)| l.clone()));
+    Ok(cumulative(&attempts).cgpa)
 }
 
 /// The current result of a candidate in a session (locked).
@@ -405,19 +488,10 @@ pub async fn compute_in_tx(
 ) -> Result<Computed, KernelError> {
     let marks = marks_in_tx(conn, tenant, reg.registration_id.as_uuid()).await?;
     let penalties = decided_penalties(conn, tenant, reg.registration_id.as_uuid()).await?;
-    let computation = compute_candidate(reg, papers, &marks, bands, &penalties);
+    let open_cases = open_malpractice_cases(conn, tenant, reg.registration_id.as_uuid()).await?;
+    let computation = compute_candidate(reg, papers, &marks, bands, &penalties, &open_cases);
     let cgpa = if computation.withheld.is_empty() {
-        cgpa_with(
-            conn,
-            tenant,
-            reg.student_id,
-            session.academic_term_id,
-            Some((
-                computation.aggregate.credits_attempted,
-                computation.aggregate.grade_points,
-            )),
-        )
-        .await?
+        cgpa_with(conn, tenant, reg.student_id, session.id, &computation.lines).await?
     } else {
         None
     };
@@ -1236,6 +1310,24 @@ pub async fn decide_batch(
             b.status
         )));
     };
+    // Part 1 (DEF-X-002): whoever created / validated the batch never approves it.
+    let created_by: Option<String> =
+        sqlx::query_scalar("SELECT created_by FROM exams.result_batch WHERE id = $1")
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(map_db_error)?;
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        tenant,
+        "result_batch",
+        id,
+        &["validated"],
+        &[created_by.as_deref()],
+        actor.id.as_deref(),
+        "result approval",
+    )
+    .await?;
     let b2 = if approve {
         apply_batch_approval(&mut tx, tenant, &scope, &b, &pid, reason.as_deref(), actor).await?
     } else {
@@ -1534,9 +1626,51 @@ pub async fn withhold_result(
     Ok(r2)
 }
 
+/// `true` when the withheld result `r` had been `approved` right before it was withheld (its
+/// content then carries an institutional approval already).
+async fn approved_before_withhold(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    r: &ResultRow,
+) -> Result<bool, KernelError> {
+    let from: Option<Option<String>> = sqlx::query_scalar(
+        "SELECT from_status FROM exams.status_history WHERE tenant_id = $1 \
+         AND aggregate_type = 'term_result' AND aggregate_id = $2 AND to_status = 'withheld' \
+         ORDER BY created_at DESC, id DESC LIMIT 1",
+    )
+    .bind(tenant.as_uuid())
+    .bind(r.id.as_uuid())
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    Ok(from.flatten().as_deref() == Some("approved"))
+}
+
+/// Whether releasing the withheld result `r` with computation `c` needs a release approval
+/// (DEF-I-003): after institutional approval of the batch, only a result that returns
+/// **unchanged** to the approval it already had goes straight back to `approved`; any other
+/// release (changed content, or content never approved) waits in `validated` for an explicit
+/// `RESULT_APPROVAL` decision.
+async fn release_needs_approval(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    r: &ResultRow,
+    c: &Computed,
+    approved_level: bool,
+) -> Result<bool, KernelError> {
+    if !approved_level || r.status != ResultStatus::Withheld || !c.computation.withheld.is_empty() {
+        return Ok(false);
+    }
+    let unchanged = same_content(r, &c.computation, c.cgpa);
+    Ok(!(unchanged && approved_before_withhold(conn, tenant, r).await?))
+}
+
 /// Recomputes one result before approval (L3-I-086/087) or releases a withheld one once its
-/// blocking condition is resolved (L3-I-098): a changed computation is a new revision; a
-/// released result rejoins its batch's level (`approved` after institutional approval).
+/// blocking condition is resolved (L3-I-098): a changed computation is a new revision. Before
+/// the batch is approved a released result rejoins it as `computed`; after approval it returns
+/// to `approved` only when unchanged from the approval it had, otherwise it waits in
+/// `validated` for a release decision (`RESULT_APPROVAL`, result decision kind `release`) and is
+/// never published before that decision (DEF-I-003).
 pub async fn recompute_result(
     st: &ExamsState,
     tenant: TenantId,
@@ -1552,6 +1686,39 @@ pub async fn recompute_result(
     require_institution_writable(st, &scope, pre.institution_id).await?;
     let session = session_of(st, tenant, pre.session_id).await?;
     let bands = bands_of(st, &scope, &session).await?;
+    let reason_text = reason.unwrap_or(if release {
+        "blocking condition resolved"
+    } else {
+        "recomputed"
+    });
+    // The approval process starts before the owner transaction (shared::approval pattern), so
+    // a read-only probe decides whether this release needs one.
+    let approval = if release {
+        let mut probe = st.pool.begin().await.map_err(map_db_error)?;
+        let papers = papers_in_tx(&mut probe, tenant, session.id).await?;
+        let reg = lock_registration(&mut probe, tenant, pre.registration_id).await?;
+        let c = compute_in_tx(&mut probe, tenant, &session, &papers, &bands, &reg).await?;
+        let batch = latest_batch(&mut probe, tenant, session.id).await?;
+        let approved_level = batch.as_ref().is_some_and(|b| batch_approved(b.status));
+        let needs = release_needs_approval(&mut probe, tenant, &pre, &c, approved_level).await?;
+        probe.rollback().await.map_err(map_db_error)?;
+        if needs {
+            Some(
+                request_approval(
+                    st,
+                    &scope,
+                    process::RESULT_APPROVAL,
+                    business_key("term_result_release", pre.id, pre.version),
+                    BTreeMap::from([("reason".to_owned(), json!(reason_text))]),
+                )
+                .await?,
+            )
+        } else {
+            None
+        }
+    } else {
+        None
+    };
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let r = load_result(&mut tx, tenant, id, true).await?;
     ensure_version(expected, r.version)?;
@@ -1589,25 +1756,49 @@ pub async fn recompute_result(
     }
     let batch = latest_batch(&mut tx, tenant, session.id).await?;
     let approved_level = batch.as_ref().is_some_and(|b| batch_approved(b.status));
-    let target = if release && approved_level {
+    let needs_approval =
+        release && release_needs_approval(&mut tx, tenant, &r, &c, approved_level).await?;
+    if needs_approval != approval.is_some() {
+        return Err(KernelError::Conflict(
+            "the result changed concurrently; retry the release".into(),
+        ));
+    }
+    let decision_id = Uuid::now_v7();
+    let pending_reason =
+        format!("released — awaiting release approval (result decision {decision_id})");
+    let target = if needs_approval {
+        ResultStatus::Validated
+    } else if release && approved_level {
         ResultStatus::Approved
     } else {
         ResultStatus::Computed
     };
-    let reason_text = reason.unwrap_or(if release {
-        "blocking condition resolved"
-    } else {
-        "recomputed"
-    });
     let change = StatusChange {
         cause_event_type: RESULT_COMPUTED,
-        reason: Some(reason_text),
-        process_instance_id: None,
+        reason: Some(if needs_approval {
+            pending_reason.as_str()
+        } else {
+            reason_text
+        }),
+        process_instance_id: approval.as_ref().map(|a| a.process_instance_id()),
     };
     let withheld_now = !c.computation.withheld.is_empty();
-    let out = if same_content(&r, &c.computation, c.cgpa) && !withheld_now {
+    let mut out = if same_content(&r, &c.computation, c.cgpa) && !withheld_now {
         if r.status == ResultStatus::Withheld {
-            change_result_status(&mut tx, tenant, &r, target, &change, actor).await?
+            if target == ResultStatus::Validated {
+                let back = change_result_status(
+                    &mut tx,
+                    tenant,
+                    &r,
+                    ResultStatus::Computed,
+                    &change,
+                    actor,
+                )
+                .await?;
+                change_result_status(&mut tx, tenant, &back, target, &change, actor).await?
+            } else {
+                change_result_status(&mut tx, tenant, &r, target, &change, actor).await?
+            }
         } else {
             r.clone()
         }
@@ -1630,6 +1821,54 @@ pub async fn recompute_result(
             walk_to(&mut tx, tenant, fresh, target, &change, actor).await?
         }
     };
+    if let Some(outcome) = &approval {
+        let pid = outcome.process_instance_id().to_owned();
+        sqlx::query(
+            "INSERT INTO exams.result_decision (id, tenant_id, institution_id, session_id, \
+             result_id, kind, reason, process_instance_id, requested_by) \
+             VALUES ($1, $2, $3, $4, $5, 'release', $6, $7, $8)",
+        )
+        .bind(decision_id)
+        .bind(tenant.as_uuid())
+        .bind(out.institution_id.as_uuid())
+        .bind(out.session_id.as_uuid())
+        .bind(out.id.as_uuid())
+        .bind(reason_text)
+        .bind(&pid)
+        .bind(actor.id.as_deref())
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| match map_db_error(e) {
+            KernelError::Conflict(_) => {
+                KernelError::Conflict("a release of this result is already pending".into())
+            }
+            other => other,
+        })?;
+        audit(
+            &mut tx,
+            &scope,
+            "exams.term_result.request_release",
+            "term_result",
+            out.id.to_string(),
+            json!({"decisionId": decision_id, "reason": reason_text, "processInstanceId": pid}),
+            actor,
+        )
+        .await?;
+        if let ApprovalOutcome::Approved { .. } = outcome {
+            let d = load_decision(&mut tx, tenant, decision_id).await?;
+            let system = Actor::system(actor.correlation_id.clone());
+            out = finish_decision(
+                st,
+                &mut tx,
+                tenant,
+                &d,
+                true,
+                Some("auto-approved"),
+                &system,
+            )
+            .await?;
+        }
+    }
     audit(
         &mut tx,
         &scope,
@@ -1798,6 +2037,63 @@ async fn apply_withdrawal(
     Ok(r2)
 }
 
+/// Settles a release decision (DEF-I-003): approval moves the released result `validated →
+/// approved` (publishable); rejection withholds it again.
+async fn settle_release(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    d: &ResultDecisionRow,
+    approve: bool,
+    reason: Option<&str>,
+    actor: &Actor,
+) -> Result<ResultRow, KernelError> {
+    let r = load_result(conn, tenant, d.result_id, true).await?;
+    if r.status != ResultStatus::Validated {
+        return Err(KernelError::Conflict(format!(
+            "result is {}; the release can no longer be decided",
+            r.status
+        )));
+    }
+    let scope = ExecutionScope::institution(tenant, r.institution_id);
+    let rejected = format!("release rejected: {}", reason.unwrap_or("no reason given"));
+    let (to, cause, why) = if approve {
+        (ResultStatus::Approved, RESULT_APPROVED, d.reason.as_str())
+    } else {
+        (ResultStatus::Withheld, RESULT_WITHHELD, rejected.as_str())
+    };
+    let r2 = change_result_status(
+        conn,
+        tenant,
+        &r,
+        to,
+        &StatusChange {
+            cause_event_type: cause,
+            reason: Some(why),
+            process_instance_id: d.process_instance_id.as_deref(),
+        },
+        actor,
+    )
+    .await?;
+    if !approve {
+        event(
+            conn,
+            &scope,
+            RESULT_WITHHELD,
+            RESULT_WITHHELD_SCHEMA,
+            r.id.to_string(),
+            &result_status_payload(
+                &r2,
+                Some(r.status),
+                Some(why.to_owned()),
+                d.process_instance_id.clone(),
+            ),
+            actor,
+        )
+        .await?;
+    }
+    Ok(r2)
+}
+
 /// Requests a governed decision on a result: an approved marks correction (`RESULT_CORRECTION`)
 /// or a withdrawal of a published result (`RESULT_WITHDRAWAL`). Auto-approval applies it now.
 pub async fn request_decision(
@@ -1938,14 +2234,12 @@ async fn finish_decision(
     reason: Option<&str>,
     actor: &Actor,
 ) -> Result<ResultRow, KernelError> {
-    let result = if approve {
-        if d.kind == "correction" {
-            apply_correction(st, conn, tenant, d, actor).await?
-        } else {
-            apply_withdrawal(conn, tenant, d, actor).await?
-        }
-    } else {
-        load_result(conn, tenant, d.result_id, false).await?
+    let result = match (approve, d.kind.as_str()) {
+        (true, "correction") => apply_correction(st, conn, tenant, d, actor).await?,
+        (true, "release") => settle_release(conn, tenant, d, true, reason, actor).await?,
+        (true, _) => apply_withdrawal(conn, tenant, d, actor).await?,
+        (false, "release") => settle_release(conn, tenant, d, false, reason, actor).await?,
+        (false, _) => load_result(conn, tenant, d.result_id, false).await?,
     };
     sqlx::query(
         "UPDATE exams.result_decision SET status = $3, decision_reason = $4, decided_by = $5, \
@@ -1995,6 +2289,18 @@ pub async fn decide_decision(
             d.kind, d.status
         )));
     }
+    // Part 1 (DEF-X-002): the requester of a result withholding / withdrawal never decides it.
+    let requested_by: Option<String> =
+        sqlx::query_scalar("SELECT requested_by FROM exams.result_decision WHERE id = $1")
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(map_db_error)?;
+    sutra_kernel::approval::ensure_independent_decider(
+        actor.id.as_deref(),
+        requested_by.as_deref(),
+        "result decision",
+    )?;
     let scope = ExecutionScope::institution(tenant, d.institution_id);
     require_institution_writable(st, &scope, d.institution_id).await?;
     let r = finish_decision(st, &mut tx, tenant, &d, approve, reason.as_deref(), actor).await?;
@@ -2248,6 +2554,28 @@ pub async fn create_publication(
     get_publication(st, tenant, id).await
 }
 
+/// Freezes the result set a publication may publish (DEF-I-010): the session's results that
+/// are `approved` at the moment the publication is authorised. Idempotent.
+async fn freeze_publication_set(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    p: &PublicationRow,
+) -> Result<(), KernelError> {
+    sqlx::query(
+        "INSERT INTO exams.publication_snapshot (tenant_id, publication_id, result_id, \
+         registration_id) SELECT $1, $2, id, registration_id FROM exams.term_result \
+         WHERE tenant_id = $1 AND session_id = $3 AND status = 'approved' \
+         ON CONFLICT (publication_id, result_id) DO NOTHING",
+    )
+    .bind(tenant.as_uuid())
+    .bind(p.id)
+    .bind(p.session_id.as_uuid())
+    .execute(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    Ok(())
+}
+
 /// Requests publication authorisation (`RESULT_PUBLICATION`); auto-approval authorises now.
 pub async fn authorise_publication(
     st: &ExamsState,
@@ -2283,6 +2611,7 @@ pub async fn authorise_publication(
     ensure_version(expected, p.version)?;
     let p2 = match outcome {
         ApprovalOutcome::Approved { .. } => {
+            freeze_publication_set(&mut tx, tenant, &p).await?;
             set_publication_status(
                 &mut tx,
                 tenant,
@@ -2298,11 +2627,13 @@ pub async fn authorise_publication(
         ApprovalOutcome::Pending { .. } => {
             let row = sqlx::query(&format!(
                 "UPDATE exams.publication SET process_instance_id = $3, version = version + 1, \
+                 authorisation_requested_by = $4, \
                  updated_at = now() WHERE id = $1 AND tenant_id = $2 RETURNING {PUBLICATION_COLUMNS}"
             ))
             .bind(p.id)
             .bind(tenant.as_uuid())
             .bind(&pid)
+            .bind(actor.id.as_deref()) // Part 1: DEF-X-002
             .fetch_one(&mut *tx)
             .await
             .map_err(map_db_error)?;
@@ -2347,7 +2678,24 @@ pub async fn decide_publication(
             p.status
         )));
     }
+    // Part 1 (DEF-X-002): whoever planned the publication or asked for its authorisation never
+    // authorises it.
+    let makers: (Option<String>, Option<String>) = sqlx::query_as(
+        "SELECT created_by, authorisation_requested_by FROM exams.publication WHERE id = $1",
+    )
+    .bind(id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    sutra_kernel::approval::ensure_independent_decider(
+        actor.id.as_deref(),
+        [makers.0.as_deref(), makers.1.as_deref()]
+            .into_iter()
+            .flatten(),
+        "result publication",
+    )?;
     let p2 = if approve {
+        freeze_publication_set(&mut tx, tenant, &p).await?;
         set_publication_status(
             &mut tx,
             tenant,
@@ -2402,8 +2750,32 @@ async fn publish_in_tx(
     actor: &Actor,
 ) -> Result<(PublicationRow, PublishSummary), KernelError> {
     let scope = ExecutionScope::institution(tenant, p.institution_id);
-    let approved = session_results(conn, tenant, p.session_id, ResultStatus::Approved).await?;
-    if approved.is_empty() {
+    // DEF-I-009: never before the scheduled date or while a delay is in force.
+    let today: NaiveDate = sqlx::query_scalar("SELECT current_date")
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(map_db_error)?;
+    if let Some(on) = p.scheduled_on.filter(|d| today < *d) {
+        return Err(KernelError::Conflict(format!(
+            "publication is scheduled for {on}; it cannot be published before then"
+        )));
+    }
+    if let Some(until) = p.delayed_until.filter(|d| today < *d) {
+        return Err(KernelError::Conflict(format!(
+            "publication is delayed until {until}; it cannot be published before then"
+        )));
+    }
+    // DEF-I-010: only the result set frozen at authorisation is published.
+    let frozen: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT result_id FROM exams.publication_snapshot WHERE tenant_id = $1 \
+         AND publication_id = $2 ORDER BY created_at, id",
+    )
+    .bind(tenant.as_uuid())
+    .bind(p.id)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    if frozen.is_empty() {
         return Err(KernelError::Conflict(
             "no approved results to publish".into(),
         ));
@@ -2414,6 +2786,67 @@ async fn publish_in_tx(
         reason: None,
         process_instance_id: p.process_instance_id.as_deref(),
     };
+    let mut approved = Vec::new();
+    for id in frozen {
+        let r = load_result(conn, tenant, TermResultId(id), true).await?;
+        let skip = if r.status != ResultStatus::Approved {
+            Some(format!(
+                "result is {} since authorisation; not published",
+                r.status
+            ))
+        } else {
+            // DEF-I-004: a malpractice case opened after approval withholds the result.
+            let open = open_malpractice_cases(conn, tenant, r.registration_id.as_uuid()).await?;
+            if open.is_empty() {
+                None
+            } else {
+                let why = format!("malpractice case {} pending", open.join(", "));
+                let w = change_result_status(
+                    conn,
+                    tenant,
+                    &r,
+                    ResultStatus::Withheld,
+                    &StatusChange {
+                        cause_event_type: RESULT_WITHHELD,
+                        reason: Some(&why),
+                        process_instance_id: None,
+                    },
+                    actor,
+                )
+                .await?;
+                event(
+                    conn,
+                    &scope,
+                    RESULT_WITHHELD,
+                    RESULT_WITHHELD_SCHEMA,
+                    w.id.to_string(),
+                    &result_status_payload(&w, Some(r.status), Some(why.clone()), None),
+                    actor,
+                )
+                .await?;
+                Some(why)
+            }
+        };
+        match skip {
+            None => approved.push(r),
+            Some(detail) => {
+                sum.skipped += 1;
+                sqlx::query(
+                    "INSERT INTO exams.publication_item (tenant_id, publication_id, result_id, \
+                     registration_id, outcome, detail) VALUES ($1, $2, $3, $4, 'skipped', $5) \
+                     ON CONFLICT (publication_id, result_id) DO NOTHING",
+                )
+                .bind(tenant.as_uuid())
+                .bind(p.id)
+                .bind(r.id.as_uuid())
+                .bind(r.registration_id.as_uuid())
+                .bind(detail)
+                .execute(&mut *conn)
+                .await
+                .map_err(map_db_error)?;
+            }
+        }
+    }
     for r in &approved {
         let already: bool = sqlx::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM exams.term_result WHERE tenant_id = $1 \
@@ -2460,8 +2893,7 @@ async fn publish_in_tx(
         .map_err(map_db_error)?;
     }
     for r in session_results(conn, tenant, p.session_id, ResultStatus::Withheld).await? {
-        sum.skipped += 1;
-        sqlx::query(
+        let inserted = sqlx::query(
             "INSERT INTO exams.publication_item (tenant_id, publication_id, result_id, \
              registration_id, outcome, detail) VALUES ($1, $2, $3, $4, 'skipped', $5) \
              ON CONFLICT (publication_id, result_id) DO NOTHING",
@@ -2474,6 +2906,9 @@ async fn publish_in_tx(
         .execute(&mut *conn)
         .await
         .map_err(map_db_error)?;
+        if inserted.rows_affected() > 0 {
+            sum.skipped += 1;
+        }
     }
     let p2 = set_publication_status(
         conn,
@@ -2539,7 +2974,9 @@ async fn publish_in_tx(
     Ok((p3, sum))
 }
 
-/// Publishes the session's approved results (`authorised | ready | failed` → `published`).
+/// Publishes the result set frozen when the publication was authorised (DEF-I-010; results
+/// still `approved`, none with an open malpractice case — DEF-I-004), never before its
+/// scheduled date / delay (DEF-I-009) (`authorised | ready | failed` → `published`).
 /// A failure rolls the run back and leaves the publication `failed` with the error, so
 /// [`retry`](publish_publication) recovers safely (L3-I-116); re-runs never republish.
 pub async fn publish_publication(

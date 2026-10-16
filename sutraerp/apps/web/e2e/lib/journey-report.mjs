@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+/** Renders journey-results.json (journey.e2e.mjs) as the Markdown job summary. */
+import { readFileSync } from "node:fs";
+const r = JSON.parse(readFileSync(process.argv[2], "utf8"));
+const esc = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, "<br>");
+const icon = { pass: "✅ pass", fail: "❌ fail", known: "❌ fail (known open defect — not counted)", gap: "⚠️ gap", skip: "⏭️ skip" };
+const lines = [];
+lines.push(`## SutraERP Part 1 — full-stack journey (${r.auth ?? "?"} auth)`);
+const steps = r.steps ?? [];
+const n = (s) => steps.filter((x) => x.status === s).length;
+lines.push("", `**${n("pass")} passed · ${n("fail")} failed · ${n("known")} known open defect(s)** · ${(r.gaps ?? []).length} step(s) via API — commit \`${(r.sha ?? process.env.GITHUB_SHA ?? "").slice(0, 12)}\`, run ${process.env.GITHUB_RUN_ID ?? r.runId ?? "local"}`, "");
+lines.push("| # | Phase | Step | Driven by | Result | Evidence |", "|---|---|---|---|---|---|");
+steps.forEach((s, i) => lines.push(`| ${i + 1} | ${esc(s.phase ?? "")} | ${esc(s.name)} | ${esc(s.via ?? "")} | ${icon[s.status] ?? s.status} | ${esc((s.evidence ?? []).slice(0, 12).join("\n"))} |`));
+if (r.gaps?.length) {
+  lines.push("", "### Steps driven through the API (gaps)", "", "| Step | Why |", "|---|---|");
+  for (const g of r.gaps) lines.push(`| ${esc(g.step)} | ${esc(g.why)} |`);
+}
+if (r.decisions?.length) {
+  lines.push("", "### Approval decisions (human mode: maker ≠ checker)", "", "| Kind | Record | Before | Decided by | Maker's self-decision | After | Step |", "|---|---|---|---|---|---|---|");
+  for (const a of r.decisions) lines.push(`| ${esc(a.kind)} | \`${esc(a.id)}\` | ${esc(a.before)} | ${esc(a.earlier ? "earlier step" : a.decider)} | ${esc(a.selfDecision ?? "—")} | ${esc(a.after)} | ${esc(a.step)} |`);
+}
+if (r.defects?.length) {
+  lines.push("", "### Defects observed", "");
+  for (const d of r.defects) lines.push(`- ${esc(d)}`);
+}
+console.log(lines.join("\n"));

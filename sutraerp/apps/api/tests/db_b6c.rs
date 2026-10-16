@@ -426,8 +426,13 @@ async fn results_engine_publication_and_grade_cards() {
     assert_eq!(mine["items"][0]["lines"].as_array().unwrap().len(), 2);
     let (s, _) = read(&app, &aarav, &format!("{B}/exam-sessions/{sid}/results")).await;
     assert_eq!(s, StatusCode::FORBIDDEN, "students have no staff read");
+    // Part 1 S3 (DEF-I-006): exam.read no longer exposes results to faculty (examination office only).
     let (s, _) = read(&app, &meera, &format!("{B}/exam-sessions/{sid}/results")).await;
-    assert_eq!(s, StatusCode::OK, "faculty hold exam.read");
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "faculty must not read results (DEF-I-006)"
+    );
 
     // ---- grade cards: issue, duplicate, self view.
     let (s, card) = call(
@@ -1292,9 +1297,11 @@ async fn reopening_and_pre_publication_replacement() {
         Some("60"),
     )
     .await;
-    let st = sutra_api::app::exams_deps(
+    let st = sutra_api::app::exams_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let t = setup.tenant();

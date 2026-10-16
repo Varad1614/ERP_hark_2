@@ -92,9 +92,11 @@ async fn leave_lifecycle_attendance_and_workload() {
     let setup = b7::people_setup(&app, &admin, &pool, TENANT, "Leave University").await;
     let inst = setup.institution().as_uuid();
     let scope = setup.scope();
-    let state = sutra_api::app::people_deps(
+    let state = sutra_api::app::people_deps_with(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
+        // Part 1: explicit dev/test auto-approval opt-in (the subject here is not approval).
+        sutra_kernel::approval::ApprovalMode::AutoApprove,
     )
     .into_state();
     let ms = b7::seed_staff(
@@ -869,9 +871,12 @@ async fn leave_lifecycle_attendance_and_workload() {
     assert_eq!(s, StatusCode::OK, "{case}");
     assert_eq!(case["status"], "completed");
     assert_eq!(case["leaveOutcome"], "approved");
+    // S3-appr (SoD): an independent administrator (not the case's requester) shows that a
+    // completed case has nothing left to decide.
+    let dean = login(&app, "dean@sutra.dev").await;
     let (s, _) = call(
         &app,
-        &admin,
+        &dean,
         "POST",
         &format!("{P}/leave-cases/{case_id}/decision"),
         json!({"decision": "approve"}),
@@ -1363,6 +1368,7 @@ fn auth(subject: &str, role: Role, tenant: TenantId) -> AuthContext {
         mfa_level: MfaLevel::None,
         amr: vec!["pwd".into()],
         step_up_enforced: false,
+        privileged_mfa_enforced: false,
     }
 }
 

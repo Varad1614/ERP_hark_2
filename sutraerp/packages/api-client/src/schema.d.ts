@@ -483,6 +483,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic/enrolment-overrides/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One eligibility override request (`academic.read`). */
+        get: operations["section_enrolment_override_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/enrolment-overrides/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide an eligibility override (`academic.offering.decide`, step-up; never the requester):
+         *     approve seats the student through the seat gate (capacity is never overridden); reject
+         *     (reason required) closes the request.
+         */
+        post: operations["section_enrolment_override_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/academic/enrolments/{id}": {
         parameters: {
             query?: never;
@@ -1154,6 +1192,26 @@ export interface paths {
         put?: never;
         /** Submit for publication (`FLEXIBLE_LEARNING_POLICY`; auto-approval makes it effective). */
         post: operations["flexible_policy_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/institutions/{id}/attendance-corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Attendance corrections of an institution: the HOD / administrator decision queue
+         *     (`attendance.correct`).
+         */
+        get: operations["attendance_correction_queue"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3536,6 +3594,27 @@ export interface paths {
         put?: never;
         /** Cancel a section without seated students (reason required, `offering.manage`). */
         post: operations["offering_section_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic/sections/{id}/enrolment-overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an eligibility override (`offering.enrolment.manage`): the student fails the seat
+         *     gate only on overridable checks (registration, restrictions, window). Pending until an
+         *     independent approver decides it (auto-approval in development seats at once).
+         */
+        post: operations["section_enrolment_override_request"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6488,8 +6567,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Decide a fine waiver (`campus.approve`, step-up; If-Match): approve → `waived`, reject →
-         *     back to `assessed` (billable).
+         * Decide a fine waiver (`library.fine.waive.approve`, step-up; If-Match; Part 1 DEF-G-002):
+         *     approve → `waived`, reject → back to `assessed` (billable). The decider must not be whoever
+         *     assessed the fine or requested the waiver (`403`, separation of duties).
          */
         post: operations["campus_library_fine_decide"];
         delete?: never;
@@ -6509,7 +6589,9 @@ export interface paths {
         put?: never;
         /**
          * Request a waiver of an assessed fine (`campus.library.manage`; If-Match; reason required;
-         *     `FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final).
+         *     `FINE_WAIVER`). Only before billing and once the loan is closed (the amount is final). Part 1
+         *     (DEF-G-002): the fine stays `waiver_requested` until another user with
+         *     `library.fine.waive.approve` decides it.
          */
         post: operations["campus_library_fine_waiver"];
         delete?: never;
@@ -15997,8 +16079,9 @@ export interface paths {
         /**
          * Submit the activation request (`configured → pending_approval`).
          * @description Refused with 409 while a required activation-readiness item is unmet (the detail lists the
-         *     blocking keys). The approval step runs through the WorkflowPort; in the Batch 2 auto-approval
-         *     mode the response already shows the decided (`active`) institution. Requires
+         *     blocking keys). The approval step runs through the WorkflowPort; the institution stays
+         *     `pending_approval` until the Institution Activation Authority decides (`/decision`,
+         *     `institution.activation.decide` + MFA step-up). Submitting never activates. Requires
          *     `institution.manage`.
          */
         post: operations["institution_submit"];
@@ -17662,6 +17745,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/institutions/{id}/payroll-disbursements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disbursement batches of an institution, newest first (`people.payroll.manage`). */
+        get: operations["people_payroll_disbursement_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/institutions/{id}/payroll-periods": {
         parameters: {
             query?: never;
@@ -18673,6 +18773,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/payroll-disbursements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One disbursement batch with its lines (`people.payroll.manage`). */
+        get: operations["people_payroll_disbursement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-disbursements/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending disbursement batch (`people.payroll.approve`, step-up). */
+        post: operations["people_payroll_disbursement_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-disbursements/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the batch's file (`people.payroll.manage`; approved or paid batches): the generic
+         *     NEFT bulk transfer CSV for net pay, the remittance advice CSV for statutory dues. Bank
+         *     submission is BLOCKED_EXTERNAL (no bank API): upload the file to the bank portal.
+         */
+        get: operations["people_payroll_disbursement_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-disbursements/{id}/mark-paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an approved batch paid with the bank / challan reference (`people.payroll.approve`,
+         *     step-up): posts Dr salaries payable (or statutory dues payable) / Cr bank in Finance. A paid
+         *     batch cannot be paid again (409).
+         */
+        post: operations["people_payroll_disbursement_mark_paid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/payroll-periods/{id}/runs": {
         parameters: {
             query?: never;
@@ -18791,6 +18967,28 @@ export interface paths {
         put?: never;
         /** Decide a pending run (`people.payroll.approve`, step-up). */
         post: operations["people_payroll_run_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/payroll-runs/{id}/disbursements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disbursement batches of a payroll run (`people.payroll.manage`). */
+        get: operations["people_payroll_disbursement_list_for_run"];
+        put?: never;
+        /**
+         * Create the disbursement batch of a posted payroll run (`people.payroll.manage`). Idempotent:
+         *     201 with the new batch, or 200 with the live batch of that run and kind. Requests approval
+         *     (`people.payroll_disbursement_approval`).
+         */
+        post: operations["people_payroll_disbursement_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -19511,6 +19709,27 @@ export interface paths {
         /** Attendance days of a staff member (`people.read`). */
         get: operations["people_attendance_staff_list"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/bank-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A staff member's salary bank account (`people.payroll.manage`; 404 when none is recorded). */
+        get: operations["people_pay_bank_account_get"];
+        /**
+         * Record or replace a staff member's salary bank account (`people.payroll.manage`). Batches
+         *     already created keep the details they snapshotted.
+         */
+        put: operations["people_pay_bank_account_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -20550,9 +20769,11 @@ export interface paths {
         get: operations["resources_payable_payment_list"];
         put?: never;
         /**
-         * Draft a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each
-         *     allocation settles a **posted** invoice of the supplier, at most its outstanding amount
-         *     (net of other draft payments).
+         * Request a vendor payment (`resources.procurement.manage`; Idempotency-Key; F-045): each
+         *     allocation settles a **posted** invoice of the supplier, at most its outstanding amount (net of
+         *     other payments pending approval or approved). Part 1 (DEF-J-003): the payment starts
+         *     `VENDOR_PAYMENT_APPROVAL` and stays `pending_approval` until a procurement / finance approver
+         *     other than its maker decides it (`POST /vendor-payments/{id}/decision`); nothing posts before.
          */
         post: operations["resources_payable_payment_create"];
         delete?: never;
@@ -21185,6 +21406,50 @@ export interface paths {
         patch: operations["resources_supplier_update"];
         trace?: never;
     };
+    "/api/v1/resources/suppliers/{id}/bank-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request new bank details for an approved supplier (`resources.procurement.manage`; If-Match;
+         *     Part 1 · Stage 3, DEF-J-004). The live details stay in use; the request waits for
+         *     `SUPPLIER_BANK_CHANGE_APPROVAL` (approvers notified, audited with masked accounts). One open
+         *     request at a time (`409`).
+         */
+        post: operations["resources_supplier_bank_change_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/suppliers/{id}/bank-change/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a supplier's pending bank-change request (`resources.approve` **or**
+         *     `finance.approve`, step-up; If-Match; Part 1 · Stage 3, DEF-J-004): approve → the new details
+         *     go live (`supplier.bank_change_approved` warns finance); reject → discarded (reason
+         *     required). Whoever requested the change — or a system actor — is refused (`403`).
+         */
+        post: operations["resources_supplier_bank_change_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/suppliers/{id}/decision": {
         parameters: {
             query?: never;
@@ -21398,6 +21663,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resources/vendor-payments/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a vendor payment awaiting approval (`resources.approve` **or** `finance.approve`,
+         *     step-up; If-Match; Part 1 DEF-J-003): approve → `approved` (it may now post); reject →
+         *     `rejected` (reason required; allocations released). The maker of the payment — whoever
+         *     requested it — is refused (`403`, separation of duties), as is a system actor.
+         */
+        post: operations["resources_payable_payment_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/vendor-payments/{id}/post": {
         parameters: {
             query?: never;
@@ -21408,9 +21695,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Post a drafted payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr
+         * Post an **approved** payment to Finance (`resources.procurement.manage`; If-Match; F-045): Dr
          *     accounts payable / Cr the main bank account through `ProcurementPostingPort` (idempotent);
-         *     settles the invoices (`paid` once fully paid); `vendor_payment.posted`.
+         *     settles the invoices (`paid` once fully paid); `vendor_payment.posted`. A payment still
+         *     pending approval, or rejected, is refused (409; Part 1 DEF-J-003).
          */
         post: operations["resources_payable_payment_post"];
         delete?: never;
@@ -28123,6 +28411,49 @@ export interface components {
         AttendanceCorrectionList: {
             items: components["schemas"]["AttendanceCorrection"][];
         };
+        AttendanceCorrectionQueue: {
+            items: components["schemas"]["AttendanceCorrectionQueueItem"][];
+        };
+        /**
+         * @description A correction in an institution's decision queue, with the student, session and section it
+         *     touches (DEF-D-003: the HOD / administrator decision screen).
+         */
+        AttendanceCorrectionQueueItem: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            displayName: string;
+            evidence?: string | null;
+            fromMark: components["schemas"]["AttendanceMark"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            offeringCode: string;
+            reason: string;
+            /** Format: uuid */
+            recordId: string;
+            requestedBy?: string | null;
+            sectionCode: string;
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: date */
+            sessionDate: string;
+            /** Format: uuid */
+            sessionId: string;
+            /** @description `HH:MM`. */
+            startsAt: string;
+            status: components["schemas"]["ChangeRequestStatus"];
+            statusReason?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentNumber: string;
+            toMark: components["schemas"]["AttendanceMark"];
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * Format: uuid
          * @description One staff attendance day (payroll input).
@@ -29890,6 +30221,7 @@ export interface components {
             curriculumVersionId?: string | null;
             /** Format: date */
             dateOfBirth?: string | null;
+            duplicateOverride?: null | components["schemas"]["DuplicateOverride"];
             email?: string | null;
             familyName?: string | null;
             gender?: string | null;
@@ -30978,6 +31310,15 @@ export interface components {
         DuplicateCaseList: {
             items: components["schemas"]["DuplicateCase"][];
         };
+        /** @description Override of duplicate-applicant detection (DEF-C-003). */
+        DuplicateOverride: {
+            /**
+             * Format: uuid
+             * @description One of the candidates the 409 reported.
+             */
+            candidateId: string;
+            reason: string;
+        };
         /**
          * @description Eligibility commands (L3-E-029).
          * @enum {string}
@@ -31238,6 +31579,49 @@ export interface components {
             /** Format: date */
             startDate: string;
             status: components["schemas"]["EngagementStatus"];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Request an eligibility override for one student in a section. */
+        EnrolmentOverrideCreate: {
+            /**
+             * Format: uuid
+             * @description Home institution of a cross-institution student.
+             */
+            homeInstitutionId?: string | null;
+            /** @description Why the student should be seated despite the failed eligibility checks (required). */
+            reason: string;
+            /** Format: uuid */
+            studentId: string;
+        };
+        /** @description An eligibility override request (`pending` → `approved` with the seat, or `rejected`). */
+        EnrolmentOverrideRequest: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /**
+             * Format: uuid
+             * @description The seat created by the approval.
+             */
+            enrolmentId?: string | null;
+            /** Format: uuid */
+            homeInstitutionId?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offeringId: string;
+            processInstanceId?: string | null;
+            reason: string;
+            requestedBy?: string | null;
+            /** Format: uuid */
+            sectionId: string;
+            /** @description `pending` | `approved` | `rejected`. */
+            status: string;
+            /** Format: uuid */
+            studentId: string;
             /** Format: int64 */
             version: number;
         };
@@ -38737,6 +39121,32 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Bank account body (`PUT /staff/{id}/bank-account`). */
+        PayrollBankAccountPut: {
+            accountHolderName: string;
+            /** @example 001234567890 */
+            accountNumber: string;
+            bankName?: string | null;
+            /** @example HDFC0001234 */
+            ifsc: string;
+        };
+        /** @description A staff member's salary bank account (the account number is masked). */
+        PayrollBankAccountView: {
+            accountHolderName: string;
+            /** @example XXXXXXXX7890 */
+            accountNumberMasked: string;
+            bankName?: string | null;
+            /** @example HDFC0001234 */
+            ifsc: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            staffId: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
         PayrollBulkFailure: {
             /** Format: uuid */
             id: string;
@@ -38811,6 +39221,99 @@ export interface components {
         PayrollDecisionBody: {
             decision: components["schemas"]["PayrollDecision"];
             reason?: string | null;
+        };
+        /** @description Create body (`POST /payroll-runs/{id}/disbursements`). */
+        PayrollDisbursementCreate: {
+            kind: components["schemas"]["PayrollDisbursementKind"];
+        };
+        /** @description A batch with its lines. */
+        PayrollDisbursementDetail: {
+            batch: components["schemas"]["PayrollDisbursementView"];
+            lines: components["schemas"]["PayrollDisbursementLineView"][];
+        };
+        /**
+         * @description Wire name of a payout kind (`net_pay` / `statutory_dues`).
+         * @enum {string}
+         */
+        PayrollDisbursementKind: "net_pay" | "statutory_dues";
+        /** @description One payee or due of a batch (the account number is masked). */
+        PayrollDisbursementLineView: {
+            accountHolderName?: string | null;
+            /** @example XXXXXXXX7890 */
+            accountNumberMasked?: string | null;
+            /** @example 43800.00 */
+            amount: string;
+            componentCode?: string | null;
+            componentName?: string | null;
+            displayName?: string | null;
+            ifsc?: string | null;
+            /** Format: int32 */
+            lineNo: number;
+            /** Format: uuid */
+            staffId?: string | null;
+            staffNumber?: string | null;
+        };
+        PayrollDisbursementList: {
+            items: components["schemas"]["PayrollDisbursementView"][];
+        };
+        /** @description Mark-paid body: the bank transaction reference (UTR) or the challan reference. */
+        PayrollDisbursementMarkPaid: {
+            /**
+             * Format: date
+             * @description Payment value date (default: today in the institution's timezone; never in the future).
+             */
+            paidOn?: string | null;
+            /** @example UTR2026113000123 */
+            reference: string;
+        };
+        /**
+         * @description Status of a disbursement batch.
+         * @enum {string}
+         */
+        PayrollDisbursementStatus: "pending_approval" | "approved" | "rejected" | "paid";
+        /** @description A payroll disbursement batch (net pay transfer or statutory remittance). */
+        PayrollDisbursementView: {
+            /** Format: date-time */
+            approvedAt?: string | null;
+            /**
+             * @description `BLOCKED_EXTERNAL`: no bank API is integrated; upload the file to the bank portal.
+             * @example BLOCKED_EXTERNAL
+             */
+            bankSubmission: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string | null;
+            /** Format: date-time */
+            fileGeneratedAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            journalEntryNumber?: string | null;
+            kind: components["schemas"]["PayrollDisbursementKind"];
+            /** Format: int32 */
+            lineCount: number;
+            /** @example PD-000001 */
+            number: string;
+            /** Format: date-time */
+            paidAt?: string | null;
+            paidBy?: string | null;
+            /** Format: date */
+            paidOn?: string | null;
+            paymentReference?: string | null;
+            /** Format: uuid */
+            payrollRunId: string;
+            /** @example PR-000001 */
+            payrollRunNumber: string;
+            processInstanceId?: string | null;
+            status: components["schemas"]["PayrollDisbursementStatus"];
+            statusReason?: string | null;
+            /** @example 43800.00 */
+            totalAmount: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description A business exception found by calculation (blocks validation). */
         PayrollException: {
@@ -41929,7 +42432,7 @@ export interface components {
          *     [`Permission`] map below, never the role name directly.
          * @enum {string}
          */
-        Role: "administrator" | "faculty" | "student";
+        Role: "administrator" | "faculty" | "student" | "finance_approver" | "exam_controller" | "registrar" | "payroll_approver" | "procurement_approver";
         /** @description Inspection outcome. */
         RoomInspectionComplete: {
             /**
@@ -43890,6 +44393,17 @@ export interface components {
          * @enum {string}
          */
         SupplementaryEligibilityStatus: "eligible" | "applied" | "authorised" | "exhausted" | "cancelled";
+        /** @description New bank details for an approved supplier (`POST /suppliers/{id}/bank-change`). */
+        SupplierBankChangeRequest: {
+            /** @description Defaults to the current account name. */
+            bankAccountName?: string | null;
+            /** @example 001234567890 */
+            bankAccountNumber: string;
+            /** @example HDFC0001234 */
+            bankIfsc: string;
+            /** @description Why the details change (shown to the approver; required). */
+            reason: string;
+        };
         SupplierList: {
             items: components["schemas"]["SupplierView"][];
         };
@@ -43931,6 +44445,18 @@ export interface components {
             bankAccountName?: string | null;
             /** @description Masked (`XXXXXX7890`). */
             bankAccountNumber?: string | null;
+            /** @description Part 1 · Stage 3 (DEF-J-004): a bank-change request awaits an independent decision. */
+            bankChangePending: boolean;
+            bankChangeProcessInstanceId?: string | null;
+            bankChangeReason?: string | null;
+            /**
+             * Format: uuid
+             * @description Id of the open bank-change request (its status history is keyed by it).
+             */
+            bankChangeRequestId?: string | null;
+            /** Format: date-time */
+            bankChangeRequestedAt?: string | null;
+            bankChangeRequestedBy?: string | null;
             bankIfsc?: string | null;
             /** Format: uuid */
             canonicalSupplierId?: string | null;
@@ -43949,6 +44475,10 @@ export interface components {
             number: string;
             /** @example ABCDE1234F */
             pan?: string | null;
+            pendingBankAccountName?: string | null;
+            /** @description Masked (`XXXXXX7890`). */
+            pendingBankAccountNumber?: string | null;
+            pendingBankIfsc?: string | null;
             phone?: string | null;
             processInstanceId?: string | null;
             /** Format: date-time */
@@ -45233,8 +45763,15 @@ export interface components {
         VendorPaymentView: {
             /** @example 2400.00 */
             amount: string;
+            /** @description Who asked for the payment (never its approver). */
+            approvalRequestedBy?: string | null;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            /** @description The independent approver who decided it. */
+            decidedBy?: string | null;
+            decisionReason?: string | null;
             entryNumber?: string | null;
             /** Format: uuid */
             id: string;
@@ -45248,8 +45785,10 @@ export interface components {
             paymentDate: string;
             /** Format: date-time */
             postedAt?: string | null;
+            /** @description `VENDOR_PAYMENT_APPROVAL` instance. */
+            processInstanceId?: string | null;
             reference?: string | null;
-            /** @description `draft | posted`. */
+            /** @description `pending_approval | approved | rejected | posted` (Part 1 DEF-J-003). */
             status: string;
             /** Format: uuid */
             supplierId: string;
@@ -46751,6 +47290,109 @@ export interface operations {
                 };
             };
             "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_override_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentOverrideRequest"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_override_decision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the override request */
+                "If-Match": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStepDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentOverrideRequest"];
+                };
+            };
+            /** @description Missing permission, or the requester deciding their own override */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not pending, or the seat gate fails (e.g. the section is full) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -48821,6 +49463,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FlexibleLearningPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    attendance_correction_queue: {
+        parameters: {
+            query?: {
+                /** @description `requested` lists the corrections awaiting a decision. */
+                status?: components["schemas"]["ChangeRequestStatus"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrectionQueue"];
                 };
             };
             "4XX": {
@@ -55988,6 +56662,63 @@ export interface operations {
                 };
             };
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    section_enrolment_override_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+                /** @description Required. Session CSRF token. */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                /** @description Section id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolmentOverrideCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentOverrideRequest"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No override needed, not overridable (full, inactive) or already requested */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -90988,6 +91719,35 @@ export interface operations {
             };
         };
     };
+    people_payroll_disbursement_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_payroll_period_list: {
         parameters: {
             query?: never;
@@ -93194,6 +93954,139 @@ export interface operations {
             };
         };
     };
+    people_payroll_disbursement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_mark_paid: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the batch */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDisbursementMarkPaid"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_payroll_run_list: {
         parameters: {
             query?: never;
@@ -93479,6 +94372,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayrollRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_list_for_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_payroll_disbursement_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollDisbursementCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementView"];
+                };
+            };
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollDisbursementView"];
                 };
             };
             "4XX": {
@@ -94994,6 +95962,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceDayList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_pay_bank_account_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollBankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_pay_bank_account_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollBankAccountPut"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollBankAccountView"];
                 };
             };
             "4XX": {
@@ -98990,6 +100020,80 @@ export interface operations {
             };
         };
     };
+    resources_supplier_bank_change_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierBankChangeRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_supplier_bank_change_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the supplier */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     resources_supplier_decide: {
         parameters: {
             query?: never;
@@ -99363,6 +100467,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorPaymentDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_payable_payment_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the payment */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourcesDecisionBody"];
+            };
+        };
         responses: {
             200: {
                 headers: {

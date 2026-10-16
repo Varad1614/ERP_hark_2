@@ -74,6 +74,7 @@ mod tests {
             mfa_level: sutra_kernel::auth::MfaLevel::None,
             amr: vec![],
             step_up_enforced: false,
+            privileged_mfa_enforced: false,
         });
         let r = extract(req).await;
         assert!(r.is_ok_and(|s| s.0 == scope));

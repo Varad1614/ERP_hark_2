@@ -16,7 +16,8 @@
 //! 4. With [`ApprovalMode::AwaitDecision`] (later batches, Flowable) the aggregate stays pending;
 //!    a human with the decide/publish permission calls the slice's decision endpoint.
 //!
-//! Batch 4 runs [`ApprovalMode::AutoApprove`] with the platform `NoopWorkflowAdapter`; tests build a
+//! The mode comes from `SUTRA_APPROVAL_MODE` (default [`ApprovalMode::AwaitDecision`];
+//! [`ApprovalMode::AutoApprove`] is a dev/test opt-in refused in production); tests build a
 //! [`AcademicState`] with [`ApprovalMode::AwaitDecision`] to cover the explicit decision endpoint.
 
 use crate::shared::AcademicState;
@@ -93,15 +94,9 @@ pub mod process {
     ];
 }
 
-/// How approval steps resolve.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-pub enum ApprovalMode {
-    /// Batch 4 default: the process is started (no-op adapter) and approved at once.
-    #[default]
-    AutoApprove,
-    /// The aggregate stays pending until a decision endpoint is called.
-    AwaitDecision,
-}
+/// How approval steps resolve: the one config-driven mode shared by every module
+/// (`SUTRA_APPROVAL_MODE`; default human decision, auto-approval is a dev/test opt-in).
+pub use sutra_kernel::approval::ApprovalMode;
 
 /// Result of [`request_approval`].
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -149,6 +144,16 @@ pub async fn request_approval(
             },
         )
         .await?;
+    // Part 1 · S3-appr: who asked for this decision (separation of duties on its decision path).
+    sutra_persistence::approval::record_request(
+        &state.pool,
+        scope.tenant_id.as_uuid(),
+        &r.process_definition_key,
+        &r.business_key,
+        &r.process_instance_id,
+        sutra_kernel::approval::current_requester().as_deref(),
+    )
+    .await?;
     Ok(match state.approvals {
         ApprovalMode::AutoApprove => ApprovalOutcome::Approved {
             process_instance_id: r.process_instance_id,
@@ -172,7 +177,7 @@ mod tests {
         let keys: std::collections::HashSet<_> = process::ALL.iter().collect();
         assert_eq!(keys.len(), process::ALL.len());
         assert!(process::ALL.iter().all(|k| k.starts_with("academic.")));
-        assert_eq!(ApprovalMode::default(), ApprovalMode::AutoApprove);
+        assert_eq!(ApprovalMode::default(), ApprovalMode::AwaitDecision);
         let o = ApprovalOutcome::Pending {
             process_instance_id: "p".into(),
         };

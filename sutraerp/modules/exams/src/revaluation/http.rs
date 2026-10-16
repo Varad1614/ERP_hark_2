@@ -300,6 +300,8 @@ pub async fn decide(
     Json(b): Json<DecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ExamApprove)?;
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "revaluation").await?;
     let v = expected!(headers);
     let r = repo::decide(
         &st,

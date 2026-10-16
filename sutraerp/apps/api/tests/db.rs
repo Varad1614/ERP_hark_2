@@ -1343,21 +1343,32 @@ async fn runtime_role_is_least_privilege_and_owns_nothing() {
     .unwrap();
     assert_eq!(owned, 0, "runtime roles own no tables");
 
-    // DML that the application needs works…
+    // DML that the application needs works… inside the tenant context the API's session middleware
+    // gives every request (Part 1 S3, DEF-X-003: RLS is forced on tenant tables).
     let t = fresh_tenant();
-    let id: uuid::Uuid = sqlx::query_scalar(
-        "INSERT INTO platform.notification (tenant_id, recipient_role, category, title) \
-         VALUES ($1::uuid, 'student', 'system', 'grant check') RETURNING id",
-    )
-    .bind(t)
-    .fetch_one(&rt)
-    .await
-    .unwrap();
-    sqlx::query("DELETE FROM platform.notification WHERE id = $1")
-        .bind(id)
-        .execute(&rt)
+    let insert = "INSERT INTO platform.notification (tenant_id, recipient_role, category, title) \
+         VALUES ($1::uuid, 'student', 'system', 'grant check') RETURNING id";
+    // Without a context (a code path that lost it) the write is refused: fails closed.
+    let refused = sqlx::query_scalar::<_, uuid::Uuid>(insert)
+        .bind(t)
+        .fetch_one(&rt)
         .await
-        .unwrap();
+        .expect_err("no tenant context: RLS refuses the write");
+    assert!(permission_denied(refused));
+    let scope = sutra_kernel::scope::ExecutionScope::tenant(t.parse().unwrap());
+    sutra_kernel::db_context::scoped(scope, async {
+        let id: uuid::Uuid = sqlx::query_scalar(insert)
+            .bind(t)
+            .fetch_one(&rt)
+            .await
+            .unwrap();
+        sqlx::query("DELETE FROM platform.notification WHERE id = $1")
+            .bind(id)
+            .execute(&rt)
+            .await
+            .unwrap();
+    })
+    .await;
     sqlx::query("SELECT count(*) FROM institution.institution")
         .execute(&rt)
         .await

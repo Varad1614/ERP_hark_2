@@ -395,6 +395,18 @@ pub async fn decide_adjustment(
             a.status
         )));
     }
+    // Part 1 (DEF-X-002): the maker of a payroll adjustment never decides it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        c.tenant,
+        ADJ,
+        id,
+        &["pending_approval"],
+        &[],
+        c.actor.id.as_deref(),
+        "payroll adjustment",
+    )
+    .await?;
     let to = if approve {
         PayrollAdjustmentStatus::Approved
     } else {

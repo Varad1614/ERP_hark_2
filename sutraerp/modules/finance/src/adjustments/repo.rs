@@ -642,6 +642,18 @@ pub async fn decide(
             a.adjustment_number, a.status
         )));
     }
+    // Part 1 (DEF-X-002): the creator / submitter of an adjustment never decides it.
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        tenant,
+        "adjustment",
+        id.as_uuid(),
+        &["pending_approval"],
+        &[a.created_by.as_deref()],
+        actor.id.as_deref(),
+        "fee adjustment",
+    )
+    .await?;
     let a = if approve {
         let c = lock_charge(&mut tx, tenant, a.charge_id).await?;
         post_locked(&mut tx, &a, &c, today, actor.id.as_deref(), actor)

@@ -59,8 +59,14 @@ pub enum JobOutcome {
     Skipped,
 }
 
-/// Runs `job` once under its advisory lock.
+/// Runs `job` once under its advisory lock. Part 1 S3 (DEF-X-003): jobs work across tenants,
+/// so the run uses the system database context; a job that acts for one tenant narrows the
+/// transaction per item with [`crate::pool::apply_context`].
 pub async fn run_once(pool: &PgPool, job: &dyn SweepJob) -> Result<JobOutcome, sqlx::Error> {
+    sutra_kernel::db_context::system(run_locked(pool, job)).await
+}
+
+async fn run_locked(pool: &PgPool, job: &dyn SweepJob) -> Result<JobOutcome, sqlx::Error> {
     let mut tx = pool.begin().await?;
     let locked: bool = sqlx::query_scalar("SELECT pg_try_advisory_xact_lock($1)")
         .bind(lock_key(job.name()))
@@ -107,7 +113,11 @@ impl Scheduler {
             .map(|job| {
                 let pool = self.pool.clone();
                 let cancel = cancel.clone();
-                tokio::spawn(async move { job_loop(pool, job, cancel).await })
+                // Part 1 S3 (DEF-X-003): sweepers and consumers work across tenants (system
+                // database context); jobs that act for one tenant narrow it per item.
+                tokio::spawn(sutra_kernel::db_context::system(async move {
+                    job_loop(pool, job, cancel).await
+                }))
             })
             .collect()
     }

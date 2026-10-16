@@ -317,7 +317,7 @@ pub async fn search(
     q: Option<String>,
     limit: Option<i64>,
 ) -> Result<Vec<CatalogueRecordView>, KernelError> {
-    let needle = clean(q).map(|s| format!("%{}%", s.to_lowercase()));
+    let needle = clean(q).map(|s| sutra_persistence::like_contains(&s.to_lowercase()));
     let rows = sqlx::query(&format!(
         "{RECORD_SELECT} WHERE r.tenant_id = $1 AND ($2::uuid IS NULL OR r.institution_id = $2) \
          AND ($3::text IS NULL OR r.status = $3) AND ($4::text IS NULL OR lower(r.title || ' ' || \

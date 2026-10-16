@@ -28,3 +28,11 @@ regexes = [
   '''dev-only-change-me''',
   '''sutra-api-dev-only''',
 ]
+
+[[allowlists]]
+description = "Part 1 Stage 3 (S3-config): fake production-config fixtures of the config unit tests, committed in 2f630ac7/97009e63 and replaced by low-entropy 'unit-test-only-*' values; never a real credential (docs/readiness/security/config.md SEC-P1-CONFIG-010)"
+regexTarget = "match"
+regexes = [
+  '''Kc7tY2mQ9vR4xL8pW1sN6bZ3''',
+  '''Fw9pL2xR7tQ4mZ8vN3bK''',
+]

@@ -5,10 +5,11 @@
  *
  * - `PayrollAdminTab` — Admin → People → Payroll: configuration versions, periods, runs
  *   (calculate → validate → submit → approve → finalise → post → payslips → close), results,
- *   final settlements.
+ *   final settlements, disbursements (DEF-E-007: bank transfer batches of net pay and statutory
+ *   remittances — download the NEFT file, mark paid with the bank / challan reference).
  * - `MyPayslipsPanel` — My HR (`/leave`): the caller's own payslips.
  */
-import { Banknote, CalendarRange, FileText, Layers, Settings2, UserCheck, UserMinus } from "lucide-react";
+import { Banknote, CalendarRange, FileText, Landmark, Layers, Settings2, UserCheck, UserMinus } from "lucide-react";
 import { BentoTile, Button, DataTable, EmptyState, FormSelect, KpiTile } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -18,7 +19,7 @@ import { useWorkforceApi, wkeys } from "../workforce/hooks";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { pkeys, runActions, usePayrollApi } from "./hooks";
-import type { PayrollRun } from "./types";
+import type { DisbursementFile, DisbursementKind, PayrollDisbursement, PayrollRun } from "./types";
 
 export { PayrollApiProvider } from "./hooks";
 
@@ -143,6 +144,146 @@ function SalarySetup({ institutionId }: { institutionId: string }) {
             { key: "structure", header: "Structure", render: (a) => a.structureCode },
             { key: "from", header: "From", render: (a) => `${fmtDate(a.effectiveFrom)}${a.effectiveTo ? ` – ${fmtDate(a.effectiveTo)}` : ""}`, muted: true },
             { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
+          ]}
+        />
+      </BentoTile>
+      {prompt}
+      {dialog}
+    </>
+  );
+}
+
+const KIND_LABEL: Record<string, string> = { net_pay: "Net pay (NEFT)", statutory_dues: "Statutory dues (challan)" };
+
+/** Hands a generated file to the browser as a download (no-op where Blob URLs are unavailable). */
+function saveFile(f: DisbursementFile) {
+  if (typeof URL.createObjectURL !== "function") return;
+  const url = URL.createObjectURL(new Blob([f.content], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = f.fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * DEF-E-007 — disbursement batches of posted runs: salary bank accounts, a batch per run and kind
+ * (net pay → NEFT bulk file; statutory dues → remittance advice), approval, file download and
+ * mark paid (Finance posts Dr salaries / statutory dues payable, Cr bank). Bank submission is
+ * BLOCKED_EXTERNAL: the file is uploaded to the bank portal by hand.
+ */
+function Disbursements({ institutionId, runs }: { institutionId: string; runs: PayrollRun[] }) {
+  const api = usePayrollApi();
+  const workforce = useWorkforceApi();
+  const { run, submit, busy, dialog } = useCommand();
+  const { ask, prompt } = useAsk();
+  const batches = useQuery({ queryKey: pkeys.scoped(institutionId, "disbursements"), queryFn: () => api.disbursements(institutionId) }).data ?? [];
+  const staff = useQuery({ queryKey: wkeys.scoped(institutionId, "staff:"), queryFn: () => workforce.staff(institutionId) }).data ?? [];
+  const payable = runs.filter((r) => r.status === "posted" || r.status === "closed");
+  const header: RowAction[] = [
+    {
+      id: "bank-account",
+      label: "Bank account",
+      onClick: () =>
+        ask({
+          title: "Salary bank account",
+          name: "bank-account",
+          fields: [
+            { name: "staffId", label: "Staff member", type: "select", required: true, options: staff.map((x) => ({ value: x.id, label: `${x.staffNumber} · ${x.displayName}` })), initial: staff[0]?.id ?? "" },
+            { name: "accountHolderName", label: "Account holder", required: true },
+            { name: "accountNumber", label: "Account number", required: true, placeholder: "001234567890" },
+            { name: "ifsc", label: "IFSC", required: true, placeholder: "HDFC0001234" },
+            { name: "bankName", label: "Bank (optional)" },
+          ],
+          submitLabel: "Save",
+          onSubmit: (v) =>
+            submit(
+              () => api.putBankAccount(v.staffId ?? "", { accountHolderName: v.accountHolderName ?? "", accountNumber: v.accountNumber ?? "", ifsc: v.ifsc ?? "", bankName: v.bankName || undefined }),
+              (b) => `Bank account ${b.accountNumberMasked} saved`,
+            ),
+        }),
+    },
+  ];
+  if (payable.length > 0)
+    header.unshift({
+      id: "disbursement-new",
+      label: "New batch",
+      variant: "primary",
+      onClick: () =>
+        ask({
+          title: "New disbursement batch",
+          name: "disbursement-create",
+          fields: [
+            { name: "runId", label: "Posted payroll run", type: "select", required: true, options: payable.map((r) => ({ value: r.id, label: `${r.number} · ${inr(r.netPay)}` })), initial: payable[0]?.id ?? "" },
+            { name: "kind", label: "Batch", type: "select", required: true, options: [{ value: "net_pay", label: KIND_LABEL.net_pay ?? "Net pay" }, { value: "statutory_dues", label: KIND_LABEL.statutory_dues ?? "Statutory dues" }], initial: "net_pay" },
+          ],
+          submitLabel: "Create batch",
+          onSubmit: (v) => submit(() => api.createDisbursement(v.runId ?? "", (v.kind ?? "net_pay") as DisbursementKind), (d) => `${d.number} ready (${statusLabel(d.status)})`),
+        }),
+    });
+
+  const rowActs = (d: PayrollDisbursement): RowAction[] => {
+    const acts: RowAction[] = [];
+    if (d.status === "pending_approval") {
+      acts.push({ id: "disbursement-approve", label: "Approve", variant: "primary", onClick: () => void run(() => api.decideDisbursement(d.id, d.version, "approve"), `${d.number} approved`) });
+      acts.push({ id: "disbursement-reject", label: "Reject", onClick: () => ask({ title: `Reject ${d.number}`, name: "disbursement-reject", fields: [REASON], submitLabel: "Reject", onSubmit: (v) => submit(() => api.decideDisbursement(d.id, d.version, "reject", v.reason), `${d.number} rejected`) }) });
+    }
+    const fileFirst = d.status === "approved" && d.kind === "net_pay" && !d.fileGeneratedAt;
+    if (d.status === "approved" || d.status === "paid")
+      acts.push({
+        id: "disbursement-download",
+        label: d.kind === "net_pay" ? "Download NEFT file" : "Download remittance advice",
+        variant: fileFirst ? "primary" : "ghost",
+        onClick: () =>
+          void run(
+            () =>
+              api.disbursementFile(d.id).then((f) => {
+                saveFile(f);
+                return f;
+              }),
+            (f) => `${f.fileName} downloaded`,
+          ),
+      });
+    if (d.status === "approved")
+      acts.push({
+        id: "disbursement-paid",
+        label: "Mark paid",
+        variant: fileFirst ? "ghost" : "primary",
+        onClick: () =>
+          ask({
+            title: `Mark ${d.number} paid`,
+            name: "disbursement-paid",
+            fields: [
+              { name: "reference", label: d.kind === "net_pay" ? "Bank reference (UTR)" : "Challan reference", required: true },
+              { name: "paidOn", label: "Paid on", type: "date", required: true, initial: todayIso() },
+            ],
+            submitLabel: "Mark paid",
+            onSubmit: (v) => submit(() => api.markDisbursementPaid(d.id, d.version, (v.reference ?? "").trim(), v.paidOn || undefined), (r) => `${r.number} paid · ${r.journalEntryNumber ?? "posted"}`),
+          }),
+      });
+    return acts;
+  };
+
+  return (
+    <>
+      <BentoTile span={12} title="Disbursements" data-slice="7C" action={<Acts disabled={busy} actions={header} />}>
+        <p className="sb-muted" data-bank-submission="BLOCKED_EXTERNAL">
+          Bank submission: BLOCKED_EXTERNAL — no bank connection. Download the NEFT file, upload it to the bank portal, then mark the batch paid with the bank reference.
+        </p>
+        <DataTable caption="Disbursement batches" rows={batches} rowKey={(d) => d.id}
+          empty={<EmptyState icon={Landmark} title="No disbursements" compact>Create a batch once a run is posted to Finance.</EmptyState>}
+          columns={[
+            { key: "number", header: "Batch", render: (d) => `${d.number} · ${KIND_LABEL[d.kind] ?? statusLabel(d.kind)}` },
+            { key: "run", header: "Run", render: (d) => d.payrollRunNumber, muted: true },
+            { key: "lines", header: "Lines", render: (d) => String(d.lineCount) },
+            { key: "amount", header: "Amount", render: (d) => inr(d.totalAmount) },
+            { key: "status", header: "Status", render: (d) => <StatusBadge status={d.status} /> },
+            { key: "file", header: "File", render: (d) => (d.fileGeneratedAt ? fmtDate(d.fileGeneratedAt.slice(0, 10)) : "—"), muted: true },
+            { key: "ref", header: "Reference", render: (d) => d.paymentReference ?? "—" },
+            { key: "je", header: "Journal", render: (d) => d.journalEntryNumber ?? "—", muted: true },
+            { key: "actions", header: "", render: (d) => <Acts disabled={busy} actions={rowActs(d)} /> },
           ]}
         />
       </BentoTile>
@@ -388,6 +529,8 @@ function PayrollAdmin({ institution }: { institution: Institution }) {
           ]}
         />
       </BentoTile>
+
+      <Disbursements institutionId={inst} runs={runList} />
 
       <BentoTile
         span={12}
