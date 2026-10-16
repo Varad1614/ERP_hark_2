@@ -168,6 +168,39 @@ export interface Evaluation {
   asOf: string;
 }
 
+/** ERP_EXTENSIONS 1D: one charge priced by a late-fee preview / run. */
+export interface LateFeeItem {
+  chargeId: string;
+  chargeNumber: string;
+  description: string;
+  studentName: string;
+  studentNumber?: string | null;
+  dueDate: string;
+  daysLate: number;
+  overdueAmount: string;
+  feeToDate: string;
+  alreadyCharged: string;
+  toCharge: string;
+  feeChargeId?: string | null;
+  feeChargeNumber?: string | null;
+}
+
+export interface LateFeeRun {
+  asOf: string;
+  ruleVersion: number;
+  preview: boolean;
+  charged: number;
+  total: string;
+  items: LateFeeItem[];
+}
+
+export interface FeeReminderRun {
+  asOf: string;
+  ruleVersion: number;
+  sent: number;
+  items: { chargeId: string; chargeNumber: string; studentName: string; dueDate: string; daysBefore: number; amountDue: string; message: string }[];
+}
+
 /** Foundation account view (`/me/accounts`, `/institutions/{id}/student-accounts`). */
 export interface AccountSummary {
   id: string;

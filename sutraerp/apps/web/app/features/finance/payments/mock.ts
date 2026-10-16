@@ -163,6 +163,8 @@ export function createMockPaymentsApi(): PaymentsApi {
       return r;
     },
     receivables: async () => ({ items: receivables, totalOutstanding: fromPaise(charge.outstanding), totalOverdue: "0.00" }),
+    lateFees: async (_inst, preview) => ({ asOf: today(), ruleVersion: 1, preview, charged: 0, total: "0.00", items: [] }),
+    feeReminders: async () => ({ asOf: today(), ruleVersion: 1, sent: 0, items: [] }),
     evaluate: async () => {
       if (!receivables.length)
         receivables.push({ id: id(), studentAccountId: account.id, accountName: account.displayName, studentNumber: account.studentNumber, chargeId: charge.id, chargeNumber: charge.chargeNumber, description: charge.description, recognisedAmount: "125000.00", outstandingAmount: fromPaise(charge.outstanding), writtenOffAmount: "0.00", dueDate: charge.dueDate, daysOverdue: 0, ageingBucket: "current", status: charge.outstanding === 0n ? "settled" : "open", writeOffs: [], version: 1 });

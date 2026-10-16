@@ -18,8 +18,8 @@ use crate::inbox::notifications::{Recipient, Severity};
 use crate::inbox::todos::SystemTodo;
 use chrono::Duration;
 use sutra_contracts::finance::events::payments::{
-    DUNNING_NOTICE_SENT, FEE_REMINDER_SENT, LATE_FEE_CHARGED, PAYMENT_COMPLETED, PAYMENT_FAILED, RECEIVABLE_OVERDUE, REFUND_COMPLETED,
-    REFUND_DECIDED, REFUND_REQUESTED,
+    DUNNING_NOTICE_SENT, FEE_REMINDER_SENT, LATE_FEE_CHARGED, PAYMENT_COMPLETED, PAYMENT_FAILED,
+    RECEIVABLE_OVERDUE, REFUND_COMPLETED, REFUND_DECIDED, REFUND_REQUESTED,
 };
 use sutra_contracts::finance::events::StatusChangedV1;
 use sutra_kernel::auth::Role;

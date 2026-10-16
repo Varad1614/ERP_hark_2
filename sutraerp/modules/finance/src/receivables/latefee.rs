@@ -125,14 +125,17 @@ pub fn overdue_amount(
     let open: Vec<&Instalment> = instalments.iter().filter(|r| r.open > epsilon()).collect();
     let late_open: Decimal = open.iter().filter(|r| late(r.due)).map(|r| r.open).sum();
     if open.is_empty() || !open.iter().any(|r| late(r.due)) {
-        return if charge_late {
-            balance
-        } else {
-            Decimal::ZERO
-        };
+        return if charge_late { balance } else { Decimal::ZERO };
     }
     let rest = round2(balance - open.iter().map(|r| r.open).sum::<Decimal>());
-    round2(late_open + if rest > epsilon() && charge_late { rest } else { Decimal::ZERO })
+    round2(
+        late_open
+            + if rest > epsilon() && charge_late {
+                rest
+            } else {
+                Decimal::ZERO
+            },
+    )
 }
 
 /// Whole days late (negative before the due date, 0 without one). Port of `reminders.js` `daysLate`.
@@ -282,7 +285,16 @@ impl LateFeePolicy {
             }
             slabs.sort_by_key(|s| s.from_day);
         }
-        let need = |x: Option<Decimal>, what: &str| x.ok_or(format!("mode {what} needs {}", if what == "percent" { "percent" } else { "amount" }));
+        let need = |x: Option<Decimal>, what: &str| {
+            x.ok_or(format!(
+                "mode {what} needs {}",
+                if what == "percent" {
+                    "percent"
+                } else {
+                    "amount"
+                }
+            ))
+        };
         let (amount, percent) = match mode {
             Mode::Flat => (need(amount, "flat")?, Decimal::ZERO),
             Mode::PerDay => (need(amount, "per_day")?, Decimal::ZERO),
@@ -371,8 +383,7 @@ fn valid_code(s: &str) -> bool {
     let b = s.as_bytes();
     (2..=32).contains(&b.len())
         && (b[0].is_ascii_uppercase() || b[0].is_ascii_digit())
-        && b
-            .iter()
+        && b.iter()
             .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || *c == b'_' || *c == b'-')
 }
 
@@ -424,7 +435,9 @@ fn days_list(v: &Value, key: &str, max_len: usize) -> Result<Vec<i64>, String> {
     let Some(x) = v.get(key) else {
         return Ok(Vec::new());
     };
-    let arr = x.as_array().ok_or(format!("{key} must be a list of days"))?;
+    let arr = x
+        .as_array()
+        .ok_or(format!("{key} must be a list of days"))?;
     if arr.len() > max_len {
         return Err(format!("{key}: at most {max_len} entries"));
     }
@@ -481,9 +494,10 @@ mod tests {
 
     #[test]
     fn legacy_rule_is_a_one_off_percentage() {
-        let p = LateFeePolicy::from_values(&json!({"percent": "2.5", "graceDays": 7, "cap": "500"}))
-            .unwrap()
-            .unwrap();
+        let p =
+            LateFeePolicy::from_values(&json!({"percent": "2.5", "graceDays": 7, "cap": "500"}))
+                .unwrap()
+                .unwrap();
         assert_eq!(p.mode, Mode::Percent);
         assert_eq!(p.fee_due(d("10000"), 7), Decimal::ZERO);
         assert_eq!(p.fee_due(d("10000"), 8), d("250.00"));
@@ -492,7 +506,11 @@ mod tests {
 
     #[test]
     fn modes() {
-        let per_day = LateFeePolicy::from_values(&json!({"mode": "per_day", "amount": "50", "graceDays": 5, "cap": "1000"})).unwrap().unwrap();
+        let per_day = LateFeePolicy::from_values(
+            &json!({"mode": "per_day", "amount": "50", "graceDays": 5, "cap": "1000"}),
+        )
+        .unwrap()
+        .unwrap();
         assert_eq!(per_day.fee_due(d("5000"), 6), d("50.00"));
         assert_eq!(per_day.fee_due(d("5000"), 15), d("500.00"));
         assert_eq!(per_day.fee_due(d("5000"), 60), d("1000.00"));
@@ -501,22 +519,44 @@ mod tests {
         assert_eq!(monthly.fee_due(d("33333"), 31), d("1000.00"));
         let slabs = LateFeePolicy::from_values(&json!({"slabs": [{"fromDay": 31, "amount": "500"}, {"fromDay": 1, "amount": "100"}, {"fromDay": 16, "amount": "250"}]})).unwrap().unwrap();
         assert_eq!(slabs.mode, Mode::Slabs);
-        assert_eq!([1, 15, 16, 45].map(|n| slabs.fee_due(d("100"), n)), [d("100"), d("100"), d("250"), d("500")]);
-        let flat = LateFeePolicy::from_values(&json!({"amount": "200", "capPercent": "10", "minOverdue": "100"})).unwrap().unwrap();
+        assert_eq!(
+            [1, 15, 16, 45].map(|n| slabs.fee_due(d("100"), n)),
+            [d("100"), d("100"), d("250"), d("500")]
+        );
+        let flat = LateFeePolicy::from_values(
+            &json!({"amount": "200", "capPercent": "10", "minOverdue": "100"}),
+        )
+        .unwrap()
+        .unwrap();
         assert_eq!(flat.fee_due(d("100"), 3), Decimal::ZERO);
         assert_eq!(flat.fee_due(d("1000"), 3), d("100.00"));
-        assert!(LateFeePolicy::from_values(&json!({"mode": "none"})).unwrap().is_none());
-        for bad in [json!({"mode": "percent"}), json!({"percent": 2.5}), json!({"amount": "1", "x": 1}), json!({"mode": "slabs"}), json!({"amount": "1", "feeHeadCode": "late fee"})] {
+        assert!(LateFeePolicy::from_values(&json!({"mode": "none"}))
+            .unwrap()
+            .is_none());
+        for bad in [
+            json!({"mode": "percent"}),
+            json!({"percent": 2.5}),
+            json!({"amount": "1", "x": 1}),
+            json!({"mode": "slabs"}),
+            json!({"amount": "1", "feeHeadCode": "late fee"}),
+        ] {
             assert!(LateFeePolicy::from_values(&bad).is_err(), "{bad}");
         }
     }
 
     #[test]
     fn reminder_schedule() {
-        let s = ReminderSchedule::from_values(&json!({"beforeDays": [1, 7], "afterDays": [30, 1, 15]})).unwrap();
+        let s =
+            ReminderSchedule::from_values(&json!({"beforeDays": [1, 7], "afterDays": [30, 1, 15]}))
+                .unwrap();
         assert_eq!(s.upcoming_today(-7), Some(7));
         assert_eq!(s.upcoming_today(-3), None);
-        assert!(s.notice_due(1, 0) && !s.notice_due(14, 1) && s.notice_due(15, 1) && !s.notice_due(99, 3));
+        assert!(
+            s.notice_due(1, 0)
+                && !s.notice_due(14, 1)
+                && s.notice_due(15, 1)
+                && !s.notice_due(99, 3)
+        );
         assert!(ReminderSchedule::from_values(&json!({"afterDays": [0]})).is_err());
         assert_eq!(reminder_stage(0, 30), Stage::Upcoming);
         assert_eq!(reminder_stage(29, 30), Stage::Due);

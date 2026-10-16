@@ -12,7 +12,9 @@ import type {
   AccountSummary,
   Collection,
   Evaluation,
+  FeeReminderRun,
   Items,
+  LateFeeRun,
   MyAccount,
   Payment,
   Receipt,
@@ -49,6 +51,8 @@ export interface PaymentsApi {
   dunning(id: string, version: number): Promise<Receivable>;
   writeOff(id: string, version: number, reason: string): Promise<Receivable>;
   reopen(id: string, version: number, reason: string): Promise<Receivable>;
+  lateFees(institutionId: string, preview: boolean): Promise<LateFeeRun>;
+  feeReminders(institutionId: string): Promise<FeeReminderRun>;
   // student self-service
   myAccounts(): Promise<MyAccount[]>;
   myPayments(): Promise<Payment[]>;
@@ -85,6 +89,9 @@ export const PATHS = {
   dunning: `${B}/receivables/{id}/dunning`,
   writeOff: `${B}/receivables/{id}/write-off`,
   reopen: `${B}/receivables/{id}/reopen`,
+  lateFees: `${B}/institutions/{id}/late-fees`,
+  lateFeesPreview: `${B}/institutions/{id}/late-fees/preview`,
+  feeReminders: `${B}/institutions/{id}/fee-reminders`,
   meAccounts: `${B}/me/accounts`,
   mePayments: `${B}/me/payments`,
   meConfirm: `${B}/me/payments/{id}/confirm`,
@@ -164,6 +171,8 @@ export function createHttpPaymentsApi(fetchImpl: Fetch = (i, init) => fetch(i, i
     dunning: (id, v) => request("POST", fill(PATHS.dunning, { id }), { body: {}, ifMatch: v }),
     writeOff: (id, v, reason) => request("POST", fill(PATHS.writeOff, { id }), { body: { reason }, ifMatch: v, idempotent: true }),
     reopen: (id, v, reason) => request("POST", fill(PATHS.reopen, { id }), { body: { reason }, ifMatch: v }),
+    lateFees: (inst, preview) => request("POST", fill(preview ? PATHS.lateFeesPreview : PATHS.lateFees, { id: inst }), { body: {} }),
+    feeReminders: (inst) => request("POST", fill(PATHS.feeReminders, { id: inst }), { body: {} }),
     myAccounts: () => items(PATHS.meAccounts),
     myPayments: () => items(PATHS.mePayments),
     initiate: (amount, chargeIds) => request("POST", PATHS.mePayments, { body: { amount, chargeIds }, idempotent: true }),

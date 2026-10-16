@@ -21,7 +21,7 @@ import { NoInstitution, REASON, type FieldSpec, type RowAction } from "../../ins
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { rkeys, useRecordApi } from "../../student/record/hooks";
-import { money, rowActions, useFinanceAsk } from "../ui";
+import { money, rowActions, useFinanceAsk, type FinAskSpec } from "../ui";
 import { FINAL_CHARGE, fkeys, useChargesApi } from "./hooks";
 import type { AdjustmentKind, ChargeCommand, ChargeListItem, FeeCategory, PolicyKind } from "./types";
 
@@ -247,6 +247,63 @@ export function ChargesAdminTab({ institution }: { institution: Institution | nu
   );
 }
 
+const days = (s: string | undefined) => (s ?? "").split(/[\s,]+/).filter(Boolean).map(Number);
+
+/** ERP_EXTENSIONS 1D: the configurable late fee (blank fields are left out of the rule). */
+function LATE_FEE_FORM(onValues: (values: Record<string, unknown>) => Promise<unknown>): FinAskSpec {
+  return {
+    title: "New late-fee rule version",
+    name: "late-fee",
+    submitLabel: "Create draft",
+    fields: [
+      { name: "mode", label: "Fee", type: "select", required: true, initial: "per_day", options: [
+        { value: "flat", label: "Flat amount" },
+        { value: "percent", label: "Percentage of the late part" },
+        { value: "per_day", label: "Amount per day late" },
+        { value: "slabs", label: "Day slabs" },
+        { value: "none", label: "No late fee" },
+      ] },
+      { name: "amount", label: "Amount ₹ (flat / per day)", initial: "50.00" },
+      { name: "percent", label: "Percent (percentage)" },
+      { name: "frequency", label: "Repeats", type: "select", initial: "once", options: [
+        { value: "once", label: "Once" },
+        { value: "monthly", label: "Every month or part late" },
+      ] },
+      { name: "slabs", label: "Slabs (fromDay:amount, e.g. 1:100, 16:250, 31:500)" },
+      { name: "graceDays", label: "Grace days", type: "number", initial: "7" },
+      { name: "cap", label: "Cap ₹ per charge" },
+      { name: "capPercent", label: "Cap % of the late part" },
+      { name: "minOverdue", label: "Ignore late parts up to ₹" },
+      { name: "roundToRupee", label: "Round to the rupee", type: "checkbox", initial: "true" },
+    ],
+    onSubmit: (v: Record<string, string>) => {
+      const values: Record<string, unknown> = { mode: v.mode };
+      for (const k of ["amount", "percent", "cap", "capPercent", "minOverdue"]) if ((v[k] ?? "").trim()) values[k] = v[k]!.trim();
+      if (v.mode === "flat" || v.mode === "percent") values.frequency = v.frequency;
+      if (v.mode === "slabs") values.slabs = (v.slabs ?? "").split(",").map((x) => x.trim()).filter(Boolean).map((x) => { const [d, a] = x.split(":"); return { fromDay: Number(d), amount: (a ?? "").trim() }; });
+      if (v.mode !== "flat" && v.mode !== "per_day") delete values.amount;
+      if (v.mode !== "percent") delete values.percent;
+      if ((v.graceDays ?? "").trim()) values.graceDays = Number(v.graceDays);
+      values.roundToRupee = v.roundToRupee === "true";
+      return onValues(values);
+    },
+  };
+}
+
+/** ERP_EXTENSIONS 1D: when reminders go out. */
+function REMINDER_FORM(onValues: (values: Record<string, unknown>) => Promise<unknown>): FinAskSpec {
+  return {
+    title: "New reminder schedule",
+    name: "reminder-schedule",
+    submitLabel: "Create draft",
+    fields: [
+      { name: "beforeDays", label: "Days before the due date", initial: "7, 1" },
+      { name: "afterDays", label: "Days late for notices 1–3", initial: "1, 15, 30" },
+    ],
+    onSubmit: (v: Record<string, string>) => onValues({ beforeDays: days(v.beforeDays), afterDays: days(v.afterDays) }),
+  };
+}
+
 /** Governed configuration / rule versions (draft → approval → effective, rollback = new version). */
 function PolicyTile({ institution, kind }: { institution: Institution; kind: PolicyKind }) {
   const api = useChargesApi();
@@ -262,12 +319,14 @@ function PolicyTile({ institution, kind }: { institution: Institution; kind: Pol
             { name: "maxInstalments", label: "Maximum instalments", type: "number", required: true, initial: "6" },
             { name: "allowPartialPayments", label: "Allow partial payments", type: "checkbox", initial: "true" },
           ], onSubmit: (v) => submit(() => api.createPolicy(institution.id, "config", { values: { defaultDueDays: Number(v.defaultDueDays), maxInstalments: Number(v.maxInstalments), allowPartialPayments: v.allowPartialPayments === "true" } }), "Configuration drafted") }
-        : { title: "New late-fee rule version", name: "rule", submitLabel: "Create draft", fields: [
-            { name: "percent", label: "Late fee %", required: true, initial: "2.00" },
-            { name: "graceDays", label: "Grace days", type: "number", required: true, initial: "7" },
-          ], onSubmit: (v) => submit(() => api.createPolicy(institution.id, "rule", { ruleKey: "late_fee", values: { percent: v.percent, graceDays: Number(v.graceDays) } }), "Rule drafted") })}>
-        <Settings2 size={14} /> Version
+        : LATE_FEE_FORM((values) => submit(() => api.createPolicy(institution.id, "rule", { ruleKey: "late_fee", values }), "Late-fee rule drafted")))}>
+        <Settings2 size={14} /> {kind === "config" ? "Version" : "Late fee"}
       </Button>
+      {kind === "rule" && (
+        <Button size="sm" variant="ghost" data-action="new-reminder-schedule" onClick={() => ask(REMINDER_FORM((values) => submit(() => api.createPolicy(institution.id, "rule", { ruleKey: "reminder_schedule", values }), "Reminder schedule drafted")))}>
+          <CalendarClock size={14} /> Reminders
+        </Button>
+      )}
     }>
       <DataTable caption={title} rows={list.data ?? []} rowKey={(p) => p.id}
         empty={<EmptyState icon={Settings2} title="No versions yet">Draft a version, approve and activate it.</EmptyState>}

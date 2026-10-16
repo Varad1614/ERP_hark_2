@@ -21,7 +21,7 @@ import type { Institution } from "../../institution/types";
 import { ledger, money, rowActions, useFinanceAsk } from "../ui";
 import { pkeys, usePaymentsApi } from "./hooks";
 import { toPaise } from "./mock";
-import type { Payment, Receipt, Refund } from "./types";
+import type { LateFeeRun, Payment, Receipt, Refund } from "./types";
 
 export { PaymentsApiProvider } from "./hooks";
 
@@ -346,6 +346,7 @@ export function ReceivablesAdminTab({ institution }: { institution: Institution 
   const { ask, prompt } = useFinanceAsk();
   const inst = institution?.id ?? "-";
   const list = useQuery({ queryKey: pkeys.scoped(inst, "receivables"), queryFn: () => api.receivables(inst), enabled: !!institution });
+  const [lateFees, setLateFees] = useState<LateFeeRun | null>(null);
   if (!institution) return <NoInstitutionTile title="Receivables" />;
   return (
     <>
@@ -354,9 +355,17 @@ export function ReceivablesAdminTab({ institution }: { institution: Institution 
         title="Receivables & dunning"
         data-slice="5B"
         action={
-          <Button size="sm" icon={<Scale strokeWidth={1.75} />} data-evaluate onClick={() => void run(() => api.evaluate(inst), (e) => `${e.recognised} recognised · ${e.overdue} newly overdue · ${e.settled} settled`)}>
-            Evaluate dues
-          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button size="sm" variant="ghost" data-fee-reminders onClick={() => void run(() => api.feeReminders(inst), (r) => `${r.sent} pre-due reminder${r.sent === 1 ? "" : "s"} sent`)}>
+              Send pre-due reminders
+            </Button>
+            <Button size="sm" variant="ghost" data-late-fee-preview onClick={() => void run(() => api.lateFees(inst, true)).then((r) => r && setLateFees(r))}>
+              Late fees
+            </Button>
+            <Button size="sm" icon={<Scale strokeWidth={1.75} />} data-evaluate onClick={() => void run(() => api.evaluate(inst), (e) => `${e.recognised} recognised · ${e.overdue} newly overdue · ${e.settled} settled`)}>
+              Evaluate dues
+            </Button>
+          </div>
         }
       >
         <div data-receivable-totals style={{ display: "flex", gap: 24, margin: "0 0 12px", fontSize: 14, color: "var(--sb-mute)" }}>
@@ -395,6 +404,32 @@ export function ReceivablesAdminTab({ institution }: { institution: Institution 
           ]}
         />
       </BentoTile>
+      {lateFees && (
+        <BentoTile span={12} title={lateFees.preview ? `Late fees due as of ${formatDate(lateFees.asOf)}` : `Late fees charged on ${formatDate(lateFees.asOf)}`} data-late-fees={lateFees.preview ? "preview" : "run"}
+          action={
+            <div style={{ display: "flex", gap: 8 }}>
+              {lateFees.preview && lateFees.charged > 0 && (
+                <Button size="sm" variant="primary" data-late-fee-run disabled={busy} onClick={() => void run(() => api.lateFees(inst, false), (r) => `${r.charged} late fee${r.charged === 1 ? "" : "s"} charged · ${money(r.total)}`).then((r) => r && setLateFees(r))}>
+                  {`Charge ${money(lateFees.total)}`}
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => setLateFees(null)}>Close</Button>
+            </div>
+          }>
+          <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--sb-mute)" }}>{`Rule v${lateFees.ruleVersion}. Only the late part of a charge is fined, and a run adds only what is not yet charged.`}</p>
+          <DataTable caption="Late fees" rows={lateFees.items} rowKey={(x) => x.chargeId}
+            empty={<EmptyState icon={Scale} title="Nothing is late">No charge has a late part today.</EmptyState>}
+            columns={[
+              { key: "c", header: "Charge", render: (x) => <span data-late-fee-charge={x.chargeNumber}>{x.chargeNumber}</span> },
+              { key: "w", header: "Student", render: (x) => <NameCell name={x.studentName} sub={x.studentNumber ?? undefined} /> },
+              { key: "d", header: "Late since", render: (x) => `${formatDate(x.dueDate)} · ${x.daysLate} d` },
+              { key: "o", header: "Late part", render: (x) => money(x.overdueAmount) },
+              { key: "f", header: "Fee to date", render: (x) => money(x.feeToDate) },
+              { key: "a", header: "Already charged", render: (x) => money(x.alreadyCharged) },
+              { key: "n", header: lateFees.preview ? "To charge" : "Charged", render: (x) => (x.feeChargeNumber ? `${money(x.toCharge)} · ${x.feeChargeNumber}` : money(x.toCharge)) },
+            ]} />
+        </BentoTile>
+      )}
       {prompt}
       {dialog}
     </>

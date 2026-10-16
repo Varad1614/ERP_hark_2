@@ -4,9 +4,9 @@
 //! starts with the prefixes of §5.2 (enforced by `apps/api/tests/architecture.rs`).
 
 pub mod domain;
+pub mod http;
 pub mod latefee;
 pub mod latefee_http;
-pub mod http;
 
 use crate::shared::FinanceState;
 use utoipa_axum::router::OpenApiRouter;

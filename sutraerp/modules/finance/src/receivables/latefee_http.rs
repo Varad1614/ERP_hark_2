@@ -282,7 +282,13 @@ async fn fee_head(
     if let Some(id) = existing {
         return Ok(id);
     }
-    let income = resolve(conn, t, inst, AccountRef::System(SystemAccount::OtherIncome)).await?;
+    let income = resolve(
+        conn,
+        t,
+        inst,
+        AccountRef::System(SystemAccount::OtherIncome),
+    )
+    .await?;
     sqlx::query_scalar(
         "INSERT INTO finance.fee_head (tenant_id, institution_id, code, name, category, income_account_id) \
          VALUES ($1, $2, $3, 'Late fee', 'fine', $4) RETURNING id",
@@ -350,8 +356,10 @@ async fn late_fees(
             charged += 1;
             total += to_charge;
             if !preview {
-                let raised = charge_fee(st, &mut tx, &scope, &c, &item, to_charge, rule_id, &policy, today, &a)
-                    .await?;
+                let raised = charge_fee(
+                    st, &mut tx, &scope, &c, &item, to_charge, rule_id, &policy, today, &a,
+                )
+                .await?;
                 item.fee_charge_id = Some(raised.0);
                 item.fee_charge_number = Some(raised.1);
             }
@@ -384,9 +392,14 @@ async fn charge_fee(
 ) -> Result<(Uuid, String), KernelError> {
     let t = c.tenant_id;
     let inst = c.institution_id;
-    let student = c.student_id.ok_or_else(|| KernelError::internal_msg("late charge without a student"))?;
+    let student = c
+        .student_id
+        .ok_or_else(|| KernelError::internal_msg("late charge without a student"))?;
     let head = fee_head(tx, t, inst, policy.fee_head()).await?;
-    let description = format!("Late fee on {} ({} days late)", c.charge_number, item.days_late);
+    let description = format!(
+        "Late fee on {} ({} days late)",
+        c.charge_number, item.days_late
+    );
     let draft = create_in_tx(
         st,
         tx,
@@ -439,7 +452,16 @@ async fn charge_fee(
         .amount(amount, &fee.currency)
         .reason(Some(&reason))
         .journal(Some(journal.as_uuid()));
-    event(tx, scope, LATE_FEE_CHARGED, LATE_FEE_CHARGED_SCHEMA, fee.id.to_string(), &payload.v, a).await?;
+    event(
+        tx,
+        scope,
+        LATE_FEE_CHARGED,
+        LATE_FEE_CHARGED_SCHEMA,
+        fee.id.to_string(),
+        &payload.v,
+        a,
+    )
+    .await?;
     audit(
         tx,
         scope,
@@ -501,12 +523,15 @@ pub async fn fee_reminder_run(
     let a = actor(ctx);
     let today = business_today(&st, &scope, inst).await?;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
-    let (rule_version, schedule) = reminder_schedule(&mut conn, t, inst).await?.ok_or_else(|| {
-        KernelError::Conflict(
+    let (rule_version, schedule) =
+        reminder_schedule(&mut conn, t, inst)
+            .await?
+            .ok_or_else(|| {
+                KernelError::Conflict(
             "no reminder schedule is effective; draft and approve a `reminder_schedule` rule first"
                 .into(),
         )
-    })?;
+            })?;
     let ids = candidates(&mut conn, t, inst).await?;
     drop(conn);
     let mut items = Vec::new();
@@ -561,7 +586,16 @@ pub async fn fee_reminder_run(
             .charge(cid)
             .amount(amount_due, &c.currency)
             .reason(Some(&message));
-        event(&mut tx, &scope, FEE_REMINDER_SENT, FEE_REMINDER_SENT_SCHEMA, rid.to_string(), &payload.v, &a).await?;
+        event(
+            &mut tx,
+            &scope,
+            FEE_REMINDER_SENT,
+            FEE_REMINDER_SENT_SCHEMA,
+            rid.to_string(),
+            &payload.v,
+            &a,
+        )
+        .await?;
         audit(
             &mut tx,
             &scope,
