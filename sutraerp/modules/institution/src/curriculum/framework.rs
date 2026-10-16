@@ -962,10 +962,27 @@ pub async fn create(
     let pid = programme_id.as_uuid();
     let inst = institution_of(&st.pool, &ctx.scope, "programme", "programme", pid).await?;
     let scope = institution_scope(ctx, inst);
-    let mut tx = begin(&st.pool, &scope, inst).await?;
-    let p = programme::load(&mut tx, &scope, pid).await?;
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    let c = create_in(&mut tx, &scope, inst, pid, &cmd, &actor(ctx)).await?;
+    tx.commit().await.map_err(map_db_error)?;
+    Ok(with_etag(StatusCode::CREATED, &c, c.version))
+}
+
+/// Creates a curriculum with its first draft version inside the caller's transaction (the API
+/// handler and the Part 2 · S4-import curriculum importer both use it).
+pub async fn create_in(
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    inst: InstitutionId,
+    pid: Uuid,
+    cmd: &CreateCurriculum,
+    actor: &Actor,
+) -> Result<Curriculum, KernelError> {
+    cmd.validate()?;
+    crate::shared::guard::lock_institution_for_change(&mut *conn, scope, inst).await?;
+    let p = programme::load(&mut *conn, scope, pid).await?;
     if p.status == PublicationStatus::Retired {
-        return Err(KernelError::Conflict("the programme is retired".into()).into());
+        return Err(KernelError::Conflict("the programme is retired".into()));
     }
     let cid = CurriculumId::new().as_uuid();
     sqlx::query(
@@ -978,23 +995,22 @@ pub async fn create(
     .bind(pid)
     .bind(cmd.code.trim())
     .bind(cmd.title.trim())
-    .execute(&mut *tx)
+    .execute(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    let vid = insert_version(&mut tx, &scope, cid, pid, inst, None, &cmd.initial_version).await?;
+    let vid = insert_version(&mut *conn, scope, cid, pid, inst, None, &cmd.initial_version).await?;
     publish::audit(
-        &mut tx,
-        &scope,
+        &mut *conn,
+        scope,
         "institution.curriculum.create",
         CURRICULUM,
         cid.to_string(),
         serde_json::json!({"code": cmd.code.trim(), "programmeId": pid, "initialVersionId": vid}),
-        &actor(ctx),
+        actor,
     )
     .await?;
-    let c = load_curriculum(&mut tx, &scope, cid).await?;
-    tx.commit().await.map_err(map_db_error)?;
-    Ok(with_etag(StatusCode::CREATED, &c, c.version))
+    let c = load_curriculum(&mut *conn, scope, cid).await?;
+    Ok(c)
 }
 
 /// List the curricula of a programme (`institution.read`).

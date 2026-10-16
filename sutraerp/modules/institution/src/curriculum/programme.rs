@@ -354,8 +354,25 @@ pub async fn register(
     require_idempotency_key(&headers)?;
     cmd.validate()?;
     let scope = institution_scope(ctx, id);
-    let mut tx = begin(&st.pool, &scope, id).await?;
-    validate_refs(&mut tx, &scope, id, cmd.org_unit_id, &cmd.campus_ids).await?;
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    let p = register_in(&mut tx, &scope, id, &cmd, &actor(ctx)).await?;
+    tx.commit().await.map_err(map_db_error)?;
+    Ok(with_etag(StatusCode::CREATED, &p, p.version))
+}
+
+/// Registers a draft programme inside the caller's transaction (institution guard, reference
+/// checks, insert, `programme.registered` + audit) — the API handler and the Part 2 · S4-import
+/// programme importer both use it.
+pub async fn register_in(
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    id: InstitutionId,
+    cmd: &RegisterProgramme,
+    actor: &Actor,
+) -> Result<Programme, KernelError> {
+    cmd.validate()?;
+    guard::lock_institution_for_change(&mut *conn, scope, id).await?;
+    validate_refs(&mut *conn, scope, id, cmd.org_unit_id, &cmd.campus_ids).await?;
     let pid = ProgrammeId::new().as_uuid();
     sqlx::query(
         "INSERT INTO institution.programme (id, tenant_id, institution_id, org_unit_id, code, name, \
@@ -371,13 +388,12 @@ pub async fn register(
     .bind(cmd.degree_type.as_deref())
     .bind(cmd.duration_terms)
     .bind(cmd.campus_ids.iter().map(CampusId::as_uuid).collect::<Vec<_>>())
-    .execute(&mut *tx)
+    .execute(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    let p = load(&mut tx, &scope, pid).await?;
-    emit(&mut tx, &scope, &p, false, &actor(ctx)).await?;
-    tx.commit().await.map_err(map_db_error)?;
-    Ok(with_etag(StatusCode::CREATED, &p, p.version))
+    let p = load(&mut *conn, scope, pid).await?;
+    emit(&mut *conn, scope, &p, false, actor).await?;
+    Ok(p)
 }
 
 /// List the programme catalogue of an institution (`institution.read`).
