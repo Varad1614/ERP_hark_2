@@ -7,8 +7,9 @@ ALTER TABLE finance.finance_rule ADD CONSTRAINT finance_rule_rule_key_check
     CHECK (rule_key IN ('late_fee', 'rounding', 'instalment_policy', 'refund_window',
                         'write_off_threshold', 'reminder_schedule'));
 
--- Late fees are charges (`source_type` 'fine', `source_id` = the late charge). One accrual per
--- charge per day keeps a run idempotent; the rule version that priced it is kept for audit.
+-- Late fees are charges (`source_type` 'fine', `source_id` = the late charge). A run locks the
+-- late charge and charges only the fee due minus fees already raised, so re-running is
+-- idempotent and a rule changed mid-day prices the difference; the pricing rule is kept for audit.
 CREATE TABLE finance.late_fee_accrual (
     id                   uuid           PRIMARY KEY DEFAULT uuidv7(),
     tenant_id            uuid           NOT NULL,
@@ -22,9 +23,9 @@ CREATE TABLE finance.late_fee_accrual (
     fee_to_date          numeric(18,2)  NOT NULL CHECK (fee_to_date > 0),
     amount               numeric(18,2)  NOT NULL CHECK (amount > 0),
     created_by           text,
-    created_at           timestamptz    NOT NULL DEFAULT now(),
-    UNIQUE (tenant_id, charge_id, as_of)
+    created_at           timestamptz    NOT NULL DEFAULT now()
 );
+CREATE INDEX late_fee_accrual_charge_idx ON finance.late_fee_accrual (tenant_id, charge_id, as_of);
 CREATE INDEX late_fee_accrual_institution_idx ON finance.late_fee_accrual (tenant_id, institution_id, as_of);
 CREATE UNIQUE INDEX late_fee_accrual_fee_charge ON finance.late_fee_accrual (fee_charge_id);
 
