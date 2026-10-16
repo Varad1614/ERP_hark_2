@@ -184,6 +184,7 @@ function signIn(user, otpSecret) {
       // Wait out the rest of a window if this user's last code was this window (no reuse).
       const counter = Math.floor(Date.now() / 30000);
       r = http.post(form.action, Object.assign({}, form.fields, { otp: totp(otpSecret, counter) }), tags("login.otp"));
+      check(r, { "login: OTP accepted": (x) => x.status < 400 });
     }
   }
   const s = http.get(`${BASE}/api/v1/auth/session`, { jar, tags: { name: "auth.session", kind: "read", phase: ph } });
@@ -209,7 +210,7 @@ function send(sess, method, name, p, body, version) {
 const json = (r) => {
   try {
     return r.json();
-  } catch (_) {
+  } catch {
     return null;
   }
 };

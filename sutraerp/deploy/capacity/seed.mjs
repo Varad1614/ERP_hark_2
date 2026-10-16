@@ -24,7 +24,7 @@
  * owner, read-only lookups via psql), CAP_DIR, CAP_DOMAIN, KC_ADMIN_PASSWORD, CAP_STUDENTS
  * (default 2000), CAP_ATTENDANCE_WEEKS (default 6), CAP_CONCURRENCY (default 12).
  */
-/* global process, console */
+/* global process, console, setTimeout, Buffer, fetch, URLSearchParams */
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -107,20 +107,6 @@ const must = ({ out, errors }, what, tolerance = 0) => {
   if (errors.length > tolerance) throw new Error(`${what}: ${errors.length} failed — first: ${errors.slice(0, 3).join(" | ")}`);
   return out;
 };
-
-/** Every item of a cursor-paginated list. */
-async function all(c, p) {
-  const items = [];
-  let cursor = null;
-  for (let page = 0; page < 200; page++) {
-    const sep = p.includes("?") ? "&" : "?";
-    const r = await c.get(`${p}${sep}limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
-    items.push(...(r.items ?? []));
-    cursor = r.nextCursor ?? null;
-    if (!cursor) break;
-  }
-  return items;
-}
 
 const csvCell = (v) => (v === null || v === undefined ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
 const csv = (header, rows) => `${header.join(",")}\n${rows.map((r) => header.map((h) => csvCell(r[h])).join(",")).join("\n")}\n`;
@@ -348,8 +334,8 @@ await phase("faculty assignments (one teacher per division and course; maker-che
 });
 
 await phase(`term registrations for ${N} students (office registration → second administrator decides) + seats in 3 divisions`, async () => {
-  let w = await admin.call("POST", `${S}/institutions/${inst}/registration-windows`, { academicTermId: setup.termIds[0], name: "Term 1 registration", opensOn: day(0), closesOn: day(20), minCredits: 16, maxCredits: 28 });
-  w = await admin.call("POST", `${S}/registration-windows/${w.id}/open`, {}, w.version);
+  const w = await admin.call("POST", `${S}/institutions/${inst}/registration-windows`, { academicTermId: setup.termIds[0], name: "Term 1 registration", opensOn: day(0), closesOn: day(20), minCredits: 16, maxCredits: 28 });
+  await admin.call("POST", `${S}/registration-windows/${w.id}/open`, {}, w.version);
   const r = await pool(data.students, CONC, async (st) => {
     let reg = await admin.call("POST", `${S}/students/${st.id}/registrations`, { academicTermId: setup.termIds[0], lines: SLOTS.map((slot) => ({ curriculumComponentId: ids.components[slot] })) });
     reg = await admin.call("POST", `${S}/registrations/${reg.id}/submit`, {}, reg.version);
@@ -472,7 +458,7 @@ async function examSession(code, name, slot, scheme, pol) {
   sch = await admin.get(`${X}/exam-schedules/${sch.id}`);
   sch = await admin.call("POST", `${X}/exam-schedules/${sch.id}/submit`, {}, sch.version);
   sch = await approve("exam_schedule", sch.id, { client: admin, step: `capacity: exam timetable ${code}` });
-  if (sch.status !== "published") sch = await admin.call("POST", `${X}/exam-schedules/${sch.id}/publish`, {}, sch.version);
+  if (sch.status !== "published") await admin.call("POST", `${X}/exam-schedules/${sch.id}/publish`, {}, sch.version);
   // registrations from the rosters (in chunks), hall tickets, conduct (everyone present)
   let registered = 0;
   for (let i = 0; i < N; i += 250) {
@@ -527,7 +513,7 @@ await phase("examinations: end-semester CS101 → marks → approval → results
   sh = await admin.call("POST", `${X}/mark-sheets/${sh.id}/verify`, {}, sh.version);
   sh = await admin.call("POST", `${X}/mark-sheets/${sh.id}/request-approval`, {}, sh.version);
   sh = await approve("mark_sheet", sh.id, { client: admin, step: "capacity: final marks" });
-  sh = await admin.call("POST", `${X}/mark-sheets/${sh.id}/finalise`, {}, sh.version);
+  await admin.call("POST", `${X}/mark-sheets/${sh.id}/finalise`, {}, sh.version);
   const t1 = Date.now();
   let b = await admin.call("POST", `${X}/exam-sessions/${ese.session.id}/result-batches`, {});
   b = await admin.call("POST", `${X}/result-batches/${b.id}/compute`, {}, b.version);
@@ -535,11 +521,11 @@ await phase("examinations: end-semester CS101 → marks → approval → results
   b = await admin.get(`${X}/result-batches/${b.id}`);
   b = await admin.call("POST", `${X}/result-batches/${b.id}/validate`, {}, b.version);
   b = await approve("result_batch", b.id, { client: admin, step: "capacity: results" });
-  b = await admin.call("POST", `${X}/result-batches/${b.id}/finalise`, {}, b.version);
+  await admin.call("POST", `${X}/result-batches/${b.id}/finalise`, {}, b.version);
   let pub = await admin.call("POST", `${X}/exam-sessions/${ese.session.id}/publications`, {});
   pub = await admin.call("POST", `${X}/publications/${pub.id}/authorise`, {}, pub.version);
   pub = await approve("publication", pub.id, { client: admin, step: "capacity: publication" });
-  pub = await admin.call("POST", `${X}/publications/${pub.id}/publish`, {}, pub.version);
+  await admin.call("POST", `${X}/publications/${pub.id}/publish`, {}, pub.version);
   const published = Number(psql(`SELECT count(*) FROM exams.term_result WHERE session_id = ${q(ese.session.id)} AND status = 'published'`));
   data.ese = { sessionId: ese.session.id, paperId: ese.paper.id };
   return { registered: ese.registered, present: ese.present, marksEntered: entered, marksMs, computed, published, resultsMs: Date.now() - t1 };

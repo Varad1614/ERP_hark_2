@@ -438,7 +438,9 @@ pub async fn evaluate_with(
 ) -> Result<SeatBasis, KernelError> {
     let student_id = facts.student_id;
     if facts.institution_id != o.institution_id || facts.academic_term_id != o.academic_term_id {
-        return Err(conflict("the course offering changed while the seat was evaluated; retry"));
+        return Err(conflict(
+            "the course offering changed while the seat was evaluated; retry",
+        ));
     }
     if !o.status.accepts_enrolment() {
         return Err(conflict(format!(
