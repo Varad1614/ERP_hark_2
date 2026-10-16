@@ -381,10 +381,21 @@ pub enum Permission {
     GovernanceManage,
     /// 9E (Domain H09): accreditation — frameworks, cycles, criteria, evidence, self-study, peer visits, outcomes.
     AccreditationManage,
+    // ---- Part 2 · Stage 4.3 (S4-idp): identity provisioning (`docs/readiness/part2/s4-idp.md`). ----
+    /// Read identity links, their sync state, role requests and role mappings.
+    IdentityRead,
+    /// Provision identities, trigger required actions (activation, password recovery, MFA
+    /// enrolment), request role changes, retry a sync.
+    IdentityManage,
+    /// Administrative suspension / re-enabling of an identity (step-up).
+    IdentityLifecycle,
+    /// Decide privileged role requests and change ERP-role → IdP mappings (step-up; never the
+    /// requester).
+    IdentityRoleApprove,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 113] = [
+    pub const ALL: [Permission; 117] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -498,6 +509,10 @@ impl Permission {
         Permission::AuditVerify,
         Permission::GovernanceManage,
         Permission::AccreditationManage,
+        Permission::IdentityRead,
+        Permission::IdentityManage,
+        Permission::IdentityLifecycle,
+        Permission::IdentityRoleApprove,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -615,6 +630,10 @@ impl Permission {
             Permission::AuditVerify => "platform.audit.verify",
             Permission::GovernanceManage => "campus.governance.manage",
             Permission::AccreditationManage => "services.accreditation.manage",
+            Permission::IdentityRead => "platform.identity.read",
+            Permission::IdentityManage => "platform.identity.manage",
+            Permission::IdentityLifecycle => "platform.identity.lifecycle",
+            Permission::IdentityRoleApprove => "platform.identity.role.approve",
         }
     }
 
@@ -648,6 +667,8 @@ impl Permission {
                 | Permission::LibraryFineWaiveApprove
                 | Permission::ReportApprove
                 | Permission::ResourcesApprove
+                | Permission::IdentityLifecycle
+                | Permission::IdentityRoleApprove
         )
     }
 }
@@ -787,6 +808,12 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             AuditVerify,
             GovernanceManage,
             AccreditationManage,
+            // Part 2 · S4-idp: identity provisioning (role decisions are maker-checker between
+            // two administrators, enforced in `sutra_platform::identity::http`).
+            IdentityRead,
+            IdentityManage,
+            IdentityLifecycle,
+            IdentityRoleApprove,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -1441,6 +1468,25 @@ mod tests {
             assert!(!p.requires_step_up(), "{p:?}");
         }
         assert_eq!(Permission::AuditVerify.as_str(), "platform.audit.verify");
+    }
+
+    #[test]
+    fn part2_identity_grants_are_administrator_only() {
+        for p in [
+            Permission::IdentityRead,
+            Permission::IdentityManage,
+            Permission::IdentityLifecycle,
+            Permission::IdentityRoleApprove,
+        ] {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            for r in Role::ALL.into_iter().filter(|r| *r != Role::Administrator) {
+                assert!(!is_granted(&[r], p), "{r:?} must not hold {p:?}");
+            }
+        }
+        assert!(Permission::IdentityLifecycle.requires_step_up());
+        assert!(Permission::IdentityRoleApprove.requires_step_up());
+        assert!(!Permission::IdentityManage.requires_step_up());
+        assert_eq!(Permission::IdentityRead.as_str(), "platform.identity.read");
     }
 
     #[test]
