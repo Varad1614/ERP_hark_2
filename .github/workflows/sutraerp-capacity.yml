@@ -11,6 +11,11 @@
 name: SutraERP Part 2 capacity (2,000 students)
 
 on:
+  # A push that touches the run marker starts a full run (a workflow that exists only on a
+  # feature branch cannot be dispatched through the API until it has run once).
+  push:
+    branches: ["part2/**"]
+    paths: ["sutraerp/deploy/capacity/RUN"]
   workflow_dispatch:
     inputs:
       stage:
