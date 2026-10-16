@@ -41,7 +41,34 @@ AWS S3 / institution storage **BLOCKED_EXTERNAL**.
 
 ## Test evidence
 
-RUN_IDS_PLACEHOLDER
+All on code commit `837db1c3` (later commits on the branch are documentation only).
+
+| Workflow | Run | Result |
+|----------|-----|--------|
+| SutraERP CI (workflow_dispatch) | [38885937911](https://github.com/Varad1614/ERP_hark_2/actions/runs/38885937911) | fmt · clippy · test (incl. S3 SigV4 vectors, retry regression tests, config gate), Rust integration: full DB suite + MinIO built from source → `live_s3` 3/3, `db_p2_docs` 7/7; OpenAPI drift; Web — green (Container images: see report) |
+| SutraERP Part 1 demo (full stack, keycloak) | [38886172253](https://github.com/Varad1614/ERP_hark_2/actions/runs/38886172253) | compose with MinIO (built from source, random root credentials), `check-config` → `documents=S3`; journey 30/30 incl. upload 184 B + 1 573 054 B (no Idempotency-Key) → download byte-identical → student retrieval; persistence 6/6; DB integrity 0 violations — green |
+| SutraERP Part 1 demo (previous head 4b02508f) | [38884030283](https://github.com/Varad1614/ERP_hark_2/actions/runs/38884030283) | green (same journey) |
+| SutraERP quality gates | [38885968170](https://github.com/Varad1614/ERP_hark_2/actions/runs/38885968170) | QUALITY_RESULT |
+
+Defects found by the first real runs and fixed at the root:
+
+* `db_p2_docs` (run 38881775496): the extension-mismatch case also declared a mismatching type
+  (validator correctly reports `type_mismatch` first) — the case now declares the content's own
+  type; the tamper test verified documents before `documents_submitted`, so its 409s came from
+  the admission state and the missing-object audit was never exercised — documents are now
+  submitted first and each 409 is asserted by reason.
+* S3 client (run 38884027027, intermittent): a request failed with a bare `error sending request`
+  (transport). Every S3 request is idempotent, so the client now retries transport failures
+  (connect / connection closed before the response; never timeouts) up to 3 attempts with
+  back-off and reports the full cause chain (no URL). Regression tests: a server that drops the
+  first connection (retried, 2 connections) and one that drops all (bounded at 3, cause chain).
+* Journey: `psql` renders booleans as `true`, the quarantine check compared with `t` — now a
+  `CASE` text.
+* Web unit test `home.test.tsx` "loading state" (flaky, run 38883433353): requests issued after
+  the release stayed pending forever — they are now answered at once.
+* Quality gate gitleaks (full history) flagged the `part2/s4-pay` stub fixture (commit 7fc92f45,
+  not on this branch): the identical narrow allowlist of s4-pay bc06a207 (commit + path + literal).
+
 
 ## BLOCKED_EXTERNAL
 
