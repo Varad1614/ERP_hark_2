@@ -2057,7 +2057,8 @@ async fn late_fees_accrue_idempotently_and_reminders_follow_the_schedule() {
     .await;
     assert_eq!(again["charged"], 0, "idempotent: {again}");
 
-    // A richer rule charges only the difference: 2 % a month, 40 days late = 2 months = ₹800.
+    // A new rule charges only the difference: 2 % a month with no grace, so the charge 40 days
+    // late owes 2 months = ₹800 (₹500 more) and the one 2 days late now owes ₹100.
     effective_rule(
         &pool,
         &setup,
@@ -2077,10 +2078,10 @@ async fn late_fees_accrue_idempotently_and_reminders_follow_the_schedule() {
     .await;
     assert_eq!(
         (run["charged"].as_i64(), run["total"].as_str()),
-        (Some(1), Some("500.00")),
+        (Some(2), Some("600.00")),
         "{run}"
     );
-    assert_eq!(events(&pool, T_LATE_FEE, "late_fee.charged").await, 2);
+    assert_eq!(events(&pool, T_LATE_FEE, "late_fee.charged").await, 3);
     ledger_agrees(&pool, &setup).await;
 
     // Pre-due reminders: 7 days before the due date, once.
