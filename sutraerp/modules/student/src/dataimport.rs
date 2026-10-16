@@ -262,7 +262,12 @@ fn student_cells(row: &ImportRow) -> Result<StudentCells, KernelError> {
     validate_opt_text("family_name", row.get("family_name"), 100, &mut v);
     validate_email("email", row.get("email"), &mut v);
     validate_phone("phone", row.get("phone"), &mut v);
-    for c in ["enrolment_number", "roll_number", "batch_code", "section_code"] {
+    for c in [
+        "enrolment_number",
+        "roll_number",
+        "batch_code",
+        "section_code",
+    ] {
         validate_opt_text(c, row.get(c), 40, &mut v);
     }
     let dob = date_cell(row, "date_of_birth", &mut v);
@@ -841,7 +846,11 @@ fn result_cells(row: &ImportRow) -> Result<ResultCells, KernelError> {
         v.push(violation("marks", "range", "marks cannot be negative"));
     }
     if max.is_some_and(|m| m <= Decimal::ZERO) {
-        v.push(violation("max_marks", "range", "max_marks must be positive"));
+        v.push(violation(
+            "max_marks",
+            "range",
+            "max_marks must be positive",
+        ));
     }
     if let (Some(m), Some(x)) = (marks, max) {
         if m > x {

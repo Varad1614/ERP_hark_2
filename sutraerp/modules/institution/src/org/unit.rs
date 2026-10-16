@@ -194,14 +194,16 @@ pub async fn register_in(
         })?;
     let parent = match cmd.parent_id {
         Some(pid) => {
-            let p = load(&mut *conn, scope, pid, true).await.map_err(|e| match e {
-                KernelError::NotFound { .. } => invalid(
-                    "parentId",
-                    "unknown",
-                    "parentId is not a unit of this institution",
-                ),
-                e => e,
-            })?;
+            let p = load(&mut *conn, scope, pid, true)
+                .await
+                .map_err(|e| match e {
+                    KernelError::NotFound { .. } => invalid(
+                        "parentId",
+                        "unknown",
+                        "parentId is not a unit of this institution",
+                    ),
+                    e => e,
+                })?;
             if p.institution_id != institution_id {
                 return Err(invalid(
                     "parentId",

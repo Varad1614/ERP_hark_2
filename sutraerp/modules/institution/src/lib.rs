@@ -26,6 +26,7 @@
 //! | `calendar/`, `readiness/` | 2C |
 //! | `reference.rs` (`InstitutionReferencePort` adapter for Domain C) | Batch 3 foundation |
 
+pub mod dataimport; // Part 2 · S4-import
 pub mod domain;
 pub mod http;
 pub mod reference;
@@ -48,6 +49,7 @@ use sutra_kernel::cache::AdvisoryCache;
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
+pub use dataimport::{PgCampusImport, PgCurriculumImport, PgOrgUnitImport, PgProgrammeImport}; // Part 2 · S4-import
 pub use reference::PgInstitutionReferences;
 pub use repo::PgInstitutionDirectory;
 pub use shared::InstitutionState;

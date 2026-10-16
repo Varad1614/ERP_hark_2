@@ -49,8 +49,8 @@ use sutra_contracts::platform::workflow::WorkflowPort;
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
-pub use directory::{PgLeaveReader, PgWorkforceDirectory};
 pub use dataimport::PgStaffImport; // Part 2 · S4-import
+pub use directory::{PgLeaveReader, PgWorkforceDirectory};
 pub use metrics::PgPeopleMetrics;
 pub use shared::PeopleState;
 pub use staff::SubjectOnlyStaff;

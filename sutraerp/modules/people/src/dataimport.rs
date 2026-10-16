@@ -85,7 +85,10 @@ fn staff_body(row: &ImportRow) -> Result<StaffCreate, KernelError> {
             "work_email is required (it identifies the record on re-import)",
         ));
     }
-    let date_of_birth = match row.get("date_of_birth").map(|d| parse_date("date_of_birth", d)) {
+    let date_of_birth = match row
+        .get("date_of_birth")
+        .map(|d| parse_date("date_of_birth", d))
+    {
         Some(Ok(d)) => Some(d),
         Some(Err(e)) => {
             v.push(e);
@@ -160,7 +163,11 @@ impl ItemWriter<ImportRow> for StaffWriter {
                 ),
                 other => other,
             })?;
-        Ok(RowOutcome::done(row.line, RowAction::Create, s.id.as_uuid()))
+        Ok(RowOutcome::done(
+            row.line,
+            RowAction::Create,
+            s.id.as_uuid(),
+        ))
     }
 }
 
@@ -175,8 +182,7 @@ fn staff_spec() -> EntitySpec {
                 .required()
                 .example("Meera"),
             ColumnSpec::new("family_name", "Family name", Text).example("Shah"),
-            ColumnSpec::new("display_name", "Display name", Text)
-                .help("`given family` when empty"),
+            ColumnSpec::new("display_name", "Display name", Text).help("`given family` when empty"),
             ColumnSpec::new("work_email", "Work e-mail", Email)
                 .required()
                 .example("meera.shah@college.edu")

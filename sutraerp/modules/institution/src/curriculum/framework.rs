@@ -998,7 +998,16 @@ pub async fn create_in(
     .execute(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    let vid = insert_version(&mut *conn, scope, cid, pid, inst, None, &cmd.initial_version).await?;
+    let vid = insert_version(
+        &mut *conn,
+        scope,
+        cid,
+        pid,
+        inst,
+        None,
+        &cmd.initial_version,
+    )
+    .await?;
     publish::audit(
         &mut *conn,
         scope,

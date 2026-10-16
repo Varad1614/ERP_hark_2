@@ -289,7 +289,11 @@ impl ImportTargetPort for PgFeeHeadImport {
             let mut m = BTreeMap::new();
             put(&mut m, "code", r.try_get("code").map_err(map_db_error)?);
             put(&mut m, "name", r.try_get("name").map_err(map_db_error)?);
-            put(&mut m, "category", r.try_get("category").map_err(map_db_error)?);
+            put(
+                &mut m,
+                "category",
+                r.try_get("category").map_err(map_db_error)?,
+            );
             put(
                 &mut m,
                 "income_account_code",
@@ -562,7 +566,9 @@ fn balances_spec() -> EntitySpec {
                 .help("Amount the student still owes (greater than zero)"),
             ColumnSpec::new("as_of_date", "Balance date", Date)
                 .example("2026-03-31")
-                .help("Posting date of the opening entry (today when empty; its period must be open)"),
+                .help(
+                    "Posting date of the opening entry (today when empty; its period must be open)",
+                ),
             ColumnSpec::new("due_date", "Due date", Date).example("2026-04-30"),
             ColumnSpec::new("description", "Description", Text)
                 .example("Balance carried forward from the legacy system"),
