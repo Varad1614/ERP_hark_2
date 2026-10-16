@@ -1267,8 +1267,10 @@ async fn import_jobs_are_gated_by_their_target_module() {
                "reason": "hr add-on"}),
     )
     .await;
+    // Same file, same institution: the upload answers the existing job (200), not a refusal.
     let (s, b) = upload(&app, &admin, "staff", &inst).await;
-    assert_eq!(s, StatusCode::CREATED, "{b}");
+    assert!(s.is_success(), "{s} {b}");
+    assert_eq!(id_of(&b), staff_job);
     not_gated(
         "staff dry run after add-on",
         &call(
