@@ -14,9 +14,9 @@
  * - `saveDownloadedFile` — streams a downloaded attachment to the browser's save dialog.
  */
 import { FileUp } from "lucide-react";
-import { FileField, StepDialog } from "@sutra/ui";
+import { FileField, StepDialog, useToast } from "@sutra/ui";
 import { ApiProblem, type components } from "@sutra/api-client";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export type AttachedFile = components["schemas"]["AttachedFile"];
 
@@ -193,4 +193,37 @@ export function DocumentUploadDialog({ title, eyebrow, replace, onUpload, onClos
       </div>
     </StepDialog>
   );
+}
+
+/** Download errors in plain words (409 = integrity check failed, the file is quarantined). */
+export function downloadMessage(e: unknown): string {
+  if (e instanceof ApiProblem) {
+    const p = e.problem;
+    if (p.status === 409) return "This file failed its integrity check and is held for review — contact the registrar’s office.";
+    if (p.status === 404) return "No file is stored for this document.";
+    if (p.status === 503) return "Document storage is not available right now. Try again later.";
+    if (p.status === 403) return "You are not allowed to download this file.";
+    return p.detail ?? p.title;
+  }
+  return e instanceof Error ? e.message : "The download failed.";
+}
+
+/** Runs a download and hands the file to the browser; errors become a toast. */
+export function useDownload() {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const download = useCallback(
+    async (fetchFile: () => Promise<DownloadedFile>) => {
+      setBusy(true);
+      try {
+        saveDownloadedFile(await fetchFile());
+      } catch (e) {
+        toast(downloadMessage(e));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [toast],
+  );
+  return { download, busy };
 }
