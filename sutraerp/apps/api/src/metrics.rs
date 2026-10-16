@@ -46,7 +46,7 @@ pub const DURATION_BUCKETS: [f64; 12] = [
 pub const CONTENT_TYPE: &str = "application/openmetrics-text; version=1.0.0; charset=utf-8";
 
 /// Every metric family the API exports (contract §3.3; the 9C families are registered by 9C).
-pub const METRIC_NAMES: [&str; 16] = [
+pub const METRIC_NAMES: [&str; 18] = [
     "sutra_http_requests_total",
     "sutra_http_request_duration_seconds",
     "sutra_http_requests_in_flight",
@@ -66,7 +66,14 @@ pub const METRIC_NAMES: [&str; 16] = [
     // Part 2 S5-monitor: bounded signals from `sutra_kernel::signal`.
     "sutra_security_events_total",
     "sutra_integration_calls_total",
+    // Part 2 S5-monitor: retry backlogs of the identity sync and the payment recovery job.
+    "sutra_idp_sync_links",
+    "sutra_gateway_payments_open_stale",
 ];
+
+/// Part 2 S5-monitor: `sync_status` values of `platform.identity_link` exported by
+/// `sutra_idp_sync_links{status}` (`synced` is the steady state and is not counted).
+pub const IDP_SYNC_STATES: [&str; 3] = ["pending", "failed", "conflict"];
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
 pub struct HttpLabels {
@@ -154,6 +161,16 @@ pub struct Metrics {
     /// Part 2 S5-monitor: security events and external-call outcomes (`sutra_kernel::signal`).
     pub security_events: Family<SecurityLabels, Counter>,
     pub integration_calls: Family<IntegrationLabels, Counter>,
+    /// Part 2 S5-monitor: identity links waiting for / failing the IdP sync, by `sync_status`.
+    pub idp_sync_links: Family<StatusLabels, Gauge>,
+    /// Part 2 S5-monitor: gateway payments still open (initiated / pending) after one hour.
+    pub gateway_open_stale: Gauge,
+}
+
+/// Part 2 S5-monitor: `{status}` label.
+#[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct StatusLabels {
+    pub status: String,
 }
 
 impl Metrics {
@@ -293,6 +310,25 @@ impl Metrics {
                     .inc_by(0);
             }
         }
+        let idp_sync_links = Family::<StatusLabels, Gauge>::default();
+        registry.register(
+            "sutra_idp_sync_links",
+            "Identity links not in sync with the identity provider, by sync status",
+            idp_sync_links.clone(),
+        );
+        for status in IDP_SYNC_STATES {
+            idp_sync_links
+                .get_or_create(&StatusLabels {
+                    status: status.to_owned(),
+                })
+                .set(0);
+        }
+        let gateway_open_stale = Gauge::default();
+        registry.register(
+            "sutra_gateway_payments_open_stale",
+            "Gateway payments still initiated / pending more than one hour after creation",
+            gateway_open_stale.clone(),
+        );
         let started = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| i64::try_from(d.as_secs()).unwrap_or(0))
@@ -324,6 +360,8 @@ impl Metrics {
             search_lag,
             security_events,
             integration_calls,
+            idp_sync_links,
+            gateway_open_stale,
         }
     }
 
@@ -613,11 +651,46 @@ pub async fn collect(pool: PgPool, interval: Duration, cancel: CancellationToken
             }
             Err(e) => tracing::debug!(error = %e, "unsealed audit gauge not refreshed"),
         }
+        if let Err(e) = refresh_backlog_gauges(&pool).await {
+            tracing::debug!(error = %e, "retry backlog gauges not refreshed");
+        }
         tokio::select! {
             () = cancel.cancelled() => break,
             () = tokio::time::sleep(interval) => {}
         }
     }
+}
+
+/// Part 2 S5-monitor: refreshes `sutra_idp_sync_links{status}` and
+/// `sutra_gateway_payments_open_stale`. Both tables are tenant tables under row-level security;
+/// the counts are platform-wide, so they run as server-internal work (system context).
+pub async fn refresh_backlog_gauges(pool: &PgPool) -> Result<(), sqlx::Error> {
+    sutra_kernel::db_context::system(async {
+        let m = global();
+        let rows: Vec<(String, i64)> = sqlx::query_as(
+            "SELECT sync_status, count(*) FROM platform.identity_link \
+             WHERE sync_status <> 'synced' GROUP BY sync_status",
+        )
+        .fetch_all(pool)
+        .await?;
+        for status in IDP_SYNC_STATES {
+            let n = rows.iter().find(|r| r.0 == status).map_or(0, |r| r.1);
+            m.idp_sync_links
+                .get_or_create(&StatusLabels {
+                    status: status.to_owned(),
+                })
+                .set(n);
+        }
+        let stale: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM finance.payment WHERE channel = 'gateway' \
+             AND status IN ('initiated', 'pending') AND created_at < now() - interval '1 hour'",
+        )
+        .fetch_one(pool)
+        .await?;
+        m.gateway_open_stale.set(stale);
+        Ok(())
+    })
+    .await
 }
 
 async fn metrics_handler() -> Response {
