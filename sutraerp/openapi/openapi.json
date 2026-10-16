@@ -56056,7 +56056,7 @@
         "tags": [
           "finance-treasury"
         ],
-        "summary": "Imports a bank statement from JSON lines (`treasury.manage`, `Idempotency-Key`; L3-F-058).\nThe same content or statement reference is never imported twice; when both balances are\ngiven they must agree with the lines.",
+        "summary": "Imports a bank statement (`treasury.manage`, `Idempotency-Key`; L3-F-058): JSON lines, or the\nbank's own CSV, OFX/QFX or MT940 file. The same content or statement reference is never\nimported twice, and lines of a bank file that an earlier statement of the account already\nholds are skipped (counted in `duplicateLines`). When both balances are known (given, or\nstated in the file) they must agree with the file's lines.",
         "operationId": "finance_statement_import",
         "parameters": [
           {
@@ -56101,6 +56101,63 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StatementView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/bank-accounts/{id}/statements/preview": {
+      "post": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Reads a bank statement file and shows what importing it would do, without importing\n(`treasury.manage`): the format and CSV mapping used, every line with whether an earlier\nstatement already holds it, and the rows that are not transactions.",
+        "operationId": "finance_statement_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatementPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementPreview"
                 }
               }
             }
@@ -140169,6 +140226,73 @@
           }
         }
       },
+      "ColumnMapping": {
+        "type": "object",
+        "description": "CSV column positions (0-based). An omitted column is absent from the file.",
+        "properties": {
+          "amount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "One signed amount column (or unsigned, signed by `indicator`).",
+            "minimum": 0
+          },
+          "credit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Money into the account (`Deposit Amt.`).",
+            "minimum": 0
+          },
+          "date": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "debit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Money out of the account (`Withdrawal Amt.`), used with `credit` instead of `amount`.",
+            "minimum": 0
+          },
+          "description": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "indicator": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "A `Dr` / `Cr` column that signs `amount`.",
+            "minimum": 0
+          },
+          "reference": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Cheque number, UTR or other reference.",
+            "minimum": 0
+          }
+        }
+      },
       "CommandBody": {
         "type": "object",
         "description": "Optional body of a state command (`{ \"reason\": \"…\" }`).",
@@ -183433,9 +183557,6 @@
         "type": "object",
         "description": "A statement to import.",
         "required": [
-          "statementRef",
-          "periodFrom",
-          "periodTo",
           "content"
         ],
         "properties": {
@@ -183448,7 +183569,39 @@
           },
           "content": {
             "type": "string",
-            "description": "JSON lines, one object per statement line:\n`{\"valueDate\":\"2026-07-03\",\"direction\":\"credit\",\"amount\":\"99000.00\",\"reference\":\"UTR123\",\"description\":\"…\"}`."
+            "description": "The statement: JSON lines (`format` `jsonl`, one object per line:\n`{\"valueDate\":\"2026-07-03\",\"direction\":\"credit\",\"amount\":\"99000.00\",\"reference\":\"UTR123\",\"description\":\"…\"}`),\nor the bank's CSV, OFX/QFX or MT940 file as text."
+          },
+          "dateStyle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`dmy` (default, as Indian banks write dates) or `mdy`, for numeric CSV dates like 03/04/2026."
+          },
+          "format": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`jsonl` (default), `csv`, `ofx`, `mt940`, or `auto` to detect it from the content."
+          },
+          "invert": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Flip every sign (card statements that show charges as positive numbers)."
+          },
+          "mapping": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ColumnMapping",
+                "description": "CSV columns; guessed from the header row when omitted."
+              }
+            ]
           },
           "openingBalance": {
             "type": [
@@ -183458,15 +183611,26 @@
             "example": "0.00"
           },
           "periodFrom": {
-            "type": "string",
-            "format": "date"
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Required for `jsonl`; for bank files it defaults to the first and last line dates, and\nwhen given every line must fall inside it."
           },
           "periodTo": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date"
           },
           "statementRef": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Defaults to the file's own statement reference (MT940 `:20:`) or the period."
           }
         }
       },
@@ -183559,6 +183723,213 @@
           }
         }
       },
+      "StatementPreview": {
+        "type": "object",
+        "description": "What importing a file would do.",
+        "required": [
+          "format",
+          "headers",
+          "periodFrom",
+          "periodTo",
+          "totalCredits",
+          "totalDebits",
+          "newLines",
+          "duplicateLines",
+          "lines",
+          "skipped"
+        ],
+        "properties": {
+          "closingBalance": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duplicateLines": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "format": {
+            "type": "string",
+            "description": "The format read (`csv`, `ofx`, `mt940`, `jsonl`)."
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CSV header row (or `Column 1…` when the file has none)."
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementPreviewLine"
+            }
+          },
+          "mapping": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ColumnMapping",
+                "description": "The CSV mapping used; send it back on import to keep it."
+              }
+            ]
+          },
+          "newLines": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openingBalance": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "periodFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodTo": {
+            "type": "string",
+            "format": "date"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementPreviewSkip"
+            }
+          },
+          "statementRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "totalCredits": {
+            "type": "string",
+            "description": "Totals of the lines that would be imported (duplicates excluded)."
+          },
+          "totalDebits": {
+            "type": "string"
+          }
+        }
+      },
+      "StatementPreviewInput": {
+        "type": "object",
+        "description": "A bank file to read without importing it.",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "dateStyle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`dmy` (default) or `mdy`."
+          },
+          "format": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`auto` (default), `csv`, `ofx`, `mt940` or `jsonl`."
+          },
+          "invert": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "mapping": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ColumnMapping"
+              }
+            ]
+          },
+          "periodFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "periodTo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "StatementPreviewLine": {
+        "type": "object",
+        "description": "One line of a previewed file.",
+        "required": [
+          "valueDate",
+          "direction",
+          "amount",
+          "duplicate"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "99000.00"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "description": "`credit` (into the account) or `debit` (out of it)."
+          },
+          "duplicate": {
+            "type": "boolean",
+            "description": "An earlier statement of this account already holds this line; import skips it."
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "valueDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "StatementPreviewSkip": {
+        "type": "object",
+        "description": "A row of the file that is not a transaction (a total, a blank, an unreadable date).",
+        "required": [
+          "row",
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "row": {
+            "type": "integer",
+            "format": "int32",
+            "description": "1-based row (CSV) or line (MT940) of the file."
+          }
+        }
+      },
       "StatementView": {
         "type": "object",
         "description": "An imported bank statement.",
@@ -183571,6 +183942,8 @@
           "totalCredits",
           "totalDebits",
           "lineCount",
+          "sourceFormat",
+          "duplicateLines",
           "status",
           "lines",
           "reconciliations",
@@ -183590,6 +183963,11 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "duplicateLines": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Lines of the file an earlier statement of this account already held (not imported again)."
           },
           "id": {
             "$ref": "#/components/schemas/BankStatementId"
@@ -183630,6 +184008,10 @@
             "items": {
               "$ref": "#/components/schemas/BankReconciliationView"
             }
+          },
+          "sourceFormat": {
+            "type": "string",
+            "description": "`jsonl`, `csv`, `ofx` or `mt940`."
           },
           "statementRef": {
             "type": "string"
