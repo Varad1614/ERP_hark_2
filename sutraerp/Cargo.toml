@@ -84,6 +84,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
 ring = "0.17"
 base64 = "0.22"
+regex = "1"
 
 # Messaging + cache adapters (ADR-L5-0022 NATS JetStream, ADR-L5-0037 Valkey); rustls only
 async-nats = { version = "0.50", default-features = false, features = ["ring", "jetstream"] }

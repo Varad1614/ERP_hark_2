@@ -20,7 +20,7 @@ const pin = JSON.parse(readFileSync(join(here, 'pin.json'), 'utf8'));
 const check = process.argv.includes('--check');
 
 const specs = [];
-for (const f of readdirSync(join(here, 'specs')).filter((f) => f.endsWith('.mjs')).sort()) {
+for (const f of readdirSync(join(here, 'specs')).filter((f) => f.endsWith('.mjs') && !f.startsWith('_')).sort()) {
   specs.push((await import(pathToFileURL(join(here, 'specs', f)).href)).default);
 }
 

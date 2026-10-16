@@ -3,6 +3,7 @@
 //! Owned by slice 5C (`docs/batch5-contracts.md` §1/§2). Tag `finance-treasury`; every operation id
 //! starts with the prefixes of §5.2 (enforced by `apps/api/tests/architecture.rs`).
 
+pub mod bankfile;
 pub mod domain;
 pub mod http;
 
