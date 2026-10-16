@@ -252,9 +252,10 @@ mod tests {
         ] {
             assert_eq!(l.for_request(&Method::POST, other), l.default, "{other}");
         }
-        // The base64 JSON of the engine's largest file (8 MiB) fits; 12 MiB of JSON does not.
-        let max_b64 = (8 * 1024 * 1024usize).div_ceil(3) * 4;
-        assert!(sutra_platform::dataimport::http::UPLOAD_BODY_BYTES > max_b64 + 1024);
-        assert!(sutra_platform::dataimport::http::UPLOAD_BODY_BYTES < 12 * 1024 * 1024);
+        // The base64 JSON of the engine's largest file (8 MiB) fits; that of a 9 MiB file does not.
+        let json_of = |file: usize| file.div_ceil(3) * 4 + 1024;
+        let limit = sutra_platform::dataimport::http::UPLOAD_BODY_BYTES;
+        assert!(limit > json_of(8 * 1024 * 1024), "{limit}");
+        assert!(limit < json_of(9 * 1024 * 1024), "{limit}");
     }
 }
