@@ -13,6 +13,12 @@
 name: SutraERP Part 2 monitoring
 
 on:
+  # push: the monitoring branch itself (the API refuses a workflow_dispatch of a workflow that is
+  # not on the default branch yet); dispatch everywhere else.
+  push:
+    branches: ["part2/s5-monitor"]
+    paths: ["sutraerp/deploy/monitoring/**", "sutraerp/apps/api/src/metrics.rs",
+            ".github/workflows/sutraerp-part2-monitoring.yml"]
   workflow_dispatch:
 
 permissions:
