@@ -44,3 +44,10 @@ commits = ["7fc92f4534c00efe9cdfeaffeed44d09ad0fe9d6"]
 paths = ['''^sutraerp/crates/infra/src/razorpay\.rs$''']
 regexTarget = "match"
 regexes = ['''stub-key-secret-0123456789abcdef''']
+
+[[allowlists]]
+description = "Part 2 S5-monitor (branch part2/s5-monitor, commit 2e7c2761): the drill script's Grafana basic auth is a shell variable reference ('admin:${SUTRA_GRAFANA_ADMIN_PASSWORD}'), not a credential; gitleaks scans every ref, so every branch's gate sees it. Path AND the variable-reference literal must both match (docs/security/findings.md SEC-P2-ENT-001)"
+condition = "AND"
+paths = ['''^sutraerp/deploy/monitoring/drill/run-drill\.sh$''']
+regexTarget = "match"
+regexes = ['''admin:\$\{SUTRA_GRAFANA_ADMIN_PASSWORD(:\?)?\}''']
