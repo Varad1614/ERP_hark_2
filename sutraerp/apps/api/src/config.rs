@@ -306,6 +306,8 @@ pub struct Config {
     /// Part 1 · Stage 3 (S3-config): HSTS, body limit, rate limits, ops endpoints
     /// (`config_http`, `docs/security/config.md`).
     pub http: crate::config_http::HttpSecurityConfig,
+    /// Part 2 · S4-idp: identity provisioning (`config_idp`, `SUTRA_IDP_*`).
+    pub idp: crate::config_idp::IdpConfig,
 }
 
 /// A secret string whose `Debug` is redacted.
@@ -750,6 +752,7 @@ impl Config {
             webauthn,
             hardening: crate::config_b9::HardeningConfig::load(src, env)?,
             http: crate::config_http::HttpSecurityConfig::load(src, env)?,
+            idp: crate::config_idp::IdpConfig::load(src, env)?, // Part 2 · S4-idp
         };
         cfg.validate()?;
         Ok(cfg)

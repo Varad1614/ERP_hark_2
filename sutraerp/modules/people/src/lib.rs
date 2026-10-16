@@ -19,6 +19,7 @@
 //! | `payroll/`, `payslips/` | 7C |
 
 pub mod directory;
+pub mod identity_source; // Part 2 · S4-idp
 pub mod metrics; // Batch 8 foundation: Domain H figures
 pub mod search_source; // 9C
 pub mod shared;
