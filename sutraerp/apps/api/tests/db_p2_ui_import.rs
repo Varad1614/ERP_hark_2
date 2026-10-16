@@ -89,7 +89,9 @@ fn id(v: &Value) -> String {
 }
 
 async fn institution(app: &axum::Router, admin: &Login, tenant: &str, name: &str) -> Uuid {
-    b3::academic_setup(app, admin, tenant, name).await.institution_id
+    b3::academic_setup(app, admin, tenant, name)
+        .await
+        .institution_id
 }
 
 #[tokio::test]
@@ -169,7 +171,12 @@ async fn finance_checker_reads_only_the_imports_it_decides() {
     let (s, _, st_job) = send(&app, sized(&admin, "POST", IMP, body)).await;
     assert_eq!(s, StatusCode::CREATED, "{st_job}");
     let balances = format!("student_number,amount\nRD{prefix}-1,1250.00\n");
-    let body = upload_body("opening_balances", inst, "balances.csv", balances.as_bytes());
+    let body = upload_body(
+        "opening_balances",
+        inst,
+        "balances.csv",
+        balances.as_bytes(),
+    );
     let (s, _, ob_job) = send(&app, sized(&admin, "POST", IMP, body)).await;
     assert_eq!(s, StatusCode::CREATED, "{ob_job}");
     assert_eq!(ob_job["requiresApproval"], true);

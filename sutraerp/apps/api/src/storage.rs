@@ -195,7 +195,9 @@ pub async fn body_limit(State(limits): State<BodyLimits>, req: Request, next: Ne
     }
     let (mut parts, body) = req.into_parts();
     // Idempotent requests are fingerprinted up to the route's limit (not the 1 MiB default).
-    parts.extensions.insert(sutra_web::idempotency::RouteBodyLimit(limit));
+    parts
+        .extensions
+        .insert(sutra_web::idempotency::RouteBodyLimit(limit));
     let body = axum::body::Body::new(http_body_util::Limited::new(body, limit));
     next.run(Request::from_parts(parts, body)).await
 }
@@ -238,7 +240,10 @@ mod tests {
         };
         let p = "/api/v1/platform/imports";
         assert_eq!(l.for_request(&Method::POST, p), l.import);
-        assert_eq!(l.for_request(&Method::POST, "/api/v1/platform/imports/"), l.import);
+        assert_eq!(
+            l.for_request(&Method::POST, "/api/v1/platform/imports/"),
+            l.import
+        );
         assert_eq!(l.for_request(&Method::GET, p), l.default);
         for other in [
             "/api/v1/platform/imports/mapping-profiles",
