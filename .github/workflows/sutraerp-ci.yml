@@ -271,6 +271,54 @@ jobs:
           path: ${{ runner.temp }}/shots
           retention-days: 7
 
+  # Part 2 · S4-ui-import: Admin → Data import click-through (apps/web/e2e/imports.e2e.mjs) — upload,
+  # mapping, dry run with row errors + error report, commit, opening balances awaiting a second
+  # approver (maker ≠ checker), history, export. Also runs on part2/** (workflow_dispatch).
+  e2e-imports:
+    name: E2E imports (preview)
+    if: startsWith(github.ref, 'refs/heads/part2/') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/part1/') || github.ref == 'refs/heads/erp_merge'
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: sutra
+          POSTGRES_PASSWORD: sutra
+          POSTGRES_DB: sutra_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sutra" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: e2e-api
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: sutraerp/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: sutraerp/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: cargo build -p sutra-api --locked
+      - run: SUTRA_ENV=development target/debug/sutra-api migrate
+      - run: pnpm --filter @sutra/web exec playwright install --with-deps chromium
+      - run: VITE_AUTH_MODE=api pnpm --filter @sutra/web build
+      - name: imports e2e
+        run: E2E_WEB=preview VITE_AUTH_MODE=api E2E_SHOTS=$RUNNER_TEMP/shots CARGO_TARGET_DIR=$GITHUB_WORKSPACE/sutraerp/target timeout 1200 pnpm e2e:imports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-shots-imports
+          path: ${{ runner.temp }}/shots
+          retention-days: 7
+
   # 9B (ADR-L5-0030, docs/batch9-contracts.md §10.2): buildx images with SBOM + max provenance.
   # erp_merge / v* tags: push to ghcr.io/varad1614, Cosign keyless sign + syft SPDX attestation +
   # verify against the workflow identity. Every other ref: push only to a throwaway local
