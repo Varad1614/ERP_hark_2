@@ -19,6 +19,12 @@
 name: SutraERP Part 2 on-prem install
 
 on:
+  # A workflow that is not on the default branch cannot be dispatched: pushes to the S5 branch that
+  # touch the on-prem tooling run it. "[onprem-reuse:<run id>]" in the head commit message reuses that
+  # run's bundles (skips the 30-minute bundle build when only the drills changed).
+  push:
+    branches: ["part2/s5-deploy"]
+    paths: [".github/workflows/sutraerp-part2-onprem.yml", "sutraerp/deploy/onprem/**"]
   workflow_dispatch:
     inputs:
       previous_ref:
@@ -43,9 +49,28 @@ env:
   MINIO_TAG: RELEASE.2025-10-15T17-29-55Z
 
 jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    outputs:
+      reuse: ${{ steps.p.outputs.reuse }}
+      previous_ref: ${{ steps.p.outputs.previous_ref }}
+    steps:
+      - id: p
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+          IN_REUSE: ${{ inputs.reuse_bundles_run_id }}
+          IN_PREV: ${{ inputs.previous_ref }}
+        run: |
+          reuse=${IN_REUSE:-$(printf '%s' "$MSG" | sed -n 's/.*\[onprem-reuse:\([0-9]*\)\].*/\1/p' | head -1)}
+          echo "reuse=$reuse" >> "$GITHUB_OUTPUT"
+          echo "previous_ref=${IN_PREV:-c31cc48780f4a22c0ce3c11910ae509e04ebe6ce}" >> "$GITHUB_OUTPUT"
+          echo "reuse bundles of run: ${reuse:-none}; previous release ${IN_PREV:-c31cc48780f4a22c0ce3c11910ae509e04ebe6ce}"
+
   bundle:
     name: Bundle (${{ matrix.release }})
-    if: ${{ inputs.reuse_bundles_run_id == '' }}
+    needs: [plan]
+    if: ${{ needs.plan.outputs.reuse == '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
@@ -59,7 +84,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: rel
-          ref: ${{ matrix.release == 'previous' && inputs.previous_ref || github.sha }}
+          ref: ${{ matrix.release == 'previous' && needs.plan.outputs.previous_ref || github.sha }}
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
@@ -146,7 +171,7 @@ jobs:
 
   fresh:
     name: Fresh install · smoke · restart · reboot sim · crash recovery
-    needs: [bundle]
+    needs: [plan, bundle]
     if: ${{ !cancelled() && (needs.bundle.result == 'success' || needs.bundle.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -165,7 +190,7 @@ jobs:
         with:
           name: onprem-bundle-current
           path: bundles/current
-          run-id: ${{ inputs.reuse_bundles_run_id || github.run_id }}
+          run-id: ${{ needs.plan.outputs.reuse || github.run_id }}
           github-token: ${{ github.token }}
       - name: Drill A (deploy/onprem/ci/run-fresh.sh)
         run: bash sutraerp/deploy/onprem/ci/run-fresh.sh "$(ls bundles/current/*.tar)"
@@ -196,7 +221,7 @@ jobs:
 
   upgrade:
     name: Upgrade previous → current · rollback · re-upgrade
-    needs: [bundle]
+    needs: [plan, bundle]
     if: ${{ !cancelled() && (needs.bundle.result == 'success' || needs.bundle.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -215,7 +240,7 @@ jobs:
         with:
           pattern: onprem-bundle-*
           path: bundles
-          run-id: ${{ inputs.reuse_bundles_run_id || github.run_id }}
+          run-id: ${{ needs.plan.outputs.reuse || github.run_id }}
           github-token: ${{ github.token }}
       - name: Drill B (deploy/onprem/ci/run-upgrade.sh)
         run: bash sutraerp/deploy/onprem/ci/run-upgrade.sh "$(ls bundles/onprem-bundle-previous/*.tar)" "$(ls bundles/onprem-bundle-current/*.tar)"
