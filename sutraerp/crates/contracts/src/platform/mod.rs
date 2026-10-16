@@ -5,3 +5,4 @@ pub mod catalog;
 pub mod events;
 pub mod search; // 9C
 pub mod workflow;
+pub mod dataimport; // Part 2 · S4-import
