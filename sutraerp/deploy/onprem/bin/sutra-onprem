@@ -476,6 +476,19 @@ wait_services() { # timeout svc...
   done
 }
 
+# Keycloak and Flowable keep pooled PostgreSQL connections. When `compose up` recreates postgres
+# (its init-script bind mount lives in the release directory, so upgrade and rollback do), their
+# pooled connections are dead and the next sign-in fails with "Database operation failed" (upgrade
+# drill run 38928531972). Restart them after a postgres recreate so every pool starts fresh.
+pg_id() { dc ps -q postgres 2>/dev/null | head -1; }
+refresh_db_clients() { # postgres container id before the `compose up`
+  if [[ "$(pg_id)" != "$1" ]]; then
+    log "postgres container was recreated: restarting keycloak + flowable (fresh connection pools)"
+    dc restart keycloak flowable
+    wait_services 600 keycloak flowable || die "keycloak / flowable not healthy after the postgres recreate"
+  fi
+}
+
 # ------------------------------------------------------------------ object storage
 
 s3() { # method path [curl args…]
@@ -811,10 +824,13 @@ cmd_upgrade() {
   cmd_render
   load_conf
   load_bundle "$rel"
+  local pg_before
+  pg_before=$(pg_id)
   # shellcheck disable=SC2086
   dc up -d $INFRA
   # shellcheck disable=SC2086
   wait_services 600 $INFRA
+  refresh_db_clients "$pg_before"
   if [[ "${SUTRA_BUNDLE_DOCUMENTS:-false}" == true ]]; then cmd_bucket; fi
   cmd_migrate
   dc up -d --remove-orphans
@@ -843,7 +859,12 @@ cmd_rollback() {
   load_conf
   load_bundle "$prev_dir"
   if $app_only; then
+    local pg_before
+    pg_before=$(pg_id)
     dc up -d --remove-orphans
+    # shellcheck disable=SC2086
+    wait_services 600 $INFRA || true
+    refresh_db_clients "$pg_before"
     if cmd_health --wait 180; then ok "app-only rollback to $SUTRA_VERSION: healthy on the upgraded schema"; else log "app-only rollback to $SUTRA_VERSION: NOT healthy on the upgraded schema"; return 1; fi
     timing rollback_app_only "$(since "$t0")"
     return 0
