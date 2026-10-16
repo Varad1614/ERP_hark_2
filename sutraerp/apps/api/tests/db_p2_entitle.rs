@@ -33,7 +33,7 @@ use std::sync::Arc;
 use support::*;
 use sutra_api::app::{router, AppContext};
 use sutra_api::config::Config;
-use sutra_kernel::entitlement::ManualClock;
+use sutra_kernel::entitlement::{Clock, ManualClock};
 
 const ENT: &str = "/api/v1/platform/entitlement";
 const REQS: &str = "/api/v1/platform/entitlement-requests";
