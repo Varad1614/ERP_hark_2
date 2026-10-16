@@ -44,7 +44,10 @@ function checkout() {
 const src = checkout();
 let drift = 0;
 for (const spec of specs) {
-  const mod = await import(pathToFileURL(join(src, spec.module)).href);
+  // `modules` (name -> path) hands run() several original modules; `module` names the source.
+  const mod = spec.modules
+    ? Object.fromEntries(await Promise.all(Object.entries(spec.modules).map(async ([k, p]) => [k, await import(pathToFileURL(join(src, p)).href)])))
+    : await import(pathToFileURL(join(src, spec.module)).href);
   const cases = spec.cases().map((input) => ({ input, expected: spec.run(mod, input) }));
   const head = {
     source: `${pin.repo.replace(/\.git$/, '')}/blob/${pin.commit}/${spec.module}`,

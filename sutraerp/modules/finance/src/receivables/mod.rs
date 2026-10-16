@@ -4,6 +4,7 @@
 //! starts with the prefixes of §5.2 (enforced by `apps/api/tests/architecture.rs`).
 
 pub mod domain;
+pub mod latefee;
 pub mod http;
 
 use crate::shared::FinanceState;
