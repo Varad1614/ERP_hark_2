@@ -1,0 +1,269 @@
+# Part 2 · Stage 5 (S5-deploy): the on-prem install of SutraERP, run for real on clean GitHub
+# runners acting as the college "staging host" (NOT college hardware — every number is labelled with
+# the runner's CPU / vCPU / RAM in docs/readiness/INFRASTRUCTURE_REPORT.md).
+#
+#   bundle   (matrix: current = this commit, previous = erp_merge Part 1 c31cc487)
+#            build the API (cargo --profile docker), web (VITE_AUTH_MODE=oidc) and MinIO (from source)
+#            images, then deploy/onprem/build-bundle.sh: versioned offline bundle = every image as
+#            docker-save tar + compose + helm + config templates + SHA256SUMS + SPDX SBOM (syft)
+#   fresh    host facts → offline install from the bundle only (registries blackholed) with a
+#            local-CA TLS certificate and /etc/hosts DNS → migrations → health → smoke journey
+#            (Keycloak OIDC + TOTP sign-in, student via admission, fee charge + payment, 3 MiB document
+#            upload/download) → restart every service → docker restart all → Docker daemon restart
+#            (reboot simulation) → SIGKILL postgres/api/valkey/nats/minio/keycloak one at a time with
+#            time-to-recover and data checks → backup
+#   upgrade  previous bundle installed + seeded → upgrade to current with the data kept → app-only
+#            rollback (diagnostic) → supported rollback (restore of the pre-upgrade backup) → upgrade again
+# Results (timings.tsv, results.tsv, host facts, resources, chaos.tsv, logs) are uploaded per job and
+# summarised in the job summary. Runbook: sutraerp/docs/readiness/DEPLOYMENT_RUNBOOK.md.
+name: SutraERP Part 2 on-prem install
+
+on:
+  # A workflow that is not on the default branch cannot be dispatched: pushes to the S5 branch that
+  # touch the on-prem tooling run it. "[onprem-reuse:<run id>]" in the head commit message reuses that
+  # run's bundles (skips the bundle build) — only valid when nothing that goes INTO the bundle
+  # (deploy/onprem/bin, compose, config, images) changed, i.e. for changes to deploy/onprem/ci/ only.
+  push:
+    branches: ["part2/s5-deploy"]
+    paths: [".github/workflows/sutraerp-part2-onprem.yml", "sutraerp/deploy/onprem/**"]
+  workflow_dispatch:
+    inputs:
+      previous_ref:
+        description: "Previous release commit (upgrade source)"
+        default: c31cc48780f4a22c0ce3c11910ae509e04ebe6ce
+      reuse_bundles_run_id:
+        description: "Skip the bundle build: reuse the bundle artifacts of this run id (re-runs of the drills)"
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sutraerp-part2-onprem-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  SQLX_OFFLINE: "true"
+  MINIO_TAG: RELEASE.2025-10-15T17-29-55Z
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    outputs:
+      reuse: ${{ steps.p.outputs.reuse }}
+      previous_ref: ${{ steps.p.outputs.previous_ref }}
+    steps:
+      - id: p
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+          IN_REUSE: ${{ inputs.reuse_bundles_run_id }}
+          IN_PREV: ${{ inputs.previous_ref }}
+        run: |
+          reuse=${IN_REUSE:-$(printf '%s' "$MSG" | sed -n 's/.*\[onprem-reuse:\([0-9]*\)\].*/\1/p' | head -1)}
+          echo "reuse=$reuse" >> "$GITHUB_OUTPUT"
+          echo "previous_ref=${IN_PREV:-c31cc48780f4a22c0ce3c11910ae509e04ebe6ce}" >> "$GITHUB_OUTPUT"
+          echo "reuse bundles of run: ${reuse:-none}; previous release ${IN_PREV:-c31cc48780f4a22c0ce3c11910ae509e04ebe6ce}"
+
+  bundle:
+    name: Bundle (${{ matrix.release }})
+    needs: [plan]
+    if: ${{ needs.plan.outputs.reuse == '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [current, previous]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tools
+      - uses: actions/checkout@v4
+        with:
+          path: rel
+          ref: ${{ matrix.release == 'previous' && needs.plan.outputs.previous_ref || github.sha }}
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+      - name: Release identity
+        run: |
+          sha=$(git -C rel rev-parse HEAD)
+          if [ "${{ matrix.release }}" = previous ]; then v="2026.10.0-${sha:0:8}"; ca=false; docs=false
+          else v="2026.10.1-${sha:0:8}"; ca=true; docs=true; fi
+          { echo "REL_SHA=$sha"; echo "REL_VERSION=$v"; echo "REL_CA_TRUST=$ca"; echo "REL_DOCS=$docs"; } >> "$GITHUB_ENV"
+          echo "release ${{ matrix.release }}: $v ($sha)"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rel/sutraerp
+          key: onprem-${{ matrix.release }}
+          cache-on-failure: true
+      - name: Build sutra-api (cargo --profile docker, as the kind images)
+        working-directory: rel/sutraerp
+        run: |
+          cargo build --profile docker -p sutra-api --locked
+          ls -lh target/docker/sutra-api
+      - name: API image
+        run: |
+          mkdir -p tools/sutraerp/deploy/onprem/images/bin
+          cp rel/sutraerp/target/docker/sutra-api tools/sutraerp/deploy/onprem/images/bin/sutra-api
+          docker build -q -f tools/sutraerp/deploy/onprem/images/api.Dockerfile \
+            --build-arg SUTRA_GIT_SHA="$REL_SHA" --build-arg SUTRA_VERSION="$REL_VERSION" \
+            -t "sutraerp-api:$REL_VERSION" tools/sutraerp/deploy/onprem/images
+      - name: Web image (the release's own web.Dockerfile, OIDC sign-in)
+        run: |
+          docker build -q -f rel/sutraerp/deploy/docker/web.Dockerfile --build-arg VITE_AUTH_MODE=oidc \
+            --build-arg SUTRA_GIT_SHA="$REL_SHA" -t "sutraerp-web:$REL_VERSION" rel/sutraerp
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: MinIO binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sutra-minio
+          key: minio-${{ env.MINIO_TAG }}-${{ runner.os }}-${{ runner.arch }}
+      - name: MinIO image (built from source, same runtime as deploy/docker/minio.Dockerfile)
+        working-directory: tools/sutraerp
+        run: |
+          OUT="$HOME/.cache/sutra-minio/minio" bash deploy/minio/build-from-source.sh
+          mkdir -p deploy/docker/demo-bin
+          cp "$HOME/.cache/sutra-minio/minio" deploy/docker/demo-bin/minio
+          docker build -q -f deploy/docker/minio-prebuilt.Dockerfile -t "sutraerp-minio:$MINIO_TAG" .
+      - name: syft (SBOM)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b /usr/local/bin
+          syft version
+      - name: Build the offline bundle
+        run: |
+          bash tools/sutraerp/deploy/onprem/build-bundle.sh --version "$REL_VERSION" --git-sha "$REL_SHA" \
+            --release-src rel/sutraerp --api-image "sutraerp-api:$REL_VERSION" --web-image "sutraerp-web:$REL_VERSION" \
+            --minio-tag "$MINIO_TAG" --private-ca-trust "$REL_CA_TRUST" --documents "$REL_DOCS" --out dist \
+            | tee dist-build.log
+          ls -lh dist
+          {
+            echo "### Bundle ${{ matrix.release }} — $REL_VERSION"
+            echo '```'
+            cat dist-build.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: onprem-bundle-${{ matrix.release }}
+          path: |
+            dist/*.tar
+            dist/*.tar.sha256
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: onprem-bundle-${{ matrix.release }}-manifest
+          path: |
+            dist/sutraerp-onprem-*/RELEASE.json
+            dist/sutraerp-onprem-*/SHA256SUMS
+            dist/sutraerp-onprem-*/images/IMAGES.tsv
+            dist/sutraerp-onprem-*/sbom
+          retention-days: 30
+
+  fresh:
+    name: Fresh install · smoke · restart · reboot sim · crash recovery
+    needs: [plan, bundle]
+    if: ${{ !cancelled() && (needs.bundle.result == 'success' || needs.bundle.result == 'skipped') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      OUT: ${{ github.workspace }}/onprem-results
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: onprem-bundle-current
+          path: bundles/current
+          run-id: ${{ needs.plan.outputs.reuse || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Drill A (deploy/onprem/ci/run-fresh.sh)
+        run: bash sutraerp/deploy/onprem/ci/run-fresh.sh "$(ls bundles/current/*.tar)"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### On-prem drill A — fresh install (GitHub-hosted runner, NOT college hardware)"
+            head -14 "$OUT"/host-facts-*.md 2>/dev/null | tail -12
+            echo; echo '#### Timings (s)'; echo '```'; column -t -s $'\t' "$OUT/timings.tsv" 2>/dev/null; echo '```'
+            echo '#### Results'; echo '```'; column -t -s $'\t' "$OUT/results.tsv" 2>/dev/null; echo '```'
+            echo '#### Crash recovery'; echo '```'; column -t -s $'\t' "$OUT/chaos.tsv" 2>/dev/null; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Logs on failure
+        if: failure()
+        run: |
+          [ -e /opt/sutraerp/current ] && sudo /opt/sutraerp/current/bin/sutra-onprem status || true
+          mkdir -p "$OUT/logs"
+          for c in $(docker ps -aq); do n=$(docker inspect -f '{{.Name}}' "$c" | tr -d /); docker logs --tail 400 "$c" > "$OUT/logs/fail-$n.log" 2>&1 || true; done
+          tail -n 60 "$OUT"/logs/fail-*api*.log "$OUT"/logs/fail-*keycloak*.log 2>/dev/null || true
+          rm -f "$OUT/.pw"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: onprem-fresh-results
+          path: onprem-results
+          retention-days: 30
+
+  upgrade:
+    name: Upgrade previous → current · rollback · re-upgrade
+    needs: [plan, bundle]
+    if: ${{ !cancelled() && (needs.bundle.result == 'success' || needs.bundle.result == 'skipped') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      OUT: ${{ github.workspace }}/onprem-results
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: onprem-bundle-*
+          path: bundles
+          run-id: ${{ needs.plan.outputs.reuse || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Drill B (deploy/onprem/ci/run-upgrade.sh)
+        run: bash sutraerp/deploy/onprem/ci/run-upgrade.sh "$(ls bundles/onprem-bundle-previous/*.tar)" "$(ls bundles/onprem-bundle-current/*.tar)"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### On-prem drill B — upgrade / rollback (GitHub-hosted runner, NOT college hardware)"
+            echo '#### Timings (s)'; echo '```'; column -t -s $'\t' "$OUT/timings.tsv" 2>/dev/null; echo '```'
+            echo '#### Results'; echo '```'; column -t -s $'\t' "$OUT/results.tsv" 2>/dev/null; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Logs on failure
+        if: failure()
+        run: |
+          [ -e /opt/sutraerp/current ] && sudo /opt/sutraerp/current/bin/sutra-onprem status || true
+          mkdir -p "$OUT/logs"
+          for c in $(docker ps -aq); do n=$(docker inspect -f '{{.Name}}' "$c" | tr -d /); docker logs --tail 400 "$c" > "$OUT/logs/fail-$n.log" 2>&1 || true; done
+          tail -n 60 "$OUT"/logs/fail-*api*.log "$OUT"/logs/fail-*keycloak*.log 2>/dev/null || true
+          rm -f "$OUT/.pw"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: onprem-upgrade-results
+          path: onprem-results
+          retention-days: 30
