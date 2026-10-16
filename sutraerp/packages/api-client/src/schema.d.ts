@@ -13586,6 +13586,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/institutions/{id}/fee-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sends the reminders due today before due dates by the effective `reminder_schedule` rule
+         *     (`receivable.manage`); each charge, due date and offset is reminded once.
+         */
+        post: operations["finance_dunning_reminder_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/institutions/{id}/fee-structures": {
         parameters: {
             query?: never;
@@ -13672,6 +13692,43 @@ export interface paths {
         get: operations["finance_journal_list"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/late-fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Charges late fees by the effective `late_fee` rule (`receivable.manage`). Idempotent per day:
+         *     each charge is charged only the difference between the fee due today and fees already raised.
+         */
+        post: operations["finance_receivable_late_fee_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/late-fees/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a late-fee run would charge today, without charging (`receivable.manage`). */
+        post: operations["finance_receivable_late_fee_preview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -33172,6 +33229,30 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description One reminder sent before a due date. */
+        FeeReminderItem: {
+            /** @example 25000.00 */
+            amountDue: string;
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            /** Format: int64 */
+            daysBefore: number;
+            /** Format: date */
+            dueDate: string;
+            message: string;
+            studentName: string;
+        };
+        /** @description A pre-due reminder run. */
+        FeeReminderRun: {
+            /** Format: date */
+            asOf: string;
+            items: components["schemas"]["FeeReminderItem"][];
+            /** Format: int32 */
+            ruleVersion: number;
+            /** Format: int64 */
+            sent: number;
+        };
         FeeStructureCreate: {
             /** Format: uuid */
             academicTermId?: string | null;
@@ -35161,6 +35242,65 @@ export interface components {
             statusReason?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        /** @description One charge priced by a late-fee run. */
+        LateFeeItem: {
+            /** @example 250.00 */
+            alreadyCharged: string;
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            /** Format: int64 */
+            daysLate: number;
+            description: string;
+            /**
+             * Format: date
+             * @description The date it is late against (the earliest open instalment, or the charge's due date).
+             */
+            dueDate: string;
+            /**
+             * Format: uuid
+             * @description The fee charge raised by this run.
+             */
+            feeChargeId?: string | null;
+            feeChargeNumber?: string | null;
+            /**
+             * @description The fee the rule asks for as of today.
+             * @example 500.00
+             */
+            feeToDate: string;
+            /**
+             * @description The late part (on a schedule only the instalments past due).
+             * @example 25000.00
+             */
+            overdueAmount: string;
+            studentName: string;
+            studentNumber?: string | null;
+            /**
+             * @description What the run charges (fee to date − already charged).
+             * @example 250.00
+             */
+            toCharge: string;
+        };
+        /** @description A late-fee preview or run. */
+        LateFeeRun: {
+            /** Format: date */
+            asOf: string;
+            /**
+             * Format: int64
+             * @description Charges with a fee to charge now (preview) or charged (run).
+             */
+            charged: number;
+            items: components["schemas"]["LateFeeItem"][];
+            /** @description `true` for a preview (nothing charged). */
+            preview: boolean;
+            /**
+             * Format: int32
+             * @description The effective `late_fee` rule version that priced the run.
+             */
+            ruleVersion: number;
+            /** @example 750.00 */
+            total: string;
         };
         LearningCompletion: {
             /** @description `passed` | `failed` | `not_applicable`. */
@@ -39862,7 +40002,10 @@ export interface components {
             institutionId: string;
             processInstanceId?: string | null;
             rollbackReason?: string | null;
-            /** @description Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`). */
+            /**
+             * @description Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`,
+             *     `reminder_schedule`).
+             */
             ruleKey?: string | null;
             status: components["schemas"]["FinancePolicyStatus"];
             statusReason?: string | null;
@@ -42651,9 +42794,14 @@ export interface components {
             versionNo: number;
         };
         /**
-         * @description A new rule version (`late_fee` {percent, graceDays, cap}, `rounding` {mode},
-         *     `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
-         *     `write_off_threshold` {amount}; decimals as strings).
+         * @description A new rule version; decimals as strings:
+         *     * `late_fee` {`mode` flat | percent | per_day | slabs | none, `amount`, `percent`,
+         *       `frequency` once | monthly, `graceDays`, `cap`, `capPercent`, `slabs` [{`fromDay`, `amount`}],
+         *       `roundToRupee`, `minOverdue`, `feeHeadCode`} (the 5A shape {percent, graceDays, cap} is a
+         *       one-off percentage);
+         *     * `reminder_schedule` {`beforeDays` [7, 1], `afterDays` [1, 15, 30], `lateFromDays`};
+         *     * `rounding` {mode}, `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
+         *       `write_off_threshold` {amount}.
          */
         RuleCreate: {
             changeNote?: string | null;
@@ -78863,6 +79011,35 @@ export interface operations {
             };
         };
     };
+    finance_dunning_reminder_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeReminderRun"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_fee_structure_list: {
         parameters: {
             query?: never;
@@ -79156,6 +79333,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JournalEntryList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_late_fee_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LateFeeRun"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receivable_late_fee_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LateFeeRun"];
                 };
             };
             "4XX": {

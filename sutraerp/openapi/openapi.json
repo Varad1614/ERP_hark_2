@@ -61390,6 +61390,53 @@
         ]
       }
     },
+    "/api/v1/finance/institutions/{id}/fee-reminders": {
+      "post": {
+        "tags": [
+          "finance-receivables"
+        ],
+        "summary": "Sends the reminders due today before due dates by the effective `reminder_schedule` rule\n(`receivable.manage`); each charge, due date and offset is reminded once.",
+        "operationId": "finance_dunning_reminder_run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeReminderRun"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/institutions/{id}/fee-structures": {
       "get": {
         "tags": [
@@ -62013,6 +62060,100 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JournalEntryList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/late-fees": {
+      "post": {
+        "tags": [
+          "finance-receivables"
+        ],
+        "summary": "Charges late fees by the effective `late_fee` rule (`receivable.manage`). Idempotent per day:\neach charge is charged only the difference between the fee due today and fees already raised.",
+        "operationId": "finance_receivable_late_fee_run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LateFeeRun"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/late-fees/preview": {
+      "post": {
+        "tags": [
+          "finance-receivables"
+        ],
+        "summary": "What a late-fee run would charge today, without charging (`receivable.manage`).",
+        "operationId": "finance_receivable_late_fee_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LateFeeRun"
                 }
               }
             }
@@ -150534,6 +150675,76 @@
           }
         }
       },
+      "FeeReminderItem": {
+        "type": "object",
+        "description": "One reminder sent before a due date.",
+        "required": [
+          "chargeId",
+          "chargeNumber",
+          "studentName",
+          "dueDate",
+          "daysBefore",
+          "amountDue",
+          "message"
+        ],
+        "properties": {
+          "amountDue": {
+            "type": "string",
+            "example": "25000.00"
+          },
+          "chargeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "chargeNumber": {
+            "type": "string"
+          },
+          "daysBefore": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "message": {
+            "type": "string"
+          },
+          "studentName": {
+            "type": "string"
+          }
+        }
+      },
+      "FeeReminderRun": {
+        "type": "object",
+        "description": "A pre-due reminder run.",
+        "required": [
+          "asOf",
+          "ruleVersion",
+          "sent",
+          "items"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeeReminderItem"
+            }
+          },
+          "ruleVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sent": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "FeeStructureCreate": {
         "type": "object",
         "required": [
@@ -156771,6 +156982,127 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "LateFeeItem": {
+        "type": "object",
+        "description": "One charge priced by a late-fee run.",
+        "required": [
+          "chargeId",
+          "chargeNumber",
+          "description",
+          "studentName",
+          "dueDate",
+          "daysLate",
+          "overdueAmount",
+          "feeToDate",
+          "alreadyCharged",
+          "toCharge"
+        ],
+        "properties": {
+          "alreadyCharged": {
+            "type": "string",
+            "example": "250.00"
+          },
+          "chargeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "chargeNumber": {
+            "type": "string"
+          },
+          "daysLate": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "description": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The date it is late against (the earliest open instalment, or the charge's due date)."
+          },
+          "feeChargeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The fee charge raised by this run."
+          },
+          "feeChargeNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "feeToDate": {
+            "type": "string",
+            "description": "The fee the rule asks for as of today.",
+            "example": "500.00"
+          },
+          "overdueAmount": {
+            "type": "string",
+            "description": "The late part (on a schedule only the instalments past due).",
+            "example": "25000.00"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "toCharge": {
+            "type": "string",
+            "description": "What the run charges (fee to date − already charged).",
+            "example": "250.00"
+          }
+        }
+      },
+      "LateFeeRun": {
+        "type": "object",
+        "description": "A late-fee preview or run.",
+        "required": [
+          "asOf",
+          "ruleVersion",
+          "preview",
+          "charged",
+          "total",
+          "items"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "charged": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Charges with a fee to charge now (preview) or charged (run)."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LateFeeItem"
+            }
+          },
+          "preview": {
+            "type": "boolean",
+            "description": "`true` for a preview (nothing charged)."
+          },
+          "ruleVersion": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The effective `late_fee` rule version that priced the run."
+          },
+          "total": {
+            "type": "string",
+            "example": "750.00"
           }
         }
       },
@@ -171714,7 +172046,7 @@
               "string",
               "null"
             ],
-            "description": "Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`)."
+            "description": "Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`,\n`reminder_schedule`)."
           },
           "status": {
             "$ref": "#/components/schemas/FinancePolicyStatus"
@@ -180482,7 +180814,7 @@
       },
       "RuleCreate": {
         "type": "object",
-        "description": "A new rule version (`late_fee` {percent, graceDays, cap}, `rounding` {mode},\n`instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},\n`write_off_threshold` {amount}; decimals as strings).",
+        "description": "A new rule version; decimals as strings:\n* `late_fee` {`mode` flat | percent | per_day | slabs | none, `amount`, `percent`,\n  `frequency` once | monthly, `graceDays`, `cap`, `capPercent`, `slabs` [{`fromDay`, `amount`}],\n  `roundToRupee`, `minOverdue`, `feeHeadCode`} (the 5A shape {percent, graceDays, cap} is a\n  one-off percentage);\n* `reminder_schedule` {`beforeDays` [7, 1], `afterDays` [1, 15, 30], `lateFromDays`};\n* `rounding` {mode}, `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},\n  `write_off_threshold` {amount}.",
         "required": [
           "ruleKey",
           "values"
