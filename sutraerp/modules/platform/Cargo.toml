@@ -36,6 +36,10 @@ webauthn-rs.workspace = true
 url.workspace = true
 # 9C: sutra_workflow_calls_total / sutra_search_projection_lag_seconds (metrics facade; 9A's exporter renders them)
 metrics.workspace = true
+# Part 2 · S4-import: import / export files and opening-balance totals
+calamine.workspace = true
+rust_xlsxwriter.workspace = true
+rust_decimal.workspace = true
 
 [dev-dependencies]
 axum = { workspace = true, features = ["form"] }

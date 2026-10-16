@@ -25,6 +25,7 @@
 pub mod audit; // 9A
 pub mod auth;
 pub mod catalog;
+pub mod dataimport; // Part 2 · S4-import
 pub mod inbox;
 pub mod search; // 9C
 pub mod sweep;
