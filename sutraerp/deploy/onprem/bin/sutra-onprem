@@ -404,8 +404,18 @@ PY
 
 # ------------------------------------------------------------------ health
 
-curl_erp() { curl -fsS --max-time 5 --cacert "$SUTRA_ETC/tls/trust.pem" --resolve "$SUTRA_DOMAIN:$SUTRA_HTTPS_PORT:127.0.0.1" "https://$SUTRA_DOMAIN:$SUTRA_HTTPS_PORT$1"; }
-curl_sso() { curl -fsS --max-time 5 --cacert "$SUTRA_ETC/tls/trust.pem" --resolve "$SUTRA_SSO_DOMAIN:$SUTRA_HTTPS_PORT:127.0.0.1" "https://$SUTRA_SSO_DOMAIN:$SUTRA_HTTPS_PORT$1"; }
+# curl_erp|curl_sso <path> [extra curl args…] — the extra arguments (e.g. --data-urlencode for the
+# Keycloak token POST) are passed on; dropping them turned the token request into a GET (HTTP 405).
+curl_erp() {
+  local p=$1
+  shift
+  curl -fsS --max-time 5 --cacert "$SUTRA_ETC/tls/trust.pem" --resolve "$SUTRA_DOMAIN:$SUTRA_HTTPS_PORT:127.0.0.1" "$@" "https://$SUTRA_DOMAIN:$SUTRA_HTTPS_PORT$p"
+}
+curl_sso() {
+  local p=$1
+  shift
+  curl -fsS --max-time 15 --cacert "$SUTRA_ETC/tls/trust.pem" --resolve "$SUTRA_SSO_DOMAIN:$SUTRA_HTTPS_PORT:127.0.0.1" "$@" "https://$SUTRA_SSO_DOMAIN:$SUTRA_HTTPS_PORT$p"
+}
 
 # Health of every container that has a check + API readiness + SSO discovery + web shell.
 health_once() {
@@ -481,7 +491,8 @@ s3() { # method path [curl args…]
 cmd_bucket() {
   load_conf
   local code anon
-  code=$(s3 HEAD "/$SUTRA_S3_BUCKET" -o /dev/null -w '%{http_code}' 2>/dev/null || true)
+  # GET ?location, not HEAD: curl -X HEAD waits for a body that never comes and stalls until --max-time.
+  code=$(s3 GET "/$SUTRA_S3_BUCKET?location" -o /dev/null -w '%{http_code}' 2>/dev/null || true)
   if [[ "$code" != 200 ]]; then
     code=$(s3 PUT "/$SUTRA_S3_BUCKET" --data-binary '' -o /dev/null -w '%{http_code}')
     [[ "$code" == 200 ]] || die "creating bucket $SUTRA_S3_BUCKET answered $code"
