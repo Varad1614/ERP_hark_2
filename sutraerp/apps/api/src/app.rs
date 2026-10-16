@@ -408,6 +408,7 @@ impl AppContext {
         let (identity, identity_runtime, consumers) =
             crate::idp_wiring::wire(cfg, &pool, sessions.clone(), consumers)
                 .map_err(BuildError::Auth)?;
+        let entitlement = entitlement_gate(cfg, &pool); // Part 2 · S7-entitle
         Ok(Self {
             pool,
             readiness,
@@ -447,12 +448,12 @@ impl AppContext {
                 consumers,
                 observability, // 9A
             },
-            search,                                    // 9C
+            search,                // 9C
             payment_gateway,       // INT: SEC-9D-003 (+ Part 2 S4-pay: razorpay)
             identity,              // Part 2 · S4-idp
             identity_runtime,      // Part 2 · S4-idp
             documents: docs.vault, // Part 2 · S4-docs
-            entitlement: entitlement_gate(cfg, &pool), // Part 2 · S7-entitle
+            entitlement,           // Part 2 · S7-entitle
         })
     }
 
