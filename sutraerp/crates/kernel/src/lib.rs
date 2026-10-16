@@ -20,6 +20,7 @@
 //! * [`mail`] – outbound e-mail port (notification e-mail channel)
 //! * [`health`] – readiness probe port (ADR-L5-0044)
 //! * [`module`] – module descriptors for the composition root
+//! * [`entitlement`] – module / package registry, licence state, entitlement access rule (Part 2 · S7)
 //! * [`error`] – framework-neutral technical error taxonomy
 //!
 //! The kernel must never depend on Axum, SQLx or any domain module.
@@ -31,6 +32,7 @@ pub mod auth;
 pub mod cache;
 pub mod concurrency;
 pub mod db_context; // Part 1 S3: DEF-X-003 row-level security context
+pub mod entitlement; // Part 2 · S7-entitle: module entitlements + licence state
 pub mod error;
 pub mod events;
 pub mod health;
