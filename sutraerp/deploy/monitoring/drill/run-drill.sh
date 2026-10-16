@@ -141,15 +141,17 @@ curl -fsS --get "$PROM/api/v1/query" --data-urlencode 'query=sum by (outcome) (s
   | jq -c '.data.result | map({(.metric.outcome): .value[1]}) | add' > "$OUT/s3-calls.json"
 
 # ------------------------------------------------------------------ 3. WAL archive failure
-log "FAULT 3: WAL archiving fails (archive_command=/bin/false)"
+log "FAULT 3: WAL archiving fails (archive destination made read-only; archive_command's cp fails)"
 psqlc() { "${DC[@]}" exec -T postgres psql -U sutra -d sutra -v ON_ERROR_STOP=1 -qtAc "$1"; }
-psqlc "ALTER SYSTEM SET archive_command = '/bin/false'" && psqlc "SELECT pg_reload_conf()" >/dev/null
+log "  archiver before: $(psqlc "SELECT 'archived=' || archived_count || ' failed=' || failed_count FROM pg_stat_archiver")"
+"${DC[@]}" exec -T -u root postgres chmod 0555 /archive
 t0="$(now)"
 psqlc "CREATE TABLE IF NOT EXISTS public.drill_wal (n int); INSERT INTO public.drill_wal SELECT generate_series(1, 20000)"
 psqlc "SELECT pg_switch_wal()" >/dev/null
 rc=0
-expect_alert SutraWalArchiveFailing "archive_command fails for a switched WAL segment" "$t0" || rc=$?
-psqlc "ALTER SYSTEM RESET archive_command" && psqlc "SELECT pg_reload_conf()" >/dev/null
+expect_alert SutraWalArchiveFailing "archive destination not writable, a switched WAL segment cannot be archived" "$t0" || rc=$?
+log "  archiver during: $(psqlc "SELECT 'archived=' || archived_count || ' failed=' || failed_count FROM pg_stat_archiver")"
+"${DC[@]}" exec -T -u root postgres chmod 0700 /archive
 psqlc "DROP TABLE public.drill_wal"
 [ "$rc" = 0 ] || exit "$rc"
 
