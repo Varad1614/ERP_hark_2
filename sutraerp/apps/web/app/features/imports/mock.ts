@@ -196,7 +196,7 @@ export function createMockImportApi(opts: { actor?: string; jobs?: ImportJob[]; 
           summary.duplicatesInFile++;
         }
         seen.add(key);
-        let action: S["RowAction"] = errors.length ? "error" : existing.has(key) ? "skip" : "create";
+        const action: S["RowAction"] = errors.length ? "error" : existing.has(key) ? "skip" : "create";
         if (action === "skip") summary.existingInDatabase++;
         if (action === "create" && entity.amountColumn) total += Number(value(entity.amountColumn).replace(/,/g, ""));
         a[action]++;
