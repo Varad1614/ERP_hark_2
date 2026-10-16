@@ -57,6 +57,13 @@ event_type!(
     /// (L3-F-040).
     DUNNING_NOTICE_SENT, DUNNING_NOTICE_SENT_SCHEMA, "dunning.notice_sent");
 event_type!(
+    /// ERP_EXTENSIONS 1D: a late fee was charged on an overdue charge (the new fee charge;
+    /// `chargeId` = the fee charge, `reason` names the late charge).
+    LATE_FEE_CHARGED, LATE_FEE_CHARGED_SCHEMA, "late_fee.charged");
+event_type!(
+    /// ERP_EXTENSIONS 1D: a reminder before the due date of a charge.
+    FEE_REMINDER_SENT, FEE_REMINDER_SENT_SCHEMA, "fee_reminder.sent");
+event_type!(
     /// (L3-F-041).
     RECEIVABLE_SETTLED, RECEIVABLE_SETTLED_SCHEMA, "receivable.settled");
 event_type!(
@@ -85,6 +92,8 @@ pub const EVENT_TYPES: &[&str] = &[
     RECEIVABLE_RECOGNISED,
     RECEIVABLE_OVERDUE,
     DUNNING_NOTICE_SENT,
+    LATE_FEE_CHARGED,
+    FEE_REMINDER_SENT,
     RECEIVABLE_SETTLED,
     RECEIVABLE_WRITTEN_OFF,
     RECEIVABLE_REOPENED,

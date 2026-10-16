@@ -1051,10 +1051,30 @@ pub async fn dunning_run(
     .fetch_all(&st.pool)
     .await
     .map_err(map_db_error)?;
+    // ERP_EXTENSIONS 1D: with an effective `reminder_schedule`, notice n goes out from
+    // `afterDays[n-1]` days late (without one, every run notices as before).
+    let schedule = {
+        let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+        super::latefee_http::reminder_schedule(&mut conn, t, inst).await?
+    };
     let (mut sent, mut escalated) = (0, 0);
     for rid in ids {
         let mut tx = st.pool.begin().await.map_err(map_db_error)?;
         let r = load(&mut tx, t, rid, true).await?;
+        if let Some((_, sched)) = &schedule {
+            let level: i32 = sqlx::query_scalar(
+                "SELECT coalesce(max(level), 0) FROM finance.dunning_case WHERE tenant_id = $1 AND receivable_id = $2 \
+                 AND status IN ('open', 'notice_sent', 'escalated')",
+            )
+            .bind(t.as_uuid())
+            .bind(rid)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(map_db_error)?;
+            if !sched.notice_due(days_overdue(r.due, today), level) {
+                continue;
+            }
+        }
         let to = send_notice(&mut tx, &scope, &r, None, today, &a).await?;
         sqlx::query(
             "UPDATE finance.receivable SET version = version + 1, updated_at = now() WHERE id = $1",
@@ -1629,5 +1649,8 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
         .routes(routes!(dunning_get))
         .routes(routes!(dunning_resolve))
         .routes(routes!(dunning_cancel))
+        .routes(routes!(super::latefee_http::late_fee_preview))
+        .routes(routes!(super::latefee_http::late_fee_run))
+        .routes(routes!(super::latefee_http::fee_reminder_run))
         .with_state(state)
 }

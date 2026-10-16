@@ -5,6 +5,7 @@
 
 pub mod domain;
 pub mod latefee;
+pub mod latefee_http;
 pub mod http;
 
 use crate::shared::FinanceState;

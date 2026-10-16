@@ -36,9 +36,14 @@ pub struct ConfigCreate {
     pub change_note: Option<String>,
 }
 
-/// A new rule version (`late_fee` {percent, graceDays, cap}, `rounding` {mode},
-/// `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
-/// `write_off_threshold` {amount}; decimals as strings).
+/// A new rule version; decimals as strings:
+/// * `late_fee` {`mode` flat | percent | per_day | slabs | none, `amount`, `percent`,
+///   `frequency` once | monthly, `graceDays`, `cap`, `capPercent`, `slabs` [{`fromDay`, `amount`}],
+///   `roundToRupee`, `minOverdue`, `feeHeadCode`} (the 5A shape {percent, graceDays, cap} is a
+///   one-off percentage);
+/// * `reminder_schedule` {`beforeDays` [7, 1], `afterDays` [1, 15, 30], `lateFromDays`};
+/// * `rounding` {mode}, `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
+///   `write_off_threshold` {amount}.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RuleCreate {

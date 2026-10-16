@@ -82,6 +82,7 @@ pub const RULE_KEYS: &[&str] = &[
     "instalment_policy",
     "refund_window",
     "write_off_threshold",
+    "reminder_schedule",
 ];
 
 /// A governed configuration / rule version.
@@ -90,7 +91,8 @@ pub const RULE_KEYS: &[&str] = &[
 pub struct PolicyVersionView {
     pub id: Uuid,
     pub institution_id: Uuid,
-    /// Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`).
+    /// Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`,
+    /// `reminder_schedule`).
     pub rule_key: Option<String>,
     pub version_no: i32,
     /// Settings (configuration) or parameters (rule), camelCase JSON.
@@ -169,6 +171,17 @@ pub fn validate_values(
     if obj.is_empty() {
         return Err(invalid("values", "required", "at least one value"));
     }
+    // ERP_EXTENSIONS 1D: the late fee and the reminder schedule are validated as a whole.
+    if kind == Kind::Rule && rule_key == Some("late_fee") {
+        return crate::receivables::latefee::LateFeePolicy::from_values(values)
+            .map(|_| ())
+            .map_err(|m| invalid("values", "invalid_value", &m));
+    }
+    if kind == Kind::Rule && rule_key == Some("reminder_schedule") {
+        return crate::receivables::latefee::ReminderSchedule::from_values(values)
+            .map(|_| ())
+            .map_err(|m| invalid("values", "invalid_value", &m));
+    }
     let max = Decimal::from(1_000_000_000_i64);
     for (k, v) in obj {
         let field = format!("values.{k}");
@@ -190,11 +203,6 @@ pub fn validate_values(
                     ));
                 }
             }
-            (Kind::Rule, Some("late_fee"), "percent") => {
-                decimal_in(v, &field, Decimal::ZERO, Decimal::ONE_HUNDRED)?
-            }
-            (Kind::Rule, Some("late_fee"), "graceDays") => int_in(v, &field, 0, 90)?,
-            (Kind::Rule, Some("late_fee"), "cap") => decimal_in(v, &field, Decimal::ZERO, max)?,
             (Kind::Rule, Some("rounding"), "mode") => {
                 if !matches!(v.as_str(), Some("half_away_from_zero" | "half_even")) {
                     return Err(invalid(
