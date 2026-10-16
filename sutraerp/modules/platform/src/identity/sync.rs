@@ -173,12 +173,14 @@ impl SweepJob for IdpEventConsumer {
                AND o.created_at > now() - make_interval(secs => $2) \
                AND NOT EXISTS (SELECT 1 FROM platform.event_receipt r \
                                WHERE r.consumer = $3 AND r.event_id = o.id) \
+               AND ($5::uuid[] IS NULL OR o.tenant_id = ANY($5)) \
              ORDER BY o.created_at, o.id LIMIT $4",
         )
         .bind(&types)
         .bind(self.runtime.settings.lookback.as_secs_f64())
         .bind(CONSUMER)
         .bind(i64::from(self.runtime.settings.batch_size.max(1)))
+        .bind(self.runtime.settings.tenants.as_deref())
         .fetch_all(&mut *conn)
         .await?;
         let mut processed = 0;
@@ -550,9 +552,11 @@ impl SweepJob for IdpSyncWorker {
         let rows = sqlx::query(&format!(
             "SELECT {LINK_COLUMNS} FROM platform.identity_link \
              WHERE sync_status IN ('pending', 'failed') AND next_attempt_at <= now() \
+               AND ($2::uuid[] IS NULL OR tenant_id = ANY($2)) \
              ORDER BY next_attempt_at, id LIMIT $1 FOR UPDATE SKIP LOCKED"
         ))
         .bind(i64::from(s.batch_size.max(1)))
+        .bind(s.tenants.as_deref())
         .fetch_all(&mut *conn)
         .await?;
         let backoff = Backoff::new(s.retry_base, s.retry_max);

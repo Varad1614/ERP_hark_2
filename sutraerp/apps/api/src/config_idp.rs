@@ -14,6 +14,7 @@
 //! | `SUTRA_IDP_ACTIONS_CLIENT_ID` / `SUTRA_IDP_ACTIONS_REDIRECT_URI` | — | where the e-mailed link lands |
 //! | `SUTRA_IDP_POLL_MS` · `SUTRA_IDP_BATCH_SIZE` | `5000` · `50` | job cadence |
 //! | `SUTRA_IDP_RETRY_BASE_SECS` · `SUTRA_IDP_RETRY_MAX_SECS` | `10` · `3600` | back-off of a failed sync |
+//! | `SUTRA_IDP_TENANTS` | — (all) | staged roll-out: comma-separated tenant UUIDs that are provisioned |
 //! | `SUTRA_IDP_STARTUP_CHECK` | `true` | verify the admin client's least-privilege grants at start-up (refused off in production; a failed check stops a production start) |
 //!
 //! Production refuses: `memory`; a plain-http (non-loopback) URL; a missing / published / short
@@ -50,6 +51,8 @@ pub struct IdpConfig {
     pub retry_base: Duration,
     pub retry_max: Duration,
     pub startup_check: bool,
+    /// `SUTRA_IDP_TENANTS` (`None` = every tenant).
+    pub tenants: Option<Vec<uuid::Uuid>>,
 }
 
 fn parse<T: std::str::FromStr>(
@@ -145,6 +148,21 @@ impl IdpConfig {
                 parse(src, "SUTRA_IDP_RETRY_MAX_SECS", 3_600u64)?.max(1),
             ),
             startup_check: parse(src, "SUTRA_IDP_STARTUP_CHECK", true)?,
+            tenants: match non_empty(src, "SUTRA_IDP_TENANTS") {
+                None => None,
+                Some(v) => Some(
+                    v.split(',')
+                        .map(str::trim)
+                        .filter(|t| !t.is_empty())
+                        .map(|t| {
+                            uuid::Uuid::parse_str(t).map_err(|_| ConfigError::Invalid {
+                                key: "SUTRA_IDP_TENANTS",
+                                value: t.to_owned(),
+                            })
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                ),
+            },
         };
         if cfg.mode == IdpMode::Keycloak && cfg.client_secret.is_none() {
             return Err(ConfigError::Invalid {
@@ -237,6 +255,13 @@ mod tests {
             "secret required"
         );
         assert!(Config::load(&HashMap::from([("SUTRA_IDP_PROVISIONING", "ldap")])).is_err());
+        assert!(Config::load(&HashMap::from([("SUTRA_IDP_TENANTS", "nope")])).is_err());
+        let c = Config::load(&HashMap::from([(
+            "SUTRA_IDP_TENANTS",
+            "0192f5a0-7c3e-7000-8000-000000000001, ",
+        )]))
+        .unwrap();
+        assert_eq!(c.idp.tenants.map(|t| t.len()), Some(1));
     }
 
     #[test]

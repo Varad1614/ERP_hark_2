@@ -55,6 +55,8 @@ pub struct IdentitySettings {
     /// Back-off of a failed sync (base, max).
     pub retry_base: Duration,
     pub retry_max: Duration,
+    /// Staged roll-out: only these tenants are provisioned (`SUTRA_IDP_TENANTS`; `None` = all).
+    pub tenants: Option<Vec<Uuid>>,
 }
 
 impl Default for IdentitySettings {
@@ -67,6 +69,7 @@ impl Default for IdentitySettings {
             lookback: Duration::from_secs(7 * 24 * 3600),
             retry_base: Duration::from_secs(10),
             retry_max: Duration::from_secs(3600),
+            tenants: None,
         }
     }
 }

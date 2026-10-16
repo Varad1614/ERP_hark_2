@@ -39,6 +39,7 @@ pub fn identity_settings(cfg: &Config) -> IdentitySettings {
         lookback: cfg.inbox.lookback,
         retry_base: i.retry_base,
         retry_max: i.retry_max,
+        tenants: i.tenants.clone(),
     }
 }
 
