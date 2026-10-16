@@ -68,10 +68,10 @@ mod tests {
 
     const PEM: &str = "-----BEGIN CERTIFICATE-----\nMIIBszCCAVmgAwIBAgIUQ0FfdGVzdA==\n-----END CERTIFICATE-----\n";
 
-    fn file(name: &str, body: &[u8]) -> String {
-        let p = std::env::temp_dir().join(format!("sutra-tls-{name}-{}", std::process::id()));
-        std::fs::write(&p, body).unwrap();
-        p.to_string_lossy().into_owned()
+    /// Checked-in fixtures (`tests/fixtures/tls/`): no files are written at test time (no shared
+    /// temporary directory, semgrep `rust.lang.security.temp-dir`). `two-blocks.pem` holds `PEM` twice.
+    fn fixture(name: &str) -> String {
+        format!("{}/tests/fixtures/tls/{name}", env!("CARGO_MANIFEST_DIR"))
     }
 
     #[test]
@@ -83,13 +83,14 @@ mod tests {
 
     #[test]
     fn reads_a_pem_bundle_and_refuses_missing_or_garbage_files() {
-        let ok = file("ok", format!("{PEM}{PEM}").as_bytes());
+        let ok = fixture("two-blocks.pem");
+        assert_eq!(std::fs::read_to_string(&ok).unwrap(), format!("{PEM}{PEM}"));
         let c =
             TlsTrustConfig::load(&Map(HashMap::from([("SUTRA_TLS_CA_FILE", ok.clone())]))).unwrap();
         assert_eq!(c.certificates, 2);
         assert_eq!(c.ca_file.as_deref(), Some(ok.as_str()));
-        for (name, body) in [("empty", &b""[..]), ("text", &b"hello"[..])] {
-            let p = file(name, body);
+        for name in ["empty.pem", "not-pem.txt"] {
+            let p = fixture(name);
             let e = TlsTrustConfig::load(&Map(HashMap::from([("SUTRA_TLS_CA_FILE", p)])));
             assert!(
                 matches!(
