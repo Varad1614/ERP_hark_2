@@ -846,7 +846,10 @@ async fn provisioned_student_signs_in_and_suspension_locks_them_out() {
         .sign_in(&oidc, &email, &password, &password)
         .await
     {
-        SignIn::Refused(page) => eprintln!("suspended sign-in refused by Keycloak: {page}"),
+        SignIn::Refused(page) => assert!(
+            page.contains("Account is disabled"),
+            "refused for another reason: {page}"
+        ),
         SignIn::Session(_) => panic!("a suspended student signed in"),
     }
 
