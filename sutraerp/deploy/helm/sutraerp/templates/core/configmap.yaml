@@ -49,6 +49,12 @@ data:
   {{- if and (hasKey $xe "SUTRA_AUTH_MAX_FAILURES") (eq (toString (index $xe "SUTRA_AUTH_MAX_FAILURES")) "0") }}{{ fail "api.extraEnv.SUTRA_AUTH_MAX_FAILURES=0 is not allowed when global.environment=production" }}{{ end }}
   {{- end }}
   SUTRA_APPROVAL_MODE: {{ $approvalMode | quote }}
+  {{- /* Part 2 · S7-entitle: production states the entitlement default (the API refuses to start without it). */}}
+  {{- $entDefault := index (.Values.entitlements | default dict) "default" | default "" }}
+  {{- if and (eq .Values.global.environment "production") (eq (toString $entDefault) "") }}{{ fail "entitlements.default (SUTRA_ENTITLEMENT_DEFAULT) is required when global.environment=production" }}{{ end }}
+  {{- if $entDefault }}
+  SUTRA_ENTITLEMENT_DEFAULT: {{ $entDefault | quote }}
+  {{- end }}
   SUTRA_WORKFLOW: {{ ternary "flowable" "noop" .Values.flowable.enabled | quote }}
   {{- if .Values.flowable.enabled }}
   SUTRA_FLOWABLE_URL: {{ .Values.flowable.url | quote }}

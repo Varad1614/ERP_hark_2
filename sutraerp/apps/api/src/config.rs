@@ -977,6 +977,8 @@ impl Config {
             // Part 2 · S4-docs: documents need real object storage (checked last, so the earlier
             // production rules keep reporting first).
             crate::config_docs::validate_production(&self.documents)?;
+            // Part 2 · S7-entitle: production states its entitlement default (checked last).
+            crate::config_entitlement::validate_production(&self.entitlement)?;
         }
         Ok(())
     }
