@@ -126,6 +126,10 @@ CREATE TABLE platform.identity_role_mapping (
     client_id       text        CHECK ((target_kind = 'client_role') = (client_id IS NOT NULL)),
     created_by      text        NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
+    -- A deleted mapping is retired, not removed: its target stays in the set SutraERP manages,
+    -- so the sync worker still takes it away from identities that hold it.
+    retired_at      timestamptz,
+    retired_by      text,
     -- A SutraERP role name is never a mapping target (it is always mapped 1:1), and SutraERP's
     -- own tenant groups are never a mapping target (they carry the tenant scope claims).
     CHECK (NOT (target_kind = 'realm_role' AND target IN ('administrator', 'faculty', 'student',
@@ -135,6 +139,7 @@ CREATE TABLE platform.identity_role_mapping (
 );
 CREATE UNIQUE INDEX identity_role_mapping_unique
     ON platform.identity_role_mapping (tenant_id, COALESCE(institution_id, '00000000-0000-0000-0000-000000000000'::uuid),
-                                       erp_role, target_kind, COALESCE(client_id, ''), target);
+                                       erp_role, target_kind, COALESCE(client_id, ''), target)
+    WHERE retired_at IS NULL;
 
 SELECT platform.apply_tenant_rls();
