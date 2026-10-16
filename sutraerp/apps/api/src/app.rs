@@ -224,10 +224,14 @@ pub enum BuildError {
     Payments(String), // Part 2 S4-pay
     #[error("document storage configuration: {0}")]
     Documents(String), // Part 2 · S4-docs
+    #[error("TLS trust configuration: {0}")]
+    Tls(String), // Part 2 · S5-capacity (SUTRA_TLS_CA_FILE)
 }
 
 impl AppContext {
     pub fn from_config(cfg: &Config) -> Result<Self, BuildError> {
+        // Part 2 · S5-capacity: the institution's CA roots, before any HTTP adapter is built.
+        cfg.tls.install().map_err(BuildError::Tls)?;
         let pool = pool::connect_lazy(&pool::PoolSettings {
             url: cfg.database_url.clone(),
             max_connections: cfg.db_max_connections,

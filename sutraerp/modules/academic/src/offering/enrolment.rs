@@ -38,7 +38,7 @@ use sutra_contracts::academic::status::{
     WaitlistStatus,
 };
 use sutra_contracts::student::ids::StudentId;
-use sutra_contracts::student::ports::{StudentContextSummary, StudentSummary};
+use sutra_contracts::student::ports::{StudentContextSummary, StudentSummary, TermRegistration};
 use sutra_contracts::student::status::StudentContextStatus;
 use sutra_kernel::auth::{AuthContext, Permission};
 use sutra_kernel::concurrency::Version;
@@ -348,16 +348,83 @@ async fn effective_restrictions(
         .collect())
 }
 
-/// Evaluates a seat request for `student_id` in section `s` of the locked offering `o`.
-pub async fn evaluate(
+/// What a seat decision needs from OTHER modules' ports (student, live contexts, the
+/// institution's business day, the term registration). Every port call takes its own pool
+/// connection, so these are read BEFORE the offering row is locked (Part 2 · S5-capacity,
+/// DEF-P2-CAP-002): a seat transaction that held `course_offering … FOR UPDATE` and then waited
+/// for a second pool connection starved the pool as soon as as many seat requests as pool
+/// connections queued on one offering (each waiter holds a connection) — every request then
+/// failed with 503 "database unavailable" after the acquire timeout.
+pub struct SeatFacts {
+    student_id: StudentId,
+    institution_id: InstitutionId,
+    academic_term_id: Uuid,
+    student: Option<StudentSummary>,
+    today: NaiveDate,
+    local_context: Option<StudentContextSummary>,
+    home_context: Option<StudentContextSummary>,
+    registration: Option<TermRegistration>,
+}
+
+impl SeatFacts {
+    /// Reads the facts for `student_id` and offering `o` (an unlocked read is enough: the
+    /// institution and term of an offering never change; [`evaluate_with`] re-checks them).
+    pub async fn gather(
+        st: &AcademicState,
+        scope: &ExecutionScope,
+        o: &OfferingRow,
+        student_id: StudentId,
+        gate: &Gate,
+    ) -> Result<Self, KernelError> {
+        let student = st.students.student(scope, student_id).await?;
+        let today = business_today(st, scope, o.institution_id).await?;
+        let local_context = st
+            .students
+            .live_context(scope, student_id, o.institution_id)
+            .await?;
+        let home_context = match (&local_context, gate.home_institution) {
+            (None, Some(home)) => st.students.live_context(scope, student_id, home).await?,
+            _ => None,
+        };
+        let registration = if local_context.is_some() {
+            st.registrations
+                .term_registration(scope, student_id, o.academic_term_id)
+                .await?
+        } else {
+            None
+        };
+        Ok(Self {
+            student_id,
+            institution_id: o.institution_id,
+            academic_term_id: o.academic_term_id,
+            student,
+            today,
+            local_context,
+            home_context,
+            registration,
+        })
+    }
+}
+
+/// Evaluates a seat request in section `s` of the locked offering `o` with facts gathered
+/// before the offering was locked (DEF-P2-CAP-002): inside the transaction it
+/// only reads through `conn` (no second pool connection), except for an override that needs a
+/// new approval.
+pub async fn evaluate_with(
     st: &AcademicState,
     conn: &mut PgConnection,
     scope: &ExecutionScope,
     o: &OfferingRow,
     s: &SectionRow,
-    student_id: StudentId,
+    facts: SeatFacts,
     gate: &Gate,
 ) -> Result<SeatBasis, KernelError> {
+    let student_id = facts.student_id;
+    if facts.institution_id != o.institution_id || facts.academic_term_id != o.academic_term_id {
+        return Err(conflict(
+            "the course offering changed while the seat was evaluated; retry",
+        ));
+    }
     if !o.status.accepts_enrolment() {
         return Err(conflict(format!(
             "the course offering is {}; it does not accept enrolment",
@@ -370,21 +437,20 @@ pub async fn evaluate(
             s.status
         )));
     }
-    let student = st
-        .students
-        .student(scope, student_id)
-        .await?
-        .ok_or_else(|| invalid("studentId", "not_found", "no such student"))?;
-    let today = business_today(st, scope, o.institution_id).await?;
+    let SeatFacts {
+        student,
+        today,
+        local_context,
+        home_context,
+        registration,
+        ..
+    } = facts;
+    let student = student.ok_or_else(|| invalid("studentId", "not_found", "no such student"))?;
     let overriding = gate.override_reason.is_some();
     let mut failures: Vec<String> = Vec::new();
     // Context in the offering's institution, or a cross-institution permit.
     let mut cross_institution = false;
-    let context = match st
-        .students
-        .live_context(scope, student_id, o.institution_id)
-        .await?
-    {
+    let context = match local_context {
         Some(c) => c,
         None => {
             let home = gate.home_institution.ok_or_else(|| {
@@ -400,12 +466,9 @@ pub async fn evaluate(
                 ));
             }
             cross_institution = true;
-            st.students
-                .live_context(scope, student_id, home)
-                .await?
-                .ok_or_else(|| {
-                    conflict("the student has no live context in the home institution")
-                })?
+            home_context.ok_or_else(|| {
+                conflict("the student has no live context in the home institution")
+            })?
         }
     };
     if context.status != StudentContextStatus::Active {
@@ -486,10 +549,7 @@ pub async fn evaluate(
     let covered = if cross_institution {
         None
     } else {
-        st.registrations
-            .term_registration(scope, student_id, o.academic_term_id)
-            .await?
-            .filter(|r| r.covers(o.curriculum_component_id))
+        registration.filter(|r| r.covers(o.curriculum_component_id))
     };
     match covered {
         Some(r) => {
@@ -646,13 +706,44 @@ async fn seat(
     gate: Gate,
 ) -> Result<SectionEnrolment, KernelError> {
     let s0 = load_section(&st.pool, tenant(ctx), section).await?;
+    // Port reads first, then the lock (DEF-P2-CAP-002: no second pool connection under it).
+    let o0 = crate::shared::offering::load_offering(&st.pool, tenant(ctx), s0.offering_id).await?;
+    let facts = SeatFacts::gather(
+        st,
+        &crate::shared::scope::institution_scope(ctx, o0.institution_id),
+        &o0,
+        student,
+        &gate,
+    )
+    .await?;
     let mut c = begin(st, ctx, s0.offering_id, None).await?;
     let s = lock_section(&mut c.tx, c.o.tenant_id, section).await?;
-    let b = evaluate(st, &mut c.tx, &c.scope, &c.o, &s, student, &gate).await?;
+    let b = evaluate_with(st, &mut c.tx, &c.scope, &c.o, &s, facts, &gate).await?;
     let origin = b.origin;
     let e = insert_seat(&mut c.tx, &c.scope, &c.o, &s, &b, origin, None, &c.actor).await?;
     c.tx.commit().await.map_err(map_db_error)?;
     Ok(enrolment_view(&e))
+}
+
+/// [`SeatFacts`] for `student` in `offering`, read BEFORE the offering is locked (DEF-P2-CAP-002:
+/// the waitlist, offer-accept and override paths, like the seat hot path, never take a second
+/// pool connection under the offering lock).
+async fn facts_before_lock(
+    st: &AcademicState,
+    ctx: &AuthContext,
+    offering: CourseOfferingId,
+    student: StudentId,
+    gate: &Gate,
+) -> Result<SeatFacts, KernelError> {
+    let o0 = crate::shared::offering::load_offering(&st.pool, tenant(ctx), offering).await?;
+    SeatFacts::gather(
+        st,
+        &crate::shared::scope::institution_scope(ctx, o0.institution_id),
+        &o0,
+        student,
+        gate,
+    )
+    .await
 }
 
 // ================================================================== enrolment handlers
@@ -1169,13 +1260,29 @@ async fn wait_event(
     .await
 }
 
+/// The seat gate of a waitlist join (no capacity check; the window and registration are).
+fn join_gate() -> Gate {
+    Gate {
+        capacity: false,
+        window: true,
+        registration: true,
+        ..Gate::default()
+    }
+}
+
 /// Adds a student to the waitlist of the locked offering (eligibility re-checked; no seat).
 async fn join(
     st: &AcademicState,
     c: &mut Cmd,
     student_id: StudentId,
     section: Option<Uuid>,
+    facts: SeatFacts,
 ) -> Result<OfferingWaitlistEntry, KernelError> {
+    if facts.student_id != student_id {
+        return Err(conflict(
+            "the waitlist request changed while it was evaluated; retry",
+        ));
+    }
     let sections = sections_of(&mut c.tx, c.o.tenant_id, c.o.id).await?;
     let probe = match section {
         Some(sid) => sections
@@ -1188,13 +1295,8 @@ async fn join(
             .ok_or_else(|| conflict("the offering has no active section"))?,
     }
     .clone();
-    let gate = Gate {
-        capacity: false,
-        window: true,
-        registration: true,
-        ..Gate::default()
-    };
-    let b = evaluate(st, &mut c.tx, &c.scope, &c.o, &probe, student_id, &gate).await?;
+    let gate = join_gate();
+    let b = evaluate_with(st, &mut c.tx, &c.scope, &c.o, &probe, facts, &gate).await?;
     let seated: i64 = sqlx::query_scalar("SELECT count(*) FROM academic.section_enrolment WHERE offering_id = $1 AND student_id = $2 AND status = 'enrolled'")
         .bind(c.o.id.as_uuid()).bind(student_id.as_uuid()).fetch_one(&mut *c.tx).await.map_err(map_db_error)?;
     if seated > 0 {
@@ -1305,8 +1407,10 @@ pub async fn waitlist_join(
 ) -> ApiResult<(StatusCode, Json<OfferingWaitlistEntry>)> {
     let ctx = auth.require(Permission::OfferingEnrolmentManage)?;
     require_idempotency_key(&headers)?;
+    let student = StudentId(cmd.student_id);
+    let facts = facts_before_lock(&st, ctx, id, student, &join_gate()).await?;
     let mut c = begin(&st, ctx, id, None).await?;
-    let w = join(&st, &mut c, StudentId(cmd.student_id), cmd.section_id).await?;
+    let w = join(&st, &mut c, student, cmd.section_id, facts).await?;
     c.tx.commit().await.map_err(map_db_error)?;
     Ok((StatusCode::CREATED, Json(w)))
 }
@@ -1474,6 +1578,33 @@ async fn accept_offer(
     v: Option<Version>,
     own_student: Option<StudentId>,
 ) -> Result<SectionEnrolment, KernelError> {
+    let gate = Gate {
+        capacity: true,
+        holding_entry: Some(entry),
+        window: false,
+        registration: true,
+        ..Gate::default()
+    };
+    // Port reads before the offering lock (DEF-P2-CAP-002): whose entry it is, then their facts.
+    let holder: Uuid = sqlx::query_scalar(
+        "SELECT student_id FROM academic.offering_waitlist_entry \
+         WHERE id = $1 AND tenant_id = $2 AND offering_id = $3",
+    )
+    .bind(entry)
+    .bind(tenant(ctx).as_uuid())
+    .bind(offering.as_uuid())
+    .fetch_optional(&st.pool)
+    .await
+    .map_err(map_db_error)?
+    .ok_or(KernelError::NotFound {
+        entity: "waitlist entry",
+    })?;
+    if own_student.is_some_and(|s| s.as_uuid() != holder) {
+        return Err(KernelError::NotFound {
+            entity: "waitlist entry",
+        });
+    }
+    let facts = facts_before_lock(st, ctx, offering, StudentId(holder), &gate).await?;
     let mut c = begin(st, ctx, offering, None).await?;
     let w = load_wait(&mut c.tx, c.o.id, entry, true).await?;
     if own_student.is_some_and(|s| s.as_uuid() != w.view.student_id) {
@@ -1481,10 +1612,15 @@ async fn accept_offer(
             entity: "waitlist entry",
         });
     }
+    if w.view.student_id != holder {
+        return Err(conflict(
+            "the waitlist entry changed while it was evaluated; retry",
+        ));
+    }
     if let Some(v) = v {
         check_version(Version(w.view.version), v)?;
     }
-    let today = business_today(st, &c.scope, c.o.institution_id).await?;
+    let today = facts.today;
     if w.view.status != WaitlistStatus::Offered
         || w.view.offer_expires_on.is_some_and(|d| d < today)
     {
@@ -1497,23 +1633,7 @@ async fn accept_offer(
         .offered_section_id
         .ok_or_else(|| conflict("the offer has no section"))?;
     let s = lock_section(&mut c.tx, c.o.tenant_id, OfferingSectionId(sid)).await?;
-    let gate = Gate {
-        capacity: true,
-        holding_entry: Some(w.view.id),
-        window: false,
-        registration: true,
-        ..Gate::default()
-    };
-    let b = evaluate(
-        st,
-        &mut c.tx,
-        &c.scope,
-        &c.o,
-        &s,
-        StudentId(w.view.student_id),
-        &gate,
-    )
-    .await?;
+    let b = evaluate_with(st, &mut c.tx, &c.scope, &c.o, &s, facts, &gate).await?;
     let e = insert_seat(
         &mut c.tx, &c.scope, &c.o, &s, &b, "waitlist", None, &c.actor,
     )
@@ -2028,8 +2148,10 @@ pub async fn self_waitlist(
 ) -> ApiResult<(StatusCode, Json<OfferingWaitlistEntry>)> {
     let me = crate::shared::me::me(&st, &auth.0).await?;
     require_idempotency_key(&headers)?;
-    let mut c = begin(&st, &auth.0, CourseOfferingId(cmd.offering_id), None).await?;
-    let w = join(&st, &mut c, me.id, cmd.section_id).await?;
+    let offering = CourseOfferingId(cmd.offering_id);
+    let facts = facts_before_lock(&st, &auth.0, offering, me.id, &join_gate()).await?;
+    let mut c = begin(&st, &auth.0, offering, None).await?;
+    let w = join(&st, &mut c, me.id, cmd.section_id, facts).await?;
     c.tx.commit().await.map_err(map_db_error)?;
     Ok((StatusCode::CREATED, Json(w)))
 }
@@ -2202,19 +2324,16 @@ async fn seat_approved_override(
     r: &EnrolmentOverrideRequest,
     decided_by: &str,
     reason: Option<&str>,
+    facts: SeatFacts,
 ) -> Result<(), KernelError> {
     let s = lock_section(&mut c.tx, c.o.tenant_id, OfferingSectionId(r.section_id)).await?;
     let gate = override_gate(&r.reason, r.home_institution_id);
-    let b = evaluate(
-        st,
-        &mut c.tx,
-        &c.scope,
-        &c.o,
-        &s,
-        StudentId(r.student_id),
-        &gate,
-    )
-    .await?;
+    if facts.student_id.as_uuid() != r.student_id {
+        return Err(conflict(
+            "the override request changed while it was evaluated; retry",
+        ));
+    }
+    let b = evaluate_with(st, &mut c.tx, &c.scope, &c.o, &s, facts, &gate).await?;
     let origin = b.origin;
     let e = insert_seat(&mut c.tx, &c.scope, &c.o, &s, &b, origin, None, &c.actor).await?;
     sqlx::query(
@@ -2271,18 +2390,10 @@ pub async fn override_request(
     let s0 = load_section(&st.pool, t, id).await?;
     // Dry run of the seat gate: an override must be what is missing (nothing is written).
     {
+        let facts = facts_before_lock(&st, ctx, s0.offering_id, student, &gate).await?;
         let mut probe = begin(&st, ctx, s0.offering_id, None).await?;
         let s = lock_section(&mut probe.tx, t, id).await?;
-        let b = evaluate(
-            &st,
-            &mut probe.tx,
-            &probe.scope,
-            &probe.o,
-            &s,
-            student,
-            &gate,
-        )
-        .await?;
+        let b = evaluate_with(&st, &mut probe.tx, &probe.scope, &probe.o, &s, facts, &gate).await?;
         if b.origin != "override" {
             return Err(conflict(
                 "the student is eligible for this section; seat them without an override",
@@ -2304,6 +2415,12 @@ pub async fn override_request(
         ]),
     )
     .await?;
+    let seat_facts = match outcome {
+        ApprovalOutcome::Approved { .. } => {
+            Some(facts_before_lock(&st, ctx, s0.offering_id, student, &gate).await?)
+        }
+        _ => None,
+    };
     let mut c = begin(&st, ctx, s0.offering_id, None).await?;
     sqlx::query(
         "INSERT INTO academic.enrolment_override_request (id, tenant_id, institution_id, offering_id, \
@@ -2339,7 +2456,7 @@ pub async fn override_request(
         &c.actor,
     )
     .await?;
-    if let ApprovalOutcome::Approved { .. } = outcome {
+    if let Some(facts) = seat_facts {
         let r = load_override(&mut c.tx, t, rid, true).await?;
         seat_approved_override(
             &st,
@@ -2347,6 +2464,7 @@ pub async fn override_request(
             &r,
             crate::shared::approval::AUTO_APPROVER,
             None,
+            facts,
         )
         .await?;
     }
@@ -2429,6 +2547,19 @@ pub async fn override_decision(
         let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
         load_override(&mut conn, t, id, false).await?
     };
+    let decision_facts = match d.decision {
+        StepDecision::Approve => Some(
+            facts_before_lock(
+                &st,
+                ctx,
+                CourseOfferingId(r0.offering_id),
+                StudentId(r0.student_id),
+                &override_gate(&r0.reason, r0.home_institution_id),
+            )
+            .await?,
+        ),
+        StepDecision::Reject => None,
+    };
     let mut c = begin(&st, ctx, CourseOfferingId(r0.offering_id), None).await?;
     let r = load_override(&mut c.tx, t, id, true).await?;
     check_version(Version(r.version), v)?;
@@ -2442,7 +2573,9 @@ pub async fn override_decision(
     let decider = c.actor.id.clone().unwrap_or_default();
     match d.decision {
         StepDecision::Approve => {
-            seat_approved_override(&st, &mut c, &r, &decider, reason.as_deref()).await?;
+            let facts =
+                decision_facts.ok_or_else(|| conflict("the override decision changed; retry"))?;
+            seat_approved_override(&st, &mut c, &r, &decider, reason.as_deref(), facts).await?;
         }
         StepDecision::Reject => {
             sqlx::query(

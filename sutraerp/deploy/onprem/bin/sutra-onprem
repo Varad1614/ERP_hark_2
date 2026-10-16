@@ -395,6 +395,11 @@ EOF
       echo "SUTRA_S3_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD"
       echo "SUTRA_S3_SSE=AES256"
     fi
+    # Private CA trust (college CA of the public certificate + the internal CA of MinIO / PostgreSQL):
+    # SUTRA_TLS_CA_FILE is the documented setting (S5-capacity: extra roots added to every internal
+    # HTTP client at start-up, file checked at configuration load); SSL_CERT_FILE keeps the
+    # native-roots path of releases 2026.10.1+ (S5-deploy) working. Same bundle for both.
+    echo "SUTRA_TLS_CA_FILE=/etc/sutraerp/tls/trust.pem"
     echo "SSL_CERT_FILE=/etc/sutraerp/tls/trust.pem"
     if [[ -n "${SUTRA_EXTRA_API_ENV:-}" && -f "$SUTRA_EXTRA_API_ENV" ]]; then cat "$SUTRA_EXTRA_API_ENV"; fi
   } >"$SUTRA_ETC/api.env"

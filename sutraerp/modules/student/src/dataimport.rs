@@ -40,6 +40,9 @@ use sutra_contracts::student::events::record::{
     StudentCreatedV1, STUDENT_CREATED, STUDENT_CREATED_SCHEMA, STUDENT_ENROLLED,
     STUDENT_ENROLLED_SCHEMA,
 };
+use sutra_contracts::student::events::{
+    StudentStatusChangedV1, STUDENT_STATUS_CHANGED, STUDENT_STATUS_CHANGED_SCHEMA,
+};
 use sutra_contracts::student::status::CreditEntryKind;
 use sutra_kernel::auth::Permission;
 use sutra_kernel::error::{FieldViolation, KernelError};
@@ -524,6 +527,31 @@ impl ItemWriter<ImportRow> for StudentWriter<'_> {
                 None,
                 None,
             ),
+            &self.actor,
+        )
+        .await?;
+        // Part 2 · S5-capacity (DEF-P2-CAP-001): every persona / context status change is also
+        // published as `student.status_changed` (the lifecycle helper's contract). A migrated
+        // student is born `active`, so without this the identity provisioning (S4-idp), which
+        // listens to `student.status_changed`, never created a Keycloak account for imported
+        // students and they could not sign in.
+        publish::event(
+            conn,
+            &self.scope,
+            STUDENT_STATUS_CHANGED,
+            STUDENT_STATUS_CHANGED_SCHEMA,
+            student.id.to_string(),
+            &StudentStatusChangedV1 {
+                student_id: student.id.as_uuid(),
+                student_context_id: Some(ctx.id.as_uuid()),
+                institution_id: inst.as_uuid(),
+                scope: "context".into(),
+                from_status: None,
+                to_status: ctx.status.as_str().into(),
+                cause_event_type: STUDENT_ENROLLED.into(),
+                reason: Some("migrated from the legacy system".into()),
+                version: ctx.version.0,
+            },
             &self.actor,
         )
         .await?;

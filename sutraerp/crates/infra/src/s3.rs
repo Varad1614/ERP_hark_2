@@ -350,11 +350,14 @@ impl S3Client {
             return Err("S3 access key id / secret access key are required".into());
         }
         let build = || {
-            reqwest::Client::builder()
-                .timeout(settings.timeout)
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .map_err(|e| format!("S3 http client: {e}"))
+            // Part 2 · S5-capacity: an on-premises MinIO behind the institution's own CA.
+            crate::tls::with_extra_roots(
+                reqwest::Client::builder()
+                    .timeout(settings.timeout)
+                    .redirect(reqwest::redirect::Policy::none()),
+            )?
+            .build()
+            .map_err(|e| format!("S3 http client: {e}"))
         };
         Ok(Self {
             http: build()?,

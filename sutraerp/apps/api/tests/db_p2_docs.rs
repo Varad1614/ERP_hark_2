@@ -17,6 +17,8 @@
 //!   purges only what is allowed;
 //! * audit rows for upload, download, link, integrity failure, delete, hold and expiry;
 //! * the admission flow: staff upload + verify, the created student retrieves the verified files.
+//! * DEF-P2-CAP-006 (Part 2 · S5-capacity): concurrent uploads through a three-connection pool
+//!   all succeed (the vault no longer takes a second connection under the document row lock).
 #![cfg(all(feature = "db-tests", feature = "s3-tests"))]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -1374,4 +1376,89 @@ async fn disabled_storage_answers_503() {
     )
     .await;
     assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE);
+}
+
+/// DEF-P2-CAP-006 (capacity run 38930815741): the student-record and admission uploads locked
+/// the document row and then let the vault store the object + metadata on a SECOND pool
+/// connection. With as many concurrent uploads as pool connections every request waited for a
+/// connection the others held and failed with 503 after the acquire timeout. Twelve students'
+/// ID cards and six admission documents are uploaded at the same time through a pool of three;
+/// every upload is attached exactly once.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_uploads_do_not_starve_a_small_pool() {
+    let t = tenant();
+    let (app, pool) = docs_app(
+        t,
+        &[
+            ("SUTRA_DB_MAX_CONNECTIONS", "3"),
+            ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "10"),
+        ],
+    )
+    .await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let setup = b3::academic_setup(&app, &admin, t, "Docs pool University").await;
+    let mut paths = Vec::new();
+    for i in 0..12 {
+        let s = b3::seed_student(&pool, &setup, &format!("Card{i}"), None).await;
+        let d = ok(
+            &app,
+            &admin,
+            "POST",
+            &format!("{API}/students/{}/documents", s.student_id),
+            json!({"documentType": "identity_proof", "title": "College ID card"}),
+            None,
+            StatusCode::CREATED,
+        )
+        .await;
+        paths.push(format!(
+            "{API}/students/{}/documents/{}/file",
+            s.student_id,
+            id(&d)
+        ));
+    }
+    let adm = accepted_admission(&app, &admin, &setup, "Pooja", None).await;
+    let aid = id(&adm);
+    for _ in 0..6 {
+        let d = add_document(&app, &admin, &aid, "identity_proof").await;
+        paths.push(file_path(&aid, &id(&d)));
+    }
+    let admin = std::sync::Arc::new(admin);
+    let t0 = std::time::Instant::now();
+    let tasks: Vec<_> = paths
+        .iter()
+        .map(|p| {
+            let (app, admin, p) = (app.clone(), admin.clone(), p.clone());
+            tokio::spawn(async move {
+                upload(
+                    &app,
+                    &admin,
+                    &p,
+                    "card.pdf",
+                    "application/pdf",
+                    PDF.to_vec(),
+                )
+                .await
+            })
+        })
+        .collect();
+    for (i, t) in tasks.into_iter().enumerate() {
+        let (s, b) = t.await.unwrap();
+        assert_eq!(s, StatusCode::CREATED, "upload {i}: {b}");
+    }
+    let elapsed = t0.elapsed();
+    let attached: i64 = sqlx::query_scalar(
+        "SELECT (SELECT count(*) FROM student.student_document d JOIN student.student s \
+           ON s.id = d.student_id WHERE s.tenant_id = $1::uuid AND d.document_object_id IS NOT NULL) \
+         + (SELECT count(*) FROM student.admission_document WHERE tenant_id = $1::uuid \
+           AND document_object_id IS NOT NULL)",
+    )
+    .bind(t)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(attached, 18, "every document has its file");
+    assert!(
+        elapsed < Duration::from_secs(10),
+        "18 concurrent uploads took {elapsed:?}"
+    );
 }

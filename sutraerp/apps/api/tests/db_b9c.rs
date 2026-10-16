@@ -363,6 +363,10 @@ fn bpmn_files_match_the_adapter_and_cover_every_approval_key() {
             i::ACADEMIC_YEAR_CLOSURE,
         ]);
     }
+    // Part 2 · S5-capacity, DEF-P2-CAP-004: the data import's commit approval (opening fee
+    // balances) is deployed to Flowable too — it was missing, so every governed commit failed
+    // with 500 in production mode.
+    module_keys.push(sutra_platform::dataimport::process::COMMIT_APPROVAL);
     for k in module_keys {
         assert!(
             PROCESS_KEYS.contains(&k),

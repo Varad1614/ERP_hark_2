@@ -102,7 +102,7 @@ MDM / manual import), otherwise browsers show a certificate warning. **Keep `ca.
 3. `tls-internal` — internal CA + certificates for PostgreSQL (`postgres`) and MinIO (`minio`).
 4. TLS for the public names (§3.1 / §3.2) and `render`: `/etc/sutraerp/{compose.env, api.env,
    edge/default.conf, keycloak/realm-sutra.json, tls/trust.pem}`. `trust.pem` = the college CA (if
-   any) + the internal CA; the API trusts it for outbound HTTPS (`SSL_CERT_FILE`, MinIO and Keycloak)
+   any) + the internal CA; the API trusts it for outbound HTTPS (`SUTRA_TLS_CA_FILE` — the documented setting, checked at start-up — and `SSL_CERT_FILE` for the native-roots path; MinIO and Keycloak)
    and Keycloak trusts it (`KC_TRUSTSTORE_PATHS`).
 5. Starts postgres, keycloak (imports the production-baseline realm with your host names and the
    generated client secrets), valkey, nats, minio, flowable, edge; waits for every health check.

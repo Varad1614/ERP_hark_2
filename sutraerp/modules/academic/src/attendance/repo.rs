@@ -439,27 +439,60 @@ struct LockedSession {
     ctx: SectionCtx,
 }
 
-/// Loads the session, authorises the caller on its section (`manage` or an active assignment),
-/// applies the institution writable rule and locks the row.
-async fn lock_session(
+/// Loads the session, authorises the caller on its section (`manage` or an active assignment)
+/// and applies the institution writable rule — every read on a pooled connection of its own.
+///
+/// Part 2 · S5 (DEF-P2-CAP-007): this runs BEFORE the command opens its transaction. It used to
+/// run inside it, so every register command held its transaction's connection while these
+/// reads waited for a second one: with as many concurrent register commands as pool
+/// connections the pool deadlocked until the acquire timeout (fee-deadline spike). Then
+/// [`lock_prepared`] locks the row in the transaction and re-checks what the reads relied on.
+async fn prepare_session(
     state: &AcademicState,
-    conn: &mut PgConnection,
     auth: &AuthContext,
     id: Uuid,
-    expected: Option<Version>,
     manage: Permission,
-) -> Result<LockedSession, KernelError> {
+) -> Result<PreparedSession, KernelError> {
     crate::shared::faculty::require_teaching_role(auth, manage)?;
     let tenant = auth.scope.tenant_id;
     let cur: TeachingSession = kit::fetch(&state.pool, TS, TS_ENTITY, tenant, id).await?;
     require_teaching(state, auth, OfferingSectionId(cur.section_id), manage).await?;
     let sctx = kit::section_ctx(state, auth, cur.section_id).await?;
     require_institution_writable(state, &sctx.scope, sctx.section.institution_id).await?;
+    Ok(PreparedSession {
+        section_id: cur.section_id,
+        ctx: sctx,
+    })
+}
+
+struct PreparedSession {
+    section_id: Uuid,
+    ctx: SectionCtx,
+}
+
+/// Locks the prepared session's row on the command's transaction and checks the expected
+/// version. The section a session belongs to never changes; it is re-checked under the lock so
+/// the authorisation read before the transaction can never apply to another section.
+async fn lock_prepared(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    id: Uuid,
+    prepared: PreparedSession,
+    expected: Option<Version>,
+) -> Result<LockedSession, KernelError> {
     let s: TeachingSession = kit::lock(conn, TS, TS_ENTITY, tenant, id).await?;
+    if s.section_id != prepared.section_id {
+        return Err(KernelError::Conflict(
+            "the session moved to another section; reload and retry".into(),
+        ));
+    }
     if let Some(v) = expected {
         check_version(s.version, v)?;
     }
-    Ok(LockedSession { s, ctx: sctx })
+    Ok(LockedSession {
+        s,
+        ctx: prepared.ctx,
+    })
 }
 
 async fn emit_session(
@@ -584,9 +617,10 @@ pub async fn session_command(
         auth.require(manage)?;
     }
     crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
+    let prepared = prepare_session(state, auth, id, manage).await?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
     let LockedSession { s, ctx: c } =
-        lock_session(state, &mut tx, auth, id, Some(expected), manage).await?;
+        lock_prepared(&mut tx, tenant, id, prepared, Some(expected)).await?;
     let reason = kit::opt_text(body.reason.as_deref());
     let to = match cmd {
         SessionCommand::Start => S::Started,
@@ -703,16 +737,13 @@ pub async fn capture(
         ));
     }
     crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
+    let prepared = prepare_session(state, auth, id, Permission::AttendanceManage).await?;
+    // eligibility = the seated roster at capture time (L4-D-024-BH-003), read before the
+    // transaction (DEF-P2-CAP-007)
+    let seated = roster(state, tenant, prepared.section_id).await?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
-    let LockedSession { s, ctx: c } = lock_session(
-        state,
-        &mut tx,
-        auth,
-        id,
-        Some(expected),
-        Permission::AttendanceManage,
-    )
-    .await?;
+    let LockedSession { s, ctx: c } =
+        lock_prepared(&mut tx, tenant, id, prepared, Some(expected)).await?;
     if !domain::accepts_attendance(s.status) {
         return Err(KernelError::Conflict(format!(
             "attendance cannot be recorded for a {} session",
@@ -724,8 +755,6 @@ pub async fn capture(
             "attendance is finalised; use a governed correction".into(),
         ));
     }
-    // eligibility = the seated roster at capture time (L4-D-024-BH-003)
-    let seated = roster(state, tenant, s.section_id).await?;
     let existing = records_of(&mut *tx, tenant, id).await?;
     for r in &cmd.records {
         let Some(entry) = seated
@@ -777,12 +806,11 @@ pub async fn capture(
 }
 
 async fn require_complete(
-    state: &AcademicState,
+    seated: &[RosterEntry],
     conn: &mut PgConnection,
     tenant: TenantId,
     s: &TeachingSession,
 ) -> Result<(), KernelError> {
-    let seated = roster(state, tenant, s.section_id).await?;
     let recs = records_of(&mut *conn, tenant, s.id).await?;
     let missing = seated
         .iter()
@@ -805,16 +833,11 @@ pub async fn submit_attendance(
 ) -> Result<TeachingSession, KernelError> {
     let tenant = auth.scope.tenant_id;
     crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
+    let prepared = prepare_session(state, auth, id, Permission::AttendanceManage).await?;
+    let seated = roster(state, tenant, prepared.section_id).await?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
-    let LockedSession { s, ctx: c } = lock_session(
-        state,
-        &mut tx,
-        auth,
-        id,
-        Some(expected),
-        Permission::AttendanceManage,
-    )
-    .await?;
+    let LockedSession { s, ctx: c } =
+        lock_prepared(&mut tx, tenant, id, prepared, Some(expected)).await?;
     if s.attendance_status != AttendanceCaptureStatus::Capturing {
         return Err(illegal(
             "attendance register",
@@ -822,7 +845,7 @@ pub async fn submit_attendance(
             AttendanceCaptureStatus::Submitted,
         ));
     }
-    require_complete(state, &mut tx, tenant, &s).await?;
+    require_complete(&seated, &mut tx, tenant, &s).await?;
     kit::patch::<serde_json::Value>(
         &mut tx,
         TS,
@@ -854,23 +877,18 @@ pub async fn finalise_attendance(
 ) -> Result<TeachingSession, KernelError> {
     let tenant = auth.scope.tenant_id;
     crate::shared::faculty::require_teaching_role(auth, Permission::AttendanceManage)?;
+    let prepared = prepare_session(state, auth, id, Permission::AttendanceManage).await?;
+    let seated = roster(state, tenant, prepared.section_id).await?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;
-    let LockedSession { s, ctx: c } = lock_session(
-        state,
-        &mut tx,
-        auth,
-        id,
-        Some(expected),
-        Permission::AttendanceManage,
-    )
-    .await?;
+    let LockedSession { s, ctx: c } =
+        lock_prepared(&mut tx, tenant, id, prepared, Some(expected)).await?;
     if !domain::can_finalise(s.status, s.attendance_status) {
         return Err(KernelError::Conflict(format!(
             "attendance of a {} session in capture state {} cannot be finalised",
             s.status, s.attendance_status
         )));
     }
-    require_complete(state, &mut tx, tenant, &s).await?;
+    require_complete(&seated, &mut tx, tenant, &s).await?;
     let from = s.attendance_status;
     let ns: TeachingSession = kit::patch(&mut tx, TS, tenant, id, json!({
         "attendance_status": "finalised", "attendance_finalised_at": Utc::now(), "attendance_finalised_by": actor.id,

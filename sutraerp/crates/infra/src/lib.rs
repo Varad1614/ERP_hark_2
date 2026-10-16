@@ -20,4 +20,5 @@ pub mod opensearch; // 9C
 pub mod razorpay; // Part 2 S4-pay
 pub mod s3; // Part 2 · S4-docs
 pub mod smtp;
+pub mod tls; // Part 2 · S5-capacity: SUTRA_TLS_CA_FILE
 pub mod valkey;
