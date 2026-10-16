@@ -20,7 +20,7 @@
  * timings). Env: E2E_BASE (http://localhost:3000), E2E_AUTH=oidc, E2E_STATE, DATABASE_URL
  * (superuser; read-only lookups), DRILL_STUDENTS, DRILL_CONCURRENCY (12), DRILL_DOC_KB (24).
  */
-/* global process, console */
+/* global process, console, setTimeout, crypto, Buffer */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -158,7 +158,7 @@ async function admit(n) {
   if (!a.admissionId) throw new Error(`applicant ${n}: offer → ${a.status}`);
   const aid = a.admissionId;
   let adm = await admin.get(`${S}/admissions/${aid}`);
-  adm = await admin.call("POST", `${S}/admissions/${aid}/accept`, {}, adm.version);
+  await admin.call("POST", `${S}/admissions/${aid}/accept`, {}, adm.version);
   const docs = [];
   for (const [type, title] of DOCS) {
     const d = await admin.call("POST", `${S}/admissions/${aid}/documents`, { documentType: type, title, fileRef: `dms://drill/${n}/${type}.pdf` });
@@ -171,10 +171,10 @@ async function admit(n) {
     docs.push({ id: d.id, version: up.json?.documentVersion ?? d.version });
   }
   adm = await admin.get(`${S}/admissions/${aid}`);
-  adm = await admin.call("POST", `${S}/admissions/${aid}/submit-documents`, {}, adm.version);
+  await admin.call("POST", `${S}/admissions/${aid}/submit-documents`, {}, adm.version);
   for (const d of docs) await admin.call("POST", `${S}/admissions/${aid}/documents/${d.id}/verify`, { outcome: "verified" }, d.version);
   adm = await admin.get(`${S}/admissions/${aid}`);
-  adm = await admin.call("POST", `${S}/admissions/${aid}/submit-for-approval`, {}, adm.version);
+  await admin.call("POST", `${S}/admissions/${aid}/submit-for-approval`, {}, adm.version);
   adm = await approve("admission", aid, { client: admin, step: `drill: admission ${n}` });
   adm = await admin.call("POST", `${S}/admissions/${aid}/financial-clearance`, {}, adm.version);
   adm = await admin.call("POST", `${S}/admissions/${aid}/confirm`, {}, adm.version);
