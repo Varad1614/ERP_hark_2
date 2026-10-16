@@ -78,7 +78,7 @@ treated as pending until Razorpay reports `captured`), webhook URL
 | `apps/api/tests/db_p2_pay.rs` (PostgreSQL 18 + stub) | `checkout_is_paid_only_on_a_server_side_capture`, `webhooks_are_idempotent_under_replay_and_concurrency`, `recovery_job_polls_open_and_failed_payments`, `refund_of_a_double_payment_reverses_the_ledger`, `settlement_report_reconciles_and_flags_mismatches`, `recovery_job_is_wired_with_the_sweepers` (scenarios in the file header) |
 | Existing `db_b5b.rs` (mock gateway) | unchanged and still green: dev / CI keep the mock |
 
-CI evidence: see the tracker (run ids).
+CI evidence (head `95c523c7`, all green): SutraERP CI **38882654896** (fmt · clippy · test, Rust integration on PostgreSQL 18 incl. `db_p2_pay`, web, OpenAPI drift, images); SutraERP quality gates **38882640013** (cargo-deny · cargo-audit · pnpm audit · gitleaks full history, Semgrep, Trivy · Grype · ZAP, k6 performance + capacity); SutraERP Part 1 demo (full stack) **38883421629**. Quality-gate fixes: stub secrets generated per run + narrow gitleaks allow-list for historical commit `7fc92f45` (docs/security/findings.md SEC-P2-PAY-001); config `_FILE` test fixture moved off `std::env::temp_dir()` (Semgrep).
 
 ## BLOCKED_EXTERNAL
 
