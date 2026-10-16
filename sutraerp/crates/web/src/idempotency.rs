@@ -32,6 +32,14 @@ pub static IDEMPOTENCY_REPLAYED: HeaderName = HeaderName::from_static("idempoten
 /// Maximum request/response body buffered for fingerprinting and replay.
 pub const MAX_BODY_BYTES: usize = 1024 * 1024;
 
+/// Request extension: the transport body limit of the current route, set by the composition
+/// root's body-limit middleware (which also enforces it). A route allowed a larger body than
+/// [`MAX_BODY_BYTES`] (data import uploads, document files) is fingerprinted up to that limit
+/// instead of being refused as "too large for idempotent processing" (Part 2 · S4-ui-import).
+/// Only the SHA-256 fingerprint is stored, never the request body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RouteBodyLimit(pub usize);
+
 pub type SharedIdempotencyStore = Arc<dyn IdempotencyStore>;
 
 fn is_mutating(m: &Method) -> bool {
@@ -119,7 +127,11 @@ pub async fn idempotency(
     };
 
     let (parts, body) = req.into_parts();
-    let bytes = to_bytes(body, MAX_BODY_BYTES).await.map_err(|_| {
+    let limit = parts
+        .extensions
+        .get::<RouteBodyLimit>()
+        .map_or(MAX_BODY_BYTES, |l| l.0.max(MAX_BODY_BYTES));
+    let bytes = to_bytes(body, limit).await.map_err(|_| {
         KernelError::BadRequest("request body too large for idempotent processing".into())
     })?;
     let uri = parts
@@ -274,6 +286,33 @@ mod tests {
         };
         assert_eq!(owner_key(Some(&ctx)), format!("{t}/dev|a"));
         assert_eq!(owner_key(None), "anonymous");
+    }
+
+    #[tokio::test]
+    async fn fingerprints_bodies_up_to_the_route_limit() {
+        let c = Arc::new(AtomicUsize::new(0));
+        let a = app(c.clone());
+        let big = "x".repeat(MAX_BODY_BYTES + 512 * 1024);
+        // Without a route limit: refused above MAX_BODY_BYTES (400), handler not run.
+        let r = a.clone().oneshot(req(Some("big-1"), &big)).await.unwrap();
+        assert_eq!(r.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(c.load(Ordering::SeqCst), 0);
+        // With the route's larger limit: processed once and replayed.
+        let with_limit = |key: &str| {
+            let mut r = req(Some(key), &big);
+            r.extensions_mut().insert(RouteBodyLimit(4 * 1024 * 1024));
+            r
+        };
+        let r1 = a.clone().oneshot(with_limit("big-2")).await.unwrap();
+        assert_eq!(r1.status(), StatusCode::CREATED);
+        let r2 = a.clone().oneshot(with_limit("big-2")).await.unwrap();
+        assert_eq!(r2.headers()["idempotency-replayed"], "true");
+        assert_eq!(c.load(Ordering::SeqCst), 1);
+        // A limit below the default never lowers it.
+        let mut small = req(Some("small"), "x");
+        small.extensions_mut().insert(RouteBodyLimit(1));
+        let r = a.clone().oneshot(small).await.unwrap();
+        assert_eq!(r.status(), StatusCode::CREATED);
     }
 
     #[tokio::test]
