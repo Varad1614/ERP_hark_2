@@ -1203,7 +1203,19 @@ async fn gateway_webhook_signed(
     .await
     .map_err(map_db_error)?;
     let a = Actor::system(Some(format!("gateway:{}", hook.event_id)));
-    let done = apply_outcome(&st, &mut tx, &p, &hook.outcome, &a).await?;
+    let done = match apply_outcome(&st, &mut tx, &p, &hook.outcome, &a).await {
+        Ok(d) => d,
+        Err(e @ KernelError::Conflict(_)) => {
+            // Part 2 S4-pay (DEF-F-004): a verified event that cannot be applied (e.g. the gateway
+            // captured another amount) leaves a trace — the event row (`amount_mismatch`, so
+            // replays are duplicates) and an audit row for the finance office — instead of
+            // vanishing with the rolled-back transaction.
+            tx.rollback().await.map_err(map_db_error)?;
+            record_rejected_webhook(&st, gateway, &hook, &p, &e, &a).await?;
+            return Err(e.into());
+        }
+        Err(e) => return Err(e.into()),
+    };
     // Part 2 S4-pay: every processed (verified, first-seen) webhook is audited in its tenant.
     crate::shared::publish::audit(
         &mut tx,
@@ -1224,6 +1236,58 @@ async fn gateway_webhook_signed(
         payment_id: Some(done.id.as_uuid()),
         payment_status: Some(done.status),
     }))
+}
+
+/// Part 2 S4-pay (DEF-F-004): records a verified webhook whose outcome was refused.
+async fn record_rejected_webhook(
+    st: &FinanceState,
+    gateway: &str,
+    hook: &sutra_contracts::finance::ports::GatewayWebhook,
+    p: &super::service::PaymentRow,
+    error: &KernelError,
+    a: &Actor,
+) -> Result<(), KernelError> {
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    sqlx::query(
+        "INSERT INTO finance.gateway_webhook_event (gateway, event_id, event, order_ref, tenant_id, payment_id, outcome) \
+         VALUES ($1, $2, $3, $4, $5, $6, 'amount_mismatch') ON CONFLICT (gateway, event_id) DO NOTHING",
+    )
+    .bind(gateway)
+    .bind(&hook.event_id)
+    .bind(&hook.event)
+    .bind(&hook.order_ref)
+    .bind(p.tenant_id.as_uuid())
+    .bind(p.id.as_uuid())
+    .execute(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    sutra_persistence::pool::apply_context(
+        &mut tx,
+        Some(sutra_kernel::db_context::DbContext::Scoped(
+            ExecutionScope::tenant(p.tenant_id),
+        )),
+        true,
+    )
+    .await
+    .map_err(map_db_error)?;
+    let claimed = match &hook.outcome {
+        GatewayPaymentOutcome::Captured { amount, .. } => Some(crate::shared::money::fmt(*amount)),
+        _ => None,
+    };
+    crate::shared::publish::audit(
+        &mut tx,
+        &ExecutionScope::institution(p.tenant_id, p.institution_id),
+        "finance.gateway.webhook_rejected",
+        "payment",
+        p.id.to_string(),
+        serde_json::json!({"gateway": gateway, "eventId": hook.event_id, "event": hook.event,
+            "orderRef": hook.order_ref, "paymentNumber": p.payment_number,
+            "paymentAmount": crate::shared::money::fmt(p.amount), "gatewayAmount": claimed,
+            "status": p.status.as_str(), "error": error.to_string()}),
+        a,
+    )
+    .await?;
+    tx.commit().await.map_err(map_db_error)
 }
 
 pub fn router(state: FinanceState) -> OpenApiRouter {

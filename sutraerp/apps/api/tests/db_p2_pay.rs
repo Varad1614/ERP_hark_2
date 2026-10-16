@@ -527,6 +527,24 @@ async fn webhooks_are_idempotent_under_replay_and_concurrency() {
     let d = read(&app, &admin, &format!("/payments/{}", id(&d))).await;
     assert_eq!(d["status"], "pending");
     assert_eq!(payment_entries(&pool, &id(&d)).await, 0);
+    // DEF-F-004: the refused event leaves a trace (event row + audit) and a replay is a duplicate.
+    assert_eq!(
+        audits(&pool, T_WEBHOOK, "finance.gateway.webhook_rejected").await,
+        1
+    );
+    let outcome: String = sqlx::query_scalar(
+        "SELECT outcome FROM finance.gateway_webhook_event WHERE payment_id = $1::uuid",
+    )
+    .bind(id(&d))
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(outcome, "amount_mismatch");
+    let (st, _, dup) = send(&app, webhook(&body, Some(&sig))).await;
+    assert_eq!(
+        (st, s(&dup, "status")),
+        (StatusCode::OK, "duplicate".to_owned())
+    );
 
     // Unknown order → ignored; every processed webhook is audited in the payment's tenant.
     let mut ghost = pa.clone();
