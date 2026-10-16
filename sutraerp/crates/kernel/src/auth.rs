@@ -397,10 +397,16 @@ pub enum Permission {
     DataImport,
     /// Data migration: decide an import commit that needs a second person (opening fee balances) — the checker, never the job's maker (step-up).
     DataImportApprove,
+    // ---- Part 2 · S7-entitle (docs/readiness/ENTITLEMENT_IMPLEMENTATION.md). ----
+    /// Request a change of the tenant's module entitlement / licence (package, add-ons, validity,
+    /// suspension, renewal) and keep the platform administration area during a suspension.
+    EntitlementManage,
+    /// Decide an entitlement / licence change request — never its requester (step-up).
+    EntitlementApprove,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 119] = [
+    pub const ALL: [Permission; 121] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -520,6 +526,8 @@ impl Permission {
         Permission::IdentityRoleApprove,
         Permission::DataImport,
         Permission::DataImportApprove,
+        Permission::EntitlementManage,
+        Permission::EntitlementApprove,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -643,6 +651,8 @@ impl Permission {
             Permission::IdentityRoleApprove => "platform.identity.role.approve",
             Permission::DataImport => "platform.import.manage",
             Permission::DataImportApprove => "platform.import.approve",
+            Permission::EntitlementManage => "platform.entitlement.manage",
+            Permission::EntitlementApprove => "platform.entitlement.approve",
         }
     }
 
@@ -679,6 +689,7 @@ impl Permission {
                 | Permission::IdentityLifecycle
                 | Permission::IdentityRoleApprove
                 | Permission::DataImportApprove
+                | Permission::EntitlementApprove
         )
     }
 }
@@ -828,6 +839,10 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             // else prepared (separation of duties is enforced on the decision path).
             DataImport,
             DataImportApprove,
+            // Part 2 · S7-entitle: entitlement changes are maker-checker between two
+            // administrators (enforced in `sutra_platform::entitlement`).
+            EntitlementManage,
+            EntitlementApprove,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -1503,6 +1518,25 @@ mod tests {
         assert!(Permission::IdentityRoleApprove.requires_step_up());
         assert!(!Permission::IdentityManage.requires_step_up());
         assert_eq!(Permission::IdentityRead.as_str(), "platform.identity.read");
+    }
+
+    #[test]
+    fn part2_entitlement_grants_are_administrator_only() {
+        for p in [
+            Permission::EntitlementManage,
+            Permission::EntitlementApprove,
+        ] {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            for r in Role::ALL.into_iter().filter(|r| *r != Role::Administrator) {
+                assert!(!is_granted(&[r], p), "{r:?} must not hold {p:?}");
+            }
+        }
+        assert!(Permission::EntitlementApprove.requires_step_up());
+        assert!(!Permission::EntitlementManage.requires_step_up());
+        assert_eq!(
+            Permission::EntitlementManage.as_str(),
+            "platform.entitlement.manage"
+        );
     }
 
     #[test]
