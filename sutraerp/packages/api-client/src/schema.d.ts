@@ -20238,6 +20238,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Metadata of one document of the session's tenant (records management). */
+        get: operations["platform_document_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/documents/{id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete a document whose retention ended and that is not on legal hold (else 409, audited
+         *     as rejected). The bytes are removed from object storage; the metadata row stays.
+         */
+        post: operations["platform_document_delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/documents/{id}/legal-hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Place or release a legal hold (a held document cannot be deleted, not even after its
+         *     retention ended). Audited.
+         */
+        post: operations["platform_document_legal_hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/identities": {
         parameters: {
             query?: never;
@@ -23429,6 +23486,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/admissions/{id}/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the file of an admission document (`admission.manage` or `admission.decide`). The
+         *     SHA-256 is verified before a byte is sent (a mismatch quarantines the file: 409).
+         */
+        get: operations["admission_document_file_download"];
+        /**
+         * Attach the file of an admission document (`admission.manage`): the raw file is the body.
+         *     Type from the content (PDF / PNG / JPEG), size ≤ `SUTRA_DOCS_MAX_BYTES`, SHA-256 recorded.
+         */
+        put: operations["admission_document_file_upload"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/admissions/{id}/documents/{documentId}/file/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Short-lived presigned download link of an admission document's file (same permissions as
+         *     the download; 403 when `SUTRA_DOCS_PRESIGN_TTL_SECS` is 0). Audited.
+         */
+        post: operations["admission_document_file_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/admissions/{id}/documents/{documentId}/verify": {
         parameters: {
             query?: never;
@@ -24871,6 +24972,46 @@ export interface paths {
         get: operations["student_self_documents"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/me/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the file of a document on the caller's own record (`student.self`; another
+         *     student's document is a 404).
+         */
+        get: operations["student_self_document_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/me/documents/{documentId}/file/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Presigned download link of a document on the caller's own record (`student.self`; 403 when
+         *     presigned links are disabled). Audited.
+         */
+        post: operations["student_self_document_file_link"];
         delete?: never;
         options?: never;
         head?: never;
@@ -26508,6 +26649,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/students/{id}/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the file of a document on a student's record (`student.manage`). */
+        get: operations["student_document_file_download"];
+        /**
+         * Attach the file of a document on the student's record (`student.manage`; the document must
+         *     be `submitted` and have no file yet).
+         */
+        put: operations["student_document_file_upload"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/students/{id}/documents/{documentId}/verify": {
         parameters: {
             query?: never;
@@ -27842,6 +28004,12 @@ export interface components {
             admissionId: components["schemas"]["AdmissionId"];
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Part 2 · S4-docs: the stored file (platform document service), when one was uploaded
+             *     (`PUT …/documents/{documentId}/file`).
+             */
+            documentObjectId?: string | null;
             documentType: string;
             fileRef?: string | null;
             id: components["schemas"]["AdmissionDocumentId"];
@@ -28664,6 +28832,17 @@ export interface components {
             supersedesId?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        /** @description Result of an upload: the document's new version and the stored file. */
+        AttachedFile: {
+            /** Format: uuid */
+            documentId: string;
+            /**
+             * Format: int64
+             * @description New version (ETag) of the admission / record document.
+             */
+            documentVersion: number;
+            file: components["schemas"]["StoredDocument"];
         };
         /**
          * @description Attempt kind of a registered paper (L2-I12).
@@ -31311,6 +31490,11 @@ export interface components {
             /** Format: date */
             until?: string | null;
         };
+        /** @description Body of `…/delete`. */
+        DeleteDocumentBody: {
+            /** @description Why the document is deleted; 1–500 characters. */
+            reason: string;
+        };
         /** @description Body of an approval decision endpoint. */
         DeliveryDecision: {
             decision: components["schemas"]["DeliveryDecisionValue"];
@@ -31427,6 +31611,12 @@ export interface components {
             title: string;
             /** Format: date */
             validUntil?: string | null;
+        };
+        /** @description A short-lived presigned download link (issued only after authorisation). */
+        DocumentLink: {
+            /** Format: date-time */
+            expiresAt: string;
+            url: string;
         };
         DocumentList: {
             items: components["schemas"]["DocumentView"][];
@@ -36216,6 +36406,13 @@ export interface components {
          * @description Source-to-ledger reconciliation run (L3-F-029).
          */
         LedgerReconciliationId: string;
+        /** @description Body of `…/legal-hold`. */
+        LegalHoldBody: {
+            /** @description `true` places a hold, `false` releases it. */
+            hold: boolean;
+            /** @description Why (court order, investigation, …); 1–500 characters. */
+            reason: string;
+        };
         /**
          * @description Approval state of a governed draft (`LIBRARY_POLICY_APPROVAL`).
          *     9E: approvalState — wire `not_requested` (contract batch9 §6.4); the stored value stays `none`.
@@ -44408,6 +44605,47 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /**
+         * @description Metadata of a stored document (`platform.document_object`). The storage key never leaves
+         *     the server.
+         */
+        StoredDocument: {
+            /** @description `application/pdf` | `image/png` | `image/jpeg` (detected from the content). */
+            contentType: string;
+            /** Format: date-time */
+            deletedAt?: string | null;
+            /** @description Sanitised file name. */
+            filename: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            legalHold: boolean;
+            legalHoldReason?: string | null;
+            /** Format: uuid */
+            ownerId: string;
+            /** @description `admission_document` | `student_document`. */
+            ownerType: string;
+            /**
+             * Format: date-time
+             * @description Set when a read found the stored bytes changed or missing; downloads are refused.
+             */
+            quarantinedAt?: string | null;
+            /**
+             * Format: date-time
+             * @description The document cannot be deleted before this instant.
+             */
+            retentionUntil: string;
+            /** @description Lower-case hex SHA-256 of the content, verified on every read. */
+            sha256: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description Draft content (create and full replacement on `PATCH`). */
         StructureDraft: {
             /** Format: date */
@@ -44598,6 +44836,12 @@ export interface components {
         StudentDocument: {
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Part 2 · S4-docs: the stored file (platform document service), when one was uploaded or
+             *     moved over from the admission.
+             */
+            documentObjectId?: string | null;
             documentType: string;
             fileRef?: string | null;
             id: components["schemas"]["StudentDocumentId"];
@@ -97793,6 +98037,193 @@ export interface operations {
             };
         };
     };
+    platform_document_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.audit.verify` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Document storage is not configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_document_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteDocumentBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Under retention or legal hold */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_document_legal_hold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalHoldBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Already in the requested state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     platform_identity_list: {
         parameters: {
             query?: {
@@ -105958,6 +106389,226 @@ export interface operations {
             };
         };
     };
+    admission_document_file_download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Integrity check failed (quarantined) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_document_file_upload: {
+        parameters: {
+            query: {
+                /**
+                 * @description Original file name (sanitised; its extension must match the content: `.pdf`, `.png`,
+                 *     `.jpg` / `.jpeg`).
+                 */
+                filename: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The file (PDF, PNG or JPEG); `Content-Type` its media type */
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachedFile"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not awaiting verification, or a file is already attached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Body above the upload limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Empty, too large, type not allowed or name / type mismatch */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Document storage is not configured or unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_document_file_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLink"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not permitted, or presigned links are disabled */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     admission_document_verify: {
         parameters: {
             query?: never;
@@ -111264,6 +111915,129 @@ export interface operations {
             };
             /** @description Missing, or owned by another tenant. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_self_document_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_self_document_file_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLink"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -116775,6 +117549,158 @@ export interface operations {
             };
             /** @description Validation failed. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_document_file_download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_document_file_upload: {
+        parameters: {
+            query: {
+                /**
+                 * @description Original file name (sanitised; its extension must match the content: `.pdf`, `.png`,
+                 *     `.jpg` / `.jpeg`).
+                 */
+                filename: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The file (PDF, PNG or JPEG); `Content-Type` its media type */
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachedFile"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
