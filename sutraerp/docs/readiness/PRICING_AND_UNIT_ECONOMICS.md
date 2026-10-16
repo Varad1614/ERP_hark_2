@@ -47,28 +47,38 @@ and on-prem ownership are the levers, not a lower list price.
 
 ### 3.1 Annual licence (subscription; includes Standard support and updates)
 
-| Package / add-on | ₹ per active student per year | Annual minimum | At 2,000 students |
-|---|---:|---:|---:|
-| `core_academic` | 180 | 1,50,000 | 3,60,000 |
-| `academic_plus` | 240 | 2,00,000 | 4,80,000 |
-| `institution_operations` (add-on to `core_academic`) | 100 | 1,00,000 | 2,00,000 |
-| `complete_erp` | 300 | 3,00,000 | 6,00,000 |
-| À la carte on `core_academic`: library / hostel / transport / reporting (each) | 25 | 30,000 | 50,000 each |
-| À la carte: HR + Payroll | 60 | 75,000 | 1,20,000 |
-| À la carte: Procurement + Inventory + Assets | 50 | 60,000 | 1,00,000 |
-| Additional institution in the same tenant | +20 % of that institution's licence | — | — |
+Packages are the cumulative tiers of the entitlement registry (`catalog/entitlements.json`, `part2/s7-entitle` @ `bf48b7f6`; see
+[COMMERCIAL_PACKAGING.md](COMMERCIAL_PACKAGING.md) §1).
 
-Bundle logic: `core_academic` + 4 à-la-carte modules = ₹280 vs `academic_plus` ₹240; `academic_plus` + `institution_operations`
-= ₹340 vs `complete_erp` ₹300 (≈ 12 % bundle discount).
+| Package (registry key) | Modules | ₹ per active student per year | Annual minimum | At 2,000 students |
+|---|---|---:|---:|---:|
+| `core_academic` | students, admissions, academics, attendance, examinations | 150 | 1,25,000 | 3,00,000 |
+| `academic_plus` | + fees, library, reporting | 220 | 1,75,000 | 4,40,000 |
+| `institution_operations` | + hr, payroll, hostel, transport | 270 | 2,50,000 | 5,40,000 |
+| `complete_erp` | + procurement, inventory, assets (all 15) | 300 | 3,00,000 | 6,00,000 |
+
+Add-on modules on a lower tier (registry `addOnModules`; registry dependencies and the commercial prerequisites of
+COMMERCIAL_PACKAGING.md §4.2 / §5 apply), ₹ per active student per year, minimum ₹20,000 each:
+
+| fees | library | reporting | hr | payroll | hostel | transport | procurement | inventory | assets |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 40 | 20 | 20 | 25 | 25 | 20 | 15 | 15 | 10 | 10 |
+
+Bundle logic: `core_academic` + fees + library + reporting = ₹230 vs `academic_plus` ₹220; `academic_plus` + hr + payroll + hostel +
+transport = ₹305 vs `institution_operations` ₹270; `institution_operations` + procurement + inventory + assets = ₹305 vs
+`complete_erp` ₹300. Additional institution in the same tenant: +20 % of that institution's licence.
+
+Until reconciliation items R1 / R2 (COMMERCIAL_PACKAGING.md §4.2) are tested, `core_academic` is quoted **with the `fees` add-on**
+(₹190 / student) for any college that charges admission or examination fees.
 
 ### 3.2 One-time services
 
 | Item | Price | Includes |
 |---|---:|---|
-| Implementation — `core_academic` | 2,50,000 | offline install on the college server (runbook), TLS / DNS, Keycloak realm + MFA for privileged roles, institution / programme / curriculum / calendar / fee set-up, approval roles (maker ≠ checker), backup timer + offsite copy, monitoring stack, 4 training days, 2 weeks go-live support |
-| Implementation — `academic_plus` | 3,50,000 | as above + library / hostel / transport / reporting set-up, 6 training days |
-| Implementation — `institution_operations` add-on | 2,00,000 | HR / payroll configuration, procurement & stores set-up, 3 training days |
-| Implementation — `complete_erp` | 5,00,000 | all of the above, 8 training days |
+| Implementation — `core_academic` | 2,00,000 | offline install on the college server (runbook), TLS / DNS, Keycloak realm + MFA for privileged roles, institution / programme / curriculum / calendar set-up, approval roles (maker ≠ checker), entitlement applied (`SUTRA_ENTITLEMENT_DEFAULT=none` + stored entitlement), backup timer + offsite copy, monitoring stack, 4 training days, 2 weeks go-live support |
+| Implementation — `academic_plus` | 3,00,000 | as above + fee structures, library, reporting set-up, 6 training days |
+| Implementation — `institution_operations` | 4,25,000 | as above + HR / payroll configuration, hostel and transport set-up, 7 training days |
+| Implementation — `complete_erp` | 5,00,000 | all of the above + procurement & stores, 8 training days |
 | Data migration — base | 75,000 | the 9 import targets (campuses, org units, programmes, curricula, staff, students + guardians, historical results, fee heads, opening balances) via the import engine (dry run, approval, reconciliation report); up to 2 academic years of history from clean templates or one clean legacy export |
 | Data migration — each extra academic year | 25,000 | same targets |
 | Data cleansing / transformation, other entities | 8,000 per person-day | time & material, estimated after a sample file (the import worker notes a real legacy export is needed first) |
@@ -107,15 +117,15 @@ AMC applies **only** to perpetual licences; subscriptions already include suppor
 
 ## 4. Price examples (2,000 students, excl. GST)
 
-| | `core_academic` | `academic_plus` | `complete_erp` |
-|---|---:|---:|---:|
-| Annual licence | 3,60,000 | 4,80,000 | 6,00,000 |
-| Implementation | 2,50,000 | 3,50,000 | 5,00,000 |
-| Data migration (base, 2 years) | 75,000 | 75,000 | 75,000 |
-| Razorpay go-live + SMTP / identity | 70,000 | 70,000 | 70,000 |
-| **Year-1 total (list)** | **7,55,000** | **9,75,000** | **12,45,000** |
-| Year-1 total with design-partner pilot (50 % off licence) | 5,75,000 | 7,35,000 | 9,45,000 |
-| Year-2 licence (+7 %) | 3,85,200 | 5,13,600 | 6,42,000 |
+| | `core_academic` (+ fees add-on) | `academic_plus` | `institution_operations` | `complete_erp` |
+|---|---:|---:|---:|---:|
+| Annual licence | 3,80,000 | 4,40,000 | 5,40,000 | 6,00,000 |
+| Implementation | 2,00,000 | 3,00,000 | 4,25,000 | 5,00,000 |
+| Data migration (base, 2 years) | 75,000 | 75,000 | 75,000 | 75,000 |
+| Razorpay go-live + SMTP / identity | 70,000 | 70,000 | 70,000 | 70,000 |
+| **Year-1 total (list)** | **7,25,000** | **8,85,000** | **11,10,000** | **12,45,000** |
+| Year-1 total with design-partner pilot (50 % off licence) | 5,35,000 | 6,65,000 | 8,40,000 | 9,45,000 |
+| Year-2 licence (+7 %) | 4,06,600 | 4,70,800 | 5,77,800 | 6,42,000 |
 
 ## 5. Cost assumptions (ASSUMPTION — no delivery history)
 
@@ -136,7 +146,7 @@ AMC applies **only** to perpetual licences; subscriptions already include suppor
 
 ## 6. Cost and margin model — one 2,000-student institution, `complete_erp`, self-hosted
 
-Script: inputs above; reproduced by `work/s7c/model.py` in the project workspace (not in the repo). All figures ASSUMPTION.
+Inputs above (the arithmetic is reproducible from §5; a working script was kept outside the repo). All figures ASSUMPTION.
 
 ### 6.1 Year 1
 
@@ -206,7 +216,7 @@ institutions below ~1,500 students on `complete_erp` barely cover support at the
 
 ## 7. What must happen before these prices are used in a quote
 
-1. Reconcile package keys / contents with the entitlement registry once `part2/s7-entitle` lands.
+1. Re-check this price list against the entitlement registry when `part2/s7-entitle` is integrated (packages here match registry `version: 1` @ `bf48b7f6`), and close reconciliation items R1 / R2 (COMMERCIAL_PACKAGING.md §4.2).
 2. Chartered-accountant review of GST treatment and invoicing; legal review of open-source redistribution (MinIO AGPL-3.0) and of the
    EULA, DPA (DPDP Act 2023) and offboarding terms.
 3. Replace effort assumptions with the actuals from the first design-partner pilot.
