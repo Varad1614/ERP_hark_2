@@ -322,7 +322,7 @@ async fn late_fees(
     auth: &Authenticated,
     id: Uuid,
     preview: bool,
-) -> Result<LateFeeRun, KernelError> {
+) -> ApiResult<LateFeeRun> {
     let ctx = auth.require(Permission::ReceivableManage)?;
     let inst = InstitutionId(id);
     let scope = institution_scope(ctx, inst);
