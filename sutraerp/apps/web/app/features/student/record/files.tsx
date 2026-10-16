@@ -41,7 +41,8 @@ export function extensionOf(name: string): string | null {
 /** The file's own media type, from its (allowed) extension; `null` when the type is not allowed. */
 export function contentTypeOf(name: string): string | null {
   const ext = extensionOf(name);
-  return ext && TYPES[ext] ? TYPES[ext].mime : null;
+  const t = ext ? TYPES[ext] : undefined;
+  return t ? t.mime : null;
 }
 
 async function head(file: Blob, n: number): Promise<Uint8Array | null> {
