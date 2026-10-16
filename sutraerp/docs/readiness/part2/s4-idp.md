@@ -1,6 +1,6 @@
 # Part 2 · Stage 4.3 — Keycloak identity onboarding (S4-idp)
 
-Branch `part2/s4-idp` (from `erp_merge` c31cc487). Status: **READY_FOR_REVIEW** — see "Test evidence"
+Branch `part2/s4-idp` (from `erp_merge` c31cc487), tested head **1b8cd59**. Status: **READY_FOR_REVIEW** — see "Test evidence"
 for the green run ids. Tracker rows: [`tracker/p2-s4-idp.md`](../tracker/p2-s4-idp.md).
 
 SutraERP decides **who** may sign in and **with which roles**; Keycloak keeps credentials, second
@@ -64,13 +64,13 @@ secret; the sign-in client reused as admin client; the start-up check off; a fai
 
 | Suite | What | Result |
 |---|---|---|
-| unit (`sutra-contracts`, `sutra-platform`, `sutra-api` config) | username generation, desired state, role diff, foreign-tenant detection, least-privilege grant rules, Keycloak error mapping, production refusals | CI `Rust (fmt · clippy · test)` green — run RUN_CI |
-| `apps/api/tests/db_p2_idp.rs` (PostgreSQL 18, memory IdP) | lifecycle (activation event → provisioned, suspension → disabled + IdP/SutraERP sessions ended, restore), duplicates (409, adoption, foreign tenant never adopted, DB unique), retry with back-off, admin API (permissions, maker-checker, no self-service, TOTP on privileged grants, suspend/reactivate, mappings, tenant isolation, audit) | 4/4 green — run RUN_CI |
-| `apps/api/tests/live_keycloak_idp.rs` (PostgreSQL 18 + **Keycloak 26.7**) | provision → real OIDC login (group-attribute tenant claim); role mapping + grant effective at next login; suspension → Keycloak login refused, Keycloak sessions = 0, SutraERP session 401; restore → login works; duplicate prevention (adoption, Keycloak 409 on taken username, foreign-tenant account untouched); retry while Keycloak is unreachable (TCP proxy cut) → back-off → converges to exactly one account | 3/3 green — run RUN_CI |
-| `approval_matrix` | `platform_identity_role_request_decision` guarded and listed in `APPROVAL_CONTROL_MATRIX.md` | green — run RUN_CI |
-| OpenAPI drift | committed `openapi/openapi.json` + `packages/api-client/src/schema.d.ts` regenerated | green — run RUN_CI |
-| SutraERP Part 1 demo (full stack, Keycloak) | realm tenant mapper changed — journey + persistence | green — run RUN_DEMO |
-| SutraERP quality gates | cargo-deny / audit / gitleaks / Semgrep / ZAP / k6 | green — run RUN_QUALITY |
+| unit (`sutra-contracts`, `sutra-platform`, `sutra-api` config) | username generation, desired state, role diff, foreign-tenant detection, least-privilege grant rules, Keycloak error mapping, production refusals | CI `Rust (fmt · clippy · test)` green — run 38883041680 |
+| `apps/api/tests/db_p2_idp.rs` (PostgreSQL 18, memory IdP) | lifecycle (activation event → provisioned, suspension → disabled + IdP/SutraERP sessions ended, restore), duplicates (409, adoption, foreign tenant never adopted, DB unique), retry with back-off, admin API (permissions, maker-checker, no self-service, TOTP on privileged grants, suspend/reactivate, mappings, tenant isolation, audit) | 4/4 green — run 38883041680 |
+| `apps/api/tests/live_keycloak_idp.rs` (PostgreSQL 18 + **Keycloak 26.7**) | provision → real OIDC login (group-attribute tenant claim); role mapping + grant effective at next login; suspension → Keycloak login refused, Keycloak sessions = 0, SutraERP session 401; restore → login works; duplicate prevention (adoption, Keycloak 409 on taken username, foreign-tenant account untouched); retry while Keycloak is unreachable (TCP proxy cut) → back-off → converges to exactly one account | 3/3 green — run 38883041680 |
+| `approval_matrix` | `platform_identity_role_request_decision` guarded and listed in `APPROVAL_CONTROL_MATRIX.md` | green — run 38883041680 |
+| OpenAPI drift | committed `openapi/openapi.json` + `packages/api-client/src/schema.d.ts` regenerated | green — run 38883041680 |
+| SutraERP Part 1 demo (full stack, Keycloak) | realm tenant mapper changed — journey + persistence | green — run 38883044332 |
+| SutraERP quality gates | cargo-deny / audit / gitleaks / Semgrep / ZAP / k6 | green — run 38883047191 |
 
 ## BLOCKED_EXTERNAL
 
