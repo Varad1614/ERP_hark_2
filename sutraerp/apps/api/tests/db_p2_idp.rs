@@ -25,6 +25,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use support::*;
 use sutra_api::app::{router, AppContext};
 use sutra_api::config::Config;
 use sutra_contracts::platform::auth::{NewSession, Principal, SessionPolicy, SessionStore};
@@ -37,7 +38,6 @@ use sutra_platform::auth::session_pg::PgSessionStore;
 use sutra_platform::identity::memory::MemoryIdentityProvider;
 use sutra_platform::identity::sync::{IdpEventConsumer, IdpSyncWorker};
 use sutra_platform::identity::{IdentityRuntime, IdentitySettings};
-use support::*;
 use uuid::Uuid;
 
 const T_LIFE: &str = "0192f5a0-7c3e-7000-8000-0000000d1d01";
@@ -58,9 +58,8 @@ async fn idp_app(tenant: &'static str) -> (Router, sqlx::PgPool) {
     let url = database_url();
     let (scheme, rest) = url.split_once("://").unwrap();
     let host = rest.rsplit_once('@').map_or(rest, |(_, h)| h);
-    let runtime: &'static str = Box::leak(
-        format!("{scheme}://{RUNTIME_USER}:{RUNTIME_PASSWORD}@{host}").into_boxed_str(),
-    );
+    let runtime: &'static str =
+        Box::leak(format!("{scheme}://{RUNTIME_USER}:{RUNTIME_PASSWORD}@{host}").into_boxed_str());
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
         ("DATABASE_URL", runtime),
@@ -128,7 +127,13 @@ async fn sync(pool: &sqlx::PgPool, rt: &IdentityRuntime) {
     .expect("idp-sync");
 }
 
-async fn call(app: &Router, who: &Login, method: &str, path: &str, body: Value) -> (StatusCode, Value) {
+async fn call(
+    app: &Router,
+    who: &Login,
+    method: &str,
+    path: &str,
+    body: Value,
+) -> (StatusCode, Value) {
     let (s, _, b) = send(app, write(who, method, path, body, None)).await;
     (s, b)
 }
@@ -175,7 +180,12 @@ async fn exec(pool: &sqlx::PgPool, sql: &str, id: Uuid) {
 }
 
 /// Publishes a `student.status_changed` (to `active`) the way Domain C's lifecycle helper does.
-async fn student_activated(pool: &sqlx::PgPool, st: &support::b3::SeededStudent, tenant: &str, inst: Uuid) {
+async fn student_activated(
+    pool: &sqlx::PgPool,
+    st: &support::b3::SeededStudent,
+    tenant: &str,
+    inst: Uuid,
+) {
     use sutra_contracts::student::events::{STUDENT_STATUS_CHANGED, STUDENT_STATUS_CHANGED_SCHEMA};
     let scope = ExecutionScope::institution(TenantId(tenant.parse().unwrap()), InstitutionId(inst));
     let env = EventEnvelope::new(
@@ -194,12 +204,19 @@ async fn student_activated(pool: &sqlx::PgPool, st: &support::b3::SeededStudent,
         },
     );
     sutra_kernel::db_context::system(async {
-        sutra_persistence::outbox::enqueue(pool, &env).await.unwrap();
+        sutra_persistence::outbox::enqueue(pool, &env)
+            .await
+            .unwrap();
     })
     .await;
 }
 
-async fn seeded(pool: &sqlx::PgPool, setup: &support::b3::AcademicSetup, name: &str, email: Option<&str>) -> support::b3::SeededStudent {
+async fn seeded(
+    pool: &sqlx::PgPool,
+    setup: &support::b3::AcademicSetup,
+    name: &str,
+    email: Option<&str>,
+) -> support::b3::SeededStudent {
     let st = support::b3::seed_student(pool, setup, name, None).await;
     sutra_kernel::db_context::system(async {
         sqlx::query("UPDATE student.student SET primary_email = $2 WHERE id = $1")
@@ -214,7 +231,9 @@ async fn seeded(pool: &sqlx::PgPool, setup: &support::b3::AcademicSetup, name: &
 }
 
 fn s(v: &Value, k: &str) -> String {
-    v[k].as_str().unwrap_or_else(|| panic!("no {k} in {v}")).to_owned()
+    v[k].as_str()
+        .unwrap_or_else(|| panic!("no {k} in {v}"))
+        .to_owned()
 }
 
 #[tokio::test]
@@ -235,7 +254,10 @@ async fn student_lifecycle_drives_the_identity() {
     assert_eq!(l["sync_status"], "pending");
     assert_eq!(l["desired_state"], "active");
     assert_eq!(l["username"], email.as_str());
-    assert_eq!(l["pending_actions"], json!(["VERIFY_EMAIL", "UPDATE_PASSWORD"]));
+    assert_eq!(
+        l["pending_actions"],
+        json!(["VERIFY_EMAIL", "UPDATE_PASSWORD"])
+    );
     sync(&pool, &rt).await;
     let l = link(&pool, T_LIFE, st.student_id).await;
     assert_eq!(l["sync_status"], "synced", "{l}");
@@ -243,11 +265,17 @@ async fn student_lifecycle_drives_the_identity() {
     let u = idp.snapshot(&uid).unwrap();
     assert!(u.enabled);
     assert!(u.realm_roles.contains("student"));
-    assert!(u.required_actions.contains("VERIFY_EMAIL") && u.required_actions.contains("UPDATE_PASSWORD"));
+    assert!(
+        u.required_actions.contains("VERIFY_EMAIL")
+            && u.required_actions.contains("UPDATE_PASSWORD")
+    );
     let paths: Vec<String> = u.groups.iter().filter_map(|g| idp.group_path(g)).collect();
     assert_eq!(
         paths,
-        vec![format!("/sutra-tenant-{T_LIFE}/institution-{}", setup.institution_id)]
+        vec![format!(
+            "/sutra-tenant-{T_LIFE}/institution-{}",
+            setup.institution_id
+        )]
     );
     let subject_ref: Option<String> = sutra_kernel::db_context::system(async {
         sqlx::query_scalar("SELECT subject_ref FROM student.student WHERE id = $1")
@@ -257,7 +285,11 @@ async fn student_lifecycle_drives_the_identity() {
             .unwrap()
     })
     .await;
-    assert_eq!(subject_ref.as_deref(), Some(uid.as_str()), "self-service login linked");
+    assert_eq!(
+        subject_ref.as_deref(),
+        Some(uid.as_str()),
+        "self-service login linked"
+    );
     // Replaying the same event and syncing again changes nothing (idempotent).
     events(&pool, &rt).await;
     sync(&pool, &rt).await;
@@ -367,7 +399,14 @@ async fn duplicate_identities_are_prevented() {
     let rt = runtime(&pool, idp.clone(), &[T_DUP], false);
 
     let body = json!({"subjectType": "student", "subjectId": a.student_id});
-    let (code, first) = call(&app, &admin, "POST", &format!("{ID}/provision"), body.clone()).await;
+    let (code, first) = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("{ID}/provision"),
+        body.clone(),
+    )
+    .await;
     assert_eq!(code, StatusCode::CREATED, "{first}");
     let (code, again) = call(&app, &admin, "POST", &format!("{ID}/provision"), body).await;
     assert_eq!(code, StatusCode::OK, "{again}");
@@ -382,7 +421,10 @@ async fn duplicate_identities_are_prevented() {
     )
     .await;
     assert_eq!(code, StatusCode::CONFLICT, "{dup}");
-    assert!(dup.to_string().contains("duplicate identity prevented"), "{dup}");
+    assert!(
+        dup.to_string().contains("duplicate identity prevented"),
+        "{dup}"
+    );
 
     // The person already has an IdP account (same e-mail): adopted, not duplicated.
     let existing = idp.seed_user(&format!("legacy-{tag}"), Some(&email));
@@ -392,10 +434,19 @@ async fn duplicate_identities_are_prevented() {
     assert_eq!(l["idp_user_id"], existing.as_str());
     assert_eq!(idp.user_count(), 1);
     let actions = audit_actions(&pool, &s(&l, "id")).await;
-    assert!(actions.iter().any(|x| x == "platform.identity.adopted"), "{actions:?}");
+    assert!(
+        actions.iter().any(|x| x == "platform.identity.adopted"),
+        "{actions:?}"
+    );
 
     // An account that belongs to another tenant is never adopted.
-    let c = seeded(&pool, &setup, "Chitra", Some(&format!("chitra.{tag}@student.example.edu"))).await;
+    let c = seeded(
+        &pool,
+        &setup,
+        "Chitra",
+        Some(&format!("chitra.{tag}@student.example.edu")),
+    )
+    .await;
     let foreign = idp.seed_user(&format!("chitra.{tag}@student.example.edu"), None);
     let g = idp
         .ensure_scope_group(&sutra_contracts::platform::identity::ScopeGroup {
@@ -452,7 +503,14 @@ async fn retry_after_the_idp_was_down() {
     )
     .await;
     assert_eq!(code, StatusCode::CREATED, "{v}");
-    assert_eq!(v["username"].as_str().unwrap(), format!("{}.{}", st.student_number.to_lowercase(), &T_RETRY.replace('-', "")[20..]));
+    assert_eq!(
+        v["username"].as_str().unwrap(),
+        format!(
+            "{}.{}",
+            st.student_number.to_lowercase(),
+            &T_RETRY.replace('-', "")[20..]
+        )
+    );
 
     idp.set_down(true);
     sync(&pool, &rt).await;
@@ -466,7 +524,12 @@ async fn retry_after_the_idp_was_down() {
     assert_eq!(link(&pool, T_RETRY, st.student_id).await["attempts"], 1);
     assert_eq!(idp.user_count(), 0);
     // Due again (as after the back-off): converges, exactly one account.
-    exec(&pool, "UPDATE platform.identity_link SET next_attempt_at = now() WHERE subject_id = $1", st.student_id).await;
+    exec(
+        &pool,
+        "UPDATE platform.identity_link SET next_attempt_at = now() WHERE subject_id = $1",
+        st.student_id,
+    )
+    .await;
     sync(&pool, &rt).await;
     let l = link(&pool, T_RETRY, st.student_id).await;
     assert_eq!(l["sync_status"], "synced", "{l}");
@@ -496,7 +559,15 @@ async fn admin_api_enforces_permissions_sod_and_tenancy() {
         "roles": ["administrator"], "reason": "second platform administrator",
     });
     assert_eq!(
-        call(&app, &faculty, "POST", &format!("{ID}/admins"), body.clone()).await.0,
+        call(
+            &app,
+            &faculty,
+            "POST",
+            &format!("{ID}/admins"),
+            body.clone()
+        )
+        .await
+        .0,
         StatusCode::FORBIDDEN
     );
     // No identity for oneself.
@@ -515,32 +586,74 @@ async fn admin_api_enforces_permissions_sod_and_tenancy() {
     let req_id = s(&created["roleRequest"], "id");
     assert_eq!(created["roleRequest"]["status"], "pending");
     assert_eq!(created["roleRequest"]["privileged"], true);
-    assert_eq!(created["identity"]["roles"], json!([]), "nothing granted before the decision");
+    assert_eq!(
+        created["identity"]["roles"],
+        json!([]),
+        "nothing granted before the decision"
+    );
 
     // Maker-checker: the requester cannot decide; another administrator can.
     let decision = format!("/api/v1/platform/identity-role-requests/{req_id}/decision");
-    let (code, v) = call(&app, &admin, "POST", &decision, json!({"decision": "approve", "reason": "ok"})).await;
+    let (code, v) = call(
+        &app,
+        &admin,
+        "POST",
+        &decision,
+        json!({"decision": "approve", "reason": "ok"}),
+    )
+    .await;
     assert_eq!(code, StatusCode::FORBIDDEN, "{v}");
     assert!(v.to_string().contains("separation of duties"), "{v}");
     assert_eq!(
-        call(&app, &faculty, "POST", &decision, json!({"decision": "approve", "reason": "ok"})).await.0,
+        call(
+            &app,
+            &faculty,
+            "POST",
+            &decision,
+            json!({"decision": "approve", "reason": "ok"})
+        )
+        .await
+        .0,
         StatusCode::FORBIDDEN
     );
-    let (code, v) = call(&app, &dean, "POST", &decision, json!({"decision": "approve", "reason": "verified"})).await;
+    let (code, v) = call(
+        &app,
+        &dean,
+        "POST",
+        &decision,
+        json!({"decision": "approve", "reason": "verified"}),
+    )
+    .await;
     assert_eq!(code, StatusCode::OK, "{v}");
     assert_eq!(v["status"], "approved");
-    let (code, v) = call(&app, &dean, "POST", &decision, json!({"decision": "approve", "reason": "again"})).await;
+    let (code, v) = call(
+        &app,
+        &dean,
+        "POST",
+        &decision,
+        json!({"decision": "approve", "reason": "again"}),
+    )
+    .await;
     assert_eq!(code, StatusCode::CONFLICT, "{v}");
     let (_, ident) = read(&app, &admin, &format!("{ID}/{link_id}")).await;
     assert_eq!(ident["roles"], json!(["administrator"]));
-    assert!(ident["pendingActions"].as_array().unwrap().contains(&json!("CONFIGURE_TOTP")), "{ident}");
+    assert!(
+        ident["pendingActions"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("CONFIGURE_TOTP")),
+        "{ident}"
+    );
     sync(&pool, &rt).await;
     let (_, ident) = read(&app, &admin, &format!("{ID}/{link_id}")).await;
     assert_eq!(ident["syncStatus"], "synced", "{ident}");
     let uid = s(&ident, "idpUserId");
     let u = idp.snapshot(&uid).unwrap();
     assert!(u.realm_roles.contains("administrator"));
-    assert!(u.required_actions.contains("CONFIGURE_TOTP"), "privileged role → TOTP enrolment");
+    assert!(
+        u.required_actions.contains("CONFIGURE_TOTP"),
+        "privileged role → TOTP enrolment"
+    );
 
     // Password recovery trigger.
     let (code, v) = call(
@@ -557,16 +670,38 @@ async fn admin_api_enforces_permissions_sod_and_tenancy() {
     assert_eq!(u.action_emails, vec![vec!["UPDATE_PASSWORD".to_owned()]]);
 
     // Administrative suspension / re-enabling (never of one's own identity).
-    let (code, v) = call(&app, &dean, "POST", &format!("{ID}/{link_id}/suspend"), json!({"reason": "left the project"})).await;
+    let (code, v) = call(
+        &app,
+        &dean,
+        "POST",
+        &format!("{ID}/{link_id}/suspend"),
+        json!({"reason": "left the project"}),
+    )
+    .await;
     assert_eq!(code, StatusCode::OK, "{v}");
     assert_eq!(v["desiredState"], "suspended");
     sync(&pool, &rt).await;
     assert!(!idp.snapshot(&uid).unwrap().enabled);
     assert_eq!(
-        call(&app, &dean, "POST", &format!("{ID}/{link_id}/suspend"), json!({"reason": "again"})).await.0,
+        call(
+            &app,
+            &dean,
+            "POST",
+            &format!("{ID}/{link_id}/suspend"),
+            json!({"reason": "again"})
+        )
+        .await
+        .0,
         StatusCode::CONFLICT
     );
-    let (code, _) = call(&app, &dean, "POST", &format!("{ID}/{link_id}/reactivate"), json!({"reason": "back"})).await;
+    let (code, _) = call(
+        &app,
+        &dean,
+        "POST",
+        &format!("{ID}/{link_id}/reactivate"),
+        json!({"reason": "back"}),
+    )
+    .await;
     assert_eq!(code, StatusCode::OK);
     sync(&pool, &rt).await;
     assert!(idp.snapshot(&uid).unwrap().enabled);
@@ -595,7 +730,14 @@ async fn admin_api_enforces_permissions_sod_and_tenancy() {
         cookie: format!("__Host-sutra_session={}", own.token),
         csrf: own.session.csrf_token.clone(),
     };
-    let (code, v) = call(&app, &me, "POST", &format!("{ID}/{link_id}/suspend"), json!({"reason": "self"})).await;
+    let (code, v) = call(
+        &app,
+        &me,
+        "POST",
+        &format!("{ID}/{link_id}/suspend"),
+        json!({"reason": "self"}),
+    )
+    .await;
     assert_eq!(code, StatusCode::FORBIDDEN, "{v}");
     let (code, _) = call(
         &app,
@@ -619,36 +761,93 @@ async fn admin_api_enforces_permissions_sod_and_tenancy() {
     assert_eq!(code, StatusCode::CREATED, "{v}");
     assert_eq!(v["status"], "applied");
     sync(&pool, &rt).await;
-    assert!(!idp.snapshot(&uid).unwrap().realm_roles.contains("administrator"));
-    let gone = sutra_kernel::db_context::system(sessions(&pool).get(&own.token)).await.unwrap();
+    assert!(!idp
+        .snapshot(&uid)
+        .unwrap()
+        .realm_roles
+        .contains("administrator"));
+    let gone = sutra_kernel::db_context::system(sessions(&pool).get(&own.token))
+        .await
+        .unwrap();
     assert!(gone.is_none(), "role removal ends the session now");
 
     // Role mappings: SutraERP role names are not targets; retired targets are removed.
     let maps = "/api/v1/platform/identity-role-mappings";
-    let (code, _) = call(&app, &dean, "POST", maps, json!({"erpRole": "student", "targetKind": "realm_role", "target": "administrator"})).await;
+    let (code, _) = call(
+        &app,
+        &dean,
+        "POST",
+        maps,
+        json!({"erpRole": "student", "targetKind": "realm_role", "target": "administrator"}),
+    )
+    .await;
     assert_eq!(code, StatusCode::UNPROCESSABLE_ENTITY);
     let (code, _) = call(&app, &dean, "POST", maps, json!({"erpRole": "faculty", "targetKind": "group", "target": format!("/sutra-tenant-{T_OTHER}")})).await;
     assert_eq!(code, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(
-        call(&app, &faculty, "POST", maps, json!({"erpRole": "registrar", "targetKind": "realm_role", "target": "lms-staff"})).await.0,
+        call(
+            &app,
+            &faculty,
+            "POST",
+            maps,
+            json!({"erpRole": "registrar", "targetKind": "realm_role", "target": "lms-staff"})
+        )
+        .await
+        .0,
         StatusCode::FORBIDDEN
     );
-    let (code, _) = call(&app, &dean, "POST", &format!("{ID}/{link_id}/role-requests"), json!({"grant": ["faculty"], "reason": "teaches"})).await;
-    assert_eq!(code, StatusCode::CREATED, "non-privileged grant applies at once");
-    let (code, m) = call(&app, &dean, "POST", maps, json!({"erpRole": "faculty", "targetKind": "realm_role", "target": "lms-staff"})).await;
+    let (code, _) = call(
+        &app,
+        &dean,
+        "POST",
+        &format!("{ID}/{link_id}/role-requests"),
+        json!({"grant": ["faculty"], "reason": "teaches"}),
+    )
+    .await;
+    assert_eq!(
+        code,
+        StatusCode::CREATED,
+        "non-privileged grant applies at once"
+    );
+    let (code, m) = call(
+        &app,
+        &dean,
+        "POST",
+        maps,
+        json!({"erpRole": "faculty", "targetKind": "realm_role", "target": "lms-staff"}),
+    )
+    .await;
     assert_eq!(code, StatusCode::CREATED, "{m}");
     sync(&pool, &rt).await;
     let u = idp.snapshot(&uid).unwrap();
-    assert!(u.realm_roles.contains("faculty") && u.realm_roles.contains("lms-staff"), "{:?}", u.realm_roles);
-    let (code, _) = call(&app, &dean, "DELETE", &format!("{maps}/{}", s(&m, "id")), json!({})).await;
+    assert!(
+        u.realm_roles.contains("faculty") && u.realm_roles.contains("lms-staff"),
+        "{:?}",
+        u.realm_roles
+    );
+    let (code, _) = call(
+        &app,
+        &dean,
+        "DELETE",
+        &format!("{maps}/{}", s(&m, "id")),
+        json!({}),
+    )
+    .await;
     assert_eq!(code, StatusCode::NO_CONTENT);
     sync(&pool, &rt).await;
-    assert!(!idp.snapshot(&uid).unwrap().realm_roles.contains("lms-staff"));
+    assert!(!idp
+        .snapshot(&uid)
+        .unwrap()
+        .realm_roles
+        .contains("lms-staff"));
 
     // Tenant isolation: another tenant's administrator sees nothing of it.
     let (other_app, _) = idp_app(T_OTHER).await;
     let other = login(&other_app, "admin@sutra.dev").await;
-    assert_eq!(read(&other_app, &other, &format!("{ID}/{link_id}")).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(
+        read(&other_app, &other, &format!("{ID}/{link_id}")).await.0,
+        StatusCode::NOT_FOUND
+    );
     let (code, page) = read(&other_app, &other, ID).await;
     assert_eq!(code, StatusCode::OK);
     assert!(!page.to_string().contains(&link_id));
