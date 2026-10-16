@@ -121,7 +121,7 @@ SQL
     src="${args[0]}/objects$PREFIX"
     [[ -d "$src" ]] || die "$src missing (nothing backed up for this tenant?)"
     "${S3[@]}" s3api head-bucket --bucket "$SUTRA_S3_BUCKET" >/dev/null 2>&1 \
-      || "${S3[@]}" s3 mb --only-show-errors "$BUCKET" >/dev/null
+      || "${S3[@]}" s3 mb "$BUCKET" >/dev/null
     "${S3[@]}" s3 sync --only-show-errors "$src" "$BUCKET$PREFIX"
     ok "restore $(find "$src" -type f | wc -l) objects → $BUCKET$PREFIX"
     ;;
