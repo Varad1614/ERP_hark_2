@@ -248,6 +248,8 @@ restore of the production-size backup ≤ 2 h (RTO).
 
 | Run | What | Result |
 |---|---|---|
+| 38935075136 (21475d9c = a5400f2f + docs) | SutraERP CI (fmt · clippy · tests · integration · web lint · E2E · images) | **green** |
+| 38935077985 (21475d9c) | SutraERP deploy (Helm lint/template incl. `web-nginx-parity-with-image`, compose boot, kind install · smoke · DR) | **green** |
 | 38931814409 (a5400f2f) | **on-prem: bundles (current + previous c31cc487), drill A fresh install + restarts + reboot sim + SIGKILL recovery + backup/restore, drill B upgrade / rollback / roll forward** | **all jobs green** |
 | 38928531972 (e015e419) | on-prem drills | fresh green (incl. backup → restore round trip 58.6 s); upgrade red: first sign-in after upgrade "Database operation failed" (Keycloak pool after postgres recreate) → fixed a5400f2f |
 | 38925488115 (f4454d5e) | on-prem drills | fresh green; upgrade red: rollback restore — sutra-restore.sh exit 1 after success (EXIT-trap status) → fixed e015e419 |
