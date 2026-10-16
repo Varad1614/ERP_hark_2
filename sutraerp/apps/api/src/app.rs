@@ -1072,6 +1072,34 @@ pub fn resources_deps_with(
     }
 }
 
+/// Part 2 · S4-import: the data-migration job state with the import targets of every owning
+/// module (Domain B campuses / org units / programmes / curricula, Domain E staff, Domain C
+/// students + guardians / historical results, Domain F fee heads / opening balances). Platform
+/// never writes another domain's tables; each target runs its own module's writers. Tests reuse it.
+pub fn import_state(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_platform::dataimport::ImportState {
+    use sutra_contracts::platform::dataimport::ImportTargetPort;
+    let student = student_deps_with(pool.clone(), workflow.clone(), approvals).into_state();
+    let people = people_deps_with(pool.clone(), workflow.clone(), approvals).into_state();
+    let finance = finance_deps_with(pool.clone(), workflow.clone(), approvals).into_state();
+    let targets: Vec<Arc<dyn ImportTargetPort>> = vec![
+        Arc::new(sutra_institution::PgCampusImport::new(pool.clone())),
+        Arc::new(sutra_institution::PgOrgUnitImport::new(pool.clone())),
+        Arc::new(sutra_institution::PgProgrammeImport::new(pool.clone())),
+        Arc::new(sutra_institution::PgCurriculumImport::new(pool.clone())),
+        Arc::new(sutra_people::PgStaffImport::new(people)),
+        Arc::new(sutra_student::PgStudentImport::new(student.clone())),
+        Arc::new(sutra_finance::PgFeeHeadImport::new(finance.clone())),
+        Arc::new(sutra_finance::PgOpeningBalanceImport::new(finance)),
+        Arc::new(sutra_student::PgHistoricalResultImport::new(student)),
+    ];
+    let institutions = Arc::new(sutra_institution::PgInstitutionDirectory::new(pool.clone()));
+    sutra_platform::dataimport::ImportState::new(pool, targets, workflow, institutions)
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
@@ -1130,6 +1158,12 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.approvals,
         )))
         .merge(sutra_resources::router(resources_deps_with(
+            ctx.pool.clone(),
+            ctx.workflow.clone(),
+            ctx.approvals,
+        )))
+        // Part 2 · S4-import: data migration jobs over every module's import targets.
+        .merge(sutra_platform::dataimport::router(import_state(
             ctx.pool.clone(),
             ctx.workflow.clone(),
             ctx.approvals,

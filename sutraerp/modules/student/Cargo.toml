@@ -21,6 +21,8 @@ serde_json.workspace = true
 utoipa.workspace = true
 utoipa-axum.workspace = true
 async-trait.workspace = true
+# Part 2 · S4-import: historical result credits / marks
+rust_decimal.workspace = true
 sqlx.workspace = true
 uuid.workspace = true
 chrono.workspace = true

@@ -19,6 +19,7 @@
 
 pub mod academic_ports; // Batch 4 foundation: ports Domain D calls
 pub mod adapters;
+pub mod dataimport; // Part 2 · S4-import
 pub mod directory;
 pub mod files; // Part 2 · S4-docs: stored files of admission / record documents
 pub mod finance_ports; // Batch 5 foundation: ports Domain F calls
@@ -49,6 +50,7 @@ use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
 pub use academic_ports::{PgCreditPosting, PgRegistrationReader};
+pub use dataimport::{PgHistoricalResultImport, PgStudentImport}; // Part 2 · S4-import
 pub use directory::PgStudentDirectory;
 pub use finance_ports::PgAidDecisionSource;
 pub use metrics::PgStudentMetrics;

@@ -86,6 +86,9 @@ jobs:
       - run: cargo test -p sutra-persistence -p sutra-platform --features db-tests --locked --no-fail-fast
       # Full api DB suite: every tests/db*.rs file (incl. db_b5_foundation, db_b5a, db_b5b) + api + architecture.
       - run: cargo test -p sutra-api --features db-tests --locked --no-fail-fast -- --test-threads 2
+      # Part 2 S4-import: the 2,000-student CSV import prints its timing (shown in this log).
+      - name: Data import volume (2,000 students, timing)
+        run: cargo test -p sutra-api --features db-tests --locked --test db_p2_import -- --nocapture two_thousand_students_import_timing
       - name: Live NATS / Valkey adapter tests
         run: |
           cargo test -p sutra-infra --features nats-tests,valkey-tests --locked

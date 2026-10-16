@@ -384,6 +384,84 @@ fn scope_of(
     institution_scope(ctx, s.institution_id)
 }
 
+/// Creates a staff record inside the caller's transaction: profile validation, duplicate
+/// e-mail check, numbering, `staff.created` and audit (the API handler and the Part 2 · S4-import
+/// staff importer both use it).
+pub async fn create_in(
+    conn: &mut PgConnection,
+    scope: &sutra_kernel::scope::ExecutionScope,
+    institution: InstitutionId,
+    b: StaffCreate,
+    actor: &Actor,
+) -> Result<StaffSummary, KernelError> {
+    let given = b.given_name.trim().to_owned();
+    let family = clean(b.family_name);
+    let display = clean(b.display_name).unwrap_or_else(|| match &family {
+        Some(f) => format!("{given} {f}"),
+        None => given.clone(),
+    });
+    let profile = Profile {
+        given_name: given,
+        family_name: family,
+        display_name: display,
+        work_email: clean(b.work_email),
+        phone: clean(b.phone),
+        date_of_birth: b.date_of_birth,
+        gender: b.gender.map(|g| g.as_str().to_owned()),
+        staff_category: b.staff_category,
+    };
+    profile.validate()?;
+    let status = b.initial_status.unwrap_or(StaffStatus::Draft);
+    let subject = clean(b.subject_ref);
+    let t = scope.tenant_id;
+    ensure_email_free(&mut *conn, t, profile.work_email.as_deref(), None).await?;
+    let s = insert_staff(
+        &mut *conn,
+        &NewStaff {
+            tenant: t,
+            institution,
+            subject_ref: subject.as_deref(),
+            given_name: &profile.given_name,
+            family_name: profile.family_name.as_deref(),
+            display_name: Some(profile.display_name.as_str()),
+            work_email: profile.work_email.as_deref(),
+            phone: profile.phone.as_deref(),
+            date_of_birth: profile.date_of_birth,
+            gender: b.gender,
+            staff_category: profile.staff_category,
+            status,
+        },
+        actor,
+    )
+    .await?;
+    let mut fields = vec!["givenName", "displayName", "staffCategory", "status"];
+    for (f, set) in [
+        ("subjectRef", s.subject_ref.is_some()),
+        ("familyName", profile.family_name.is_some()),
+        ("workEmail", profile.work_email.is_some()),
+        ("phone", profile.phone.is_some()),
+        ("dateOfBirth", profile.date_of_birth.is_some()),
+        ("gender", profile.gender.is_some()),
+    ] {
+        if set {
+            fields.push(f);
+        }
+    }
+    emit(
+        &mut *conn,
+        scope,
+        ev::STAFF_CREATED,
+        ev::STAFF_CREATED_SCHEMA,
+        "staff_member",
+        s.id.as_uuid(),
+        "people.staff_member.create",
+        &modified(s.id.as_uuid(), institution, s.version, &fields),
+        actor,
+    )
+    .await?;
+    Ok(s)
+}
+
 // ------------------------------------------------------------------ handlers
 
 /// Create a staff record (`people.staff.manage`; Idempotency-Key). Starts `draft`,
@@ -405,73 +483,10 @@ pub async fn create(
     let institution = InstitutionId(id);
     let scope = institution_scope(ctx, institution);
     require_institution_writable(&st, &scope, institution).await?;
-    let given = b.given_name.trim().to_owned();
-    let family = clean(b.family_name);
-    let display = clean(b.display_name).unwrap_or_else(|| match &family {
-        Some(f) => format!("{given} {f}"),
-        None => given.clone(),
-    });
-    let profile = Profile {
-        given_name: given,
-        family_name: family,
-        display_name: display,
-        work_email: clean(b.work_email),
-        phone: clean(b.phone),
-        date_of_birth: b.date_of_birth,
-        gender: b.gender.map(|g| g.as_str().to_owned()),
-        staff_category: b.staff_category,
-    };
-    profile.validate()?;
-    let status = b.initial_status.unwrap_or(StaffStatus::Draft);
-    let subject = clean(b.subject_ref);
     let actor = actor(ctx);
     let t = ctx.scope.tenant_id;
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
-    ensure_email_free(&mut tx, t, profile.work_email.as_deref(), None).await?;
-    let s = insert_staff(
-        &mut tx,
-        &NewStaff {
-            tenant: t,
-            institution,
-            subject_ref: subject.as_deref(),
-            given_name: &profile.given_name,
-            family_name: profile.family_name.as_deref(),
-            display_name: Some(profile.display_name.as_str()),
-            work_email: profile.work_email.as_deref(),
-            phone: profile.phone.as_deref(),
-            date_of_birth: profile.date_of_birth,
-            gender: b.gender,
-            staff_category: profile.staff_category,
-            status,
-        },
-        &actor,
-    )
-    .await?;
-    let mut fields = vec!["givenName", "displayName", "staffCategory", "status"];
-    for (f, set) in [
-        ("subjectRef", s.subject_ref.is_some()),
-        ("familyName", profile.family_name.is_some()),
-        ("workEmail", profile.work_email.is_some()),
-        ("phone", profile.phone.is_some()),
-        ("dateOfBirth", profile.date_of_birth.is_some()),
-        ("gender", profile.gender.is_some()),
-    ] {
-        if set {
-            fields.push(f);
-        }
-    }
-    emit(
-        &mut tx,
-        &scope,
-        ev::STAFF_CREATED,
-        ev::STAFF_CREATED_SCHEMA,
-        "staff_member",
-        s.id.as_uuid(),
-        "people.staff_member.create",
-        &modified(s.id.as_uuid(), institution, s.version, &fields),
-        &actor,
-    )
-    .await?;
+    let s = create_in(&mut tx, &scope, institution, b, &actor).await?;
     tx.commit().await.map_err(map_db_error)?;
     respond(&st, t, &s, StatusCode::CREATED).await
 }

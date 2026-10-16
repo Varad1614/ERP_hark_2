@@ -68,6 +68,14 @@ pub trait StudentDirectory: Send + Sync + 'static {
         scope: &ExecutionScope,
         subject_ref: &str,
     ) -> Result<Option<StudentSummary>, KernelError>;
+
+    /// Part 2 · S4-import: the student with this (tenant-unique) student number, so migration
+    /// files (opening balances, historical results) can name students by their legacy number.
+    async fn by_number(
+        &self,
+        scope: &ExecutionScope,
+        student_number: &str,
+    ) -> Result<Option<StudentSummary>, KernelError>;
 }
 
 /// Result of a call to an external registry.

@@ -154,6 +154,20 @@ pub async fn create_head(
     h: NewFeeHead,
     actor: &Actor,
 ) -> Result<FeeHeadView, KernelError> {
+    let mut tx = state.pool.begin().await.map_err(map_db_error)?;
+    let v = create_head_in(&mut tx, scope, institution, h, actor).await?;
+    tx.commit().await.map_err(map_db_error)?;
+    Ok(v)
+}
+
+/// [`create_head`] inside the caller's transaction (Part 2 · S4-import runs it per row).
+pub async fn create_head_in(
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    institution: InstitutionId,
+    h: NewFeeHead,
+    actor: &Actor,
+) -> Result<FeeHeadView, KernelError> {
     let tenant = scope.tenant_id;
     let code = h.code.trim().to_uppercase();
     if !code
@@ -173,12 +187,11 @@ pub async fn create_head(
         ));
     }
     let name = super::kit::require_text("name", Some(&h.name))?;
-    let mut tx = state.pool.begin().await.map_err(map_db_error)?;
-    ensure_default_chart(&mut tx, tenant, institution).await?;
+    ensure_default_chart(&mut *conn, tenant, institution).await?;
     let account = match h.income_account_id {
         Some(id) => {
             resolve(
-                &mut tx,
+                &mut *conn,
                 tenant,
                 institution,
                 AccountRef::Id(LedgerAccountId(id)),
@@ -187,7 +200,7 @@ pub async fn create_head(
         }
         None => {
             resolve(
-                &mut tx,
+                &mut *conn,
                 tenant,
                 institution,
                 AccountRef::System(default_income(h.category)),
@@ -206,7 +219,7 @@ pub async fn create_head(
     .bind(h.category.as_str())
     .bind(account.id.as_uuid())
     .bind(h.refundable)
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut *conn)
     .await
     .map_err(|e| match &e {
         sqlx::Error::Database(d) if d.is_unique_violation() => {
@@ -215,7 +228,7 @@ pub async fn create_head(
         _ => map_db_error(e),
     })?;
     audit(
-        &mut tx,
+        &mut *conn,
         scope,
         "finance.fee_head.create",
         "fee_head",
@@ -224,8 +237,7 @@ pub async fn create_head(
         actor,
     )
     .await?;
-    let v = fetch_head(&mut tx, tenant, FeeHeadId(id)).await?;
-    tx.commit().await.map_err(map_db_error)?;
+    let v = fetch_head(&mut *conn, tenant, FeeHeadId(id)).await?;
     Ok(v)
 }
 

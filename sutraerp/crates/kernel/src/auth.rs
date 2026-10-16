@@ -392,10 +392,15 @@ pub enum Permission {
     /// Decide privileged role requests and change ERP-role → IdP mappings (step-up; never the
     /// requester).
     IdentityRoleApprove,
+    // ---- Part 2 · S4-import (docs/readiness/part2/s4-import.md). ----
+    /// Data migration: upload import files, map columns, dry-run, commit imports and export records (administrators). The entity's own manage permission is required as well.
+    DataImport,
+    /// Data migration: decide an import commit that needs a second person (opening fee balances) — the checker, never the job's maker (step-up).
+    DataImportApprove,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 117] = [
+    pub const ALL: [Permission; 119] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -513,6 +518,8 @@ impl Permission {
         Permission::IdentityManage,
         Permission::IdentityLifecycle,
         Permission::IdentityRoleApprove,
+        Permission::DataImport,
+        Permission::DataImportApprove,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -634,6 +641,8 @@ impl Permission {
             Permission::IdentityManage => "platform.identity.manage",
             Permission::IdentityLifecycle => "platform.identity.lifecycle",
             Permission::IdentityRoleApprove => "platform.identity.role.approve",
+            Permission::DataImport => "platform.import.manage",
+            Permission::DataImportApprove => "platform.import.approve",
         }
     }
 
@@ -669,6 +678,7 @@ impl Permission {
                 | Permission::ResourcesApprove
                 | Permission::IdentityLifecycle
                 | Permission::IdentityRoleApprove
+                | Permission::DataImportApprove
         )
     }
 }
@@ -814,6 +824,10 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             IdentityManage,
             IdentityLifecycle,
             IdentityRoleApprove,
+            // Part 2 · S4-import: data migration; an administrator may approve an import someone
+            // else prepared (separation of duties is enforced on the decision path).
+            DataImport,
+            DataImportApprove,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -866,6 +880,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             FinanceApprove,
             // Part 1 (DEF-G-002): library fine waivers are decided by a finance checker.
             LibraryFineWaiveApprove,
+            // Part 2 · S4-import: opening fee balances need a finance checker's approval.
+            DataImportApprove,
         ],
         Role::ExamController => &[
             InstitutionRead,
@@ -1487,6 +1503,36 @@ mod tests {
         assert!(Permission::IdentityRoleApprove.requires_step_up());
         assert!(!Permission::IdentityManage.requires_step_up());
         assert_eq!(Permission::IdentityRead.as_str(), "platform.identity.read");
+    }
+
+    #[test]
+    fn part2_data_import_grants() {
+        assert!(is_granted(&[Role::Administrator], Permission::DataImport));
+        assert!(is_granted(
+            &[Role::Administrator],
+            Permission::DataImportApprove
+        ));
+        assert!(is_granted(
+            &[Role::FinanceApprover],
+            Permission::DataImportApprove
+        ));
+        // The checker never holds the maker permission.
+        assert!(!is_granted(
+            &[Role::FinanceApprover],
+            Permission::DataImport
+        ));
+        for r in [
+            Role::Faculty,
+            Role::Student,
+            Role::Registrar,
+            Role::ExamController,
+        ] {
+            assert!(!is_granted(&[r], Permission::DataImport), "{r:?}");
+            assert!(!is_granted(&[r], Permission::DataImportApprove), "{r:?}");
+        }
+        assert!(Permission::DataImportApprove.requires_step_up());
+        assert!(!Permission::DataImport.requires_step_up());
+        assert_eq!(Permission::DataImport.as_str(), "platform.import.manage");
     }
 
     #[test]
