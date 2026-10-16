@@ -387,17 +387,31 @@ try {
           await fillForm(page, "admission-document", { documentType: type, title, fileRef: `dms://admissions/${type}.pdf` });
         }, e);
         check(r.status === 201 && r.body.status === "submitted", `${type} handed in`, e);
-        // Part 2 · S4-docs: the scanned file goes to object storage (MinIO in the demo stack). The
-        // marksheet is above 1 MiB: sent with its own content type and without an Idempotency-Key.
+        // Part 2 · S4-docs + S4 UI: the scanned file is uploaded with the drawer's upload control
+        // (object storage = MinIO in the demo stack). The marksheet is above 1 MiB: the browser
+        // sends it with its own content type and without an Idempotency-Key.
         const bytes = pdf(title, type === "qualifying_marksheet" ? 1536 * 1024 : 0);
         const filename = `${title}.pdf`;
-        const up = await admin.upload(`${S}/admissions/${ids.admissionId}/documents/${r.body.id}/file`, bytes, "application/pdf", filename, { key: randomUUID() });
-        e(`PUT …/documents/${type}/file (${bytes.length} bytes, application/pdf${bytes.length > 1024 * 1024 ? ", no Idempotency-Key" : ""}) → ${up.status} ${up.status === 201 ? `object ${up.json.file?.id}` : up.text.slice(0, 300)}`);
-        check(up.status === 201 && up.json.file?.sha256 === sha256hex(bytes) && up.json.file?.sizeBytes === bytes.length, `${type} file stored (201, SHA-256 and size match)`, e);
+        const docRow = drawer.locator(`.sb-lrow[data-admission-doc="${type}"][data-file="none"]`).first();
+        await docRow.waitFor({ timeout: 15000 });
+        await act(page, docRow, "doc-upload");
+        const picker = page.locator('[data-form="document-upload"] input[type="file"]');
+        await picker.setInputFiles({ name: filename, mimeType: "application/pdf", buffer: bytes });
+        const [resp] = await Promise.all([
+          page.waitForResponse((x) => x.request().method() === "PUT" && /\/admissions\/[^/]+\/documents\/[^/]+\/file$/.test(new URL(x.url()).pathname), { timeout: 120000 }),
+          page.locator('[data-action="document-upload-submit"]').click(),
+        ]);
+        const sent = await resp.request().allHeaders();
+        const up = { status: resp.status(), json: await resp.json().catch(() => ({})) };
+        e(`browser → PUT ${new URL(resp.url()).pathname}${new URL(resp.url()).search} (${bytes.length} bytes, ${sent["content-type"]}${"idempotency-key" in sent ? ", WITH Idempotency-Key" : ", no Idempotency-Key"}) → ${up.status} ${up.status === 201 ? `object ${up.json.file?.id}` : JSON.stringify(up.json).slice(0, 300)}`);
+        check(sent["content-type"] === "application/pdf" && !("idempotency-key" in sent), `${type}: browser sent the file's own content type, no Idempotency-Key`, e);
+        check(up.status === 201 && up.json.documentId === r.body.id && up.json.file?.sha256 === sha256hex(bytes) && up.json.file?.sizeBytes === bytes.length, `${type} file stored (201, SHA-256 and size match)`, e);
         check(up.json.file?.filename === filename && up.json.file?.contentType === "application/pdf" && !("storageKey" in (up.json.file ?? {})), `${type} file metadata (name, type; no storage key exposed)`, e);
+        await drawer.locator(`.sb-lrow[data-admission-doc="${type}"][data-file="attached"]`).first().waitFor({ timeout: 15000 });
+        e(`drawer shows ${type} with its file attached`);
         (ids.files ??= []).push({ type, documentId: r.body.id, objectId: up.json.file.id, sha256: sha256hex(bytes), size: bytes.length, filename });
       }
-      gap("1 Admission: document files", "no upload control on the admission documents drawer yet — the files are attached through the API (PUT …/documents/{id}/file)");
+      e(`(${await snap(page, "1-admission-documents-uploaded")})`);
       await page.keyboard.press("Escape");
       await settle(page);
       r = await ui(page, "POST", /\/admissions\/[^/]+\/submit-documents$/, () => act(page, page.locator('.sb-lrow[data-admission="Aarav Desai"]'), "admission-submit-documents"), e);
@@ -447,7 +461,7 @@ try {
       await sees(e, "student", student, `${S}/admissions/${ids.admissionId}`, 403);
     });
 
-    await step("1 Admission", "Document files: downloaded back byte-for-byte, integrity verified at verification, the student retrieves the verified files, access denied to others (MinIO)", "API (no file screen yet)", async (e) => {
+    await step("1 Admission", "Document files: downloaded back byte-for-byte, integrity verified at verification, the student retrieves the verified files (browser /documents), access denied to others (MinIO)", "API + browser (student /documents)", async (e) => {
       need(ids.files?.length === 2 && ids.aarav?.id, "uploaded files + student");
       for (const f of ids.files) {
         const d = await admin.download(`${S}/admissions/${ids.admissionId}/documents/${f.documentId}/file`);
@@ -473,6 +487,19 @@ try {
         e(`student GET /me/documents/{id}/file → ${g.status}, ${g.bytes.length} bytes`);
         check(g.status === 200 && sha256hex(g.bytes) === f.sha256, `student retrieves ${f.type} (identical bytes)`, e);
       }
+      // S4 UI: the student downloads the verified files from Documents in the browser.
+      const sp = P.student;
+      await go(sp, "/documents");
+      for (const f of ids.files) {
+        const rowSel = sp.locator(`.sb-lrow[data-my-document="${f.type}"][data-file="attached"]`).first();
+        await rowSel.waitFor({ timeout: 15000 });
+        const [dl] = await Promise.all([sp.waitForEvent("download", { timeout: 30000 }), rowSel.locator('[data-action="my-document-download"]').click()]);
+        const bytes = readFileSync(await dl.path());
+        e(`student browser download ${dl.suggestedFilename()} → ${bytes.length} bytes`);
+        check(dl.suggestedFilename() === f.filename && bytes.length === f.size && sha256hex(bytes) === f.sha256, `student downloads ${f.type} in the browser (same name, identical bytes)`, e);
+      }
+      e(`(${await snap(sp, "1-student-documents-download")})`);
+      noServerErrors(e);
       const other = await faculty.download(`${S}/me/documents/${items[0].id}/file`);
       e(`faculty GET the student's /me document → ${other.status}`);
       check(other.status === 403 || other.status === 404, "another user cannot read the student's own file", e);
@@ -769,10 +796,18 @@ try {
       ids.onlinePaymentId = r.body.id;
       await page.locator("[data-checkout]").waitFor();
       await snap(page, "4-student-checkout");
+      // S4 UI (DEF-F-007): the dialog says which gateway it is and is not "paid" before the server confirms.
+      check((await page.locator("[data-paid]").count()) === 0 && (await page.locator('[data-pay-stage="checkout"]').count()) === 1, "checkout stage — nothing shown as paid before the server confirms", e);
+      check(/test gateway/.test((await page.locator("[data-checkout]").first().textContent()) ?? ""), "mock gateway labelled as a test gateway", e);
       r = await ui(page, "POST", /\/finance\/me\/payments\/[^/]+\/confirm$/, () => page.locator('[data-action="checkout-pay"]').click(), e);
       check(r.status === 200 && r.body.status === "completed" && r.body.receipt?.receiptNumber, `online payment completed, receipt ${r.body?.receipt?.receiptNumber}`, e);
-      await page.locator("[data-receipt-number]").first().waitFor();
-      await page.locator('[data-action="pay-done"]').click();
+      await page.locator('[data-pay-stage="paid"]').waitFor();
+      const shown = (await page.locator("[data-receipt-number]").first().textContent())?.trim();
+      check(shown === r.body.receipt.receiptNumber, `paid view after the server's confirmation shows receipt ${shown}`, e);
+      await page.locator('[data-action="pay-receipt"]').click({ timeout: 15000 });
+      await page.locator(`[data-receipt="${shown}"]`).waitFor();
+      e(`receipt view (${await snap(page, "4-student-receipt")})`);
+      await page.locator(`[data-receipt="${shown}"]`).getByRole("button", { name: "Done" }).click();
       await settle(page);
       // With nothing due the Invoices tile swaps the amount for [data-outstanding-none].
       const after = (await page.locator("[data-outstanding-none]").textContent({ timeout: 15000 }))?.trim();

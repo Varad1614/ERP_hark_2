@@ -241,7 +241,7 @@ export function createHttpRecordApi(fetchImpl: Fetch = (i, init) => fetch(i, ini
   }
   async function fail(res: Response): Promise<never> {
     const text = await res.text().catch(() => "");
-    let data: unknown = undefined;
+    let data: unknown;
     try {
       data = text ? JSON.parse(text) : undefined;
     } catch {
