@@ -16,6 +16,9 @@
 //!   failed with 503 "database unavailable" after the acquire timeout (capacity run 38922758612:
 //!   1,816 of 2,000 term registrations + seats failed with the shipped pool of 10 and 12
 //!   concurrent office requests). The port facts are now read before the lock.
+//! * `concurrent_waitlist_joins_and_overrides_do_not_starve_a_small_pool` — DEF-P2-CAP-002 on
+//!   the remaining seat-gate paths (waitlist join, eligibility override request + its seat): the
+//!   same port facts are now read before the offering lock there too.
 #![cfg(feature = "db-tests")]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -40,6 +43,7 @@ use uuid::Uuid;
 
 const T_IMPORT_IDP: &str = "0192f5a0-7c3e-7000-8000-0000000ca901";
 const T_SEAT_POOL: &str = "0192f5a0-7c3e-7000-8000-0000000ca902";
+const T_WAIT_POOL: &str = "0192f5a0-7c3e-7000-8000-0000000ca903";
 const IMP: &str = "/api/v1/platform/imports";
 
 /// Postgres-backed app (runtime role) in `tenant`, identity provisioning on (memory adapter).
@@ -357,5 +361,107 @@ async fn concurrent_seats_in_one_offering_do_not_starve_a_small_pool() {
     assert!(
         elapsed < Duration::from_secs(10),
         "12 concurrent seats took {elapsed:?}"
+    );
+}
+
+/// DEF-P2-CAP-002 (waitlist + override paths): through an API whose pool has only three
+/// connections, twelve office requests put twelve registered students on ONE offering's
+/// waitlist at the same time, and six eligibility overrides (unregistered students; approval
+/// mode auto, so each request also seats its student) run at the same time. Every request
+/// succeeds well inside one acquire timeout.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_waitlist_joins_and_overrides_do_not_starve_a_small_pool() {
+    let (app, pool) = app_with(
+        T_WAIT_POOL,
+        &[
+            ("SUTRA_DB_MAX_CONNECTIONS", "3"),
+            ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "10"),
+        ],
+    )
+    .await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let setup =
+        support::b4::academic_setup(&app, &admin, &pool, T_WAIT_POOL, "Capacity waitlist pool")
+            .await;
+    let off = support::b4::seed_offering(&pool, &setup, "CS101", "enrollment_open").await;
+    let mut waiting = Vec::new();
+    for i in 0..12 {
+        let s = support::b4::seed_student(&pool, &setup, &format!("Wait{i}"), None).await;
+        support::b4::seed_registration(&pool, &setup, &s, &[off.component_id], "registered").await;
+        waiting.push(s);
+    }
+    let mut unregistered = Vec::new();
+    for i in 0..6 {
+        unregistered
+            .push(support::b4::seed_student(&pool, &setup, &format!("Over{i}"), None).await);
+    }
+
+    let t0 = std::time::Instant::now();
+    let wl_path = format!("/api/v1/academic/offerings/{}/waitlist", off.offering_id);
+    let ov_path = format!(
+        "/api/v1/academic/sections/{}/enrolment-overrides",
+        off.section_id
+    );
+    let mut tasks = Vec::new();
+    for s in &waiting {
+        let app = app.clone();
+        let req = write(
+            &admin,
+            "POST",
+            &wl_path,
+            json!({"studentId": s.student_id}),
+            None,
+        );
+        tasks.push((
+            "waitlist",
+            tokio::spawn(async move { send(&app, req).await }),
+        ));
+    }
+    for s in &unregistered {
+        let app = app.clone();
+        let req = write(
+            &admin,
+            "POST",
+            &ov_path,
+            json!({"studentId": s.student_id, "reason": "Prerequisite completed elsewhere"}),
+            None,
+        );
+        tasks.push((
+            "override",
+            tokio::spawn(async move { send(&app, req).await }),
+        ));
+    }
+    for (i, (kind, t)) in tasks.into_iter().enumerate() {
+        let (s, _, b) = t.await.unwrap();
+        assert_eq!(s, StatusCode::CREATED, "{kind} {i}: {b}");
+        if kind == "override" {
+            assert_eq!(b["status"], "approved", "{kind} {i}: {b}");
+        }
+    }
+    let elapsed = t0.elapsed();
+    let (waits, seats): (i64, i64) = sutra_kernel::db_context::system(async {
+        let w = sqlx::query_scalar(
+            "SELECT count(*) FROM academic.offering_waitlist_entry WHERE offering_id = $1",
+        )
+        .bind(off.offering_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        let e = sqlx::query_scalar(
+            "SELECT count(*) FROM academic.section_enrolment \
+             WHERE offering_id = $1 AND status = 'enrolled'",
+        )
+        .bind(off.offering_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        (w, e)
+    })
+    .await;
+    assert_eq!(waits, 12, "one waitlist entry per registered student");
+    assert_eq!(seats, 6, "one override seat per unregistered student");
+    assert!(
+        elapsed < Duration::from_secs(10),
+        "18 concurrent waitlist / override requests took {elapsed:?}"
     );
 }
