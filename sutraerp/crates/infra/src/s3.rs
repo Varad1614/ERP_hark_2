@@ -95,6 +95,51 @@ fn unavailable(e: impl std::fmt::Display) -> KernelError {
     KernelError::Unavailable(format!("object storage: {e}"))
 }
 
+/// Attempts per request on a transport failure (see [`retryable`]).
+const ATTEMPTS: u32 = 3;
+
+/// A transport failure with its cause chain: reqwest's own text is only "error sending request"
+/// (the URL is dropped; no header or body is ever part of the chain).
+fn transport(e: reqwest::Error) -> KernelError {
+    let e = e.without_url();
+    let mut msg = e.to_string();
+    let mut src = std::error::Error::source(&e);
+    while let Some(cause) = src {
+        msg.push_str(": ");
+        msg.push_str(&cause.to_string());
+        src = cause.source();
+    }
+    unavailable(msg)
+}
+
+/// Transport failures worth another attempt: the connection could not be made, or it was
+/// closed before the response arrived (a pooled keep-alive connection the server had just
+/// closed — hyper's "connection closed before message completed" — or a reset). Timeouts are
+/// not retried. Every request this client sends is idempotent (PUT of the same bytes to the same
+/// key, GET, HEAD, DELETE, bucket create / policy), so repeating it is safe.
+fn retryable(e: &reqwest::Error) -> bool {
+    !e.is_timeout() && (e.is_connect() || e.is_request())
+}
+
+/// Sends the request `build` makes, again (up to [`ATTEMPTS`]) on a retryable transport failure.
+async fn send_with_retry(
+    mut build: impl FnMut() -> reqwest::RequestBuilder,
+) -> Result<reqwest::Response, KernelError> {
+    let mut attempt = 1;
+    loop {
+        match build().send().await {
+            Ok(resp) => return Ok(resp),
+            Err(e) if attempt < ATTEMPTS && retryable(&e) => {
+                let e = e.without_url();
+                tracing::warn!(attempt, error = %e, "object storage request failed in transport; retrying");
+                tokio::time::sleep(Duration::from_millis(100 * u64::from(attempt))).await;
+                attempt += 1;
+            }
+            Err(e) => return Err(transport(e)),
+        }
+    }
+}
+
 /// RFC 3986 encoding as SigV4 defines it (unreserved characters kept, `%XX` upper case,
 /// `/` kept only when `encode_slash` is false — object key paths).
 pub fn uri_encode(s: &str, encode_slash: bool) -> String {
@@ -390,17 +435,21 @@ impl S3Client {
             date.get(..8).unwrap_or_default(),
             cred.region
         );
-        let mut req = self.http.request(method, target.url(&query)?);
-        for (k, v) in &headers {
-            if k != "host" {
-                req = req.header(k.as_str(), v.as_str());
+        let url = target.url(&query)?;
+        send_with_retry(|| {
+            let mut req = self.http.request(method.clone(), url.clone());
+            for (k, v) in &headers {
+                if k != "host" {
+                    req = req.header(k.as_str(), v.as_str());
+                }
             }
-        }
-        req = req.header("authorization", authorization);
-        if let Some(b) = body {
-            req = req.body(b);
-        }
-        req.send().await.map_err(|e| unavailable(e.without_url()))
+            req = req.header("authorization", authorization.as_str());
+            if let Some(b) = &body {
+                req = req.body(b.clone());
+            }
+            req
+        })
+        .await
     }
 
     async fn failure(resp: reqwest::Response, what: &str) -> KernelError {
@@ -448,12 +497,8 @@ impl S3Client {
             .target(&self.endpoint, None)?
             .url("list-type=2&max-keys=1")?;
         for (what, url) in [("object read", object), ("listing", listing)] {
-            let status = self
-                .anonymous
-                .get(url)
-                .send()
-                .await
-                .map_err(|e| unavailable(e.without_url()))?
+            let status = send_with_retry(|| self.anonymous.get(url.clone()))
+                .await?
                 .status();
             if status.is_success() {
                 tracing::error!(
@@ -582,11 +627,7 @@ impl S3Client {
         }
         let cap = usize::try_from(max_bytes).unwrap_or(usize::MAX);
         let mut out = Vec::new();
-        while let Some(chunk) = resp
-            .chunk()
-            .await
-            .map_err(|e| unavailable(e.without_url()))?
-        {
+        while let Some(chunk) = resp.chunk().await.map_err(transport)? {
             if out.len() + chunk.len() > cap {
                 return Err(KernelError::Conflict(
                     "stored object is larger than the document size limit".into(),
@@ -732,6 +773,82 @@ impl S3Client {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A plain HTTP server on 127.0.0.1 that drops the first `drop_first` connections without a
+    /// word and answers every later one `200 OK`; returns its endpoint and the connection count.
+    fn flaky_server(drop_first: usize) -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+        use std::io::{Read, Write};
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let seen = std::sync::Arc::new(AtomicUsize::new(0));
+        let count = seen.clone();
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { break };
+                let n = count.fetch_add(1, Ordering::SeqCst);
+                if n < drop_first {
+                    drop(stream);
+                    continue;
+                }
+                let mut buf = Vec::new();
+                let mut chunk = [0u8; 1024];
+                while !buf.windows(4).any(|w| w == b"\r\n\r\n") {
+                    match stream.read(&mut chunk) {
+                        Ok(0) | Err(_) => break,
+                        Ok(k) => buf.extend_from_slice(&chunk[..k]),
+                    }
+                }
+                let _ = stream.write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                );
+            }
+        });
+        (format!("http://{addr}"), seen)
+    }
+
+    #[tokio::test]
+    async fn a_dropped_connection_is_retried() {
+        let (endpoint, seen) = flaky_server(1);
+        let client = S3Client::new(settings(&endpoint, true)).unwrap();
+        let resp = client
+            .send(reqwest::Method::HEAD, None, &[], vec![], None, EMPTY_SHA256)
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), reqwest::StatusCode::OK);
+        assert_eq!(seen.load(std::sync::atomic::Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn retries_are_bounded_and_the_cause_is_reported() {
+        let (endpoint, seen) = flaky_server(usize::MAX);
+        let client = S3Client::new(settings(&endpoint, true)).unwrap();
+        let err = client
+            .send(
+                reqwest::Method::PUT,
+                Some("k"),
+                &[],
+                vec![],
+                Some(b"x".to_vec()),
+                EMPTY_SHA256,
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(
+            seen.load(std::sync::atomic::Ordering::SeqCst),
+            ATTEMPTS as usize
+        );
+        let text = err.to_string();
+        assert!(
+            text.contains("object storage: error sending request"),
+            "{text}"
+        );
+        assert!(
+            text.matches(": ").count() >= 2,
+            "cause chain included: {text}"
+        );
+        assert!(!text.contains(&endpoint), "no URL in the error: {text}");
+    }
 
     const KEY_ID: &str = "AKIAIOSFODNN7EXAMPLE";
     const SECRET: &str = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
