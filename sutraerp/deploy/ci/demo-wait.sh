@@ -12,7 +12,7 @@ http_ok() { curl -fsS -o /dev/null -m 5 "$1"; }
 pending=""
 while :; do
   pending=""
-  for s in postgres keycloak valkey nats mailpit; do
+  for s in postgres keycloak valkey nats mailpit minio; do
     [ "$(health "$s")" = "healthy" ] || pending="$pending $s(container:$(health "$s"))"
   done
   m=$(docker compose ps -a --format '{{.State}} {{.ExitCode}}' migrate 2>/dev/null | head -1)
@@ -21,6 +21,7 @@ while :; do
   http_ok http://localhost:3000/ || pending="$pending web(/)"
   http_ok http://localhost:3000/api/v1/auth/csrf || pending="$pending web→api(/api/v1/auth/csrf)"
   http_ok http://localhost:8180/realms/sutra/.well-known/openid-configuration || pending="$pending keycloak(realm sutra)"
+  http_ok http://localhost:9000/minio/health/live || pending="$pending minio(/minio/health/live)"
   [ -z "$pending" ] && break
   if [ "$(date +%s)" -ge "$deadline" ]; then
     echo "NOT READY:$pending"
@@ -36,7 +37,8 @@ docker compose ps -a
 echo "=== health endpoints"
 for u in http://localhost:8080/health/live http://localhost:8080/health/ready http://localhost:3000/api/v1/auth/csrf \
          "http://localhost:8222/healthz?js-enabled-only=true" http://localhost:8025/readyz \
-         http://localhost:8180/realms/sutra/.well-known/openid-configuration; do
+         http://localhost:8180/realms/sutra/.well-known/openid-configuration \
+         http://localhost:9000/minio/health/live; do
   body=$(curl -sS -m 5 -w ' [HTTP %{http_code}]' "$u" 2>&1 | head -c 400)
   echo "$u → $body"
 done
