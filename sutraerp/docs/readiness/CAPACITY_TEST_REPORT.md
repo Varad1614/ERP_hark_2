@@ -479,14 +479,39 @@ session minutes in k6 (`22727f11`); result-batch / upload response shapes in the
      `deploy/keycloak/check-realm.py` in step, because a security change needs the parity gate.
    - (c) Tell the help desk how to unlock a user, and put lockouts on the monitoring board.
    This config was **not** changed in this stage.
-2. **Keycloak is the CPU bottleneck in sign-in spikes.** It peaked at 247 % (run 5) and 216 %
-   (run 6) of a 4-vCPU host, while the API stayed at or below 58 %. Sign-in p95 rose from about
-   0.1 s to 3.3–4.3 s in the results spike, close to the 5 s limit. Every visit started with a
-   full OIDC sign-in, which is the worst case. On college hardware, give Keycloak dedicated
-   cores (≥ 2 vCPU reserved, 2 GiB heap). Keep the 2 GiB container limit used here as the
-   minimum. Consider a second Keycloak node for results day. Watch the sign-in p95 alert from
-   Stage 5 monitoring.
-3. **DEF-P2-CAP-007** (above): until it is fixed, a spike can freeze the API for 5–25 s at a time.
+2. **Keycloak is the CPU bottleneck in sign-in spikes** (the run 7 results-spike breach, sign-in
+   p95 6.2 s against a 5 s limit). It peaked at 247 % / 216 % / 236 % of a 4-vCPU host (runs
+   5 / 6 / 7) while the API stayed at or below 58 %. In run 7's results spike k6 drove **73
+   password sign-ins per second** (`login.password`, 22,026 in 5 minutes), every visit starting
+   with a full OIDC sign-in — the worst case. This is a sizing limit, not an API defect, and it is
+   **not** worked around in the harness or the thresholds.
+   **Recommended Keycloak sizing / configuration** (Keycloak's own guide, "Concepts for sizing
+   CPU and memory resources", https://www.keycloak.org/high-availability/single-cluster/concepts-memory-and-cpu-sizing:
+   1 vCPU per 15 password logins/s, CPU scaling linearly, plus 150 % head-room for spikes;
+   ~1,250 MB base memory per node; heap = 70 % of the container limit):
+   - **CPU:** results-day peak ≈ 73 logins/s → **≈ 5 vCPU of steady Keycloak capacity, with a
+     limit of ≈ 12 vCPU** (150 % head-room) — e.g. two Keycloak nodes of 3 vCPU request /
+     6 vCPU limit, or one dedicated 6–8 vCPU node if the college accepts a slower spike. The
+     runner gave Keycloak ≈ 2.4 cores. Do not CPU-throttle Keycloak (its performance drops
+     sharply when throttled) and do not co-host the load generator.
+   - **Memory:** keep the 2 GiB container limit as the minimum (heap ≈ 1.4 GiB; run 7 used
+     1.4 GiB); raise to 3 GiB per node for 2,000+ concurrent sessions.
+   - **Password hashing stays as shipped** (Keycloak 26 default policy; the CPU cost per login is
+     the hash). Lowering hash iterations / memory would pass the test by weakening security and is
+     **not** recommended.
+   - **Reduce full sign-ins instead:** keep the realm SSO session (`ssoSessionIdleTimeout` /
+     `ssoSessionMaxLifespan` in `realm-production-baseline.json`) long enough that a student who
+     already signed in that day gets a cookie login (no password hash) — the harness deliberately
+     signs in from scratch on every visit; stagger the results release by programme / year
+     (10–15 min apart) so the peak login rate stays under the measured capacity.
+   - **Database:** Keycloak's user sessions are in PostgreSQL; the guide budgets 0.35–0.7 vCPU
+     per 100 login/logout/refresh per second — already inside the 8-vCPU server estimate below.
+   - **Watch** `keycloak_credentials_password_hashing_validations_total` and the Stage 5 sign-in
+     p95 alert to confirm the real login rate on results day.
+   Re-measure on the college hardware with a separate load machine.
+3. **DEF-P2-CAP-007** (above) is fixed; **DEF-P2-CAP-008** (similar hold-and-wait in office write
+   paths) remains open. Until it is closed, a burst of more concurrent office writes of one kind
+   than pool connections can stall the API for one acquire timeout (5 s).
 4. **Load generator on the same host:** k6 itself used CPU on the runner, so these numbers
    understate what the stack could do on a dedicated server. The college run must use a separate
    load machine.
@@ -498,10 +523,10 @@ Treat them as a starting point to be confirmed by the college run, not as capaci
 
 | Resource | Observed peak on the runner | Suggested for a 2,000-student college (single server) |
 |---|---|---|
-| CPU | Keycloak 2.5 cores + PostgreSQL 1.5 + API 0.6 + web/edge 1.0, with k6 on the same 4 vCPU | **8 vCPU** (≥ 2 reserved for Keycloak) |
+| CPU | Keycloak 2.5 cores + PostgreSQL 1.5 + API 0.6 + web/edge 1.0, with k6 on the same 4 vCPU | **8 vCPU** for a staggered results release (≥ 4 reserved for Keycloak); **12–16 vCPU** (or a second Keycloak node) for 70+ full sign-ins/s — see Production risks 2 |
 | RAM | ≈ 3.2 GiB across containers | **16 GiB** (headroom for PostgreSQL cache, OS, backups, monitoring) |
 | Disk | pgdata 1.0–1.25 GiB after seed + one heavy day; MinIO 79 MiB for 2,000 small PDFs | **≥ 200 GiB SSD**, with outbox / idempotency / session retention sweeps verified; backups on a separate disk |
-| DB pool | 10 (default); at most 5 active at once in PostgreSQL | keep 10–20 **after** DEF-P2-CAP-007 is fixed |
+| DB pool | 10 (default); at most 5 active at once in PostgreSQL | keep 10–20 (DEF-P2-CAP-007 fixed; CAP-008 open) |
 
 ## BLOCKED_EXTERNAL
 
