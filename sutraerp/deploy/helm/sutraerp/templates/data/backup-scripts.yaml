@@ -326,7 +326,9 @@ data:
     sutra_db=$(db_name_of "$url")
 
     work=""
-    cleanup() { [[ -n "$work" ]] && rm -rf "$work"; }
+    # `if`, not `[[ … ]] && …`: the EXIT trap's last status becomes the script's exit status, so the
+    # short form made every successful restore of a backup DIRECTORY exit 1 (S5-deploy rollback drill).
+    cleanup() { if [[ -n "$work" ]]; then rm -rf "$work"; fi; }
     trap cleanup EXIT
     if [[ -f "$src" ]]; then
       work=$(mktemp -d)
