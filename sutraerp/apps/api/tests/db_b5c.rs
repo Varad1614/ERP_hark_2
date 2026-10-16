@@ -1543,6 +1543,46 @@ async fn treasury_settlement_statement_reconciliation_and_returns() {
     )
     .await;
     assert_eq!(ops["status"], "closed");
+    // ---- ERP_EXTENSIONS 1A: bank files (HDFC-style CSV, MT940) with preview and line-level
+    // de-duplication against earlier statements of the account.
+    let csv = "HDFC BANK Ltd.,,,,,,\n\
+Date,Narration,Chq./Ref.No.,Value Dt,Withdrawal Amt.,Deposit Amt.,Closing Balance\n\
+01/09/26,NEFT CR-FEE ROLL 22,N111,01/09/26,,\"1,00,000.00\",\"1,00,000.00\"\n\
+02/09/26,CHQ PAID-MSEB,000123,02/09/26,\"12,500.00\",,\"87,500.00\"\n";
+    let pv = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/statements/preview"),
+        json!({"content": csv}), None, StatusCode::OK).await;
+    assert_eq!(pv["format"], "csv");
+    assert_eq!(pv["newLines"], 2);
+    assert_eq!(pv["mapping"]["debit"], 4);
+    assert_eq!(pv["mapping"]["credit"], 5);
+    assert_eq!(pv["lines"][0]["amount"], "100000.00");
+    assert_eq!(pv["lines"][0]["direction"], "credit");
+    assert_eq!(pv["lines"][0]["reference"], "N111");
+    assert_eq!(pv["lines"][1]["direction"], "debit");
+    assert_eq!(pv["periodFrom"], "2026-09-01");
+    let sep = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/statements"),
+        json!({"format": "csv", "content": csv, "mapping": pv["mapping"]}), None, StatusCode::CREATED).await;
+    assert_eq!(sep["statementRef"], "2026-09-01 to 2026-09-02");
+    assert_eq!(sep["sourceFormat"], "csv");
+    assert_eq!(sep["lineCount"], 2);
+    assert_eq!(sep["totalCredits"], "100000.00");
+    assert_eq!(sep["totalDebits"], "12500.00");
+    let csv2 = format!("{csv}03/09/26,UPI-PARENT FEES,UTR9,03/09/26,,\"5,000.00\",\"92,500.00\"\n");
+    let sep2 = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/statements"),
+        json!({"format": "auto", "statementRef": "SEP-2026-B", "content": csv2}), None, StatusCode::CREATED).await;
+    assert_eq!(sep2["lineCount"], 1);
+    assert_eq!(sep2["duplicateLines"], 2);
+    let mt940 = ":20:STMT0901\n:25:HDFC0001234/50200012345678\n:28C:00090/001\n:60F:C260831INR0,00\n\
+:61:2609010901C100000,00NTRFN111//HDFCN26090101\n:86:NEFT CR FEE ROLL 22\n:62F:C260901INR100000,00\n-";
+    let pm = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/statements/preview"),
+        json!({"content": mt940}), None, StatusCode::OK).await;
+    assert_eq!(pm["format"], "mt940");
+    assert_eq!(pm["duplicateLines"], 1);
+    assert_eq!(pm["closingBalance"], "100000.00");
+    call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/statements"),
+        json!({"format": "mt940", "content": mt940}), None, StatusCode::CONFLICT).await;
+    call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/statements/preview"),
+        json!({"content": "Date,Amount\n", "format": "csv"}), None, StatusCode::UNPROCESSABLE_ENTITY).await;
     let main = read(&app, &admin, &format!("/bank-accounts/{mid}")).await;
     call(
         &app,

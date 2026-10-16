@@ -178,13 +178,33 @@ export function createMockLedgerApi(): LedgerApi {
     transactions: async () => [],
     statements: async (bank) => statements.filter((s) => s.bankAccountId === bank),
     statement: async (id) => statements.find((s) => s.id === id)!,
-    importStatement: async (bank, input) => {
-      const lines = input.content.split("\n").filter((l) => l.trim()).map((raw, i) => {
-        const o = JSON.parse(raw) as { valueDate: string; direction: string; amount: string; reference?: string; description?: string };
-        return { id: nid("sl"), lineNo: i + 1, valueDate: o.valueDate, direction: o.direction, amount: o.amount, reference: o.reference ?? null, description: o.description ?? null, matchStatus: "unmatched" };
-      });
+    previewStatement: async (_bank, input) => {
+      const lines = mockFileLines(input.content);
       const sum = (d: string) => fromPaise(lines.filter((l) => l.direction === d).reduce((s, l) => s + toPaise(l.amount), 0n));
-      const s: Statement = { id: nid("st"), bankAccountId: bank, statementRef: input.statementRef, periodFrom: input.periodFrom, periodTo: input.periodTo, closingBalance: input.closingBalance ?? null, totalCredits: sum("credit"), totalDebits: sum("debit"), lineCount: lines.length, status: "imported", lines, version: 1 };
+      const dates = lines.map((l) => l.valueDate).sort();
+      return {
+        format: "csv",
+        headers: ["Date", "Narration", "Amount"],
+        mapping: { date: 0, description: 1, amount: 2 },
+        periodFrom: dates[0] ?? "",
+        periodTo: dates[dates.length - 1] ?? "",
+        totalCredits: sum("credit"),
+        totalDebits: sum("debit"),
+        newLines: lines.length,
+        duplicateLines: 0,
+        lines: lines.map((l) => ({ ...l, duplicate: false })),
+        skipped: [],
+      };
+    },
+    importStatement: async (bank, input) => {
+      const parsed = !input.format || input.format === "jsonl"
+        ? input.content.split("\n").filter((l) => l.trim()).map((raw) => JSON.parse(raw) as { valueDate: string; direction: string; amount: string; reference?: string; description?: string })
+        : mockFileLines(input.content);
+      const lines = parsed.map((o, i) => ({ id: nid("sl"), lineNo: i + 1, valueDate: o.valueDate, direction: o.direction, amount: o.amount, reference: o.reference ?? null, description: o.description ?? null, matchStatus: "unmatched" }));
+      const dates = lines.map((l) => l.valueDate).sort();
+      input = { ...input, statementRef: input.statementRef || `${dates[0]} to ${dates[dates.length - 1]}`, periodFrom: input.periodFrom || dates[0], periodTo: input.periodTo || dates[dates.length - 1] };
+      const sum = (d: string) => fromPaise(lines.filter((l) => l.direction === d).reduce((s, l) => s + toPaise(l.amount), 0n));
+      const s: Statement = { id: nid("st"), bankAccountId: bank, statementRef: input.statementRef!, periodFrom: input.periodFrom!, periodTo: input.periodTo!, sourceFormat: input.format && input.format !== "auto" ? input.format : "jsonl", duplicateLines: 0, closingBalance: input.closingBalance ?? null, totalCredits: sum("credit"), totalDebits: sum("debit"), lineCount: lines.length, status: "imported", lines, version: 1 };
       statements.unshift(s);
       return s;
     },
@@ -201,4 +221,17 @@ export function createMockLedgerApi(): LedgerApi {
       return { asOf: new Date().toISOString().slice(0, 10), rows, available: total, inTransit: "0.00", total };
     },
   };
+}
+
+/** Mock-only reader for `Date,Narration,Amount` CSV with ISO dates (the server does the real parsing). */
+function mockFileLines(content: string): { valueDate: string; direction: string; amount: string; reference?: string; description?: string }[] {
+  return content
+    .split(/\r?\n/)
+    .map((r) => r.split(","))
+    .filter((c) => /^\d{4}-\d{2}-\d{2}$/.test(c[0]?.trim() ?? "") && c.length >= 3)
+    .map((c) => {
+      const raw = (c[2] ?? "0").replace(/[^\d.-]/g, "");
+      const out = raw.startsWith("-");
+      return { valueDate: c[0]!.trim(), direction: out ? "debit" : "credit", amount: fromPaise(toPaise(raw.replace("-", "") || "0")), description: c[1]?.trim() };
+    });
 }

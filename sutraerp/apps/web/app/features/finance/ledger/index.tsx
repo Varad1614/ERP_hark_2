@@ -20,6 +20,7 @@ import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { ledger, rowActions, useFinanceAsk } from "../ui";
 import { lkeys, useLedgerApi } from "./hooks";
+import { StatementFileImport } from "./statement-file";
 import type { FinancialYear, ManualJournal, Period } from "./types";
 
 export { LedgerApiProvider } from "./hooks";
@@ -348,6 +349,7 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
   const inst = institution?.id ?? "-";
   const [bankId, setBankId] = useState("");
   const [statementId, setStatementId] = useState("");
+  const [fileOpen, setFileOpen] = useState(false);
   const banks = useQuery({ queryKey: lkeys.scoped(inst, "banks"), queryFn: () => api.bankAccounts(inst), enabled: !!institution });
   const cash = useQuery({ queryKey: lkeys.scoped(inst, "cash"), queryFn: () => api.cashPosition(inst), enabled: !!institution });
   const txns = useQuery({ queryKey: lkeys.scoped(inst, "transactions"), queryFn: () => api.transactions(inst), enabled: !!institution });
@@ -464,6 +466,9 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
             >
               Import statement
             </Button>
+            <Button size="sm" variant="ghost" data-import-statement-file disabled={!bank} onClick={() => setFileOpen(true)}>
+              Upload bank file
+            </Button>
           </div>
         }
       >
@@ -477,6 +482,7 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
             { key: "p", header: "Period", render: (s) => `${formatDate(s.periodFrom)} – ${formatDate(s.periodTo)}` },
             { key: "c", header: "Credits", render: (s) => ledger(s.totalCredits) },
             { key: "d", header: "Debits", render: (s) => ledger(s.totalDebits) },
+            { key: "f", header: "Source", render: (s) => <span data-statement-format={s.sourceFormat ?? "jsonl"}>{(s.sourceFormat ?? "jsonl").toUpperCase()}{s.duplicateLines ? ` · ${s.duplicateLines} skipped` : ""}</span> },
             { key: "s", header: "Status", render: (s) => <StatusBadge status={s.status} /> },
             {
               key: "x",
@@ -523,6 +529,7 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
           ]}
         />
       </BentoTile>
+      {bank && <StatementFileImport bankAccountId={bank} open={fileOpen} onClose={() => setFileOpen(false)} />}
       {prompt}
       {dialog}
     </>

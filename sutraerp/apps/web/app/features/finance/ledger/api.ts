@@ -21,6 +21,8 @@ import type {
   Period,
   Reconciliation,
   Statement,
+  StatementFileOptions,
+  StatementPreview,
   TrialBalance,
 } from "./types";
 
@@ -51,7 +53,9 @@ export interface LedgerApi {
   transactions(institutionId: string): Promise<BankTransaction[]>;
   statements(bankAccountId: string): Promise<Statement[]>;
   statement(id: string): Promise<Statement>;
-  importStatement(bankAccountId: string, input: { statementRef: string; periodFrom: string; periodTo: string; closingBalance?: string; content: string }): Promise<Statement>;
+  importStatement(bankAccountId: string, input: { statementRef?: string; periodFrom?: string; periodTo?: string; openingBalance?: string; closingBalance?: string; content: string } & StatementFileOptions): Promise<Statement>;
+  /** Reads a bank file (CSV, OFX, MT940) without importing it: lines, duplicates, skipped rows. */
+  previewStatement(bankAccountId: string, input: { content: string; periodFrom?: string; periodTo?: string } & StatementFileOptions): Promise<StatementPreview>;
   reconcileStatement(id: string, version: number): Promise<Statement>;
   cashPosition(institutionId: string): Promise<CashPosition>;
 }
@@ -78,6 +82,7 @@ export const PATHS = {
   banks: `${B}/institutions/{id}/bank-accounts`,
   transactions: `${B}/institutions/{id}/bank-transactions`,
   statements: `${B}/bank-accounts/{id}/statements`,
+  statementPreview: `${B}/bank-accounts/{id}/statements/preview`,
   statement: `${B}/bank-statements/{id}`,
   reconcile: `${B}/bank-statements/{id}/reconcile`,
   cash: `${B}/institutions/{id}/cash-position`,
@@ -147,6 +152,7 @@ export function createHttpLedgerApi(fetchImpl: Fetch = (i, init) => fetch(i, ini
     statements: (bank) => items(fill(PATHS.statements, { id: bank })),
     statement: (id) => request("GET", fill(PATHS.statement, { id })),
     importStatement: (bank, input) => request("POST", fill(PATHS.statements, { id: bank }), { body: input, idempotent: true }),
+    previewStatement: (bank, input) => request("POST", fill(PATHS.statementPreview, { id: bank }), { body: input }),
     reconcileStatement: (id, v) => request("POST", fill(PATHS.reconcile, { id }), { body: {}, ifMatch: v }),
     cashPosition: (inst) => request("GET", fill(PATHS.cash, { id: inst })),
   };

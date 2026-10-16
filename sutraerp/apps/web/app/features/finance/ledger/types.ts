@@ -191,6 +191,10 @@ export interface Statement {
   totalCredits: string;
   totalDebits: string;
   lineCount: number;
+  /** `jsonl`, `csv`, `ofx` or `mt940`. */
+  sourceFormat?: string;
+  /** Lines of the file an earlier statement already held (skipped on import). */
+  duplicateLines?: number;
   status: string;
   lines: StatementLine[];
   version: number;
@@ -202,4 +206,51 @@ export interface CashPosition {
   available: string;
   inTransit: string;
   total: string;
+}
+
+/** CSV column positions (0-based); a missing key is a column the file does not have. */
+export interface ColumnMapping {
+  date?: number | null;
+  description?: number | null;
+  amount?: number | null;
+  debit?: number | null;
+  credit?: number | null;
+  indicator?: number | null;
+  reference?: number | null;
+}
+
+export type StatementFormat = "auto" | "csv" | "ofx" | "mt940" | "jsonl";
+
+export interface StatementFileOptions {
+  format?: StatementFormat;
+  /** `dmy` (Indian banks, default) or `mdy`. */
+  dateStyle?: "dmy" | "mdy";
+  invert?: boolean;
+  mapping?: ColumnMapping | null;
+}
+
+export interface StatementPreviewLine {
+  valueDate: string;
+  direction: string;
+  amount: string;
+  reference?: string | null;
+  description?: string | null;
+  duplicate: boolean;
+}
+
+export interface StatementPreview {
+  format: string;
+  headers: string[];
+  mapping?: ColumnMapping | null;
+  statementRef?: string | null;
+  periodFrom: string;
+  periodTo: string;
+  openingBalance?: string | null;
+  closingBalance?: string | null;
+  totalCredits: string;
+  totalDebits: string;
+  newLines: number;
+  duplicateLines: number;
+  lines: StatementPreviewLine[];
+  skipped: { row: number; reason: string }[];
 }
