@@ -24,7 +24,7 @@ on:
   # run's bundles (skips the bundle build) — only valid when nothing that goes INTO the bundle
   # (deploy/onprem/bin, compose, config, images) changed, i.e. for changes to deploy/onprem/ci/ only.
   push:
-    branches: ["part2/s5-deploy"]
+    branches: ["part2/s5-deploy", "part2/int"]
     paths: [".github/workflows/sutraerp-part2-onprem.yml", "sutraerp/deploy/onprem/**"]
   workflow_dispatch:
     inputs:

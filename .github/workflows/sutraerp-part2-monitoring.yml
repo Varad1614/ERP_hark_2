@@ -16,7 +16,7 @@ on:
   # push: the monitoring branch itself (the API refuses a workflow_dispatch of a workflow that is
   # not on the default branch yet); dispatch everywhere else.
   push:
-    branches: ["part2/s5-monitor"]
+    branches: ["part2/s5-monitor", "part2/int"]
     paths: ["sutraerp/deploy/monitoring/**", "sutraerp/apps/api/src/metrics.rs",
             "sutraerp/docs/readiness/MONITORING_AND_SUPPORT.md",
             ".github/workflows/sutraerp-part2-monitoring.yml"]

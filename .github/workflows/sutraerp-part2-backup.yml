@@ -18,7 +18,7 @@ on:
   # push: the drill branch itself (a workflow_dispatch of a workflow that is not on the default
   # branch yet is refused by the API); dispatch with inputs everywhere else.
   push:
-    branches: ["part2/s5-backup"]
+    branches: ["part2/s5-backup", "part2/int"]
     paths: ["sutraerp/deploy/backup/**", "!sutraerp/deploy/backup/**/*.md", ".github/workflows/sutraerp-part2-backup.yml"]
   workflow_dispatch:
     inputs:
