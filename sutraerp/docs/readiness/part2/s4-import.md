@@ -73,9 +73,13 @@ and grouping (`engine.rs`), each target's spec / natural key / cell validation, 
 **2,000-student timing** (CI run 38885818493, GitHub-hosted runner, debug build, PostgreSQL 18
 service container): upload 113 ms, dry run 7,552 ms (server 7,538 ms), commit 7,619 ms (server
 7,592 ms, 4 batches of 500), total 15,285 ms — about 3.8 ms per student per phase, including the
-guardian, two domain events and the audit record per row.
+guardian, two domain events and the audit record per row. Second run on the final code head
+(CI 38888559376): upload 148 ms, dry run 11,034 ms, commit 10,931 ms, total 22,113 ms (runner
+variance).
 
-CI evidence: see `docs/readiness/tracker/p2-s4-import.md` (run ids per step).
+CI evidence: SutraERP CI 38885818493 (b0574f90) and 38888559376 (fea1e75c) green; SutraERP
+quality gates 38887796602 (fea1e75c) success (Security incl. gitleaks, SAST, image scan + ZAP, performance, capacity). Per-step run ids in
+`docs/readiness/tracker/p2-s4-import.md`.
 
 ## BLOCKED_EXTERNAL
 
