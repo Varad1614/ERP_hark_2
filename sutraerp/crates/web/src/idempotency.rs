@@ -32,6 +32,14 @@ pub static IDEMPOTENCY_REPLAYED: HeaderName = HeaderName::from_static("idempoten
 /// Maximum request/response body buffered for fingerprinting and replay.
 pub const MAX_BODY_BYTES: usize = 1024 * 1024;
 
+/// Request extension: the transport body limit of the current route, set by the composition
+/// root's body-limit middleware (which also enforces it). A route allowed a larger body than
+/// [`MAX_BODY_BYTES`] (data import uploads, document files) is fingerprinted up to that limit
+/// instead of being refused as too large (413) (Part 2 · S4-ui-import).
+/// Only the SHA-256 fingerprint is stored, never the request body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RouteBodyLimit(pub usize);
+
 pub type SharedIdempotencyStore = Arc<dyn IdempotencyStore>;
 
 fn is_mutating(m: &Method) -> bool {
@@ -119,9 +127,25 @@ pub async fn idempotency(
     };
 
     let (parts, body) = req.into_parts();
-    let bytes = to_bytes(body, MAX_BODY_BYTES).await.map_err(|_| {
-        KernelError::BadRequest("request body too large for idempotent processing".into())
-    })?;
+    let limit = parts
+        .extensions
+        .get::<RouteBodyLimit>()
+        .map_or(MAX_BODY_BYTES, |l| l.0.max(MAX_BODY_BYTES));
+    let bytes = match to_bytes(body, limit).await {
+        Ok(b) => b,
+        // Above the route's limit: the same 413 the transport limit gives (not a 400).
+        Err(e) if e.to_string().contains("length limit exceeded") => {
+            let p = crate::Problem::new(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "payload-too-large",
+                "Request body too large",
+            );
+            return Ok(p.into_response());
+        }
+        Err(_) => {
+            return Err(KernelError::BadRequest("request body could not be read".into()).into());
+        }
+    };
     let uri = parts
         .uri
         .path_and_query()
@@ -198,9 +222,11 @@ mod tests {
                     let c = counter.clone();
                     async move {
                         let n = c.fetch_add(1, Ordering::SeqCst) + 1;
+                        // The body's length, not an echo: a route may accept a body above
+                        // MAX_BODY_BYTES, but its response must stay under the replay buffer.
                         (
                             StatusCode::CREATED,
-                            format!("{{\"n\":{n},\"echo\":{body:?}}}"),
+                            format!("{{\"n\":{n},\"len\":{}}}", body.len()),
                         )
                     }
                 }),
@@ -274,6 +300,35 @@ mod tests {
         };
         assert_eq!(owner_key(Some(&ctx)), format!("{t}/dev|a"));
         assert_eq!(owner_key(None), "anonymous");
+    }
+
+    #[tokio::test]
+    async fn fingerprints_bodies_up_to_the_route_limit() {
+        let c = Arc::new(AtomicUsize::new(0));
+        let a = app(c.clone());
+        let big = "x".repeat(MAX_BODY_BYTES + 512 * 1024);
+        // Without a route limit: refused above MAX_BODY_BYTES (413), handler not run.
+        let r = a.clone().oneshot(req(Some("big-1"), &big)).await.unwrap();
+        assert_eq!(r.status(), StatusCode::PAYLOAD_TOO_LARGE);
+        assert!(text(r).await.contains("payload-too-large"));
+        assert_eq!(c.load(Ordering::SeqCst), 0);
+        // With the route's larger limit: processed once and replayed.
+        let with_limit = |key: &str| {
+            let mut r = req(Some(key), &big);
+            r.extensions_mut().insert(RouteBodyLimit(4 * 1024 * 1024));
+            r
+        };
+        let r1 = a.clone().oneshot(with_limit("big-2")).await.unwrap();
+        assert_eq!(r1.status(), StatusCode::CREATED);
+        assert!(text(r1).await.contains(&format!("\"len\":{}", big.len())));
+        let r2 = a.clone().oneshot(with_limit("big-2")).await.unwrap();
+        assert_eq!(r2.headers()["idempotency-replayed"], "true");
+        assert_eq!(c.load(Ordering::SeqCst), 1);
+        // A limit below the default never lowers it.
+        let mut small = req(Some("small"), "x");
+        small.extensions_mut().insert(RouteBodyLimit(1));
+        let r = a.clone().oneshot(small).await.unwrap();
+        assert_eq!(r.status(), StatusCode::CREATED);
     }
 
     #[tokio::test]

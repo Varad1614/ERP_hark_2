@@ -1,7 +1,9 @@
 //! Part 2 · S4-docs: document storage wiring of the composition root — the
 //! [`ObjectStorePort`] over `sutra_infra::s3::S3Client`, its readiness check, the document vault
 //! built from `Config::documents`, and the request-body limit that lets only the document upload
-//! routes exceed `SUTRA_MAX_BODY_BYTES` (up to `SUTRA_DOCS_MAX_BYTES`).
+//! routes exceed `SUTRA_MAX_BODY_BYTES` (up to `SUTRA_DOCS_MAX_BYTES`) — and, Part 2 ·
+//! S4-ui-import, the data import upload (`POST /api/v1/platform/imports`, up to the import
+//! engine's 8 MiB file as base64 JSON).
 
 use crate::config::Config;
 use crate::config_docs::DocumentStorageMode;
@@ -129,11 +131,13 @@ pub fn build(cfg: &Config, pool: &PgPool) -> Result<DocumentStorage, String> {
 }
 
 /// Request-body limits: `default` (`SUTRA_MAX_BODY_BYTES`) for every route, `upload` for the
-/// document file uploads (`PUT /api/v1/…/file`).
+/// document file uploads (`PUT /api/v1/…/file`), `import` for the data import upload
+/// (`POST /api/v1/platform/imports`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BodyLimits {
     pub default: usize,
     pub upload: usize,
+    pub import: usize,
 }
 
 impl BodyLimits {
@@ -144,16 +148,27 @@ impl BodyLimits {
             // The handler enforces SUTRA_DOCS_MAX_BYTES exactly (422); the transport only needs
             // to let a body of that size through.
             upload: docs.max(cfg.http.max_body_bytes).saturating_add(1024),
+            // Part 2 · S4-ui-import: the engine refuses files above 8 MiB (422); the base64 JSON
+            // body of such a file must get through the transport first.
+            import: sutra_platform::dataimport::http::UPLOAD_BODY_BYTES
+                .max(cfg.http.max_body_bytes),
         }
     }
 
     pub fn for_request(&self, method: &Method, path: &str) -> usize {
         if is_document_upload(method, path) {
             self.upload
+        } else if is_import_upload(method, path) {
+            self.import
         } else {
             self.default
         }
     }
+}
+
+/// `POST /api/v1/platform/imports` — the data import upload (base64 file in a JSON body).
+pub fn is_import_upload(method: &Method, path: &str) -> bool {
+    method == Method::POST && path.trim_end_matches('/') == "/api/v1/platform/imports"
 }
 
 /// `PUT /api/v1/…/file` — the raw-file upload routes of the document service.
@@ -178,7 +193,11 @@ pub async fn body_limit(State(limits): State<BodyLimits>, req: Request, next: Ne
         )
         .into_response();
     }
-    let (parts, body) = req.into_parts();
+    let (mut parts, body) = req.into_parts();
+    // Idempotent requests are fingerprinted up to the route's limit (not the 1 MiB default).
+    parts
+        .extensions
+        .insert(sutra_web::idempotency::RouteBodyLimit(limit));
     let body = axum::body::Body::new(http_body_util::Limited::new(body, limit));
     next.run(Request::from_parts(parts, body)).await
 }
@@ -192,6 +211,7 @@ mod tests {
         let l = BodyLimits {
             default: 2 * 1024 * 1024,
             upload: 10 * 1024 * 1024 + 1024,
+            import: 11 * 1024 * 1024,
         };
         let p = "/api/v1/student/admissions/a/documents/b/file";
         assert_eq!(l.for_request(&Method::PUT, p), l.upload);
@@ -209,5 +229,33 @@ mod tests {
             l.for_request(&Method::POST, "/api/v1/auth/login"),
             l.default
         );
+    }
+
+    #[test]
+    fn only_the_import_upload_gets_the_import_limit() {
+        let l = BodyLimits {
+            default: 2 * 1024 * 1024,
+            upload: 10 * 1024 * 1024 + 1024,
+            import: sutra_platform::dataimport::http::UPLOAD_BODY_BYTES,
+        };
+        let p = "/api/v1/platform/imports";
+        assert_eq!(l.for_request(&Method::POST, p), l.import);
+        assert_eq!(
+            l.for_request(&Method::POST, "/api/v1/platform/imports/"),
+            l.import
+        );
+        assert_eq!(l.for_request(&Method::GET, p), l.default);
+        for other in [
+            "/api/v1/platform/imports/mapping-profiles",
+            "/api/v1/platform/imports/0192f5a0-7c3e-7000-8000-000000000001/commit",
+            "/api/v1/platform/importsX",
+        ] {
+            assert_eq!(l.for_request(&Method::POST, other), l.default, "{other}");
+        }
+        // The base64 JSON of the engine's largest file (8 MiB) fits; that of a 9 MiB file does not.
+        let json_of = |file: usize| file.div_ceil(3) * 4 + 1024;
+        let limit = sutra_platform::dataimport::http::UPLOAD_BODY_BYTES;
+        assert!(limit > json_of(8 * 1024 * 1024), "{limit}");
+        assert!(limit < json_of(9 * 1024 * 1024), "{limit}");
     }
 }

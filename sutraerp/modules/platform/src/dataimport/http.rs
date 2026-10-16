@@ -16,7 +16,14 @@ use sutra_web::{ApiResult, Authenticated, Problem};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-/// Mounted by the composition root next to the platform router.
+/// Transport limit of the upload body: the engine's largest file (8 MiB) as base64 in the JSON
+/// body, plus room for the other members (Part 2 · S4-ui-import). The composition root enforces
+/// it on `POST /api/v1/platform/imports` only (`storage::BodyLimits`); every other route keeps
+/// `SUTRA_MAX_BODY_BYTES`.
+pub const UPLOAD_BODY_BYTES: usize = engine::MAX_FILE_BYTES.div_ceil(3) * 4 + 64 * 1024;
+
+/// Mounted by the composition root next to the platform router. The extractor limit is lifted
+/// to [`UPLOAD_BODY_BYTES`] here; the composition root's per-route body limit is the control.
 pub fn router(state: ImportState) -> OpenApiRouter {
     OpenApiRouter::new()
         .routes(routes!(entity_list))
@@ -32,6 +39,7 @@ pub fn router(state: ImportState) -> OpenApiRouter {
         .routes(routes!(job_commit))
         .routes(routes!(job_decision))
         .with_state(state)
+        .layer(axum::extract::DefaultBodyLimit::max(UPLOAD_BODY_BYTES))
 }
 
 // ------------------------------------------------------------------ wire types
@@ -223,6 +231,34 @@ fn spec_of(st: &ImportState, entity: &str) -> Result<EntitySpec, KernelError> {
 }
 
 /// `platform.import.manage` plus the entity's own manage permission.
+/// Who reads jobs: a `platform.import.manage` holder reads every job of the tenant; a holder of
+/// `platform.import.approve` only (the finance checker) reads the jobs that need a second
+/// approver — the ones it decides (Part 2 · S4-ui-import; deciding still needs step-up).
+fn reader(auth: &Authenticated) -> ApiResult<(&AuthContext, bool)> {
+    if !auth.0.has_permission(Permission::DataImport)
+        && auth.0.has_permission(Permission::DataImportApprove)
+    {
+        return Ok((&auth.0, true));
+    }
+    Ok((auth.require(Permission::DataImport)?, false))
+}
+
+/// The job, unless an approver-only reader asks for one that needs no approval (404).
+async fn readable_job(
+    st: &ImportState,
+    ctx: &AuthContext,
+    approver_only: bool,
+    id: Uuid,
+) -> Result<ImportJob, KernelError> {
+    let job = engine::load_job(st, ctx.scope.tenant_id, id).await?;
+    if approver_only && !job.requires_approval {
+        return Err(KernelError::NotFound {
+            entity: "import job",
+        });
+    }
+    Ok(job)
+}
+
 fn require_entity<'a>(
     auth: &'a Authenticated,
     st: &ImportState,
@@ -380,14 +416,17 @@ pub async fn job_list(
     auth: Authenticated,
     Query(q): Query<JobListQuery>,
 ) -> ApiResult<Json<ImportJobList>> {
-    let ctx = auth.require(Permission::DataImport)?;
-    let items = engine::list_jobs(
+    let (ctx, approver_only) = reader(&auth)?;
+    let mut items = engine::list_jobs(
         &st,
         ctx.scope.tenant_id,
         q.institution_id,
         q.entity.as_deref(),
     )
     .await?;
+    if approver_only {
+        items.retain(|j| j.requires_approval);
+    }
     Ok(Json(ImportJobList { items }))
 }
 
@@ -437,8 +476,8 @@ pub async fn job_get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ImportJob>> {
-    let ctx = auth.require(Permission::DataImport)?;
-    Ok(Json(engine::load_job(&st, ctx.scope.tenant_id, id).await?))
+    let (ctx, approver_only) = reader(&auth)?;
+    Ok(Json(readable_job(&st, ctx, approver_only, id).await?))
 }
 
 /// Rows of a job with their dry-run / commit outcome.
@@ -451,7 +490,8 @@ pub async fn job_rows(
     Path(id): Path<Uuid>,
     Query(q): Query<RowsQuery>,
 ) -> ApiResult<Json<ImportJobRowList>> {
-    let ctx = auth.require(Permission::DataImport)?;
+    let (ctx, approver_only) = reader(&auth)?;
+    readable_job(&st, ctx, approver_only, id).await?;
     let limit = q.limit.unwrap_or(500).clamp(1, 5000);
     let items = engine::rows(
         &st,

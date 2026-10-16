@@ -2,7 +2,8 @@
  * App shell (re-skin v2, prototype header): logo, pill navigation, search (Ctrl K palette),
  * notifications bell and the avatar menu with its collapsible Personalization group (Customize
  * Home, Theme, Layouts, Focus mode, Print) + Install as an app, Take the tour, Institution
- * branding (administrator), Switch role and Sign out. The personal theme applies on every page.
+ * branding (administrator), Data import (holders of `platform.import.manage`; Import approvals for
+ * holders of `platform.import.approve` only — Part 2 · S4-ui-import), Switch role and Sign out. The personal theme applies on every page.
  */
 import {
   Bell,
@@ -11,6 +12,7 @@ import {
   Check,
   ChevronDown,
   Contrast,
+  FileSpreadsheet,
   Focus,
   KeyRound,
   LayoutGrid,
@@ -39,6 +41,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { AUTH_MODE, useWorkspaces } from "../lib/api";
 import { useAuth, type SignInResult } from "../lib/auth";
+import { can } from "../lib/permissions";
 import { NotificationRow } from "../components/NotificationRow";
 import { Palette, type PaletteEntry } from "../components/Palette";
 import { groupMeta } from "../lib/icons";
@@ -110,6 +113,17 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
   });
   const workspaces = useWorkspaces(role);
   const onHome = pathname === "/";
+  // Part 2 · S4-ui-import: the Data import entry follows the session's permissions (the API enforces them).
+  const { session } = useAuth();
+  const importEntry = useMemo(
+    () =>
+      can(session, "platform.import.manage")
+        ? { to: "/data-import", label: "Data import", sub: "CSV / Excel migration" }
+        : can(session, "platform.import.approve")
+          ? { to: "/data-import/approvals", label: "Import approvals", sub: "Imports waiting for you" }
+          : null,
+    [session],
+  );
 
   useEffect(() => setPop(null), [role]);
   useEffect(() => {
@@ -208,13 +222,14 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
       act("security", "Security", "Sessions, passkeys", KeyRound, "grey", "sessions passkeys password"),
       act("mfa", "Two-step verification", "Authenticator app", ShieldCheck, "grey", "mfa totp 2fa"),
       ...(role === "administrator" ? [act("branding", "Institution branding", "Name, logo and brand colour", Building2, "teal", "logo brand")] : []),
+      ...(importEntry ? [act("data-import", importEntry.label, importEntry.sub, FileSpreadsheet, "blue", "import csv excel xlsx migration upload export")] : []),
       ...cfg.nav.map((n) => ({ id: `screen:${n.id}`, title: n.label, subtitle: "Screen", group: "Screens", icon: n.icon, tone: "grey" as const })),
       ...(workspaces.data?.items ?? []).map((w) => {
         const g = groupMeta(w.group);
         return { id: `ws:${w.key}`, title: w.name, subtitle: `${w.key} · Workspace`, group: "Workspaces", icon: g.icon, tone: g.tone };
       }),
     ];
-  }, [cfg.nav, workspaces.data, role, focus, dark, theme.hc, theme.font]);
+  }, [cfg.nav, workspaces.data, role, focus, dark, theme.hc, theme.font, importEntry]);
   const suggested = useMemo(() => paletteItems.filter((x) => ["cmd:customize", "cmd:todos", `cmd:${dark ? "light" : "dark"}`, "cmd:theme"].includes(x.id) || x.id === `screen:${cfg.nav[1]?.id}`), [paletteItems, dark, cfg.nav]);
 
   const onPick = useCallback(
@@ -257,6 +272,8 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
             return navigate("/account/mfa");
           case "branding":
             return navigate("/campus/institution");
+          case "data-import":
+            return navigate(importEntry?.to ?? "/data-import");
           default:
             if (id.startsWith("preset:")) {
               const key = id.slice(7);
@@ -270,7 +287,7 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
       }
       navigate(kind === "ws" ? `/workspaces/${id}` : routeFor(id || "home"));
     },
-    [navigate, toast, customize, toggleFocus, openLayouts, print, goHomeThen, role],
+    [navigate, toast, customize, toggleFocus, openLayouts, print, goHomeThen, role, importEntry],
   );
 
   const switchRole = async (next: Role) => {
@@ -416,6 +433,15 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
             <div>
               <b>Institution branding</b>
               <small>Name, logo, colour</small>
+            </div>
+          </button>
+        )}
+        {importEntry && (
+          <button type="button" className="sb-pop-item mn" data-import-menu onClick={menuGo(() => navigate(importEntry.to))}>
+            <FileSpreadsheet strokeWidth={1.75} />
+            <div>
+              <b>{importEntry.label}</b>
+              <small>{importEntry.sub}</small>
             </div>
           </button>
         )}

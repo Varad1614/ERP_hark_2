@@ -94,3 +94,82 @@ permissions + grants), `Cargo.toml` / `Cargo.lock` (`zip` 9, `rust_decimal` in s
 `.github/workflows/sutraerp-ci.yml` (one extra step after the api DB suite), `sutraerp/.gitleaks.toml`
 (identical hunk to S4-pay's SEC-P2-PAY-001 allow-list), `openapi/openapi.json`,
 `packages/api-client/src/schema.d.ts`, `docs/readiness/APPROVAL_CONTROL_MATRIX.md`.
+
+## Admin UI — Data import screen (S4-ui-import, branch `part2/s4-ui-import`)
+
+Built on `part2/s4-int` @ 9b4de991 (all Stage 4 backends merged). Tracker:
+`docs/readiness/tracker/p2-s4-ui-import.md`.
+
+**Screen** `/data-import/:tab?` (`apps/web/app/routes/admin/data-import.tsx`,
+`apps/web/app/features/imports/`), only `@sutra/ui` prototype components (AreaHeader via
+`AreaFrame` with the institution picker, BentoTile, Stepper, FormSelect, FileField, TextField,
+TextArea, DataTable, FilterChips, StatCells, StatusBadge, ApprovalCard, Modal, Button):
+
+| Tab | What it does | Endpoints (generated client `@sutra/api-client`) |
+|---|---|---|
+| Import | entity picker (entities without the caller's domain permission are listed disabled), matched-on key, approval / update hints, column list; **CSV / Excel template** download; file upload showing the limit (**CSV or XLSX · up to 8 MiB · 20,000 rows**; a bigger file is refused in the browser, a 413 from nginx / the API is explained); optional saved mapping applied at upload | `GET /entities`, `GET /entities/{e}/template`, `GET /mapping-profiles`, `POST /` (Idempotency-Key) |
+| — mapping | every file header → canonical column (server suggestion, "apply a saved mapping", manual), required columns not mapped are listed, "save this mapping as", on-existing skip / update (entities that support it), first value of each column | `PUT /{id}/mapping`, `GET /{id}/rows` |
+| — dry run | counts (create / update / skip / errors, file total for money), rows table with an Errors / All rows filter and per-row problems, **error report CSV** download; Commit disabled while a row has errors | `POST /{id}/dry-run`, `GET /{id}/rows?errorsOnly=`, `GET /{id}/errors.csv` |
+| — commit | "Commit N rows", or **"Request approval"** for entities that need a second person (opening balances) | `POST /{id}/commit` |
+| — approval | ApprovalCard with Approve / Reject (reason dialog) **only** for holders of `platform.import.approve` who are neither the job's uploader (`createdBy`) nor its commit requester (`commitRequestedBy`); the requester sees "another person with import approval decides it"; step-up handled by the shared `useCommand` dialog | `POST /{id}/decision` |
+| — reconciliation | rows in file, created, updated, skipped (+ already in DB), errors, duplicates in file, batches, commit time; for money: file / committed / ledger total + reconciled | job `summary` |
+| Approvals | imports waiting for a second person (same maker ≠ checker rule) | `GET /?institutionId=` |
+| History | the institution's jobs, newest first, open one to resume it (`?job=`) | `GET /?institutionId=` |
+| Export | each entity as CSV / Excel in its import columns | `GET /entities/{e}/export` |
+
+**Navigation**: avatar menu + command palette entry "Data import" only for sessions holding
+`platform.import.manage`; sessions holding only `platform.import.approve` (finance checker) get
+"Import approvals" (`/data-import/approvals`). The session now carries the principal's `subject`
+and every API role (`ClientSession.subject`, `.apiRoles`; `lib/permissions.ts` mirrors the two
+kernel grants — it only decides what to offer; the API enforces every request).
+
+**Backend changes the screen needed**
+
+1. **Upload body limit (defect DEF-P2-UIIMP-001)** — the upload carries the file as base64 JSON
+   and requires an `Idempotency-Key`; the idempotency middleware buffered at most **1 MiB** of
+   body, so the real ceiling was a ≈ 768 KB file (not the documented ≈ 1.5 MiB; above it a 400
+   "too large for idempotent processing"), and `SUTRA_MAX_BODY_BYTES` (2 MiB) was next. Fixed:
+   `POST /api/v1/platform/imports` gets its own route limit `UPLOAD_BODY_BYTES` = base64 of the
+   engine's 8 MiB + 64 KiB (11,250,348 bytes) in `apps/api/src/storage.rs::BodyLimits` (every
+   other route, other import routes included, keeps `SUTRA_MAX_BODY_BYTES`); the import router
+   lifts the extractor limit (`DefaultBodyLimit`); the body-limit middleware passes the route
+   limit to the idempotency middleware (`sutra_web::idempotency::RouteBodyLimit`), which
+   fingerprints up to it (only the SHA-256 is stored) and answers **413** above it (was 400);
+   nginx (`deploy/docker/nginx.conf`, helm `templates/web/configmap.yaml`): `location =
+   /api/v1/platform/imports` with `client_max_body_size 11m`, 120 s timeouts. No new config key.
+2. **Approver read scope** — the finance checker holds `platform.import.approve` but not
+   `platform.import.manage`, so it could decide a job it could not see. `GET /imports`,
+   `GET /imports/{id}`, `GET /imports/{id}/rows` now also admit approve-only callers, restricted
+   to jobs that need approval (list filtered, others 404); no step-up for reading (deciding still
+   needs it); error report, entities, uploads, dry runs and commits stay `manage`-only.
+
+**Tests**
+
+* vitest `apps/web/app/features/imports/imports.test.tsx` (12): client grants and tabs per role;
+  maker ≠ checker (`canDecide` for uploader, commit requester, other admin, finance checker,
+  faculty, unknown subject); required-column check; HTTP layer through the generated client
+  (path, `Idempotency-Key`, CSRF, base64 body, blob template with its file name, `errorsOnly`);
+  413 explained; chunked base64; **mapping** (no suggestion → required columns listed → saved
+  profile + manual column → stored mapping); **dry-run row errors** (line 3 with two problems,
+  error report button, commit disabled); clean commit → reconciliation; **Approve / Reject hidden
+  for the requester**, offered to another approver, rejection needs a reason; requester's
+  waiting note on the job page; 9 MiB file refused before upload; history.
+* Rust: `sutra-web` `idempotency::fingerprints_bodies_up_to_the_route_limit` (413 without a
+  route limit above 1 MiB, processed once + replayed with one, never lowered);
+  `apps/api/src/storage.rs::only_the_import_upload_gets_the_import_limit`; DB
+  `apps/api/tests/db_p2_ui_import.rs` — `upload_route_accepts_files_above_the_default_body_limit`
+  (2.4 MiB file / 3.2 MiB body → 201 through the composition root with its Idempotency-Key; 12
+  MiB → 413, no job; 3 MiB on `mapping-profiles` and `/{id}/mapping` → 413) and
+  `finance_checker_reads_only_the_imports_it_decides`.
+* Playwright `apps/web/e2e/imports.e2e.mjs` (CI job **E2E imports (preview)**, also on
+  `part2/**`): avatar menu → template download → CSV with a bad row → suggested mapping → dry run
+  with row errors → error CSV → corrected CSV → commit → reconciliation (3 students in the DB) →
+  opening balances → "Request approval" (no Approve for the requester, job page and Approvals
+  tab, nothing posted) → finance checker lists and approves through the API → committed and
+  reconciled (2 charges) → History → Export CSV.
+* Part 1 demo journey step **"8 Data import"** (`journey.e2e.mjs`): in the compose stack behind
+  nginx, the administrator imports a 2.2 MiB students CSV through the screen (above the 2 MiB
+  default) → dry run → commit → reconciliation; DB rows, job, audit
+  (`platform.import.upload|dry_run|commit`) and faculty 403 checked.
+
+Evidence (run ids): see the tracker file.
