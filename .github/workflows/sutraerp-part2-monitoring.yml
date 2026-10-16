@@ -18,6 +18,7 @@ on:
   push:
     branches: ["part2/s5-monitor"]
     paths: ["sutraerp/deploy/monitoring/**", "sutraerp/apps/api/src/metrics.rs",
+            "sutraerp/docs/readiness/MONITORING_AND_SUPPORT.md",
             ".github/workflows/sutraerp-part2-monitoring.yml"]
   workflow_dispatch:
 
@@ -144,6 +145,18 @@ jobs:
                   if m.startswith("sutra_") and not known(m): errors.append(f"{where}: {m} is not exported by the API")
           print("\n".join(errors) or f"ok: {len(exprs)} expressions, {seen} metric references, app families {len(app)}")
           sys.exit(1 if errors else 0)
+          EOF
+      - name: Every runbook_url resolves to a section of docs/readiness/MONITORING_AND_SUPPORT.md
+        run: |
+          python3 - <<'EOF'
+          import re, yaml
+          doc = open("docs/readiness/MONITORING_AND_SUPPORT.md").read()
+          heads = {re.sub(r"[^a-z0-9 -]", "", h.lower()).replace(" ", "-") for h in re.findall(r"^#+ (.+)$", doc, re.M)}
+          rules = yaml.safe_load(open("deploy/monitoring/prometheus/rules/sutra-onprem.rules.yaml"))
+          missing = [r["alert"] for g in rules["groups"] for r in g["rules"]
+                     if r["annotations"]["runbook_url"].rsplit("#", 1)[1] not in heads]
+          print(f"{len(heads)} sections; runbook anchors missing: {missing or 'none'}")
+          assert not missing, missing
           EOF
       - name: Compose files parse (stack + drill overlay)
         working-directory: sutraerp/deploy/monitoring
