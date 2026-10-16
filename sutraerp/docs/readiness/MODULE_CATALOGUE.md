@@ -31,6 +31,10 @@ DEPLOYMENT_RUNBOOK.md), `part2/s5-backup` (BACKUP_RESTORE_REPORT.md), `part2/s5-
 per the Stage 4 tracker; DEF-F-007 is addressed by S4-ui-feedocs' gateway capability endpoint). This catalogue lists them as the
 register shows them and flags the likely-stale ones with "(stale?)"; the register owner should reconcile them. None is P0/P1.
 
+Module keys match the entitlement registry `sutraerp/catalog/entitlements.json` (`part2/s7-entitle` @ `bf48b7f6`, registry
+version 1). Package membership is in [COMMERCIAL_PACKAGING.md](COMMERCIAL_PACKAGING.md). Note: the registry's `assets` description
+("asset register, lifecycle, verification, disposal") is broader than what is built — verification and disposal are Deferred (§2.14).
+
 ## 1. Summary
 
 | # | Module key | Module | Class | Inventory rows (impl / partial / mock / missing / deferred) | API-tested · browser-tested (Stage 1) | Open defects (register) |

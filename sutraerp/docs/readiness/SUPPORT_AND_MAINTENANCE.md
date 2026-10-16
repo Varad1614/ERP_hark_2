@@ -38,7 +38,7 @@ R = responsible (does it), A = accountable (owns the outcome), C = consulted, I 
 | Master data, configuration, approvals (maker ≠ checker assignments) | **A/R** | C | **A/R** | C |
 | Payment gateway account (Razorpay keys, webhook secret, settlement) | **A/R** | C (go-live validation) | **A/R** | C |
 | SMTP relay, chat / SMS channels for alerts | **A/R** | C | C | **A/R** |
-| Licence renewal / entitlement file | **A** (pays) | **R** (issues) | **A** | **R** |
+| Licence renewal; applying the purchased entitlement (maker-checker request + decision by two tenant administrators, `platform.entitlement.manage` / `.approve`) | **A/R** (pays; applies the entitlement stated on the vendor's order) | R (issues order + entitlement statement; may audit the entitlement-change log) | **A** (pays) | **R** (applies) |
 | Data export at offboarding | **A** | R (assists) | **A** | **R** |
 
 ## 3. Support tiers
@@ -109,21 +109,29 @@ Service credits (PROPOSED): for managed hosting only, monthly availability targe
    the window.
 4. Skipping releases is supported within N-1 → N; older installations upgrade stepwise (drill B covered Part 1 release `c31cc487` →
    Part 2 head).
-5. After licence expiry, no new releases are provided except security fixes needed to keep the read-only system safe for the
-   export period (§8).
+5. After licence expiry (grace ended), no new releases are provided except security fixes needed to keep the read-only system safe
+   for the export period (§8).
 
 ## 8. Licence expiry, offboarding and data export
 
-Consistent with the entitlement design (`part2/s7-entitle`, in progress): **after expiry, licensed modules become read-only; data is
-never deleted or locked away by the licence.**
+As implemented on `part2/s7-entitle` @ `bf48b7f6` (kernel `decide`; CI in progress when written): **after expiry, licensed modules
+become read-only; data is never deleted or locked away by the licence.** Statuses: `active` → `grace` (past `validUntil`, within
+`graceDays` 0–365: full access + renewal banner) → `expired` (reads + data export, writes refused `403 entitlement.licence_expired`);
+`suspended` (administrative) leaves only platform administration and data export.
 
 | Phase | What the college can do | Vendor obligations |
 |---|---|---|
-| Renewal reminder | — | notices at 60, 30 and 7 days before expiry (ASSUMPTION) |
-| Expired (read-only) | sign in; view, search, print and export records of the expired modules; no new transactions, approvals or imports | keep the read-only system supported for security fixes for 90 days (ASSUMPTION) |
-| Reinstatement | full function returns on renewal; no data re-entry | issue a new entitlement |
-| Termination / offboarding | (a) export every entity in the import columns as CSV / XLSX through the data export endpoint (`GET /entities/{e}/export`, formula-injection safe, audited — S4-import); (b) full PostgreSQL logical dump + document objects from the nightly backup set (open formats: PostgreSQL dump, S3 objects with SHA-256); (c) audit-log export for the retention period | self-hosted: assist the export (up to 3 person-days included, ASSUMPTION); managed: hand over the latest full backup set + decryption key and CSV exports within 15 working days, then **delete** all copies (incl. offsite) within 30 days and certify deletion in writing (DPDP Act 2023 — legal review pending) |
+| Renewal reminder | — | notices at 60, 30 and 7 days before `validUntil` (ASSUMPTION) |
+| Grace (proposed 30 days) | everything, with a renewal banner | — |
+| Expired (read-only) | sign in; view, search and export records; no new transactions, approvals or imports | keep the read-only system supported for security fixes for 90 days (ASSUMPTION) |
+| Reinstatement | full function on the next request after the renewal entitlement is approved; no data re-entry | issue the renewal order / entitlement statement |
+| Suspension | used only for breach of contract / non-payment after notice (ASSUMPTION); platform administration + data export stay available | written notice ≥ 15 days before suspending (ASSUMPTION) |
+| Termination / offboarding | (a) export every entity in the import columns as CSV / XLSX through the data export endpoint (`GET /api/v1/platform/imports/entities/{entity}/export` — always allowed by the gate, formula-injection safe, audited); (b) full PostgreSQL logical dump + document objects from the nightly backup set (open formats: PostgreSQL dump, S3 objects with SHA-256); (c) audit-log export for the retention period | self-hosted: assist the export (up to 3 person-days included, ASSUMPTION); managed: hand over the latest full backup set + decryption key and CSV exports within 15 working days, then **delete** all copies (incl. offsite) within 30 days and certify deletion in writing (DPDP Act 2023 — legal review pending) |
 | Records the college must retain | statutory retention of academic, fee and payroll records is the college's obligation; read-only access or the exports satisfy it | — |
+
+Self-hosted note: the entitlement is stored in the college's own database and changed by its own administrators (maker-checker);
+the vendor does not hold a kill switch. Licence compliance is contractual (order form, annual student-count true-up, entitlement-change
+audit log) — see COMMERCIAL_PACKAGING.md §6.
 
 Export coverage note: the entity export covers the 9 import targets; other records (e.g. results history, ledgers, audit) leave
 through the database dump and the modules' own CSV / report downloads. A complete, documented "export everything" package is an
