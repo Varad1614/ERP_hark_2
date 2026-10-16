@@ -19,7 +19,7 @@ on:
   # branch yet is refused by the API); dispatch with inputs everywhere else.
   push:
     branches: ["part2/s5-backup"]
-    paths: ["sutraerp/deploy/backup/**", ".github/workflows/sutraerp-part2-backup.yml"]
+    paths: ["sutraerp/deploy/backup/**", "!sutraerp/deploy/backup/**/*.md", ".github/workflows/sutraerp-part2-backup.yml"]
   workflow_dispatch:
     inputs:
       students:

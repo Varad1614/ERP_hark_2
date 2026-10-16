@@ -51,7 +51,7 @@ aws_setup() {
   local style=path
   [[ "${SUTRA_S3_PATH_STYLE:-true}" == false ]] && style=virtual
   printf '[default]\nregion = %s\ns3 =\n  addressing_style = %s\n  max_concurrent_requests = 16\n' "$AWS_DEFAULT_REGION" "$style" >"$AWS_CONFIG_FILE"
-  S3=(aws --endpoint-url "$SUTRA_S3_ENDPOINT" --only-show-errors)
+  S3=(aws --endpoint-url "$SUTRA_S3_ENDPOINT")
   BUCKET="s3://$SUTRA_S3_BUCKET"
   PREFIX=""
   [[ -n "$tenant" ]] && PREFIX="/$tenant"
@@ -108,7 +108,7 @@ SQL
     [[ ${#args[@]} -eq 1 ]] || die "usage: sutra-objects.sh mirror <dir>"
     aws_setup
     mkdir -p "${args[0]}/objects$PREFIX"
-    "${S3[@]}" s3 sync "$BUCKET$PREFIX" "${args[0]}/objects$PREFIX"
+    "${S3[@]}" s3 sync --only-show-errors "$BUCKET$PREFIX" "${args[0]}/objects$PREFIX"
     ok "mirror $BUCKET$PREFIX → ${args[0]}/objects ($(find "${args[0]}/objects" -type f | wc -l) objects, $(du -sb "${args[0]}/objects" | cut -f1) bytes)"
     ;;
   verify)
@@ -121,8 +121,8 @@ SQL
     src="${args[0]}/objects$PREFIX"
     [[ -d "$src" ]] || die "$src missing (nothing backed up for this tenant?)"
     "${S3[@]}" s3api head-bucket --bucket "$SUTRA_S3_BUCKET" >/dev/null 2>&1 \
-      || "${S3[@]}" s3 mb "$BUCKET" >/dev/null
-    "${S3[@]}" s3 sync "$src" "$BUCKET$PREFIX"
+      || "${S3[@]}" s3 mb --only-show-errors "$BUCKET" >/dev/null
+    "${S3[@]}" s3 sync --only-show-errors "$src" "$BUCKET$PREFIX"
     ok "restore $(find "$src" -type f | wc -l) objects → $BUCKET$PREFIX"
     ;;
   verify-live)
@@ -131,7 +131,7 @@ SQL
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
     mkdir -p "$tmp/objects$PREFIX"
-    "${S3[@]}" s3 sync "$BUCKET$PREFIX" "$tmp/objects$PREFIX"
+    "${S3[@]}" s3 sync --only-show-errors "$BUCKET$PREFIX" "$tmp/objects$PREFIX"
     verify_tree "$tmp/objects" "${args[0]}" "objects in $BUCKET (downloaded back)"
     ;;
   listing)
@@ -143,7 +143,7 @@ SQL
     [[ ${#args[@]} -eq 1 && "${args[0]}" =~ ^[0-9a-f-]{36}$ ]] || die "usage: sutra-objects.sh purge-tenant <tenant uuid>"
     tenant=${args[0]}
     aws_setup
-    "${S3[@]}" s3 rm --recursive "$BUCKET/$tenant/"
+    "${S3[@]}" s3 rm --only-show-errors --recursive "$BUCKET/$tenant/"
     ok "purged every object under $BUCKET/$tenant/"
     ;;
   *) die "unknown command: $cmd" ;;
