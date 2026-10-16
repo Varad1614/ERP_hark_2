@@ -75,12 +75,16 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: sutra-bootstrap-admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:?}
       JAVA_OPTS_KC_HEAP: -Xms256m -Xmx${SUTRA_KC_HEAP:-768m}
+      # Outbound TLS from Keycloak (back-channel logout to https://<erp host>) trusts the college /
+      # internal CA bundle.
+      KC_TRUSTSTORE_PATHS: /etc/sutraerp/tls/trust.pem
       # Pooled connections are validated after 5 s idle, so a PostgreSQL restart does not fail the
       # next sign-in (DEF-P1-DEMO-005).
       QUARKUS_DATASOURCE_JDBC_VALIDATION_QUERY_SQL: "SELECT 1"
       QUARKUS_DATASOURCE_JDBC_FOREGROUND_VALIDATION_INTERVAL: "5S"
     volumes:
       - ${SUTRA_ETC}/keycloak/realm-sutra.json:/opt/keycloak/data/import/realm-sutra.json:ro
+      - ${SUTRA_ETC}/tls/trust.pem:/etc/sutraerp/tls/trust.pem:ro
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
       interval: 10s

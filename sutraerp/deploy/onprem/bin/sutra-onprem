@@ -203,6 +203,8 @@ issue_cert() {
   printf 'basicConstraints=CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=%s\n' "$san" >"$tmp/ext"
   openssl x509 -req -in "$tmp/req.csr" -CA "$ca/ca.crt" -CAkey "$ca/ca.key" -CAcreateserial \
     -out "$crt" -days 825 -sha256 -extfile "$tmp/ext" 2>/dev/null
+  chmod 600 "$key"
+  chmod 644 "$crt"
   rm -rf "$tmp"
 }
 
@@ -476,9 +478,9 @@ s3() { # method path [curl args…]
 cmd_bucket() {
   load_conf
   local code anon
-  code=$(s3 HEAD "/$SUTRA_S3_BUCKET" -o /dev/null -w '%{http_code}' -I || true)
+  code=$(s3 HEAD "/$SUTRA_S3_BUCKET" -o /dev/null -w '%{http_code}' 2>/dev/null || true)
   if [[ "$code" != 200 ]]; then
-    code=$(s3 PUT "/$SUTRA_S3_BUCKET" -o /dev/null -w '%{http_code}')
+    code=$(s3 PUT "/$SUTRA_S3_BUCKET" --data-binary '' -o /dev/null -w '%{http_code}')
     [[ "$code" == 200 ]] || die "creating bucket $SUTRA_S3_BUCKET answered $code"
   fi
   anon=$(curl -sS --max-time 10 --cacert "$SUTRA_ETC/tls/internal/ca.crt" --resolve "minio:$SUTRA_MINIO_PORT:127.0.0.1" \
