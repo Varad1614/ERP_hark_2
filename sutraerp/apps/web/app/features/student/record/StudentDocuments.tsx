@@ -3,12 +3,13 @@
  * inline "New request" form (document select + purpose + Submit), "Your requests" and the
  * documents on the student's record (`me` endpoints; the API resolves the student from the session).
  */
-import { FileText, Send } from "lucide-react";
+import { Download, FileText, Send } from "lucide-react";
 import { AreaHeader, BentoTile, DataTable, EmptyState, ListRow, StatusBadge, formatDate, humanize, plural } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { ApiProblem } from "@sutra/api-client";
 import { Actions, SpecForm } from "../ui";
 import { rkeys, useRecordApi, useRecordCommand } from "./hooks";
+import { useDownload } from "./files";
 import { REQUEST_TYPES } from "./Student360Tabs";
 
 export function StudentDocumentsScreen() {
@@ -17,6 +18,7 @@ export function StudentDocumentsScreen() {
   const docs = useQuery({ queryKey: rkeys.scoped("me", "documents"), queryFn: () => api.myDocuments(), enabled: !!me.data });
   const requests = useQuery({ queryKey: rkeys.scoped("me", "requests"), queryFn: () => api.myRequests(), enabled: !!me.data });
   const { run, submit, busy, dialog } = useRecordCommand();
+  const files = useDownload();
   if (me.isLoading)
     return (
       <AreaHeader title="Documents" summary="Loading…" />
@@ -92,7 +94,17 @@ export function StudentDocumentsScreen() {
         <BentoTile span={12} title="Documents on your record">
           <div className="st-lrows">
             {(docs.data ?? []).map((d) => (
-              <ListRow key={d.id} icon={FileText} tone={d.status === "verified" ? "green" : "amber"} title={humanize(d.documentType)} meta={d.title} badge={{ label: humanize(d.status), kind: d.status === "verified" ? "done" : d.status === "rejected" ? "attention" : "review" }} />
+              <ListRow
+                key={d.id}
+                data-my-document={d.documentType}
+                data-file={d.documentObjectId ? "attached" : "none"}
+                icon={FileText}
+                tone={d.status === "verified" ? "green" : "amber"}
+                title={humanize(d.documentType)}
+                meta={[d.title, d.documentObjectId ? "File on record" : null].filter(Boolean).join(" · ")}
+                badge={{ label: humanize(d.status), kind: d.status === "verified" ? "done" : d.status === "rejected" ? "attention" : "review" }}
+                primary={d.documentObjectId ? { label: "Download", icon: Download, ghost: true, disabled: files.busy, "data-action": "my-document-download", onClick: () => void files.download(() => api.downloadMyDocumentFile(d.id)) } : undefined}
+              />
             ))}
           </div>
         </BentoTile>

@@ -126,6 +126,20 @@ pub struct ConfirmPaymentRequest {
     pub gateway_signature: Option<String>,
 }
 
+/// Part 2 S4 (UI fees, DEF-F-007): which online checkout the student's browser opens.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentGatewayInfo {
+    /// Configured adapter: `disabled | mock | razorpay`.
+    pub gateway: String,
+    /// `false` when online payment is switched off (`SUTRA_PAYMENT_GATEWAY=disabled`): the UI
+    /// hides "Pay now" and points to the finance office.
+    pub online_payments: bool,
+    /// Public key id Razorpay Checkout is opened with (`rzp_test_…` / `rzp_live_…`); absent for
+    /// the mock / disabled adapters. Never a secret.
+    pub checkout_key_id: Option<String>,
+}
+
 /// Acknowledgement of a gateway webhook.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -767,6 +781,24 @@ pub async fn my_payment_list(
     }))
 }
 
+/// Part 2 S4 (UI fees, DEF-F-007): the configured online gateway and the public checkout key
+/// (`finance.self`). Nothing tenant-specific is returned.
+#[utoipa::path(get, path = "/api/v1/finance/me/payment-gateway", operation_id = "finance_payment_self_gateway", tag = "finance-payments",
+    security(("session_cookie" = [])),
+    responses((status = 200, body = PaymentGatewayInfo), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
+pub async fn my_payment_gateway(
+    State(st): State<FinanceState>,
+    auth: Authenticated,
+) -> ApiResult<Json<PaymentGatewayInfo>> {
+    auth.0.require(Permission::FinanceSelfService)?;
+    let gateway = st.gateway.name();
+    Ok(Json(PaymentGatewayInfo {
+        gateway: gateway.to_owned(),
+        online_payments: gateway != super::gateway::DISABLED_GATEWAY,
+        checkout_key_id: st.gateway.checkout_key_id(),
+    }))
+}
+
 /// Starts an online payment with the (mock) gateway: creates the gateway order and a pending
 /// payment (`finance.self`, `Idempotency-Key` — a retry returns the same payment / order).
 #[utoipa::path(post, path = "/api/v1/finance/me/payments", operation_id = "finance_payment_self_initiate", tag = "finance-payments",
@@ -1303,6 +1335,7 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
         .routes(routes!(receipt_of_payment))
         .routes(routes!(receipt_get))
         .routes(routes!(my_payment_list, my_payment_initiate))
+        .routes(routes!(my_payment_gateway))
         .routes(routes!(my_payment_confirm))
         .routes(routes!(my_payment_cancel))
         .routes(routes!(my_receipt_list))

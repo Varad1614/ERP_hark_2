@@ -22,6 +22,9 @@
 //!   matched / amount mismatch / unknown payment / duplicate line / unknown refund / ignored,
 //!   re-import idempotent, already-settled detection, permissions and tenant isolation.
 //! * `recovery_job_is_wired_with_the_sweepers` — background wiring per configuration.
+//! * `gateway_info_tells_the_browser_which_checkout_to_open` — Part 2 S4 UI (DEF-F-007):
+//!   `GET /me/payment-gateway` names the adapter and the **public** Razorpay key id (never the
+//!   secret), `onlinePayments=false` when disabled, mock without a key; 401 / 403 otherwise.
 #![cfg(feature = "db-tests")]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -50,6 +53,7 @@ const T_RECOVERY: &str = "0192f5a0-7c3e-7000-8000-0000002a7003";
 const T_REFUND: &str = "0192f5a0-7c3e-7000-8000-0000002a7004";
 const T_SETTLE: &str = "0192f5a0-7c3e-7000-8000-0000002a7005";
 const T_SETTLE_OTHER: &str = "0192f5a0-7c3e-7000-8000-0000002a7006";
+const T_GATEWAY_INFO: &str = "0192f5a0-7c3e-7000-8000-0000002a7007";
 
 const F: &str = "/api/v1/finance";
 
@@ -982,4 +986,70 @@ async fn recovery_job_is_wired_with_the_sweepers() {
     let mut off = razorpay.to_vec();
     off.push(("SUTRA_PAYMENT_RECOVERY_INTERVAL_SECS", "0"));
     assert!(!has(jobs(&off)));
+}
+
+// ------------------------------------------------------------------ UI gateway capability
+
+/// Same as `support::app` with `SUTRA_PAYMENT_GATEWAY` set to `gateway` (`mock` / `disabled`).
+async fn app_with_gateway(tenant: &'static str, gateway: &'static str) -> Router {
+    let url = leak(runtime_url(database_url()));
+    let src: HashMap<&'static str, &'static str> = HashMap::from([
+        ("SUTRA_ENV", "development"),
+        ("DATABASE_URL", url),
+        ("SUTRA_SESSION_STORE", "postgres"),
+        ("SUTRA_IDEMPOTENCY_STORE", "postgres"),
+        ("SUTRA_AUDIT_SINK", "postgres"),
+        ("SUTRA_DEV_TENANT_ID", tenant),
+        ("SUTRA_SWEEPERS", "false"),
+        ("SUTRA_INBOX_CONSUMER", "false"),
+        ("SUTRA_APPROVAL_MODE", "auto"),
+        ("SUTRA_PAYMENT_GATEWAY", gateway),
+    ]);
+    let cfg = Config::load(&src).expect("config");
+    let ctx = AppContext::from_config(&cfg).expect("context");
+    assert_eq!(ctx.payment_gateway.name(), gateway);
+    router(ctx)
+}
+
+#[tokio::test]
+async fn gateway_info_tells_the_browser_which_checkout_to_open() {
+    let stub = RazorpayStub::start().await.unwrap();
+    let (app, _pool, _) = razorpay_app(T_GATEWAY_INFO, &stub).await;
+    let student = login(&app, "aarav.desai@sutra.dev").await;
+    let info = read(&app, &student, "/me/payment-gateway").await;
+    assert_eq!(info["gateway"], "razorpay", "{info}");
+    assert_eq!(info["onlinePayments"], true, "{info}");
+    assert_eq!(info["checkoutKeyId"], stub.key_id.as_str(), "{info}");
+    assert!(
+        !info.to_string().contains(stub.key_secret.as_str())
+            && !info.to_string().contains(stub.webhook_secret.as_str()),
+        "no secret reaches the browser: {info}"
+    );
+    // Not signed in → 401; staff without finance.self → 403.
+    let (st, _, _) = send(
+        &app,
+        Request::get(format!("{F}/me/payment-gateway"))
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(st, StatusCode::UNAUTHORIZED);
+    let admin = login(&app, "admin@sutra.dev").await;
+    let (st, _, b) = send(&app, get(&admin, &format!("{F}/me/payment-gateway"))).await;
+    assert_eq!(st, StatusCode::FORBIDDEN, "{b}");
+
+    // Mock (dev / CI): online payments on, no checkout key (the mock flow confirms server-side).
+    let mock = app_with_gateway(T_GATEWAY_INFO, "mock").await;
+    let student = login(&mock, "aarav.desai@sutra.dev").await;
+    let info = read(&mock, &student, "/me/payment-gateway").await;
+    assert_eq!(info["gateway"], "mock", "{info}");
+    assert_eq!(info["onlinePayments"], true, "{info}");
+    assert!(info["checkoutKeyId"].is_null(), "{info}");
+    // Disabled (production default without a gateway): the UI hides "Pay now".
+    let off = app_with_gateway(T_GATEWAY_INFO, "disabled").await;
+    let student = login(&off, "aarav.desai@sutra.dev").await;
+    let info = read(&off, &student, "/me/payment-gateway").await;
+    assert_eq!(info["gateway"], "disabled", "{info}");
+    assert_eq!(info["onlinePayments"], false, "{info}");
+    assert!(info["checkoutKeyId"].is_null(), "{info}");
 }

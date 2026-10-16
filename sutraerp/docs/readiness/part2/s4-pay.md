@@ -93,3 +93,40 @@ CI evidence (head `95c523c7`, all green): SutraERP CI **38882654896** (fmt · cl
 * Student Fees UI: open Razorpay Checkout (`checkout.js`, needs CSP `script-src`/`frame-src` for `checkout.razorpay.com` and the public key id from the API) and post the callback to `confirm`; hide "Pay now" when the gateway is disabled (DEF-F-007).
 * `refund.processed` / `refund.failed` webhooks to finish gateway refunds Razorpay answers as `pending` (today: refund stays `processing` until `/refunds/{id}/complete`).
 * Settlement posting from a matched import (today: matched lines are posted with the existing bank settlement endpoint).
+
+## UI — Student Fees → Pay online (S4-ui-feedocs, DEF-F-007)
+
+Branch `part2/s4-ui-feedocs` (from `part2/s4-int` @ `9b4de991`). Tracker rows:
+[`../tracker/p2-s4-ui-feedocs.md`](../tracker/p2-s4-ui-feedocs.md).
+
+**Root cause of DEF-F-007:** the browser had no way to know which gateway is configured (no capability
+flag, no public key id), so the Fees screen always offered the mock "test gateway".
+
+| Piece | File(s) |
+|-------|---------|
+| `GET /api/v1/finance/me/payment-gateway` (`finance.self`) → `{ gateway: disabled \| mock \| razorpay, onlinePayments, checkoutKeyId }`; `checkoutKeyId` is the **public** Razorpay key id (`PaymentGatewayPort::checkout_key_id`, default `None`); no secret is returned | `crates/contracts/src/finance/ports.rs`, `apps/api/src/payment_gateway.rs`, `modules/finance/src/payments/http.rs`, regenerated `openapi/openapi.json` + `packages/api-client/src/schema.d.ts` (`PaymentGatewayInfo`) |
+| Pay dialog state machine `payStage`: `form → checkout → processing → paid / failed`. **"Paid" only when the server returns `status = completed`**; the Razorpay Checkout handler response only moves the dialog to "processing" while it is POSTed to `POST /me/payments/{id}/confirm` (server verifies the signature and asks Razorpay for the capture). Pending after confirm → "Payment processing … nothing more to pay" + **Check again** (re-asks the server). Checkout failure / dismissal → **Try again** re-opens Checkout for the same order (or Cancel payment). Server `failed / expired / cancelled` → **Try again** starts a new payment (new Idempotency-Key). Forged / refused callback (422) → stays "processing" with a notice, never paid. Receipt (number + **View receipt**) after the server's confirmation | `apps/web/app/features/finance/checkout.ts`, `apps/web/app/features/finance/fees.tsx` |
+| Razorpay Checkout: `https://checkout.razorpay.com/v1/checkout.js` injected once, **only** when the configured gateway is `razorpay`; options `key` (public id), `order_id` (server order), `amount` (paise), `currency INR`, `retry.enabled`, `modal.ondismiss`; `payment.failed` recorded for the retry message | `checkout.ts` (`loadRazorpay`, `openRazorpayCheckout`) |
+| Mock (dev / CI): unchanged server flow (initiate → **Complete payment** → server confirm), labelled "test gateway — no real money moves"; Razorpay is never loaded | `fees.tsx` |
+| Disabled (production default without a gateway): "Pay now" hidden, the screen names the finance office; an open gateway payment shows **Check status** (Razorpay) instead of "Complete payment" | `fees.tsx` |
+| CSP (nginx image + Helm web config), nothing else loosened: `script-src 'self' <hashes> https://checkout.razorpay.com`, `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com`, `connect-src 'self' https://api.razorpay.com` | `deploy/docker/nginx.conf`, `deploy/helm/sutraerp/templates/web/configmap.yaml`, `docs/security/config.md` |
+
+Razorpay Checkout integration reference: https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/build-integration/
+(handler response `razorpay_payment_id` / `razorpay_order_id` / `razorpay_signature`, `payment.failed` event, `modal.ondismiss`).
+
+### UI tests
+
+| Test | What it proves |
+|------|----------------|
+| `apps/web/app/features/finance/checkout.test.tsx` (vitest, 8) | `payStage` never returns `paid` unless the server status is `completed`; Razorpay: Checkout opened with the public key / server order / paise, callback forwarded verbatim to `confirm`, server `pending` → "processing" (no `[data-paid]`), **Check again** → server `completed` → paid with receipt number; a forged callback (422) stays unpaid; Checkout failure + dismissal → **Try again** re-opens the same order; server `failed` → **Try again** returns to the form; mock completes server-side and injects no Razorpay script; disabled gateway hides "Pay now" |
+| `db_p2_pay::gateway_info_tells_the_browser_which_checkout_to_open` (PostgreSQL + Razorpay stub) | razorpay → key id = stub key id, no key / webhook secret in the body; mock → no key; disabled → `onlinePayments=false`; unauthenticated 401, staff without `finance.self` 403 |
+| `apps/web/e2e/finance.e2e.mjs` (CI E2E finance, mock gateway, preview build) | student pays part of an invoice → server confirms → receipt RCT-000003 → receipt view |
+| `apps/web/e2e/journey.e2e.mjs` step "4 Fees" (Part 1 demo, full stack) | checkout stage shows nothing paid and names the test gateway; after the browser's own `confirm` returns `completed`, the paid view shows that receipt number; **View receipt** opens it |
+
+CI evidence (code head `82b55439`; `9cf5b517` = same code, later commits docs only): SutraERP CI **38899332909** (fmt · clippy · test, Rust integration on PostgreSQL 18 incl. `db_p2_pay::gateway_info_tells_the_browser_which_checkout_to_open`, OpenAPI drift, Web typecheck · lint · vitest · build, E2E finance / student / academic / exams / people / campus / ui / reskin2, container images); SutraERP Part 1 demo (full stack, keycloak) **38898287708** (journey incl. browser upload 184 B + 1 573 054 B without Idempotency-Key, student browser download byte-identical, Fees checkout → server confirm → RCT-000003 → receipt view); SutraERP quality gates **38898290428** (cargo-deny · audit · pnpm audit · gitleaks, Semgrep, Trivy · Grype · ZAP baseline web + API with the new CSP, k6).
+
+### BLOCKED_EXTERNAL (UI)
+
+| Item | What clears it |
+|------|----------------|
+| Razorpay Checkout in a real browser against Razorpay (test mode): iframe / popup behaviour with the CSP above, COOP `same-origin`, `Permissions-Policy payment=()`; UPI intent / netbanking / 3-D Secure flows | The same Razorpay test-mode account as the backend item above (`rzp_test_…` key id + secret, webhook secret) and a deployed HTTPS origin; then pay one fee with each method from `/fees` with `SUTRA_PAYMENT_GATEWAY=razorpay` and watch the browser console for CSP violations |

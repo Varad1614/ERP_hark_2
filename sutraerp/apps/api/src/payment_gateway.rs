@@ -108,6 +108,11 @@ impl PaymentGatewayPort for RazorpayGateway {
         RAZORPAY
     }
 
+    /// The public key id Razorpay Checkout is opened with (the key secret never leaves the API).
+    fn checkout_key_id(&self) -> Option<String> {
+        Some(self.client.settings().key_id.clone())
+    }
+
     async fn create_order(
         &self,
         _scope: &ExecutionScope,
@@ -268,6 +273,8 @@ mod tests {
         let stub = RazorpayStub::start().await.unwrap();
         let g = RazorpayGateway::new(stub.settings(Duration::from_secs(2), 1)).unwrap();
         assert_eq!(g.name(), "razorpay");
+        // Part 2 S4 (UI fees): the browser gets the public key id only.
+        assert_eq!(g.checkout_key_id().as_deref(), Some(stub.key_id.as_str()));
         let o = g
             .create_order(&scope(), order_req("2500.00", "t:a:k1"))
             .await

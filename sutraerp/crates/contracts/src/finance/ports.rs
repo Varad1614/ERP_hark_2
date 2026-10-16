@@ -560,6 +560,13 @@ pub trait PaymentGatewayPort: Send + Sync + 'static {
         let _ = (order_ref, payment_ref, signature);
         Err(KernelError::Unauthenticated)
     }
+
+    /// Part 2 S4 (UI fees): the **public** key id the browser opens the gateway's checkout with
+    /// (Razorpay Checkout `key`, `rzp_test_…` / `rzp_live_…`; never the key secret). `None` when
+    /// the adapter has no client-side checkout (mock, disabled).
+    fn checkout_key_id(&self) -> Option<String> {
+        None
+    }
 }
 
 // ---- Batch 6 (Domain I) block: examination fee charges (revaluation / rechecking) ----
