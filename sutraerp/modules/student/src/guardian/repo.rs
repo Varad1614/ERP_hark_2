@@ -1874,22 +1874,6 @@ pub const TABLE_EMERGENCY: &str = EMERGENCY;
 pub const TABLE_FINANCIAL: &str = FINANCIAL;
 pub const TABLE_PICKUP: &str = PICKUP;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn emergency_only_needs_no_consent() {
-        assert!(!communication_needs_consent(&[
-            CommunicationTopic::Emergency
-        ]));
-        assert!(communication_needs_consent(&[
-            CommunicationTopic::Emergency,
-            CommunicationTopic::Academic
-        ]));
-    }
-}
-
 // ---- Part 2 · S4-import: guardians migrated with their student ---------------------------------
 
 /// Registers a migrated guardian and proposes the relationship with the (just imported) student
@@ -1990,4 +1974,20 @@ pub(crate) async fn import_guardian(
     )
     .await?;
     Ok(r)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn emergency_only_needs_no_consent() {
+        assert!(!communication_needs_consent(&[
+            CommunicationTopic::Emergency
+        ]));
+        assert!(communication_needs_consent(&[
+            CommunicationTopic::Emergency,
+            CommunicationTopic::Academic
+        ]));
+    }
 }
