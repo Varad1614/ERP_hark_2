@@ -1,7 +1,8 @@
 //! Part 1 · Stage 3 (S3-appr) — the approval control matrix as a fitness test.
 //!
 //! Enumerates **every** decision endpoint of the API (`openapi/openapi.json`: POST operations
-//! whose path ends in `…/decision`, `…-decision`, `/authorise` or `/approve`) and fails when one
+//! whose path ends in `…/decision`, `…-decision`, `/authorise`, `/approve` or `/approval`) and
+//! fails when one
 //! is neither
 //!
 //! * **guarded** — its handler (or a function it calls in the same module, one level deep, or the
@@ -31,6 +32,7 @@ const ALLOWLIST: &[(&str, &str)] = &[
     ("campus_reservation_decide", "room / space booking of a facility slot; no money, grade, status or access change (fees, if any, go through guarded finance decisions)"),
     ("campus_transport_route_decide", "transport route activation; fees go through guarded finance decisions"),
     ("exam_publication_authorise", "the maker's request step of result publication; the decision is exam_publication_decide (guarded)"),
+    ("exam_malpractice_decide", "the maker's proposal step of a malpractice committee decision (it requests MALPRACTICE_DECISION); the governed decision is exam_malpractice_approval (guarded) — DEF-P2-PILOT-001"),
     ("exam_supplementary_authorise", "single-step authorisation of a rule-computed supplementary attempt (no maker request); marks and results of the attempt pass the guarded mark-sheet / result approvals"),
     ("resources_stock_issue_decide", "internal issue of stocked consumables to a department (inventory.manage); no supplier payment; stock value changes by adjustment are guarded"),
     ("institution_decide_activation", "institution set-up by the implementation administrator; no person's money, grades or status"),
@@ -77,10 +79,13 @@ fn decision_operations() -> BTreeMap<String, String> {
             continue;
         };
         let last = path.rsplit('/').next().unwrap_or_default();
+        // Part 2 · S6-pilot (DEF-P2-PILOT-001): `…/approval` too — the malpractice approval
+        // (`exam_malpractice_approval`) escaped this enumeration and had no guard.
         if last == "decision"
             || last.ends_with("-decision")
             || last == "authorise"
             || last == "approve"
+            || last == "approval"
         {
             ops.insert(
                 post["operationId"].as_str().unwrap().to_owned(),

@@ -24,8 +24,8 @@ whether separation of duties (SoD) and an audit trail are enforced. Branches `pa
 
 ## Separation of duties (DEF-X-002, completed in Stage 3)
 
-Every governed decision endpoint of the API (126 POST operations whose path ends in `…/decision`,
-`…-decision`, `/authorise` or `/approve` in `openapi/openapi.json`) is either **guarded** or
+Every governed decision endpoint of the API (127 POST operations whose path ends in `…/decision`,
+`…-decision`, `/authorise`, `/approve` or — since Part 2 · S6-pilot — `/approval` in `openapi/openapi.json`) is either **guarded** or
 **allowlisted with a written reason**. The fitness test `apps/api/tests/approval_matrix.rs` enforces
 it on every CI run: a new decision endpoint without a guard, a stale allowlist entry, or an
 operation missing from this document fails the build.
@@ -123,7 +123,8 @@ the fitness test plus the DB / e2e tests that call the endpoint.
 | `duplicate_case_decide` | `POST /student/duplicate-cases/{id}/decision` | same slice manage permission | StudentIdentityManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/record/identity.rs` |
 | `exam_closure_decide` | `POST /exams/exam-sessions/{id}/closure/decision` | ResultManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/completion/http.rs` |
 | `exam_conduct_decision` | `POST /exams/conduct-records/{id}/decision` | ExamSetupManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/scheduling/conduct.rs` |
-| `exam_malpractice_decide` | `POST /exams/malpractice-cases/{id}/decision` | same slice manage permission | MarksManage | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/integrity/http.rs` |
+| `exam_malpractice_approval` | `POST /exams/malpractice-cases/{id}/approval` | MarksManage (proposal: `exam_malpractice_decide` / `exam_malpractice_review`) | ExamApprove | Y (approval ledger `guard_decision*`) — added Part 2 · S6-pilot (DEF-P2-PILOT-001: the path ends in `/approval`, so it escaped the fitness test and had no guard; found by code review while designing UAT case UAT-EXM-01, not by the dry run; the dry run verifies the fix) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p2_pilot::malpractice_decision_is_approved_by_an_independent_controller`; e2e `uat-dryrun.e2e.mjs` UAT-EXM-01 | `modules/exams/src/integrity/http.rs` |
+| `exam_malpractice_decide` | `POST /exams/malpractice-cases/{id}/decision` | same slice manage permission | MarksManage | N — allowlisted: the maker's proposal step of a malpractice committee decision (it requests MALPRACTICE_DECISION); the governed decision is exam_malpractice_approval (guarded) — DEF-P2-PILOT-001 (until S6 the guard sat on this maker step: it refused a re-proposal by the same official after a rejection) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_p2_pilot::malpractice_decision_is_approved_by_an_independent_controller` | `modules/exams/src/integrity/http.rs` |
 | `exam_mark_sheet_decide` | `POST /exams/mark-sheets/{id}/decision` | MarksManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/approvals.mjs`; `e2e lib/reskin2-seed.mjs` | `modules/exams/src/marks/http.rs` |
 | `exam_moderation_decide` | `POST /exams/moderations/{id}/decision` | MarksManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/exams/src/marks/http.rs` |
 | `exam_policy_decision` | `POST /exams/exam-policies/{id}/decision` | ExamSetupManage | ExamApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `e2e lib/approvals.mjs` | `modules/exams/src/setup/policy.rs` |

@@ -171,6 +171,20 @@ jobs:
           E2E_STATE: ${{ runner.temp }}/journey-state.json
         run: timeout 900 node apps/web/e2e/journey.e2e.mjs
 
+      # ---- 4a) Part 2 · S6-pilot: UAT DRY RUN with synthetic data (NOT user acceptance testing):
+      # one key UAT case per pilot role (docs/readiness/UAT_TEST_CASES.md) on the journey's
+      # synthetic institution — administrator, faculty, accounts staff → finance approver,
+      # examination staff → controller of examinations, student — every role signed in through the
+      # stack's real flow, governed decisions by an independent checker (human approval mode).
+      - name: UAT dry run (synthetic data, one key case per role)
+        id: uat
+        if: always() && steps.journey.outcome != 'skipped'
+        env:
+          E2E_SHOTS: ${{ runner.temp }}/demo/shots
+          E2E_STATE: ${{ runner.temp }}/journey-state.json
+          E2E_UAT_RESULTS: ${{ runner.temp }}/demo/uat-dryrun-results.json
+        run: timeout 1200 node apps/web/e2e/uat-dryrun.e2e.mjs
+
       # ---- 4b) database integrity after the journey + restart: orphans, balances, duplicates,
       # idempotency, maker-checker, guards and negative probes (rolled back); fails on any violation.
       - name: Database integrity (SQL checks against the demo DB)
@@ -182,6 +196,7 @@ jobs:
         if: always()
         run: |
           node apps/web/e2e/lib/journey-report.mjs "$DEMO_OUT/journey-results.json" >> "$GITHUB_STEP_SUMMARY" || echo "no journey results" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$DEMO_OUT/uat-dryrun-results.json" ]; then { echo; node apps/web/e2e/uat-dryrun.e2e.mjs --report "$DEMO_OUT/uat-dryrun-results.json"; } >> "$GITHUB_STEP_SUMMARY"; fi
           if [ -f "$DEMO_OUT/logs/db-integrity.txt" ]; then { echo; echo "### Database integrity"; echo; echo '```'; cat "$DEMO_OUT/logs/db-integrity.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Collect logs
         if: always()
@@ -189,6 +204,7 @@ jobs:
           docker compose ps -a > "$DEMO_OUT/logs/compose-ps.txt" 2>&1 || true
           for s in postgres keycloak valkey nats mailpit minio migrate api web; do docker compose logs --no-color --timestamps "$s" > "$DEMO_OUT/logs/$s.log" 2>&1 || true; done
           cp -r "$DEMO_OUT/journey-results.json" "$DEMO_OUT/logs/" 2>/dev/null || true
+          cp "$DEMO_OUT/uat-dryrun-results.json" "$DEMO_OUT/logs/" 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
