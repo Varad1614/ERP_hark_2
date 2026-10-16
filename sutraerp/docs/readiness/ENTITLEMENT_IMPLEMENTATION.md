@@ -181,5 +181,31 @@ entitlement lookup fails closed (a store error is returned, never read as "no fe
 | `apps/web/e2e/ui.e2e.mjs` (entitlement step) | Playwright | the shell reads the entitlement and shows every module on the default |
 | helm render checks in `sutraerp-deploy.yml` | CI | production render refuses a missing default |
 
-Run ids: see the tracker (`docs/readiness/tracker/p2-s7-entitle.md`) — final CI, Part 1 demo,
-quality gates and deploy runs on the branch head.
+### Run evidence (branch `part2/s7-entitle`)
+
+| Workflow | Run | Commit | Result |
+|---|---|---|---|
+| SutraERP CI (Rust fmt·clippy·test, Rust integration incl. all 8 `db_p2_entitle`, Web, OpenAPI drift, 9 E2E suites) | 38950392871 | `40fdba67` | green |
+| SutraERP deploy (Helm lint/template incl. production default render check, compose boot, kind install·migrate·smoke·telemetry·DR) | 38950396576 | `40fdba67` | green |
+| SutraERP Part 1 demo (full stack, Keycloak) | 38950399731 | `40fdba67` | green |
+| SutraERP quality gates (cargo-deny/audit, pnpm audit, gitleaks, Semgrep, Trivy/Grype/ZAP, k6) | 38952022358 | `4d59b467` | green |
+
+`4d59b467` differs from `40fdba67` only by `.gitleaks.toml` + `docs/security/findings.md`
+(SEC-P2-ENT-001: gitleaks scans every ref and flagged a shell variable reference in
+`part2/s5-monitor`'s drill script; narrow path AND literal allow-list). Earlier red runs and
+their causes: CI 38949593345 (`7f175623`, unused binding in `db_p2_entitle` under
+`-D warnings`, fixed in `40fdba67`), quality 38950403058 (`40fdba67`, the gitleaks finding above).
+
+### Reviewed security exception — session-only entitlement reads
+
+`GET /api/v1/platform/entitlement` and `GET /api/v1/platform/entitlement/catalogue` are on the
+`auth_hardening` **session-only** list (`apps/api/tests/auth_hardening.rs`): any signed-in user
+may read them without a permission. Reviewed and accepted because both are **read-only** and
+**tenant-scoped**: the status endpoint returns only the caller's own tenant's active modules and
+licence state (the tenant comes from the session, never from the request), and the catalogue is
+the public module/package registry with no tenant data. Every signed-in user needs them so the
+shell can hide inactive modules and explain a `403 entitlement.*`. All changes (requests,
+decisions, withdrawals) stay behind `platform.entitlement.manage` / `platform.entitlement.approve`
+with maker-checker SoD. The test still requires a session for both routes.
+
+Tracker: `docs/readiness/tracker/p2-s7-entitle.md`.
