@@ -1012,6 +1012,7 @@ async fn core_academic_without_fees_admits_and_issues_hall_tickets() {
         StatusCode::OK,
     )
     .await;
+    assert_eq!(adm["status"], "documents_submitted", "{adm}");
     for d in &docs {
         post_ok(
             &app,
