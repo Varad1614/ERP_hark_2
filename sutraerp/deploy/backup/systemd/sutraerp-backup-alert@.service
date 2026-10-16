@@ -1,0 +1,9 @@
+# Called by OnFailure= of the backup units. Default: an error line in the journal + mail to root
+# (needs a configured MTA such as msmtp). Replace ExecStart with the college's alerting, e.g. an
+# Alertmanager webhook (curl -XPOST "$ALERT_URL" …).
+[Unit]
+Description=SutraERP backup failure alert for %i
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'logger -p user.err "SutraERP backup unit %i FAILED"; if command -v mail >/dev/null; then journalctl -u %i -n 80 --no-pager | mail -s "SutraERP backup FAILED: %i" root; fi'

@@ -124,3 +124,77 @@ port 8090, OpenSearch 2.19.1 with the security plugin disabled). The kind job (9
 | Measured RTO (wipe → API ready, verified) | s (target 7200 s) |
 | Data loss window (RPO) | time since the backup used |
 | Issues / follow-ups | |
+
+## Single-server (docker compose) installation — Part 2 · Stage 5
+
+For a college that runs SutraERP on one server with docker compose (no Kubernetes). Scripts in
+`deploy/backup/`; measured drill: `docs/readiness/BACKUP_RESTORE_REPORT.md`; CI drill: workflow
+**SutraERP Part 2 backup and restore drill** (`.github/workflows/sutraerp-part2-backup.yml`,
+steps `deploy/backup/drill/drill.sh`).
+
+### What is protected, and how
+
+| State | Backup | Restore | RPO |
+|---|---|---|---|
+| PostgreSQL cluster (sutra, keycloak, flowable databases, roles) | weekly `pg_basebackup` (`sutra-fullbackup.sh base`) + continuous WAL archive (`archive_mode=on`, `archive_timeout=60`) shipped encrypted every minute (`sutra-wal-ship.sh`) | `sutra-fullrestore.sh pgdata` + start → archive recovery to the latest WAL or to a timestamp (PITR) | ≈ 60 s + ship interval |
+| `sutra` (+ flowable) databases, logical | nightly `pg_dump -Fc` in one snapshot + manifest (row counts, audit heads) — slice 9C `sutra-backup.sh` inside the nightly set | `sutra-fullrestore.sh logical` → `sutra-restore.sh` (verifies counts, audit heads, append-only grants) | 24 h |
+| Keycloak (users, credentials incl. TOTP, realm config) | nightly `pg_dump -Fc` of the keycloak DB + realm partial export (review copy) | with the cluster (physical) or `logical` (pg_restore as role keycloak) | as above |
+| Document objects (MinIO / S3 bucket) | nightly mirror + `documents.tsv` (key, sha256, size, tenant) from `platform.document_object`, every object's sha256 verified before packing | `sutra-fullrestore.sh objects [--tenant T]` → upload → download back + sha256 verify | 24 h (run `sutra-objects.sh mirror` more often, or bucket replication, for less) |
+| Configuration / secrets | `inventory.json`: services, images, volumes, env variable **names**, config file checksums — never values | operator re-supplies the values from the secret store (OpenBao / sealed envelope / password manager) | — |
+| NATS, Valkey, OpenSearch | not backed up (rebuilt / re-projected — see above) | — | — |
+
+Encryption at rest: every artefact is `age`-encrypted to `SUTRA_BACKUP_AGE_RECIPIENT` (public key
+on the server). The **identity (private key) is not on the server**: print it, seal it in the
+college safe and keep a second copy in another administrator's password manager. Each set carries
+`SHA256SUMS` (encrypted files) and `PLAIN.SHA256` (plaintext); every restore command verifies both
+and refuses a damaged file (drill: 5 kinds of damage refused).
+
+### Install (once)
+
+```sh
+sudo bash deploy/backup/systemd/install.sh            # scripts → /opt/sutraerp/backup, timers enabled
+sudo editor /etc/sutraerp/backup.env                   # from deploy/backup/host/backup.env.example
+age-keygen -o backup-identity.txt                      # on the operator's workstation, NOT the server
+#  → put the "Public key: age1…" line into SUTRA_BACKUP_AGE_RECIPIENT; store backup-identity.txt offline
+# compose: add deploy/backup/compose.backup.yml to COMPOSE_FILE (WAL archiving), then
+docker compose up -d postgres
+sudo systemctl start sutraerp-backup.service && sudo /opt/sutraerp/backup/sutra-fullbackup.sh base
+sudo /opt/sutraerp/backup/sutra-backup-verify.sh
+```
+
+Timers: `sutraerp-backup.timer` 02:00 nightly (+ base backup on Sundays, then rotation),
+`sutraerp-wal-ship.timer` every minute, `sutraerp-backup-verify.timer` Saturday 06:00; failures
+call `sutraerp-backup-alert@.service` (journal + mail; point it at the college's alerting).
+Cron alternative: `deploy/backup/systemd/crontab.example`.
+
+Retention (`rotate.sh`, GFS): 14 daily, 8 weekly, 12 monthly nightly sets; 2 base backups; WAL
+older than the oldest kept base backup is pruned (PITR window = since the older base backup,
+1–2 weeks). Offsite (`offsite.sh`): a second disk / NFS (`/mnt/offsite/…`), another machine over
+SSH (`user@host:/path`, rsync) or an S3-compatible bucket in another location (`s3://…`). Give the
+offsite credential write-but-not-delete rights (S3 object lock / append-only rsync module) and
+let the store's lifecycle rule expire copies after 13 months.
+
+### Restore after losing the server (operator steps)
+
+1. New server: Docker, the release bundle / checkout, `/etc/sutraerp/backup.env`, the WAL archive
+   and staging directories (`install.sh` creates them). Bring the age identity from the safe.
+2. Fetch + verify: `offsite.sh pull <newest sutra-base-…> in/base`, `offsite.sh pull <newest
+   sutra-nightly-…> in/nightly`, `offsite.sh pull-wal in/wal` (checksums verified).
+3. Decrypt: `SUTRA_BACKUP_AGE_IDENTITY=… sutra-fullrestore.sh decrypt in/base base`, same for
+   `nightly`, `sutra-fullrestore.sh wal in/wal wal`.
+4. Database: `docker compose create postgres`, `sutra-fullrestore.sh pgdata sutraerp_pgdata base wal
+   [--target-time '2026-10-16 09:15:00+05:30']`, `docker compose up -d --no-deps postgres`,
+   `sutra-fullrestore.sh wait-recovery $(docker compose ps -q postgres)` (prints `recovered-to`).
+   No usable base backup / WAL? Use the nightly logical set instead: empty postgres, then
+   `sutra-fullrestore.sh logical nightly` (data as of 02:00).
+5. Check before anyone writes: `fingerprint.sh postgres://…/sutra postgres://…/keycloak` — compare
+   row counts / trial balance with the last known state (e.g. the fingerprint the drill keeps).
+6. `docker compose up -d --wait keycloak minio nats valkey mailpit`, then
+   `sutra-fullrestore.sh objects nightly` (every document's sha256 verified in the bucket).
+7. `docker compose up -d` (migrate → api → web), sign in through Keycloak, run
+   `POST /api/v1/platform/audit/chain/verify`, open a few student documents, record a receipt.
+8. Re-enable the timers, take a fresh base backup, record the drill / incident (template above).
+
+Single tenant's documents only: `sutra-objects.sh restore <dir with objects/> --tenant <uuid>` then
+`sutra-objects.sh verify-live documents.tsv --tenant <uuid>` (other tenants' objects untouched —
+drill: keys + ETags identical before / after).
