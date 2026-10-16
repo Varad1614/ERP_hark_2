@@ -3,6 +3,7 @@
 use crate::config::{
     AuthProvider, CacheBackend, Config, MailMode, OutboxRelayMode, SmtpTlsMode, StoreBackend,
 };
+use crate::entitlement_ports::{EntitledExamFees, EntitledFinanceClearance};
 use crate::openapi::ApiDoc;
 use axum::routing::get;
 use axum::{Json, Router};
@@ -114,6 +115,9 @@ pub struct AppContext {
     pub identity_runtime: Option<sutra_platform::identity::IdentityRuntime>,
     /// Part 2 · S4-docs: platform document service (S3-compatible storage, `SUTRA_DOCUMENT_STORAGE`).
     pub documents: Arc<dyn sutra_contracts::platform::documents::DocumentVault>,
+    /// Part 2 · S7-entitle: server-side module entitlement / licence gate (and the policy the
+    /// entitlement API serves). Tests swap the clock with [`AppContext::with_entitlement_clock`].
+    pub entitlement: sutra_web::entitlement::EntitlementGate,
 }
 
 /// Part 1 · Stage 3 (S3-config): settings of the transport layers built in [`router`].
@@ -405,6 +409,7 @@ impl AppContext {
         let (identity, identity_runtime, consumers) =
             crate::idp_wiring::wire(cfg, &pool, sessions.clone(), consumers)
                 .map_err(BuildError::Auth)?;
+        let entitlement = entitlement_gate(cfg, &pool); // Part 2 · S7-entitle
         Ok(Self {
             pool,
             readiness,
@@ -449,7 +454,20 @@ impl AppContext {
             identity,              // Part 2 · S4-idp
             identity_runtime,      // Part 2 · S4-idp
             documents: docs.vault, // Part 2 · S4-docs
+            entitlement,           // Part 2 · S7-entitle
         })
+    }
+
+    /// Part 2 · S7-entitle: the same context with another entitlement clock (expiry / grace /
+    /// renewal tests).
+    pub fn with_entitlement_clock(
+        mut self,
+        clock: Arc<dyn sutra_kernel::entitlement::Clock>,
+    ) -> Self {
+        self.entitlement = sutra_web::entitlement::EntitlementGate::new(
+            self.entitlement.policy().clone().with_clock(clock),
+        );
+        self
     }
 
     /// Moves the background workers out (the rest of the context becomes the router).
@@ -470,6 +488,22 @@ impl AppContext {
         #[allow(clippy::expect_used)]
         Self::from_config(&cfg).expect("static test context builds")
     }
+}
+
+/// Part 2 · S7-entitle: entitlement policy (`SUTRA_ENTITLEMENT_STORE` / `_DEFAULT`) on the wall
+/// clock.
+fn entitlement_gate(cfg: &Config, pool: &PgPool) -> sutra_web::entitlement::EntitlementGate {
+    let store: Arc<dyn sutra_kernel::entitlement::EntitlementStore> = match cfg.entitlement.store {
+        StoreBackend::Postgres => Arc::new(sutra_platform::entitlement::PgEntitlementStore::new(
+            pool.clone(),
+        )),
+        StoreBackend::Memory => Arc::new(sutra_platform::entitlement::NoStoredEntitlements),
+    };
+    sutra_web::entitlement::EntitlementGate::new(sutra_kernel::entitlement::EntitlementPolicy::new(
+        store,
+        Arc::new(sutra_kernel::entitlement::SystemClock),
+        cfg.entitlement.default.clone(),
+    ))
 }
 
 /// A built adapter plus its optional readiness check.
@@ -1103,16 +1137,26 @@ pub fn import_state(
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
-/// idempotency → handlers. The
+/// rate limit → entitlement gate (Part 2 · S7) → idempotency → handlers. The
 /// idempotency middleware keys its records by the authenticated owner, so it must run inside
 /// the authentication layer.
 pub fn build(ctx: AppContext) -> OpenApiRouter {
+    // Part 2 · S7-entitle: Finance facts read / written through ports follow the `fees`
+    // entitlement (see `crate::entitlement_ports`).
+    let policy = ctx.entitlement.policy().clone();
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
         .merge(sutra_platform::search::router(ctx.search.clone())) // 9C
         .merge(sutra_platform::identity::http::router(ctx.identity.clone())) // Part 2 · S4-idp
         .merge(sutra_platform::documents::router(ctx.documents.clone())) // Part 2 · S4-docs
+        // Part 2 · S7-entitle: active modules + licence state, maker-checker licence changes.
+        .merge(sutra_platform::entitlement::router(
+            sutra_platform::entitlement::EntitlementState {
+                pool: ctx.pool.clone(),
+                policy: ctx.entitlement.policy().clone(),
+            },
+        ))
         .merge(sutra_institution::router(
             sutra_institution::InstitutionDeps {
                 pool: ctx.pool.clone(),
@@ -1124,6 +1168,7 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         .merge(sutra_student::router({
             let mut deps = student_deps_with(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals);
             deps.documents = ctx.documents.clone(); // Part 2 · S4-docs
+            deps.finance = EntitledFinanceClearance::wrap(deps.finance, &policy); // Part 2 · S7
             deps
         }))
         .merge(sutra_academic::router(academic_deps_with(
@@ -1152,25 +1197,35 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.workflow.clone(),
             ctx.approvals,
         )))
-        .merge(sutra_exams::router(exams_deps_with(
-            ctx.pool.clone(),
-            ctx.workflow.clone(),
-            ctx.approvals,
-        )))
+        .merge(sutra_exams::router({
+            let mut deps = exams_deps_with(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals);
+            // Part 2 · S7-entitle: hall-ticket dues and exam fees follow the `fees` entitlement.
+            deps.finance = EntitledFinanceClearance::wrap(deps.finance, &policy);
+            deps.fees = EntitledExamFees::wrap(deps.fees, &policy);
+            deps
+        }))
         .merge(sutra_resources::router(resources_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
             ctx.approvals,
         )))
         // Part 2 · S4-import: data migration jobs over every module's import targets.
-        .merge(sutra_platform::dataimport::router(import_state(
-            ctx.pool.clone(),
-            ctx.workflow.clone(),
-            ctx.approvals,
-        )))
+        // Part 2 · S7-entitle: each entity is gated on the module it writes into.
+        .merge(sutra_platform::dataimport::router(
+            import_state(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals)
+                .with_entitlement(policy),
+        ))
         .layer(axum::middleware::from_fn_with_state(
             ctx.idempotency,
             sutra_web::idempotency::idempotency,
+        ))
+        // Part 2 · S7-entitle: inside the session layer (it needs the session's tenant and runs
+        // its lookup under the session's RLS scope): inactive modules, expired (read-only) and
+        // suspended licences are refused before any handler runs; outside the idempotency layer
+        // so a refusal is never stored as the replay of an Idempotency-Key.
+        .layer(axum::middleware::from_fn_with_state(
+            ctx.entitlement,
+            sutra_web::entitlement::enforce,
         ))
         // Part 1 · Stage 3 (S3-config): inside the session layer, so it knows who is signed in
         // (credential endpoints always, other requests only without a live session).

@@ -20315,6 +20315,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/entitlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Active modules and licence state of the caller's institution (drives navigation and the
+         *     renewal / expiry banner).
+         */
+        get: operations["platform_entitlement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Entitlement change requests of the session tenant, newest first. */
+        get: operations["platform_entitlement_request_list"];
+        put?: never;
+        /**
+         * Requests an entitlement change (activation, package change, renewal, suspension,
+         *     reinstatement). Validated against the registry, dependencies included; waits for a second
+         *     administrator's decision.
+         */
+        post: operations["platform_entitlement_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a pending entitlement change. The decider must hold `platform.entitlement.approve`
+         *     and must not be the requester (separation of duties). Approval re-validates the request
+         *     against the registry and the current entitlement version and applies it at once.
+         */
+        post: operations["platform_entitlement_request_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraws one's own pending request. */
+        post: operations["platform_entitlement_request_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The module / package registry (modules, dependencies, packages, always-available core). */
+        get: operations["platform_entitlement_catalogue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/identities": {
         parameters: {
             query?: never;
@@ -30863,6 +30960,12 @@ export interface components {
          * @enum {string}
          */
         ConsentType: "data_sharing" | "medical_treatment" | "field_trip" | "photography" | "extracurricular" | "research" | "other";
+        /** @description An always-available part of the product (never gated). */
+        CoreSpec: {
+            description?: string;
+            key: string;
+            name: string;
+        };
         CorrectAlumniTransition: {
             alumniEmail?: string | null;
             directoryConsent?: boolean | null;
@@ -32092,6 +32195,40 @@ export interface components {
             candidateId: string;
             reason: string;
         };
+        /** @description What a tenant may use right now (served by `GET /api/v1/platform/entitlement`). */
+        EffectiveEntitlement: {
+            addOnModules: string[];
+            /** Format: date-time */
+            asOf: string;
+            /**
+             * Format: int64
+             * @description Whole days until the licence (status `active`) or its grace period (status `grace`) ends.
+             */
+            daysRemaining?: number | null;
+            /** Format: int32 */
+            graceDays: number;
+            /**
+             * Format: date-time
+             * @description End of the grace period (`validUntil + graceDays`), when the licence has an end.
+             */
+            graceEndsAt?: string | null;
+            /** @description Active module keys (sorted). */
+            modules: string[];
+            origin: components["schemas"]["EntitlementOrigin"];
+            package?: string | null;
+            /** @description Writes are refused (`expired` / `suspended`). */
+            readOnly: boolean;
+            /** @description Effective licence status at `asOf`. */
+            status: components["schemas"]["LicenceStatus"];
+            /** @description Status as stored (before the validity window is applied). */
+            storedStatus: components["schemas"]["LicenceStatus"];
+            /** Format: date-time */
+            validFrom: string;
+            /** Format: date-time */
+            validUntil?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * @description Eligibility commands (L3-E-029).
          * @enum {string}
@@ -32430,6 +32567,93 @@ export interface components {
          * @enum {string}
          */
         EnrolmentWindowStatus: "scheduled" | "open" | "suspended" | "closed" | "closed_permanently";
+        /** @description The registry: licensable modules (with dependencies), the always-available core, packages. */
+        EntitlementCatalogue: {
+            core: components["schemas"]["CoreSpec"][];
+            defaultPackage: string;
+            modules: components["schemas"]["ModuleSpec"][];
+            packages: components["schemas"]["PackageSpec"][];
+            /** Format: int32 */
+            version: number;
+        };
+        /** @description Request a change of the tenant's entitlement: the full desired state. */
+        EntitlementChangeRequest: {
+            /** @description Modules added on top of the package. */
+            addOnModules?: string[];
+            /**
+             * Format: int32
+             * @description Days of full access after `validUntil` (0–365, default 0).
+             */
+            graceDays?: number | null;
+            /** @description `activate` · `change` · `renew` · `suspend` · `reinstate`. */
+            kind: string;
+            /** @description `active` (default) · `grace` · `expired` · `suspended` (only with kind `suspend`). */
+            licenceStatus?: string | null;
+            /** @description Package key (`core_academic`, `academic_plus`, `institution_operations`, `complete_erp`). */
+            package: string;
+            reason: string;
+            /**
+             * Format: date-time
+             * @description Start of validity (default: now).
+             */
+            validFrom?: string | null;
+            /**
+             * Format: date-time
+             * @description End of validity (`null` = perpetual).
+             */
+            validUntil?: string | null;
+        };
+        /** @description A decided request and the tenant's entitlement after it. */
+        EntitlementDecided: {
+            entitlement: components["schemas"]["EffectiveEntitlement"];
+            request: components["schemas"]["EntitlementRequestView"];
+        };
+        /** @description Decision on a pending request. */
+        EntitlementDecision: {
+            /** @description `approve` or `reject`. */
+            decision: string;
+            reason: string;
+        };
+        /**
+         * @description Where an entitlement came from.
+         * @enum {string}
+         */
+        EntitlementOrigin: "stored" | "default";
+        /** @description Entitlement change requests of the tenant, newest first. */
+        EntitlementRequestPage: {
+            items: components["schemas"]["EntitlementRequestView"][];
+            total: number;
+        };
+        /** @description One entitlement change request. */
+        EntitlementRequestView: {
+            addOnModules: string[];
+            /**
+             * Format: int64
+             * @description Entitlement version the request was made against (0 = none stored yet).
+             */
+            baseVersion: number;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: int32 */
+            graceDays: number;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            licenceStatus: string;
+            package?: string | null;
+            reason: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            /** @description `pending` · `approved` · `rejected` · `withdrawn`. */
+            status: string;
+            /** Format: date-time */
+            validFrom: string;
+            /** Format: date-time */
+            validUntil?: string | null;
+        };
         /**
          * @description Laboratory equipment status (L3-G-060).
          * @enum {string}
@@ -37302,6 +37526,11 @@ export interface components {
             /** @description `true` to restrict borrowing, `false` to resolve the restriction. */
             restricted: boolean;
         };
+        /**
+         * @description Licence status: stored ([`TenantEntitlement::status`]) or effective ([`effective_status`]).
+         * @enum {string}
+         */
+        LicenceStatus: "active" | "grace" | "expired" | "suspended";
         /** @description Body of an approval decision endpoint. */
         LifecycleDecision: {
             decision: components["schemas"]["LifecycleDecisionValue"];
@@ -38186,6 +38415,19 @@ export interface components {
             /** @description Owned PostgreSQL schema (ADR-L5-0036 §3.1). */
             schema: string;
             status: components["schemas"]["ModuleStatus"];
+        };
+        /** @description One licensable module. */
+        ModuleSpec: {
+            /** @description `false` = defined commercially but not implemented in this build (cannot be activated). */
+            activatable: boolean;
+            /** @description Crate that implements it (`sutra-exams`). */
+            crate: string;
+            description?: string;
+            /** @description Stable module key (`examinations`). */
+            key: string;
+            name: string;
+            /** @description Modules that must be active as well. */
+            requires?: string[];
         };
         /** @enum {string} */
         ModuleStatus: "scaffolded" | "active";
@@ -39975,6 +40217,13 @@ export interface components {
          * @enum {string}
          */
         OrgUnitStatus: "draft" | "active" | "suspended" | "decommissioned" | "archived";
+        /** @description A commercial package: a dependency-closed set of modules. */
+        PackageSpec: {
+            description?: string;
+            key: string;
+            modules: string[];
+            name: string;
+        };
         /**
          * Format: uuid
          * @description The candidate's marks for one registered paper (internal + external + grace; L2-I08).
@@ -98740,6 +98989,289 @@ export interface operations {
                 };
             };
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffectiveEntitlement"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitlementChangeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A request is already pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unknown package / module, missing dependency, invalid validity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitlementDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementDecided"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, or the requester */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not pending, or the entitlement changed since the request */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not the requester */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_catalogue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementCatalogue"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

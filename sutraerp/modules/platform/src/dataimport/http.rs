@@ -10,6 +10,7 @@ use axum::Json;
 use std::collections::BTreeMap;
 use sutra_contracts::platform::dataimport::{ColumnKind, EntitySpec, OnExisting};
 use sutra_kernel::auth::{AuthContext, Permission};
+use sutra_kernel::entitlement;
 use sutra_kernel::error::{FieldViolation, KernelError};
 use sutra_web::idempotency::require_idempotency_key;
 use sutra_web::{ApiResult, Authenticated, Problem};
@@ -270,6 +271,23 @@ fn require_entity<'a>(
     Ok((ctx, spec))
 }
 
+/// Part 2 · S7-entitle: the module `entity` writes into must be active for the caller's tenant
+/// (`403 entitlement.module_inactive`); institution set-up entities are core.
+async fn require_entitled(
+    st: &ImportState,
+    ctx: &AuthContext,
+    entity: &str,
+) -> Result<(), KernelError> {
+    let Some(policy) = &st.entitlement else {
+        return Ok(());
+    };
+    let reg = entitlement::registry().map_err(|e| KernelError::Unavailable(e.to_owned()))?;
+    match reg.import_module(entity) {
+        Some(module) => policy.require_module(ctx.scope.tenant_id, module).await,
+        None => Ok(()),
+    }
+}
+
 fn format_of(raw: Option<&str>) -> Result<FileFormat, KernelError> {
     match raw {
         None => Ok(FileFormat::Csv),
@@ -319,6 +337,15 @@ pub async fn entity_list(
     let ctx = auth.require(Permission::DataImport)?;
     let mut items: Vec<ImportEntityView> =
         st.targets.values().map(|t| view(&t.spec(), ctx)).collect();
+    // Part 2 · S7-entitle: only entities of active modules (and core set-up) are offered.
+    if let Some(policy) = &st.entitlement {
+        let reg = entitlement::registry().map_err(|e| KernelError::Unavailable(e.to_owned()))?;
+        let ent = policy.effective(ctx.scope.tenant_id).await?;
+        items.retain(|v| match reg.import_module(&v.entity) {
+            Some(m) => ent.has_module(m),
+            None => true,
+        });
+    }
     let order = |e: &str| {
         sutra_contracts::platform::dataimport::entity::ALL
             .iter()
@@ -402,6 +429,7 @@ pub async fn profile_save(
     Json(b): Json<ImportMappingProfileSave>,
 ) -> ApiResult<Json<MappingProfile>> {
     let (ctx, _) = require_entity(&auth, &st, &b.entity)?;
+    require_entitled(&st, ctx, &b.entity).await?;
     let p =
         engine::save_profile(&st, &ctx.scope, &b.entity, &b.name, &b.mapping, actor(ctx)).await?;
     Ok(Json(p))
@@ -442,6 +470,7 @@ pub async fn job_upload(
     Json(b): Json<ImportUpload>,
 ) -> ApiResult<Response> {
     let (ctx, _) = require_entity(&auth, &st, &b.entity)?;
+    require_entitled(&st, ctx, &b.entity).await?;
     require_idempotency_key(&headers)?;
     let (job, created) = engine::upload(
         &st,
@@ -531,6 +560,7 @@ pub async fn job_mapping(
     let ctx = auth.require(Permission::DataImport)?;
     let job = engine::load_job(&st, ctx.scope.tenant_id, id).await?;
     let (ctx, _) = require_entity(&auth, &st, &job.entity)?;
+    require_entitled(&st, ctx, &job.entity).await?;
     let updated = engine::set_mapping(
         &st,
         ctx.scope.tenant_id,
@@ -562,6 +592,7 @@ pub async fn job_dry_run(
     let ctx = auth.require(Permission::DataImport)?;
     let job = engine::load_job(&st, ctx.scope.tenant_id, id).await?;
     let (ctx, _) = require_entity(&auth, &st, &job.entity)?;
+    require_entitled(&st, ctx, &job.entity).await?;
     Ok(Json(
         engine::dry_run(&st, ctx.scope.tenant_id, id, actor(ctx)).await?,
     ))
@@ -580,6 +611,7 @@ pub async fn job_commit(
     let ctx = auth.require(Permission::DataImport)?;
     let job = engine::load_job(&st, ctx.scope.tenant_id, id).await?;
     let (ctx, _) = require_entity(&auth, &st, &job.entity)?;
+    require_entitled(&st, ctx, &job.entity).await?;
     Ok(Json(
         engine::request_commit(&st, ctx.scope.tenant_id, id, actor(ctx)).await?,
     ))
@@ -601,6 +633,9 @@ pub async fn job_decision(
     // Separation of duties (DEF-X-002): never the job's maker; checked again by `engine::decide`
     // with the job's own maker columns.
     sutra_persistence::approval::guard_decision(&st.pool, ctx, id, "data import").await?;
+    // Part 2 · S7-entitle: approving runs the commit, so the entity's module must be active.
+    let job = engine::load_job(&st, tenant, id).await?;
+    require_entitled(&st, ctx, &job.entity).await?;
     Ok(Json(
         engine::decide(
             &st,

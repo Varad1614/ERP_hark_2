@@ -84,6 +84,9 @@ jobs:
           check production-refuses-auto-approval "! helm template sutraerp deploy/helm/sutraerp --set approvals.mode=auto >/dev/null 2>&1"
           check production-refuses-noop-workflow "! helm template sutraerp deploy/helm/sutraerp --set flowable.enabled=false >/dev/null 2>&1"
           check production-refuses-flowable-auto "! helm template sutraerp deploy/helm/sutraerp --set flowable.autoApprove=true >/dev/null 2>&1"
+          # Part 2 · S7-entitle: production states the entitlement default (SUTRA_ENTITLEMENT_DEFAULT).
+          check entitlement-default-rendered-pilot "grep -q 'SUTRA_ENTITLEMENT_DEFAULT: \"complete_erp\"' /tmp/rendered/pilot.yaml"
+          check production-refuses-missing-entitlement-default "! helm template sutraerp deploy/helm/sutraerp --set entitlements.default=null >/dev/null 2>&1"
           # Part 1 S3 (auth): auth rate limit on the pilot ingress; production refuses dev auth and
           # switching off privileged MFA / step-up / the sign-in lockout; realm security + parity.
           check auth-rate-limit-ingress-pilot "grep -q 'nginx.ingress.kubernetes.io/limit-rpm' /tmp/rendered/pilot.yaml"

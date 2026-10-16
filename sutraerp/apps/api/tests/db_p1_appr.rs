@@ -537,6 +537,8 @@ fn production(extra: &[(&'static str, &'static str)]) -> HashMap<&'static str, &
             "SUTRA_S3_SECRET_ACCESS_KEY",
             "unit-test-only-object-storage-secret",
         ),
+        // Part 2 · S7-entitle: production states the default entitlement explicitly.
+        ("SUTRA_ENTITLEMENT_DEFAULT", "complete_erp"),
     ]);
     m.extend(extra.iter().copied());
     m

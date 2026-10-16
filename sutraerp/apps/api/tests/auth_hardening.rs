@@ -258,7 +258,7 @@ const PUBLIC: [(&str, &str); 15] = [
 /// Authenticated-only routes that act on the caller's *own* session / second factors (or return
 /// only data addressed to the caller's own roles) and
 /// therefore need a session but no role permission.
-const SESSION_ONLY: [(&str, &str); 15] = [
+const SESSION_ONLY: [(&str, &str); 17] = [
     ("GET", "/api/v1/auth/session"),
     ("GET", "/api/v1/auth/mfa"),
     ("DELETE", "/api/v1/auth/mfa/totp"),
@@ -276,6 +276,12 @@ const SESSION_ONLY: [(&str, &str); 15] = [
     // Dashboards published to the caller's own roles (the query filters by `ctx.roles`; a
     // role-less session gets an empty list, never another role's board).
     ("GET", "/api/v1/services/me/dashboards"),
+    // Part 2 · S7-entitle: the caller's own tenant's active modules / licence state and the
+    // public module catalogue (no tenant data). Every signed-in user needs them to see which
+    // modules are on and why a request was refused; changes stay behind
+    // `platform.entitlement.manage` / `.approve`.
+    ("GET", "/api/v1/platform/entitlement"),
+    ("GET", "/api/v1/platform/entitlement/catalogue"),
 ];
 
 fn resolve<'a>(doc: &'a Value, schema: &'a Value) -> &'a Value {

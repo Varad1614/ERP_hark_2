@@ -94851,6 +94851,395 @@
         ]
       }
     },
+    "/api/v1/platform/entitlement": {
+      "get": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Active modules and licence state of the caller's institution (drives navigation and the\nrenewal / expiry banner).",
+        "operationId": "platform_entitlement_get",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveEntitlement"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement-requests": {
+      "get": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Entitlement change requests of the session tenant, newest first.",
+        "operationId": "platform_entitlement_request_list",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementRequestPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Requests an entitlement change (activation, package change, renewal, suspension,\nreinstatement). Validated against the registry, dependencies included; waits for a second\nadministrator's decision.",
+        "operationId": "platform_entitlement_request_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntitlementChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementRequestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request is already pending",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unknown package / module, missing dependency, invalid validity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement-requests/{id}/decision": {
+      "post": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Decides a pending entitlement change. The decider must hold `platform.entitlement.approve`\nand must not be the requester (separation of duties). Approval re-validates the request\nagainst the registry and the current entitlement version and applies it at once.",
+        "operationId": "platform_entitlement_request_decision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntitlementDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementDecided"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission / step-up, or the requester",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not pending, or the entitlement changed since the request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement-requests/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Withdraws one's own pending request.",
+        "operationId": "platform_entitlement_request_withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementRequestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the requester",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement/catalogue": {
+      "get": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "The module / package registry (modules, dependencies, packages, always-available core).",
+        "operationId": "platform_entitlement_catalogue",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementCatalogue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/platform/identities": {
       "get": {
         "tags": [
@@ -144114,6 +144503,25 @@
           "other"
         ]
       },
+      "CoreSpec": {
+        "type": "object",
+        "description": "An always-available part of the product (never gated).",
+        "required": [
+          "key",
+          "name"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "CorrectAlumniTransition": {
         "type": "object",
         "required": [
@@ -148052,6 +148460,97 @@
         },
         "additionalProperties": false
       },
+      "EffectiveEntitlement": {
+        "type": "object",
+        "description": "What a tenant may use right now (served by `GET /api/v1/platform/entitlement`).",
+        "required": [
+          "addOnModules",
+          "modules",
+          "status",
+          "storedStatus",
+          "validFrom",
+          "graceDays",
+          "readOnly",
+          "origin",
+          "version",
+          "asOf"
+        ],
+        "properties": {
+          "addOnModules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "daysRemaining": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Whole days until the licence (status `active`) or its grace period (status `grace`) ends."
+          },
+          "graceDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "graceEndsAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "End of the grace period (`validUntil + graceDays`), when the licence has an end."
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Active module keys (sorted)."
+          },
+          "origin": {
+            "$ref": "#/components/schemas/EntitlementOrigin"
+          },
+          "package": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Writes are refused (`expired` / `suspended`)."
+          },
+          "status": {
+            "$ref": "#/components/schemas/LicenceStatus",
+            "description": "Effective licence status at `asOf`."
+          },
+          "storedStatus": {
+            "$ref": "#/components/schemas/LicenceStatus",
+            "description": "Status as stored (before the validity window is applied)."
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "EligibilityAction": {
         "type": "string",
         "description": "Eligibility commands (L3-E-029).",
@@ -149141,6 +149640,260 @@
           "closed",
           "closed_permanently"
         ]
+      },
+      "EntitlementCatalogue": {
+        "type": "object",
+        "description": "The registry: licensable modules (with dependencies), the always-available core, packages.",
+        "required": [
+          "version",
+          "modules",
+          "core",
+          "packages",
+          "defaultPackage"
+        ],
+        "properties": {
+          "core": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoreSpec"
+            }
+          },
+          "defaultPackage": {
+            "type": "string"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModuleSpec"
+            }
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageSpec"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "EntitlementChangeRequest": {
+        "type": "object",
+        "description": "Request a change of the tenant's entitlement: the full desired state.",
+        "required": [
+          "kind",
+          "package",
+          "reason"
+        ],
+        "properties": {
+          "addOnModules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Modules added on top of the package."
+          },
+          "graceDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Days of full access after `validUntil` (0–365, default 0)."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`activate` · `change` · `renew` · `suspend` · `reinstate`."
+          },
+          "licenceStatus": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`active` (default) · `grace` · `expired` · `suspended` (only with kind `suspend`)."
+          },
+          "package": {
+            "type": "string",
+            "description": "Package key (`core_academic`, `academic_plus`, `institution_operations`, `complete_erp`)."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "validFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Start of validity (default: now)."
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "End of validity (`null` = perpetual)."
+          }
+        }
+      },
+      "EntitlementDecided": {
+        "type": "object",
+        "description": "A decided request and the tenant's entitlement after it.",
+        "required": [
+          "request",
+          "entitlement"
+        ],
+        "properties": {
+          "entitlement": {
+            "$ref": "#/components/schemas/EffectiveEntitlement"
+          },
+          "request": {
+            "$ref": "#/components/schemas/EntitlementRequestView"
+          }
+        }
+      },
+      "EntitlementDecision": {
+        "type": "object",
+        "description": "Decision on a pending request.",
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "`approve` or `reject`."
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "EntitlementOrigin": {
+        "type": "string",
+        "description": "Where an entitlement came from.",
+        "enum": [
+          "stored",
+          "default"
+        ]
+      },
+      "EntitlementRequestPage": {
+        "type": "object",
+        "description": "Entitlement change requests of the tenant, newest first.",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntitlementRequestView"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "EntitlementRequestView": {
+        "type": "object",
+        "description": "One entitlement change request.",
+        "required": [
+          "id",
+          "kind",
+          "addOnModules",
+          "licenceStatus",
+          "validFrom",
+          "graceDays",
+          "baseVersion",
+          "reason",
+          "status",
+          "requestedBy",
+          "requestedAt"
+        ],
+        "properties": {
+          "addOnModules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "baseVersion": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Entitlement version the request was made against (0 = none stored yet)."
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "graceDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "licenceStatus": {
+            "type": "string"
+          },
+          "package": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestedBy": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "`pending` · `approved` · `rejected` · `withdrawn`."
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
       },
       "EquipmentStatus": {
         "type": "string",
@@ -164281,6 +165034,16 @@
           }
         }
       },
+      "LicenceStatus": {
+        "type": "string",
+        "description": "Licence status: stored ([`TenantEntitlement::status`]) or effective ([`effective_status`]).",
+        "enum": [
+          "active",
+          "grace",
+          "expired",
+          "suspended"
+        ]
+      },
       "LifecycleDecision": {
         "type": "object",
         "description": "Body of an approval decision endpoint.",
@@ -167048,6 +167811,43 @@
           },
           "status": {
             "$ref": "#/components/schemas/ModuleStatus"
+          }
+        }
+      },
+      "ModuleSpec": {
+        "type": "object",
+        "description": "One licensable module.",
+        "required": [
+          "key",
+          "name",
+          "crate",
+          "activatable"
+        ],
+        "properties": {
+          "activatable": {
+            "type": "boolean",
+            "description": "`false` = defined commercially but not implemented in this build (cannot be activated)."
+          },
+          "crate": {
+            "type": "string",
+            "description": "Crate that implements it (`sutra-exams`)."
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Stable module key (`examinations`)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Modules that must be active as well."
           }
         }
       },
@@ -173106,6 +173906,32 @@
           "decommissioned",
           "archived"
         ]
+      },
+      "PackageSpec": {
+        "type": "object",
+        "description": "A commercial package: a dependency-closed set of modules.",
+        "required": [
+          "key",
+          "name",
+          "modules"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       },
       "PaperMarkId": {
         "type": "string",
