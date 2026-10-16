@@ -13,7 +13,7 @@ statement about the college server. Items that need the college's own infrastruc
 |---|---|---|
 | Code: kernel signals, backlog gauges, readiness S3 probe (DEF-P2-MON-001), unit + real-PostgreSQL tests | SutraERP CI [38914486065](https://github.com/Varad1614/ERP_hark_2/actions/runs/38914486065) (on `bb8aa051`, the last code commit) | green |
 | Static gates: promtool check + **93/93** rule unit tests (47 on-prem alerts, firing + quiet case each) + slice 9A tests, `promtool check config`, Alertmanager receivers × 4 chat kinds via `amtool`, route tests, dashboard/metric contract, compose parse | SutraERP Part 2 monitoring [38916609615](https://github.com/Varad1614/ERP_hark_2/actions/runs/38916609615), job "Rules · promtool tests · receivers · dashboards" | green |
-| Fault-injection drill on a clean runner ("staging host"), bundle installed under `/opt/sutraerp` like an admin would | same run, job "Fault-injection drill" | green — 4 faults fired, delivered by e-mail + SMS webhook + dead-man |
+| Fault-injection drill on a clean runner ("staging host"), bundle installed under `/opt/sutraerp` like an admin would | same run, job "Fault-injection drill"; repeated green on `411949d4` in run [38918984735](https://github.com/Varad1614/ERP_hark_2/actions/runs/38918984735) (also checks every runbook anchor of §6) | green — 4 faults fired, delivered by e-mail + SMS webhook + dead-man |
 | Existing 9A observability (OTel → LGTM, audit chain) still green with the new metrics | SutraERP observability [38916672356](https://github.com/Varad1614/ERP_hark_2/actions/runs/38916672356) | green |
 | Full-stack Part 1 demo on the branch head | SutraERP Part 1 demo (full stack) [38916667295](https://github.com/Varad1614/ERP_hark_2/actions/runs/38916667295) | green (on `f0bcccdf`) |
 
@@ -149,7 +149,7 @@ asserts all nine exist and that a query answers through Grafana's datasource pro
 ## 4. Measured alert latency (fault-injection drill)
 
 GitHub-hosted runner (AMD EPYC 7763 64-Core Processor, 4 vCPU, 15 GiB) — NOT college hardware. Run [38916609615](https://github.com/Varad1614/ERP_hark_2/actions/runs/38916609615) (job 117025881221), commit `f0bcccdf`.
-Stack (10 containers) up and healthy in **20 s**; targets all `up`; every rule `health=ok`; all 24 required
+Stack (10 containers) up and healthy in **20 s** (22 s in the repeat run); targets all `up`; every rule `health=ok`; all 24 required
 metric families present (API, PostgreSQL, node, NATS, backup textfile).
 
 The drill copies the rules with every `for:` capped at 20 s and evaluation at 10 s
@@ -157,26 +157,26 @@ The drill copies the rules with every `for:` capped at 20 s and evaluation at 10
 production `for:` durations are proven separately by the promtool unit tests. "Seconds" = from the fault
 being injected until the alert was firing in Prometheus / active in Alertmanager (polled every 2 s).
 
-| Fault injected (real) | Alert | Prod `for` | Prometheus firing | Alertmanager active | Delivered |
-|---|---|---|---|---|---|
-| — (heartbeat) | SutraWatchdog | — | 0 s | 0 s | dead-man webhook `/deadman` ✔ |
-| 6 payment webhooks with a wrong `X-Razorpay-Signature` (API answered 401 each) | SutraWebhookSignatureFailures | — | **6 s** | 6 s | e-mail in Mailpit ✔ |
-| MinIO frozen with SIGSTOP while `/health/ready` is polled (S3 requests hang) | SutraS3Errors | 5m (drill 20 s) | **56 s** | 56 s | e-mail ✔ |
-| WAL archive destination made read-only, `pg_switch_wal()` (archiver failed=3) | SutraWalArchiveFailing | — | **13 s** | 13 s | e-mail + SMS webhook ✔ |
-| `docker compose stop postgres` | SutraPostgresDown | 1m (drill 20 s) | **35 s** | 35 s | e-mail + SMS webhook `/sms` ✔ |
-| scheduled backup run while PostgreSQL is down (pg_dump fails, wrapper writes `last_run_success 0`) | SutraBackupFailed | — | **35 s** | 35 s | e-mail + SMS ✔ |
-| API readiness while PostgreSQL is down | — | — | `/health/ready` → **503** | — | — |
-| Recovery: PostgreSQL started, backup re-run | SutraBackupFailed, SutraPostgresDown | — | resolved | resolved | resolved notifications |
+| Fault injected (real) | Alert | Prod `for` | Prometheus firing | Alertmanager active | Repeat run 38918984735 (AM active) | Delivered |
+|---|---|---|---|---|---|---|
+| — (heartbeat) | SutraWatchdog | — | 0 s | 0 s | 0 s | dead-man webhook `/deadman` ✔ (asserted) |
+| 6 payment webhooks with a wrong `X-Razorpay-Signature` (API answered 401 each) | SutraWebhookSignatureFailures | — | **6 s** | 6 s | 20 s | e-mail in Mailpit ✔ (asserted) |
+| MinIO frozen with SIGSTOP while `/health/ready` is polled (S3 requests hang) | SutraS3Errors | 5m (drill 20 s) | **56 s** | 56 s | 44 s | routed to e-mail + chat (warning) |
+| WAL archive destination made read-only, `pg_switch_wal()` (archiver failed=3) | SutraWalArchiveFailing | — | **13 s** | 13 s | 22 s | routed to e-mail + chat + SMS (critical) |
+| `docker compose stop postgres` | SutraPostgresDown | 1m (drill 20 s) | **35 s** | 35 s | 34 s | SMS webhook `/sms` ✔ (asserted) + e-mail + chat |
+| scheduled backup run while PostgreSQL is down (pg_dump fails, wrapper writes `last_run_success 0`) | SutraBackupFailed | — | **35 s** | 35 s | 34 s | routed to e-mail + chat + SMS (critical) |
+| API readiness while PostgreSQL is down | — | — | `/health/ready` → **503** | — | — | — |
+| Recovery: PostgreSQL started, backup re-run | SutraBackupFailed, SutraPostgresDown | — | resolved | resolved | resolved | resolved notifications |
 
-Delivered during the drill: **7 e-mails** (Mailpit standing in for the college SMTP relay) and **11
-webhook posts** (chat, SMS adapter, dead-man). Monitoring stack footprint at the end of the drill:
+Delivered during each drill run: **7 e-mails** (Mailpit standing in for the college SMTP relay) and **11
+webhook posts** (chat, SMS adapter, dead-man); the drill asserts the three marked legs explicitly, the full list of subjects / posts is in the `mail-subjects.json` and `webhook-summary.json` artifacts. Monitoring stack footprint at the end of the drill:
 Grafana 129 MiB, Prometheus 104 MiB, PostgreSQL 54 MiB, postgres_exporter 25 MiB, Alertmanager 20 MiB,
 the rest < 17 MiB each; CPU < 0.4 % per container (runner numbers).
 
 Earlier attempts of the same drill measured SutraWebhookSignatureFailures 12 s and SutraS3Errors 45 s
 (run 38914782594, which then failed at the WAL fault — fixed in `f0bcccdf`: the archive_command is set on
 the PostgreSQL command line, which outranks `ALTER SYSTEM`, so the drill now makes the archive directory
-read-only instead). The spread (6–12 s, 45–56 s) is scrape / evaluation phase.
+read-only instead). Across the three measurements of each alert the spread (webhook 6–20 s, S3 44–56 s, WAL 13–22 s, PostgreSQL 34–35 s) is scrape / evaluation phase alignment, not load.
 
 **Expected latency in production** (upper bound, from the configuration, not measured): `for` + up to
 30 s evaluation + up to 15 s scrape + 30 s Alertmanager `group_wait`. E.g. SutraPostgresDown ≤ 1m + 75 s
