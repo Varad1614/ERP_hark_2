@@ -29,6 +29,43 @@ pub enum PaymentGatewayMode {
     /// `sutra_finance::MockPaymentGateway` (deterministic, captures without money). Default in
     /// `development` / `test`; always refused in `production` (Part 1 · Stage 3, DEF-F-002).
     Mock,
+    /// Part 2 S4-pay: Razorpay (`crate::payment_gateway::RazorpayGateway`). Needs
+    /// [`RazorpayConfig`] and the webhook secret; production needs a live key (`rzp_live_…`) and an
+    /// `https` base URL.
+    Razorpay,
+}
+
+/// Part 2 S4-pay: Razorpay API settings (`SUTRA_RAZORPAY_*`).
+#[derive(Debug, Clone)]
+pub struct RazorpayConfig {
+    /// `SUTRA_RAZORPAY_KEY_ID` (`rzp_test_…` / `rzp_live_…`; public, also used by Checkout).
+    pub key_id: String,
+    /// `SUTRA_RAZORPAY_KEY_SECRET` or the file named by `SUTRA_RAZORPAY_KEY_SECRET_FILE`
+    /// (OpenBao `kv/sutraerp/<env>/payments#razorpay_key_secret`). Never logged.
+    pub key_secret: SecretString,
+    /// `SUTRA_RAZORPAY_BASE_URL` (default `https://api.razorpay.com`).
+    pub base_url: String,
+    /// `SUTRA_RAZORPAY_TIMEOUT_MS` (default 10000, 500 … 60000): per-request timeout.
+    pub timeout: Duration,
+    /// `SUTRA_RAZORPAY_MAX_RETRIES` (default 2, at most 5): extra attempts on timeouts, 429, 5xx.
+    pub max_retries: u32,
+}
+
+/// Part 2 S4-pay: pending / failed gateway payment recovery job (`SUTRA_PAYMENT_RECOVERY_*`).
+#[derive(Debug, Clone)]
+pub struct PaymentRecoveryConfig {
+    /// `SUTRA_PAYMENT_RECOVERY_INTERVAL_SECS` (default 300; 0 = off). Runs with the sweepers.
+    pub interval: Duration,
+    /// `SUTRA_PAYMENT_RECOVERY_MIN_AGE_SECS` (default 600): a payment is first polled this long
+    /// after it was created (the payer may still be in checkout); later polls back off
+    /// exponentially.
+    pub min_age: Duration,
+    /// `SUTRA_PAYMENT_RECOVERY_EXPIRE_AFTER_HOURS` (default 48): an open payment the gateway still
+    /// reports as pending is expired after this; failed payments are re-checked for a late
+    /// capture until then.
+    pub expire_after: Duration,
+    /// `SUTRA_PAYMENT_RECOVERY_BATCH` (default 50): payments polled per run.
+    pub batch_size: u32,
 }
 
 /// INT (SEC-9D-003): online payments.
@@ -37,7 +74,43 @@ pub struct PaymentsConfig {
     pub gateway: PaymentGatewayMode,
     /// `SUTRA_PAYMENT_WEBHOOK_SECRET` (OpenBao `kv/sutraerp/<env>/payments#webhook_secret`):
     /// HMAC-SHA256 key of the gateway webhook. Unset → the dev constant outside production.
+    /// Part 2 S4-pay: may also come from the file named by `SUTRA_PAYMENT_WEBHOOK_SECRET_FILE`.
     pub webhook_secret: Option<SecretString>,
+    /// Part 2 S4-pay: set when `gateway = Razorpay`.
+    pub razorpay: Option<RazorpayConfig>,
+    /// Part 2 S4-pay: recovery polling of open / failed gateway payments.
+    pub recovery: PaymentRecoveryConfig,
+}
+
+/// Part 2 S4-pay: a secret from `key`, or from the file named by `file_key` (Kubernetes / OpenBao
+/// agent secret files; trailing newline trimmed). The value never appears in errors.
+fn secret(
+    src: &dyn Source,
+    key: &'static str,
+    file_key: &'static str,
+) -> Result<Option<SecretString>, ConfigError> {
+    if let Some(v) = src.get(key) {
+        return Ok(Some(SecretString(v)));
+    }
+    match src.get(file_key) {
+        None => Ok(None),
+        Some(path) => {
+            let v = std::fs::read_to_string(path.trim()).map_err(|e| ConfigError::Invalid {
+                key: file_key,
+                value: format!("{path}: {}", e.kind()),
+            })?;
+            let v = v.trim_end_matches(['\r', '\n']).to_owned();
+            Ok((!v.is_empty()).then_some(SecretString(v)))
+        }
+    }
+}
+
+/// `rzp_test_…` / `rzp_live_…` followed by letters and digits.
+fn is_razorpay_key_id(id: &str) -> bool {
+    ["rzp_test_", "rzp_live_"].iter().any(|p| {
+        id.strip_prefix(p)
+            .is_some_and(|r| !r.is_empty() && r.chars().all(|c| c.is_ascii_alphanumeric()))
+    })
 }
 
 /// INT (SEC-9D-003): the public development webhook secret (`sutra_finance::payments::gateway::
@@ -295,6 +368,7 @@ impl HardeningConfig {
             None => PaymentGatewayMode::Mock,
             Some("disabled") | Some("off") => PaymentGatewayMode::Disabled,
             Some("mock") => PaymentGatewayMode::Mock,
+            Some("razorpay") => PaymentGatewayMode::Razorpay, // Part 2 S4-pay
             Some(v) => {
                 return Err(ConfigError::Invalid {
                     key: "SUTRA_PAYMENT_GATEWAY",
@@ -302,10 +376,115 @@ impl HardeningConfig {
                 })
             }
         };
+        // Part 2 S4-pay: Razorpay keys + recovery job.
+        let razorpay = if payment_gateway == PaymentGatewayMode::Razorpay {
+            let key_id = src
+                .get("SUTRA_RAZORPAY_KEY_ID")
+                .ok_or_else(|| ConfigError::Invalid {
+                    key: "SUTRA_RAZORPAY_KEY_ID",
+                    value: "required when SUTRA_PAYMENT_GATEWAY=razorpay".into(),
+                })?
+                .trim()
+                .to_owned();
+            if !is_razorpay_key_id(&key_id) {
+                return Err(ConfigError::Invalid {
+                    key: "SUTRA_RAZORPAY_KEY_ID",
+                    value: format!("{key_id} (expected rzp_test_… or rzp_live_…)"),
+                });
+            }
+            let key_secret = secret(
+                src,
+                "SUTRA_RAZORPAY_KEY_SECRET",
+                "SUTRA_RAZORPAY_KEY_SECRET_FILE",
+            )?
+            .ok_or_else(|| ConfigError::Invalid {
+                key: "SUTRA_RAZORPAY_KEY_SECRET",
+                value: "required when SUTRA_PAYMENT_GATEWAY=razorpay".into(),
+            })?;
+            let base_url = string(src, "SUTRA_RAZORPAY_BASE_URL", "https://api.razorpay.com");
+            if !(base_url.starts_with("https://") || base_url.starts_with("http://")) {
+                return Err(ConfigError::Invalid {
+                    key: "SUTRA_RAZORPAY_BASE_URL",
+                    value: base_url,
+                });
+            }
+            let timeout_ms: u64 = parse(src, "SUTRA_RAZORPAY_TIMEOUT_MS", 10_000)?;
+            if !(500..=60_000).contains(&timeout_ms) {
+                return Err(ConfigError::Invalid {
+                    key: "SUTRA_RAZORPAY_TIMEOUT_MS",
+                    value: timeout_ms.to_string(),
+                });
+            }
+            let max_retries: u32 = parse(src, "SUTRA_RAZORPAY_MAX_RETRIES", 2)?;
+            if max_retries > 5 {
+                return Err(ConfigError::Invalid {
+                    key: "SUTRA_RAZORPAY_MAX_RETRIES",
+                    value: max_retries.to_string(),
+                });
+            }
+            Some(RazorpayConfig {
+                key_id,
+                key_secret,
+                base_url,
+                timeout: Duration::from_millis(timeout_ms),
+                max_retries,
+            })
+        } else {
+            None
+        };
+        let recovery = PaymentRecoveryConfig {
+            interval: Duration::from_secs(parse(src, "SUTRA_PAYMENT_RECOVERY_INTERVAL_SECS", 300)?),
+            min_age: Duration::from_secs(parse(src, "SUTRA_PAYMENT_RECOVERY_MIN_AGE_SECS", 600)?),
+            expire_after: Duration::from_secs(
+                parse::<u64>(src, "SUTRA_PAYMENT_RECOVERY_EXPIRE_AFTER_HOURS", 48)?
+                    .saturating_mul(3600),
+            ),
+            batch_size: parse(src, "SUTRA_PAYMENT_RECOVERY_BATCH", 50)?,
+        };
         let payments = PaymentsConfig {
             gateway: payment_gateway,
-            webhook_secret: src.get("SUTRA_PAYMENT_WEBHOOK_SECRET").map(SecretString),
+            webhook_secret: secret(
+                src,
+                "SUTRA_PAYMENT_WEBHOOK_SECRET",
+                "SUTRA_PAYMENT_WEBHOOK_SECRET_FILE",
+            )?,
+            razorpay,
+            recovery,
         };
+        // Part 2 S4-pay: Razorpay verifies every webhook with this secret — required in every
+        // environment, never the public development constant.
+        if payments.gateway == PaymentGatewayMode::Razorpay {
+            match payments.webhook_secret.as_ref().map(|s| s.0.as_str()) {
+                None => {
+                    return Err(ConfigError::Invalid {
+                        key: "SUTRA_PAYMENT_WEBHOOK_SECRET",
+                        value: "required when SUTRA_PAYMENT_GATEWAY=razorpay".into(),
+                    })
+                }
+                Some(s) if s == DEV_PAYMENT_WEBHOOK_SECRET => {
+                    return Err(ConfigError::Forbidden(
+                        "SUTRA_PAYMENT_WEBHOOK_SECRET must not be the development secret with \
+                         SUTRA_PAYMENT_GATEWAY=razorpay",
+                    ))
+                }
+                Some(_) => {}
+            }
+        }
+        if env == Environment::Production {
+            if let Some(r) = &payments.razorpay {
+                if !r.key_id.starts_with("rzp_live_") {
+                    return Err(ConfigError::Forbidden(
+                        "SUTRA_RAZORPAY_KEY_ID must be a live key (rzp_live_…) in production: test \
+                         mode captures without money",
+                    ));
+                }
+                if !r.base_url.starts_with("https://") {
+                    return Err(ConfigError::Forbidden(
+                        "SUTRA_RAZORPAY_BASE_URL must use https in production",
+                    ));
+                }
+            }
+        }
         // Part 1 · Stage 3 (DEF-F-002): the mock "captures" without money — never in production,
         // whatever webhook secret accompanies it. Only `disabled` is valid until a real gateway
         // adapter exists (then this match grows its mode and the secret rules below apply).
@@ -483,6 +662,126 @@ mod tests {
         assert!(HardeningConfig::load(
             &HashMap::from([("SUTRA_PAYMENT_GATEWAY", "razorpay")]),
             Environment::Development
+        )
+        .is_err());
+    }
+
+    // Part 2 S4-pay: Razorpay keys, secret files, recovery defaults and production rules.
+    #[test]
+    fn razorpay_settings_and_production_rules() {
+        const HOOK: &str = "whsec-0123456789abcdef0123456789abcdef";
+        fn with(
+            extra: &[(&'static str, &'static str)],
+            drop: &[&str],
+            env: Environment,
+        ) -> Result<HardeningConfig, ConfigError> {
+            let base = [
+                ("SUTRA_PAYMENT_GATEWAY", "razorpay"),
+                ("SUTRA_RAZORPAY_KEY_ID", "rzp_test_AbC123"),
+                ("SUTRA_RAZORPAY_KEY_SECRET", "key-secret-value"),
+                ("SUTRA_PAYMENT_WEBHOOK_SECRET", HOOK),
+            ];
+            let mut m: HashMap<&'static str, &'static str> = base
+                .iter()
+                .copied()
+                .filter(|(k, _)| !drop.contains(k))
+                .collect();
+            m.extend(extra.iter().copied());
+            HardeningConfig::load(&m, env)
+        }
+        let dev = with(&[], &[], Environment::Development).unwrap();
+        assert_eq!(dev.payments.gateway, PaymentGatewayMode::Razorpay);
+        let r = dev.payments.razorpay.as_ref().unwrap();
+        assert_eq!(r.key_id, "rzp_test_AbC123");
+        assert_eq!(r.key_secret.0, "key-secret-value");
+        assert_eq!(r.base_url, "https://api.razorpay.com");
+        assert_eq!(r.timeout, Duration::from_secs(10));
+        assert_eq!(r.max_retries, 2);
+        assert!(
+            !format!("{r:?}").contains("key-secret-value"),
+            "secret redacted"
+        );
+        assert_eq!(dev.payments.recovery.interval, Duration::from_secs(300));
+        assert_eq!(dev.payments.recovery.min_age, Duration::from_secs(600));
+        assert_eq!(
+            dev.payments.recovery.expire_after,
+            Duration::from_secs(48 * 3600)
+        );
+        // Missing / malformed keys and secrets are refused in every environment.
+        for drop in [
+            "SUTRA_RAZORPAY_KEY_ID",
+            "SUTRA_RAZORPAY_KEY_SECRET",
+            "SUTRA_PAYMENT_WEBHOOK_SECRET",
+        ] {
+            assert!(
+                with(&[], &[drop], Environment::Development).is_err(),
+                "{drop}"
+            );
+        }
+        for (k, v) in [
+            ("SUTRA_RAZORPAY_KEY_ID", "key_123"),
+            ("SUTRA_RAZORPAY_KEY_ID", "rzp_test_"),
+            ("SUTRA_RAZORPAY_BASE_URL", "ftp://x"),
+            ("SUTRA_RAZORPAY_TIMEOUT_MS", "10"),
+            ("SUTRA_RAZORPAY_MAX_RETRIES", "9"),
+            ("SUTRA_PAYMENT_WEBHOOK_SECRET", DEV_PAYMENT_WEBHOOK_SECRET),
+        ] {
+            assert!(
+                with(&[(k, v)], &[], Environment::Development).is_err(),
+                "{k}={v}"
+            );
+        }
+        // Secrets from files (trailing newline trimmed); an unreadable file is an error.
+        // Per-test directory under the workspace's own (git-ignored) `target/`, not the shared,
+        // world-writable system temp dir (Semgrep rust.lang.security.temp-dir).
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target/sutra-test-tmp")
+            .join(format!("cfg-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("razorpay_key_secret");
+        std::fs::write(&file, "from-file-secret\n").unwrap();
+        let path: &'static str = Box::leak(file.to_string_lossy().into_owned().into_boxed_str());
+        let f = with(
+            &[("SUTRA_RAZORPAY_KEY_SECRET_FILE", path)],
+            &["SUTRA_RAZORPAY_KEY_SECRET"],
+            Environment::Development,
+        )
+        .unwrap();
+        assert_eq!(
+            f.payments.razorpay.unwrap().key_secret.0,
+            "from-file-secret"
+        );
+        assert!(with(
+            &[(
+                "SUTRA_RAZORPAY_KEY_SECRET_FILE",
+                "/nonexistent/sutra/secret"
+            )],
+            &["SUTRA_RAZORPAY_KEY_SECRET"],
+            Environment::Development,
+        )
+        .is_err());
+        // Production: live key + https only; test keys capture without money.
+        assert!(matches!(
+            with(&[], &[], Environment::Production),
+            Err(ConfigError::Forbidden(_))
+        ));
+        let live = [("SUTRA_RAZORPAY_KEY_ID", "rzp_live_AbC123")];
+        let prod = with(&live, &[], Environment::Production).unwrap();
+        assert_eq!(prod.payments.gateway, PaymentGatewayMode::Razorpay);
+        assert!(with(
+            &[
+                live[0],
+                ("SUTRA_RAZORPAY_BASE_URL", "http://api.razorpay.com")
+            ],
+            &[],
+            Environment::Production
+        )
+        .is_err());
+        // The existing production webhook-secret rule (≥ 32 characters) still applies.
+        assert!(with(
+            &[live[0], ("SUTRA_PAYMENT_WEBHOOK_SECRET", "short-secret")],
+            &[],
+            Environment::Production
         )
         .is_err());
     }

@@ -16,5 +16,6 @@ pub mod config_http; // Part 1 · Stage 3: transport settings + production start
 pub mod metrics; // 9A
 pub mod metrics_bridge; // INT: 9C `metrics` facade → 9A registry
 pub mod openapi;
+pub mod payment_gateway; // Part 2 S4-pay: Razorpay adapter of the finance gateway port
 pub mod shutdown;
 pub mod telemetry;

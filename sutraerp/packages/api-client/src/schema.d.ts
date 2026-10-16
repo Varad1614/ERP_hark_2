@@ -13341,6 +13341,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/gateway-settlements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One settlement reconciliation import with its line results (`finance.read`). */
+        get: operations["finance_gateway_settlement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/gateway/webhook": {
         parameters: {
             query?: never;
@@ -13632,6 +13649,27 @@ export interface paths {
          *     L3-F-051). Years of an institution never overlap.
          */
         post: operations["finance_year_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/gateway-settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Imports a gateway settlement report (CSV) and reconciles every line against captured
+         *     payments and processed refunds of the institution (`treasury.manage`). The same file again
+         *     returns the first import (200, `alreadyImported`); a new one is 201.
+         */
+        post: operations["finance_gateway_settlement_import"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14046,8 +14084,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Return from the (mock) checkout: asks the gateway for the outcome and completes / fails the
-         *     caller's own payment (`finance.self`, `If-Match`). Still pending → unchanged.
+         * Return from checkout: asks the gateway for the outcome and completes / fails the caller's own
+         *     payment (`finance.self`, `If-Match`). Still pending → unchanged. Part 2 S4-pay: the optional
+         *     body carries the Checkout callback (`razorpay_payment_id`, `razorpay_order_id`,
+         *     `razorpay_signature`), verified server-side before the gateway is asked (422 when forged); the
+         *     fee is marked paid only on the gateway's own capture report.
          */
         post: operations["finance_payment_self_confirm"];
         delete?: never;
@@ -30084,6 +30125,18 @@ export interface components {
          * @enum {string}
          */
         ConfigStatus: "draft" | "effective" | "superseded" | "withdrawn";
+        /**
+         * @description Part 2 S4-pay: what Razorpay Checkout hands the browser after a successful payment
+         *     (`razorpay_payment_id`, `razorpay_order_id`, `razorpay_signature`), forwarded to `confirm`.
+         *     Optional: without it `confirm` only polls the gateway. With it the signature is verified
+         *     server-side first (422 `invalid_signature` otherwise); the payment is still marked paid only
+         *     when the gateway itself reports the capture (never on the browser's word).
+         */
+        ConfirmPaymentRequest: {
+            gatewayOrderId?: string | null;
+            gatewayPaymentId?: string | null;
+            gatewaySignature?: string | null;
+        };
         /** @description One validation finding. */
         Conflict: {
             /**
@@ -43189,6 +43242,34 @@ export interface components {
             lastSeenAt: string;
             mfaLevel: components["schemas"]["MfaLevel"];
         };
+        SettlementImportView: {
+            /** @description `true` when this exact file had been imported before (nothing new recorded). */
+            alreadyImported: boolean;
+            amountUnit: string;
+            feeTotal: string;
+            fileName?: string | null;
+            gateway: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            importedAt: string;
+            importedBy?: string | null;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: int32 */
+            lineCount: number;
+            lines: components["schemas"]["SettlementLineView"][];
+            /** Format: int32 */
+            matchedCount: number;
+            /**
+             * Format: int32
+             * @description Lines that need attention (everything but matches and ignored types).
+             */
+            mismatchCount: number;
+            /** @description Σ credit − Σ debit of the report. */
+            settledTotal: string;
+            taxTotal: string;
+        };
         /** @description A gateway settlement credited to the bank account. */
         SettlementInput: {
             items: components["schemas"]["SettlementItemInput"][];
@@ -43221,6 +43302,29 @@ export interface components {
             paymentId: string;
             /** Format: uuid */
             reversalEntryId?: string | null;
+        };
+        SettlementLineView: {
+            amount: string;
+            detail?: string | null;
+            entityId: string;
+            entityType: string;
+            fee: string;
+            /** Format: int32 */
+            lineNo: number;
+            orderId?: string | null;
+            /** Format: uuid */
+            paymentId?: string | null;
+            /** Format: uuid */
+            refundId?: string | null;
+            /**
+             * @description `matched | amount_mismatch | order_mismatch | unknown_payment | payment_not_completed |
+             *     already_settled | duplicate_line | refund_matched | refund_amount_mismatch |
+             *     unknown_refund | ignored`.
+             */
+            result: string;
+            settlementId?: string | null;
+            settlementUtr?: string | null;
+            tax: string;
         };
         SettlementRecovery: {
             /** @example 5000.00 */
@@ -78103,6 +78207,35 @@ export interface operations {
             };
         };
     };
+    finance_gateway_settlement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_gateway_webhook: {
         parameters: {
             query?: never;
@@ -78948,6 +79081,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["YearView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gateway_settlement_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description `rupees` (dashboard export, default) or `paise` (recon API). */
+                amountUnit: string | null;
+                /** @description Original file name (recorded only). */
+                fileName: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
                 };
             };
             "4XX": {
@@ -79907,7 +80085,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ConfirmPaymentRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {

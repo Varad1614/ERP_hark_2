@@ -60218,6 +60218,53 @@
         ]
       }
     },
+    "/api/v1/finance/gateway-settlements/{id}": {
+      "get": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "One settlement reconciliation import with its line results (`finance.read`).",
+        "operationId": "finance_gateway_settlement_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementImportView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/gateway/webhook": {
       "post": {
         "tags": [
@@ -61811,6 +61858,97 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/YearView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/gateway-settlements": {
+      "post": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "Imports a gateway settlement report (CSV) and reconciles every line against captured\npayments and processed refunds of the institution (`treasury.manage`). The same file again\nreturns the first import (200, `alreadyImported`); a new one is 201.",
+        "operationId": "finance_gateway_settlement_import",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "amountUnit",
+            "in": "path",
+            "description": "`rupees` (dashboard export, default) or `paise` (recon API).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "fileName",
+            "in": "path",
+            "description": "Original file name (recorded only).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementImportView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementImportView"
                 }
               }
             }
@@ -63686,7 +63824,7 @@
         "tags": [
           "finance-payments"
         ],
-        "summary": "Return from the (mock) checkout: asks the gateway for the outcome and completes / fails the\ncaller's own payment (`finance.self`, `If-Match`). Still pending → unchanged.",
+        "summary": "Return from checkout: asks the gateway for the outcome and completes / fails the caller's own\npayment (`finance.self`, `If-Match`). Still pending → unchanged. Part 2 S4-pay: the optional\nbody carries the Checkout callback (`razorpay_payment_id`, `razorpay_order_id`,\n`razorpay_signature`), verified server-side before the gateway is asked (422 when forged); the\nfee is marked paid only on the gateway's own capture report.",
         "operationId": "finance_payment_self_confirm",
         "parameters": [
           {
@@ -63707,6 +63845,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ConfirmPaymentRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -140788,6 +140942,30 @@
           "withdrawn"
         ]
       },
+      "ConfirmPaymentRequest": {
+        "type": "object",
+        "description": "Part 2 S4-pay: what Razorpay Checkout hands the browser after a successful payment\n(`razorpay_payment_id`, `razorpay_order_id`, `razorpay_signature`), forwarded to `confirm`.\nOptional: without it `confirm` only polls the gateway. With it the signature is verified\nserver-side first (422 `invalid_signature` otherwise); the payment is still marked paid only\nwhen the gateway itself reports the capture (never on the browser's word).",
+        "properties": {
+          "gatewayOrderId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gatewayPaymentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gatewaySignature": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "Conflict": {
         "type": "object",
         "description": "One validation finding.",
@@ -182273,6 +182451,89 @@
           }
         }
       },
+      "SettlementImportView": {
+        "type": "object",
+        "required": [
+          "id",
+          "institutionId",
+          "gateway",
+          "amountUnit",
+          "lineCount",
+          "matchedCount",
+          "mismatchCount",
+          "settledTotal",
+          "feeTotal",
+          "taxTotal",
+          "importedAt",
+          "alreadyImported",
+          "lines"
+        ],
+        "properties": {
+          "alreadyImported": {
+            "type": "boolean",
+            "description": "`true` when this exact file had been imported before (nothing new recorded)."
+          },
+          "amountUnit": {
+            "type": "string"
+          },
+          "feeTotal": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gateway": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "importedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "importedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettlementLineView"
+            }
+          },
+          "matchedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mismatchCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Lines that need attention (everything but matches and ignored types)."
+          },
+          "settledTotal": {
+            "type": "string",
+            "description": "Σ credit − Σ debit of the report."
+          },
+          "taxTotal": {
+            "type": "string"
+          }
+        }
+      },
       "SettlementInput": {
         "type": "object",
         "description": "A gateway settlement credited to the bank account.",
@@ -182354,6 +182615,81 @@
               "null"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "SettlementLineView": {
+        "type": "object",
+        "required": [
+          "lineNo",
+          "entityId",
+          "entityType",
+          "amount",
+          "fee",
+          "tax",
+          "result"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "fee": {
+            "type": "string"
+          },
+          "lineNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orderId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paymentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "refundId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "result": {
+            "type": "string",
+            "description": "`matched | amount_mismatch | order_mismatch | unknown_payment | payment_not_completed |\nalready_settled | duplicate_line | refund_matched | refund_amount_mismatch |\nunknown_refund | ignored`."
+          },
+          "settlementId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "settlementUtr": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tax": {
+            "type": "string"
           }
         }
       },

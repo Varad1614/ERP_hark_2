@@ -22,8 +22,14 @@ lettre.workspace = true
 reqwest.workspace = true
 serde_json.workspace = true
 url.workspace = true
+# Part 2 S4-pay: Razorpay client (webhook / checkout HMAC-SHA256) + its local contract stub
+hmac.workspace = true
+sha2.workspace = true
+axum = { workspace = true, optional = true }
 
 [dev-dependencies]
+axum.workspace = true
+tokio = { workspace = true, features = ["net"] }
 uuid.workspace = true
 serde_json.workspace = true
 serde.workspace = true
@@ -33,3 +39,5 @@ serde.workspace = true
 nats-tests = []
 # Live tests against a local valkey/redis (SUTRA_TEST_VALKEY_URL, default redis://127.0.0.1:6379).
 valkey-tests = []
+# Part 2 S4-pay: `razorpay::stub` (local HTTP stub of the Razorpay API) for other crates' tests.
+razorpay-stub = ["dep:axum", "tokio/net"]

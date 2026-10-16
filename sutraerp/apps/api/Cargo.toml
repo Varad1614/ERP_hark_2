@@ -63,6 +63,8 @@ prometheus-client.workspace = true
 metrics.workspace = true
 # 9C: SearchIndex adapter over sutra_infra::opensearch
 async-trait.workspace = true
+# Part 2 S4-pay: Razorpay adapter of the finance gateway port (decimal rupees ↔ paise)
+rust_decimal.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true
@@ -70,6 +72,8 @@ chrono.workspace = true
 async-trait.workspace = true
 async-nats.workspace = true
 rust_decimal.workspace = true
+# Part 2 S4-pay: local Razorpay contract stub for the adapter / db_p2_pay tests
+sutra-infra = { workspace = true, features = ["razorpay-stub"] }
 
 [features]
 # End-to-end tests against a live PostgreSQL 18 (set DATABASE_URL). Off by default.
