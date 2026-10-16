@@ -144,7 +144,12 @@ async fn a_public_bucket_is_refused() {
     );
     let body = b"%PDF-1.7 x".to_vec();
     assert!(fresh
-        .put_object(&key("c.pdf"), "application/pdf", body.clone(), &sha256(&body))
+        .put_object(
+            &key("c.pdf"),
+            "application/pdf",
+            body.clone(),
+            &sha256(&body)
+        )
         .await
         .is_err());
 }

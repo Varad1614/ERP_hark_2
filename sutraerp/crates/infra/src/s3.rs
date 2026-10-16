@@ -215,7 +215,10 @@ impl Target {
         let raw = if query.is_empty() {
             format!("{}://{}{}", self.scheme, self.host, self.canonical_uri)
         } else {
-            format!("{}://{}{}?{query}", self.scheme, self.host, self.canonical_uri)
+            format!(
+                "{}://{}{}?{query}",
+                self.scheme, self.host, self.canonical_uri
+            )
         };
         reqwest::Url::parse(&raw).map_err(unavailable)
     }
@@ -227,7 +230,9 @@ fn parse_endpoint(raw: &str, what: &str) -> Result<url::Url, String> {
         return Err(format!("{what} must be http(s)://host[:port]"));
     }
     if u.host_str().is_none() || u.query().is_some() || u.fragment().is_some() {
-        return Err(format!("{what} must be http(s)://host[:port] without query"));
+        return Err(format!(
+            "{what} must be http(s)://host[:port] without query"
+        ));
     }
     Ok(u)
 }
@@ -558,7 +563,14 @@ impl S3Client {
     pub async fn get_object(&self, key: &str, max_bytes: u64) -> Result<Vec<u8>, KernelError> {
         self.ensure_ready().await?;
         let mut resp = self
-            .send(reqwest::Method::GET, Some(key), &[], vec![], None, EMPTY_SHA256)
+            .send(
+                reqwest::Method::GET,
+                Some(key),
+                &[],
+                vec![],
+                None,
+                EMPTY_SHA256,
+            )
             .await?;
         if !resp.status().is_success() {
             return Err(Self::failure(resp, "get object").await);
@@ -636,7 +648,10 @@ impl S3Client {
         if head.status().is_success() {
             Ok(())
         } else {
-            Err(unavailable(format!("bucket HEAD answered {}", head.status())))
+            Err(unavailable(format!(
+                "bucket HEAD answered {}",
+                head.status()
+            )))
         }
     }
 
@@ -769,7 +784,10 @@ mod tests {
             region: "us-east-1",
         };
         let headers = vec![
-            ("host".to_owned(), "examplebucket.s3.amazonaws.com".to_owned()),
+            (
+                "host".to_owned(),
+                "examplebucket.s3.amazonaws.com".to_owned(),
+            ),
             ("range".to_owned(), "bytes=0-9".to_owned()),
             ("x-amz-content-sha256".to_owned(), EMPTY_SHA256.to_owned()),
             ("x-amz-date".to_owned(), "20130524T000000Z".to_owned()),
@@ -824,7 +842,8 @@ mod tests {
             .as_ref()
             .and_then(|c| c.target(&c.endpoint, Some("t/i/o/1/2")).ok());
         assert_eq!(
-            t.as_ref().map(|t| (t.host.as_str(), t.canonical_uri.as_str())),
+            t.as_ref()
+                .map(|t| (t.host.as_str(), t.canonical_uri.as_str())),
             Some(("minio:9000", "/examplebucket/t/i/o/1/2"))
         );
         // Presigned URLs carry response overrides in the signed query.
@@ -841,7 +860,9 @@ mod tests {
             })
             .unwrap_or_default();
         assert!(url.starts_with("http://minio:9000/examplebucket/k?X-Amz-Algorithm="));
-        assert!(url.contains("&response-content-disposition=attachment%3B%20filename%3D%22a.pdf%22"));
+        assert!(
+            url.contains("&response-content-disposition=attachment%3B%20filename%3D%22a.pdf%22")
+        );
         assert!(url.contains("X-Amz-Expires=60&"));
         for bad in ["ftp://x", "http://", "not a url", "http://h:9000/?a=b"] {
             assert!(S3Client::new(settings(bad, true)).is_err(), "{bad}");
@@ -849,14 +870,17 @@ mod tests {
         let mut s = settings("http://minio:9000", true);
         s.bucket = "Bad_Bucket".into();
         assert!(S3Client::new(s).is_err());
-        let ttl0 = c.as_ref().map(|c| c.presign_get("k", Duration::ZERO, None, None).is_err());
+        let ttl0 = c
+            .as_ref()
+            .map(|c| c.presign_get("k", Duration::ZERO, None, None).is_err());
         assert_eq!(ttl0, Some(true));
         assert!(!format!("{:?}", settings("http://m", true)).contains(SECRET));
     }
 
     #[test]
     fn s3_error_codes_are_read() {
-        let body = "<?xml version=\"1.0\"?><Error><Code>AccessDenied</Code><Message>x</Message></Error>";
+        let body =
+            "<?xml version=\"1.0\"?><Error><Code>AccessDenied</Code><Message>x</Message></Error>";
         assert_eq!(xml_tag(body, "Code"), Some("AccessDenied"));
         assert_eq!(xml_tag("nothing", "Code"), None);
     }
