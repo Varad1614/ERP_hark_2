@@ -1,0 +1,8 @@
+[Unit]
+Description=SutraERP backup verification (checksums of every stored set and the WAL archive)
+OnFailure=sutraerp-backup-alert@%n.service
+
+[Service]
+Type=oneshot
+Environment=SUTRA_BACKUP_ENV_FILE=/etc/sutraerp/backup.env
+ExecStart=/opt/sutraerp/backup/sutra-backup-verify.sh

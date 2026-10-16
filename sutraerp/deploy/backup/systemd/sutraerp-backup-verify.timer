@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly SutraERP backup verification (Saturday 06:00)
+
+[Timer]
+OnCalendar=Sat *-*-* 06:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

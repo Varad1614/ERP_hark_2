@@ -1,0 +1,18 @@
+# Nightly full backup of a single-server SutraERP installation (Part 2 · Stage 5).
+# Install: deploy/backup/systemd/install.sh (copies the scripts to /opt/sutraerp/backup).
+[Unit]
+Description=SutraERP nightly backup (database, Keycloak, documents, inventory → encrypted set → offsite)
+Wants=network-online.target
+After=network-online.target docker.service
+OnFailure=sutraerp-backup-alert@%n.service
+
+[Service]
+Type=oneshot
+Environment=SUTRA_BACKUP_ENV_FILE=/etc/sutraerp/backup.env
+ExecStart=/opt/sutraerp/backup/sutra-fullbackup.sh nightly
+# Sunday: also a fresh base backup (point-in-time recovery starts from it).
+ExecStartPost=/bin/sh -c 'if [ "$(date +%%u)" = 7 ]; then /opt/sutraerp/backup/sutra-fullbackup.sh base; fi'
+ExecStartPost=/bin/sh -c '. /etc/sutraerp/backup.env; /opt/sutraerp/backup/rotate.sh "$SUTRA_BACKUP_DIR/sets" --wal-dir "$SUTRA_WAL_OFFSITE_DIR"'
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=6h

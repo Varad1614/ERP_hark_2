@@ -1,0 +1,11 @@
+# Alternative to the systemd timers (Part 2 · Stage 5): /etc/cron.d/sutraerp-backup
+# Server clock in Asia/Kolkata. Output goes to syslog via logger.
+SHELL=/bin/bash
+SUTRA_BACKUP_ENV_FILE=/etc/sutraerp/backup.env
+# nightly full backup 02:00, base backup Sunday 03:30
+0 2 * * *   root /opt/sutraerp/backup/sutra-fullbackup.sh nightly 2>&1 | logger -t sutraerp-backup
+30 3 * * 0  root /opt/sutraerp/backup/sutra-fullbackup.sh base 2>&1 | logger -t sutraerp-backup
+# WAL shipping every minute
+* * * * *   root /opt/sutraerp/backup/sutra-wal-ship.sh 2>&1 | logger -t sutraerp-wal-ship
+# verification Saturday 06:00
+0 6 * * 6   root /opt/sutraerp/backup/sutra-backup-verify.sh 2>&1 | logger -t sutraerp-backup-verify
