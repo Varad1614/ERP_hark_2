@@ -156,6 +156,30 @@ function client(jar, session, login) {
     if (r.status >= 400 && !(opts.expect ?? []).includes(r.status)) throw new Error(`${method} ${p} → ${r.status} ${r.text.slice(0, 500)}`);
     return r.json;
   };
+  /**
+   * Part 2 · S4-docs: raw file upload (PUT, the file as the body with ITS OWN content type, never
+   * JSON). The idempotency middleware buffers at most 1 MiB, and a document takes exactly one
+   * file (a retry answers 409), so bodies above 1 MiB go without an Idempotency-Key.
+   */
+  const upload = async (p, bytes, contentType, filename, opts = {}) => {
+    const headers = { "content-type": contentType, "x-csrf-token": csrf() };
+    if (opts.key && bytes.length <= 1024 * 1024) headers["idempotency-key"] = opts.key;
+    const sep = p.includes("?") ? "&" : "?";
+    const res = await send(jar, `${BASE}${p}${sep}filename=${encodeURIComponent(filename)}`, { method: "PUT", headers, body: bytes });
+    const text = await res.text();
+    let json;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = text;
+    }
+    return { status: res.status, headers: res.headers, json, text };
+  };
+  /** Part 2 · S4-docs: GET returning the raw bytes (file downloads). */
+  const download = async (p) => {
+    const res = await send(jar, `${BASE}${p}`, { method: "GET" });
+    return { status: res.status, headers: res.headers, bytes: Buffer.from(await res.arrayBuffer()) };
+  };
   return {
     login,
     session,
@@ -163,6 +187,8 @@ function client(jar, session, login) {
     tenant: session.principal.scope.tenantId,
     call,
     raw,
+    upload,
+    download,
     get: (p) => call("GET", p),
     async refresh() {
       const r = await send(jar, `${BASE}/api/v1/auth/session`);

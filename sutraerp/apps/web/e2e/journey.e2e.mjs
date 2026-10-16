@@ -25,7 +25,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { chromium } from "playwright";
 
 process.env.DATABASE_URL ??= "postgres://sutra:sutra@localhost:5432/sutra";
@@ -63,6 +63,19 @@ const save = () => {
   writeFileSync(STATE, JSON.stringify(state, null, 2));
 };
 const gap = (step, why) => R.gaps.push({ step, why });
+
+/**
+ * Part 2 · S4-docs: a plain PDF (no scripts / embedded files) of about `size` bytes; the padding is
+ * PDF comment lines, so the content check (magic bytes, active-content refusal) accepts it.
+ */
+function pdf(label, size = 0) {
+  const head = `%PDF-1.7\n% SutraERP journey document: ${label}\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [] /Count 0 >> endobj\n`;
+  const tail = "trailer << /Root 1 0 R >>\n%%EOF\n";
+  const line = `%${"0".repeat(1022)}\n`;
+  const n = Math.max(0, Math.ceil((size - head.length - tail.length) / line.length));
+  return Buffer.from(head + line.repeat(n) + tail, "latin1");
+}
+const sha256hex = (b) => createHash("sha256").update(b).digest("hex");
 
 // ---------------------------------------------------------------- step runner + checks
 
@@ -374,7 +387,17 @@ try {
           await fillForm(page, "admission-document", { documentType: type, title, fileRef: `dms://admissions/${type}.pdf` });
         }, e);
         check(r.status === 201 && r.body.status === "submitted", `${type} handed in`, e);
+        // Part 2 · S4-docs: the scanned file goes to object storage (MinIO in the demo stack). The
+        // marksheet is above 1 MiB: sent with its own content type and without an Idempotency-Key.
+        const bytes = pdf(title, type === "qualifying_marksheet" ? 1536 * 1024 : 0);
+        const filename = `${title}.pdf`;
+        const up = await admin.upload(`${S}/admissions/${ids.admissionId}/documents/${r.body.id}/file`, bytes, "application/pdf", filename, { key: randomUUID() });
+        e(`PUT …/documents/${type}/file (${bytes.length} bytes, application/pdf${bytes.length > 1024 * 1024 ? ", no Idempotency-Key" : ""}) → ${up.status} ${up.status === 201 ? `object ${up.json.file?.id}` : up.text.slice(0, 300)}`);
+        check(up.status === 201 && up.json.file?.sha256 === sha256hex(bytes) && up.json.file?.sizeBytes === bytes.length, `${type} file stored (201, SHA-256 and size match)`, e);
+        check(up.json.file?.filename === filename && up.json.file?.contentType === "application/pdf" && !("storageKey" in (up.json.file ?? {})), `${type} file metadata (name, type; no storage key exposed)`, e);
+        (ids.files ??= []).push({ type, documentId: r.body.id, objectId: up.json.file.id, sha256: sha256hex(bytes), size: bytes.length, filename });
       }
+      gap("1 Admission: document files", "no upload control on the admission documents drawer yet — the files are attached through the API (PUT …/documents/{id}/file)");
       await page.keyboard.press("Escape");
       await settle(page);
       r = await ui(page, "POST", /\/admissions\/[^/]+\/submit-documents$/, () => act(page, page.locator('.sb-lrow[data-admission="Aarav Desai"]'), "admission-submit-documents"), e);
@@ -422,6 +445,37 @@ try {
       // visibility
       await sees(e, "faculty", faculty, `${S}/admissions/${ids.admissionId}`, 200, (j) => j.id === ids.admissionId, "student.read: read-only");
       await sees(e, "student", student, `${S}/admissions/${ids.admissionId}`, 403);
+    });
+
+    await step("1 Admission", "Document files: downloaded back byte-for-byte, integrity verified at verification, the student retrieves the verified files, access denied to others (MinIO)", "API (no file screen yet)", async (e) => {
+      need(ids.files?.length === 2 && ids.aarav?.id, "uploaded files + student");
+      for (const f of ids.files) {
+        const d = await admin.download(`${S}/admissions/${ids.admissionId}/documents/${f.documentId}/file`);
+        e(`admin GET …/documents/${f.type}/file → ${d.status}, ${d.bytes.length} bytes, ${d.headers.get("content-type")}, ${d.headers.get("content-disposition")}`);
+        check(d.status === 200 && d.bytes.length === f.size && sha256hex(d.bytes) === f.sha256, `${f.type}: identical bytes downloaded`, e);
+        check(d.headers.get("content-type") === "application/pdf" && (d.headers.get("content-disposition") ?? "").startsWith("attachment;") && d.headers.get("x-document-sha256") === f.sha256, `${f.type}: attachment, own content type, SHA-256 header`, e);
+        db(e, `${f.type} object`, `SELECT content_type || '|' || size_bytes || '|' || sha256 || '|' || (quarantined_at IS NULL) FROM platform.document_object WHERE id = ${q(f.objectId)}`, (v) => v === `application/pdf|${f.size}|${f.sha256}|t`);
+        db(e, `${f.type} linked`, `SELECT status || '|' || document_object_id FROM student.admission_document WHERE id = ${q(f.documentId)}`, (v) => v === `verified|${f.objectId}`);
+        const au = audit(e, f.objectId, ["platform.document.upload", "platform.document.verify_integrity", "platform.document.download"], `${f.type} file`);
+        check(au.actors.includes(admin.subject), "the administrator is the actor of the file audit trail", e);
+        const s403 = await student.download(`${S}/admissions/${ids.admissionId}/documents/${f.documentId}/file`);
+        e(`student GET admission file → ${s403.status}`);
+        check(s403.status === 403, "the student cannot read the admission's files (403)", e);
+      }
+      const mine = await student.get(`${S}/me/documents`);
+      const items = (Array.isArray(mine) ? mine : mine.items ?? []).filter((d) => d.documentObjectId);
+      e(`student GET /me/documents → ${items.length} document(s) with a file`);
+      check(items.length === ids.files.length, "both verified files moved to the student's record", e);
+      for (const d of items) {
+        const f = ids.files.find((x) => x.objectId === d.documentObjectId);
+        check(!!f, `record document ${d.id} carries an uploaded object`, e);
+        const g = await student.download(`${S}/me/documents/${d.id}/file`);
+        e(`student GET /me/documents/{id}/file → ${g.status}, ${g.bytes.length} bytes`);
+        check(g.status === 200 && sha256hex(g.bytes) === f.sha256, `student retrieves ${f.type} (identical bytes)`, e);
+      }
+      const other = await faculty.download(`${S}/me/documents/${items[0].id}/file`);
+      e(`faculty GET the student's /me document → ${other.status}`);
+      check(other.status === 403 || other.status === 404, "another user cannot read the student's own file", e);
     });
 
     await step("1 Admission", "Negative: wrong role — faculty cannot decide an admission, student cannot create an application (403)", "API", async (e) => {
