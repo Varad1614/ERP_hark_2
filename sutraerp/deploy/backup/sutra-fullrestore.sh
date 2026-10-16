@@ -16,7 +16,8 @@
 #        prints "recovered-to <timestamp of the last replayed transaction>"
 #   sutra-fullrestore.sh logical <decrypted-dir>            database.tar → sutra-restore.sh (sutra +
 #        flowable, migrate, row counts / audit heads / grants vs the manifest); keycloak.dump →
-#        the Keycloak database (SUTRA_BACKUP_KEYCLOAK_DATABASE_URL, restored as role keycloak)
+#        the Keycloak database (SUTRA_BACKUP_KEYCLOAK_DATABASE_URL, restored as role keycloak);
+#        SUTRA_RESTORE_SKIP_MIGRATE=true when the host has no sutra-api binary (compose migrates)
 #   sutra-fullrestore.sh objects <decrypted-dir> [--tenant T]   objects.tar → bucket (all or one
 #        tenant's prefix) → download back and verify every document's sha256 against documents.tsv
 #
@@ -116,7 +117,11 @@ wait-recovery)
 logical)
   d=${1:?decrypted dir}
   [[ -f "$d/database.tar" ]] || die "$d/database.tar missing"
-  bash "$here/sutra-restore.sh" "$d/database.tar"
+  # SUTRA_RESTORE_SKIP_MIGRATE=true: no sutra-api binary on this host (docker compose installation)
+  # → the counts / audit heads are still verified; `docker compose up` runs the migrate service after.
+  rargs=()
+  [[ "${SUTRA_RESTORE_SKIP_MIGRATE:-false}" == true ]] && rargs+=(--skip-migrate)
+  bash "$here/sutra-restore.sh" "$d/database.tar" "${rargs[@]}"
   if [[ -f "$d/keycloak.dump" ]]; then
     kurl=${SUTRA_BACKUP_KEYCLOAK_DATABASE_URL:?SUTRA_BACKUP_KEYCLOAK_DATABASE_URL}
     errlog=$(mktemp)
