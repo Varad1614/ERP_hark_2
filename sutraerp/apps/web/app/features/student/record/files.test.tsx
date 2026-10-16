@@ -81,7 +81,7 @@ describe("HTTP upload / download", () => {
     const fetchImpl = vi.fn(async (url: string, _init?: RequestInit) =>
       url.endsWith("/file?filename=x.pdf")
         ? new Response(JSON.stringify({ type: "about:blank", title: "Validation failed", status: 422, errorCode: "validation-failed", validationErrors: [{ field: "file", code: "active_content", message: "x" }] }), { status: 422 })
-        : new Response(new Blob([PDF], { type: "application/pdf" }), { status: 200, headers: { "content-type": "application/pdf", "content-disposition": 'attachment; filename="Aadhaar card.pdf"', "x-document-sha256": "abc" } }),
+        : new Response(PDF, { status: 200, headers: { "content-type": "application/pdf", "content-disposition": 'attachment; filename="Aadhaar card.pdf"', "x-document-sha256": "abc" } }),
     );
     const api = createHttpRecordApi(fetchImpl, "");
     const err = await api.uploadAdmissionFile("a1", "d1", pdf("x.pdf")).catch((e: unknown) => e);
