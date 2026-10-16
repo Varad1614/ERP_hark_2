@@ -279,7 +279,10 @@ mod tests {
             source_id: uuid::Uuid::now_v7(),
             actor: None,
         };
-        let err = core.raise_exam_fee(&scope(), req.clone()).await.unwrap_err();
+        let err = core
+            .raise_exam_fee(&scope(), req.clone())
+            .await
+            .unwrap_err();
         assert_eq!(err.code(), MODULE_INACTIVE);
         assert_eq!(inner.0.load(Ordering::SeqCst), 0, "Finance never called");
         let all = EntitledExamFees::new(

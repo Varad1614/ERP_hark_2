@@ -1067,8 +1067,7 @@ async fn core_academic_without_fees_admits_and_issues_hall_tickets() {
     let ticket = list["items"][0].clone();
     assert_eq!(ticket["status"], "withheld", "{list}");
     assert_eq!(
-        ticket["conditions"]["dues"]["kind"],
-        "outstanding",
+        ticket["conditions"]["dues"]["kind"], "outstanding",
         "{ticket}"
     );
 
@@ -1184,7 +1183,13 @@ async fn import_jobs_are_gated_by_their_target_module() {
 
     // complete_erp default: every entity is offered and a staff job can be created.
     let all = entities(&app, &admin).await;
-    for e in ["students", "staff", "fee_heads", "opening_balances", "campuses"] {
+    for e in [
+        "students",
+        "staff",
+        "fee_heads",
+        "opening_balances",
+        "campuses",
+    ] {
         assert!(all.iter().any(|x| x == e), "{e} missing: {all:?}");
     }
     let (s, staff_job) = upload(&app, &admin, "staff", &inst).await;
