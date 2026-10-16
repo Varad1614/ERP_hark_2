@@ -56,8 +56,7 @@ use uuid::Uuid;
 pub const MAX_LINES: usize = 5000;
 
 /// Unit of the report's amounts.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize, ToSchema)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum AmountUnit {
     /// Decimal rupees (`971.00`) — the dashboard export.
     #[default]
@@ -416,7 +415,7 @@ pub async fn match_line(
 #[serde(rename_all = "camelCase")]
 pub struct SettlementImportQuery {
     /// `rupees` (dashboard export, default) or `paise` (recon API).
-    pub amount_unit: Option<AmountUnit>,
+    pub amount_unit: Option<String>,
     /// Original file name (recorded only).
     pub file_name: Option<String>,
 }
@@ -559,7 +558,13 @@ pub async fn gateway_settlement_import(
     }
     let text = std::str::from_utf8(&body)
         .map_err(|_| invalid("content", "not_utf8", "the report must be UTF-8 text"))?;
-    let unit = q.amount_unit.unwrap_or_default();
+    let unit = match q.amount_unit.as_deref().map(str::trim) {
+        None | Some("") | Some("rupees") => AmountUnit::Rupees,
+        Some("paise") => AmountUnit::Paise,
+        Some(_) => {
+            return Err(invalid("amountUnit", "invalid", "must be `rupees` or `paise`").into());
+        }
+    };
     let rows = parse_report(text, unit)?;
     let hash: String = Sha256::digest(&body)
         .iter()

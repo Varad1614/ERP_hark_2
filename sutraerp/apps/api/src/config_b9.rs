@@ -670,13 +670,17 @@ mod tests {
     #[test]
     fn razorpay_settings_and_production_rules() {
         const HOOK: &str = "whsec-0123456789abcdef0123456789abcdef";
-        let base = [
-            ("SUTRA_PAYMENT_GATEWAY", "razorpay"),
-            ("SUTRA_RAZORPAY_KEY_ID", "rzp_test_AbC123"),
-            ("SUTRA_RAZORPAY_KEY_SECRET", "key-secret-value"),
-            ("SUTRA_PAYMENT_WEBHOOK_SECRET", HOOK),
-        ];
-        let with = |extra: &[(&'static str, &'static str)], drop: &[&str], env: Environment| {
+        fn with(
+            extra: &[(&'static str, &'static str)],
+            drop: &[&str],
+            env: Environment,
+        ) -> Result<HardeningConfig, ConfigError> {
+            let base = [
+                ("SUTRA_PAYMENT_GATEWAY", "razorpay"),
+                ("SUTRA_RAZORPAY_KEY_ID", "rzp_test_AbC123"),
+                ("SUTRA_RAZORPAY_KEY_SECRET", "key-secret-value"),
+                ("SUTRA_PAYMENT_WEBHOOK_SECRET", HOOK),
+            ];
             let mut m: HashMap<&'static str, &'static str> = base
                 .iter()
                 .copied()
@@ -684,7 +688,7 @@ mod tests {
                 .collect();
             m.extend(extra.iter().copied());
             HardeningConfig::load(&m, env)
-        };
+        }
         let dev = with(&[], &[], Environment::Development).unwrap();
         assert_eq!(dev.payments.gateway, PaymentGatewayMode::Razorpay);
         let r = dev.payments.razorpay.as_ref().unwrap();
