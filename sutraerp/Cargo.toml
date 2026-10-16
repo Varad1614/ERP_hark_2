@@ -80,7 +80,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"]
 dotenvy = "0.15"
 
 # Auth: OIDC back-channel (ADR-L5-0024), ID-token validation, TOTP/AES-GCM (ADR-L5-0038)
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# Part 2 · S5-deploy: + rustls-tls-native-roots — outbound HTTPS (S3 / MinIO, Keycloak, Flowable,
+# Razorpay, OpenSearch) also trusts the OS store, so an on-prem install with a private CA works:
+# set SSL_CERT_FILE to a PEM bundle holding the college / internal CA (rustls-native-certs reads it).
+# The bundled webpki roots stay on for public CAs. docs/readiness/DEPLOYMENT_RUNBOOK.md "TLS".
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "rustls-tls-native-roots"] }
 jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
 ring = "0.17"
 base64 = "0.22"
