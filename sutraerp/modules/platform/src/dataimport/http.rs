@@ -281,7 +281,8 @@ pub async fn entity_list(
     auth: Authenticated,
 ) -> ApiResult<Json<ImportEntityList>> {
     let ctx = auth.require(Permission::DataImport)?;
-    let mut items: Vec<ImportEntityView> = st.targets.values().map(|t| view(&t.spec(), ctx)).collect();
+    let mut items: Vec<ImportEntityView> =
+        st.targets.values().map(|t| view(&t.spec(), ctx)).collect();
     let order = |e: &str| {
         sutra_contracts::platform::dataimport::entity::ALL
             .iter()
@@ -365,7 +366,8 @@ pub async fn profile_save(
     Json(b): Json<ImportMappingProfileSave>,
 ) -> ApiResult<Json<MappingProfile>> {
     let (ctx, _) = require_entity(&auth, &st, &b.entity)?;
-    let p = engine::save_profile(&st, &ctx.scope, &b.entity, &b.name, &b.mapping, actor(ctx)).await?;
+    let p =
+        engine::save_profile(&st, &ctx.scope, &b.entity, &b.name, &b.mapping, actor(ctx)).await?;
     Ok(Json(p))
 }
 
@@ -379,8 +381,13 @@ pub async fn job_list(
     Query(q): Query<JobListQuery>,
 ) -> ApiResult<Json<ImportJobList>> {
     let ctx = auth.require(Permission::DataImport)?;
-    let items =
-        engine::list_jobs(&st, ctx.scope.tenant_id, q.institution_id, q.entity.as_deref()).await?;
+    let items = engine::list_jobs(
+        &st,
+        ctx.scope.tenant_id,
+        q.institution_id,
+        q.entity.as_deref(),
+    )
+    .await?;
     Ok(Json(ImportJobList { items }))
 }
 
@@ -493,7 +500,11 @@ pub async fn job_mapping(
         actor(ctx),
     )
     .await?;
-    if let Some(name) = b.save_as_profile.as_deref().filter(|n| !n.trim().is_empty()) {
+    if let Some(name) = b
+        .save_as_profile
+        .as_deref()
+        .filter(|n| !n.trim().is_empty())
+    {
         engine::save_profile(&st, &ctx.scope, &job.entity, name, &b.mapping, actor(ctx)).await?;
     }
     Ok(Json(updated))
@@ -551,6 +562,14 @@ pub async fn job_decision(
     // with the job's own maker columns.
     sutra_persistence::approval::guard_decision(&st.pool, ctx, id, "data import").await?;
     Ok(Json(
-        engine::decide(&st, tenant, id, b.approve, b.reason.as_deref(), &ctx.subject).await?,
+        engine::decide(
+            &st,
+            tenant,
+            id,
+            b.approve,
+            b.reason.as_deref(),
+            &ctx.subject,
+        )
+        .await?,
     ))
 }

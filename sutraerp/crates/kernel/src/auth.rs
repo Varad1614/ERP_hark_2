@@ -1462,11 +1462,25 @@ mod tests {
     #[test]
     fn part2_data_import_grants() {
         assert!(is_granted(&[Role::Administrator], Permission::DataImport));
-        assert!(is_granted(&[Role::Administrator], Permission::DataImportApprove));
-        assert!(is_granted(&[Role::FinanceApprover], Permission::DataImportApprove));
+        assert!(is_granted(
+            &[Role::Administrator],
+            Permission::DataImportApprove
+        ));
+        assert!(is_granted(
+            &[Role::FinanceApprover],
+            Permission::DataImportApprove
+        ));
         // The checker never holds the maker permission.
-        assert!(!is_granted(&[Role::FinanceApprover], Permission::DataImport));
-        for r in [Role::Faculty, Role::Student, Role::Registrar, Role::ExamController] {
+        assert!(!is_granted(
+            &[Role::FinanceApprover],
+            Permission::DataImport
+        ));
+        for r in [
+            Role::Faculty,
+            Role::Student,
+            Role::Registrar,
+            Role::ExamController,
+        ] {
             assert!(!is_granted(&[r], Permission::DataImport), "{r:?}");
             assert!(!is_granted(&[r], Permission::DataImportApprove), "{r:?}");
         }

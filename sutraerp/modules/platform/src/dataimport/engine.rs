@@ -560,8 +560,13 @@ pub async fn upload(
 ) -> Result<(ImportJob, bool), KernelError> {
     let spec = target(st, &u.entity)?.spec();
     let file_name = u.file_name.trim().to_owned();
-    let format = FileFormat::from_file_name(&file_name)
-        .ok_or_else(|| invalid("fileName", "format", "the file must be a .csv or .xlsx file"))?;
+    let format = FileFormat::from_file_name(&file_name).ok_or_else(|| {
+        invalid(
+            "fileName",
+            "format",
+            "the file must be a .csv or .xlsx file",
+        )
+    })?;
     if file_name.chars().count() > 255 {
         return Err(invalid("fileName", "length", "at most 255 characters"));
     }
@@ -589,7 +594,12 @@ pub async fn upload(
         return Err(append_only(&spec));
     }
     let sha = sha256_hex(&bytes);
-    let job_key = match u.job_key.as_deref().map(str::trim).filter(|k| !k.is_empty()) {
+    let job_key = match u
+        .job_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|k| !k.is_empty())
+    {
         Some(k) if k.chars().count() <= 200 => k.to_owned(),
         Some(_) => return Err(invalid("jobKey", "length", "at most 200 characters")),
         None => format!("{}:{}:{sha}", u.entity, u.institution_id),
@@ -857,10 +867,7 @@ async fn prepare(
                     errors.push(FieldViolation::new(
                         spec.natural_key.join("+"),
                         "duplicate_in_file",
-                        format!(
-                            "the same {} as line {first}",
-                            spec.natural_key.join(" + ")
-                        ),
+                        format!("the same {} as line {first}", spec.natural_key.join(" + ")),
                     ));
                 }
                 None => {
@@ -1565,7 +1572,10 @@ pub async fn error_report(
         .rsplit_once('.')
         .map_or(job.file_name.as_str(), |(b, _)| b)
         .to_owned();
-    Ok((format!("{base}-errors.csv"), files::write_csv(&headers, &out)))
+    Ok((
+        format!("{base}-errors.csv"),
+        files::write_csv(&headers, &out),
+    ))
 }
 
 /// Template of an entity: canonical headers and one example row.
@@ -1664,7 +1674,8 @@ mod tests {
         assert!(check_mapping(&s, &["CODE".into()], &m).is_err()); // unknown header
         let ok: BTreeMap<String, String> = [("CODE".to_owned(), "code".to_owned())].into();
         assert!(check_mapping(&s, &["CODE".into()], &ok).is_ok());
-        assert!(check_mapping(&s, &["CODE".into()], &BTreeMap::new()).is_err()); // required
+        assert!(check_mapping(&s, &["CODE".into()], &BTreeMap::new()).is_err());
+        // required
     }
 
     #[test]
