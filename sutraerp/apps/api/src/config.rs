@@ -308,6 +308,9 @@ pub struct Config {
     pub http: crate::config_http::HttpSecurityConfig,
     /// Part 2 · S4-idp: identity provisioning (`config_idp`, `SUTRA_IDP_*`).
     pub idp: crate::config_idp::IdpConfig,
+    /// Part 2 · S4-docs: document storage (`SUTRA_DOCUMENT_STORAGE`, `SUTRA_S3_*`,
+    /// `SUTRA_DOCS_*`; `config_docs`). Production refuses to start without S3 storage.
+    pub documents: crate::config_docs::DocumentStorageConfig,
 }
 
 /// A secret string whose `Debug` is redacted.
@@ -753,6 +756,7 @@ impl Config {
             hardening: crate::config_b9::HardeningConfig::load(src, env)?,
             http: crate::config_http::HttpSecurityConfig::load(src, env)?,
             idp: crate::config_idp::IdpConfig::load(src, env)?, // Part 2 · S4-idp
+            documents: crate::config_docs::DocumentStorageConfig::load(src, env)?, // Part 2 · S4-docs
         };
         cfg.validate()?;
         Ok(cfg)
@@ -966,6 +970,9 @@ impl Config {
         crate::config_http::validate(self)?;
         if self.env == Environment::Production {
             crate::config_http::validate_production(self)?;
+            // Part 2 · S4-docs: documents need real object storage (checked last, so the earlier
+            // production rules keep reporting first).
+            crate::config_docs::validate_production(&self.documents)?;
         }
         Ok(())
     }

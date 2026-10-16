@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Infrastructure adapters behind kernel ports: NATS JetStream MessagePublisher (ADR-L5-0022), Valkey Cache (ADR-L5-0037), SMTP MailSender."
+description = "Infrastructure adapters behind kernel ports: NATS JetStream MessagePublisher (ADR-L5-0022), Valkey Cache (ADR-L5-0037), SMTP MailSender, S3-compatible object storage."
 
 [lints]
 workspace = true
@@ -41,3 +41,5 @@ nats-tests = []
 valkey-tests = []
 # Part 2 S4-pay: `razorpay::stub` (local HTTP stub of the Razorpay API) for other crates' tests.
 razorpay-stub = ["dep:axum", "tokio/net"]
+# Part 2 · S4-docs: live tests against a local MinIO (SUTRA_TEST_S3_ENDPOINT, default http://127.0.0.1:9000).
+s3-tests = []

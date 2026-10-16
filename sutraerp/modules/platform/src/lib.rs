@@ -21,10 +21,13 @@
 //! * **Self-service** (Batch 1D, [`inbox`]) — profile, notifications (in-app + e-mail channel),
 //!   notices, to-do inbox, the outbox-driven inbox consumer and their sweepers; dev-mode
 //!   WebAuthn ([`auth::webauthn`]), session list / revoke, OIDC back-channel logout.
+//! * **Documents** (Part 2 · S4-docs, [`documents`]) — the document service over S3-compatible
+//!   object storage: metadata, integrity, audit, retention / legal hold and its sweeper.
 
 pub mod audit; // 9A
 pub mod auth;
 pub mod catalog;
+pub mod documents; // Part 2 · S4-docs
 pub mod identity; // Part 2 · S4-idp
 pub mod inbox;
 pub mod search; // 9C

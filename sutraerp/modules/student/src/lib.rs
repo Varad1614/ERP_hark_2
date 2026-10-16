@@ -20,6 +20,7 @@
 pub mod academic_ports; // Batch 4 foundation: ports Domain D calls
 pub mod adapters;
 pub mod directory;
+pub mod files; // Part 2 · S4-docs: stored files of admission / record documents
 pub mod finance_ports; // Batch 5 foundation: ports Domain F calls
 pub mod identity_source; // Part 2 · S4-idp
 pub mod metrics; // Batch 8 foundation: Domain H figures
@@ -41,6 +42,7 @@ use std::sync::Arc;
 use sutra_contracts::exams::ResultsPort;
 use sutra_contracts::finance::FinanceClearancePort;
 use sutra_contracts::institution::reference::InstitutionReferencePort;
+use sutra_contracts::platform::documents::DocumentVault;
 use sutra_contracts::platform::workflow::WorkflowPort;
 use sutra_contracts::student::ports::{AbcRegistryPort, ExternalScholarshipPort};
 use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
@@ -79,6 +81,9 @@ pub struct StudentDeps {
     pub abc: Arc<dyn AbcRegistryPort>,
     /// External scholarship ecosystems ([`adapters::NoopExternalScholarships`]).
     pub external_scholarships: Arc<dyn ExternalScholarshipPort>,
+    /// Part 2 · S4-docs: platform document service (S3-compatible object storage; disabled vault
+    /// when no storage is configured).
+    pub documents: Arc<dyn DocumentVault>,
 }
 
 impl StudentDeps {
@@ -93,6 +98,7 @@ impl StudentDeps {
             results: self.results,
             abc: self.abc,
             external_scholarships: self.external_scholarships,
+            documents: self.documents,
         }
     }
 }
@@ -113,7 +119,8 @@ pub fn router_with_state(st: StudentState) -> OpenApiRouter {
         .merge(completion::router(st.clone())) // 3C
         .merge(guardian::router(st.clone())) // 3C
         .merge(scholarship::router(st.clone())) // 3C
-        .merge(alumni::router(st)) // 3C
+        .merge(alumni::router(st.clone())) // 3C
+        .merge(files::router(st)) // Part 2 · S4-docs
 }
 
 #[cfg(test)]

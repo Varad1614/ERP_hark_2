@@ -65,9 +65,10 @@ metrics.workspace = true
 async-trait.workspace = true
 # Part 2 S4-pay: Razorpay adapter of the finance gateway port (decimal rupees ↔ paise)
 rust_decimal.workspace = true
+# Part 2 · S4-docs: per-route request-body limit (document uploads)
+http-body-util.workspace = true
 
 [dev-dependencies]
-http-body-util.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
 async-nats.workspace = true
@@ -89,3 +90,5 @@ flowable-tests = []
 opensearch-tests = []
 # Part 2 · S4-idp: with db-tests, live Keycloak (SUTRA_TEST_KEYCLOAK_URL, compose dev realm).
 keycloak-tests = []
+# Part 2 · S4-docs: with db-tests, real S3-compatible storage (MinIO; SUTRA_TEST_S3_ENDPOINT).
+s3-tests = []

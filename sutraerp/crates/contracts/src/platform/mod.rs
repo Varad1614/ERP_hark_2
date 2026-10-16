@@ -2,6 +2,7 @@
 
 pub mod auth;
 pub mod catalog;
+pub mod documents; // Part 2 · S4-docs
 pub mod events;
 pub mod identity; // Part 2 · S4 idp
 pub mod search; // 9C

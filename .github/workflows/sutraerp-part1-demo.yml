@@ -2,7 +2,7 @@ name: SutraERP Part 1 demo (full stack)
 
 # Part 1 Stage 2 — a real full-stack demonstration on a GitHub runner (the developer machine
 # cannot run it): docker compose brings up postgres, keycloak (realm import), valkey, nats,
-# mailpit, migrate, api and web in Keycloak/OIDC mode; a synthetic institution is seeded through
+# mailpit, minio (built from source), migrate, api and web in Keycloak/OIDC mode; a synthetic institution is seeded through
 # the API; apps/web/e2e/journey.e2e.mjs drives Admission → Enrolment → Attendance → Fees →
 # Examination → Result in Chromium (API where no screen exists), checks every step in PostgreSQL,
 # restarts api + postgres and re-checks persistence. Logs, screenshots and the step results are
@@ -48,6 +48,7 @@ jobs:
       # The host reaches the published ports; the journey talks to the browser-facing origin.
       E2E_BASE: http://localhost:3000
       DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
+      MINIO_TAG: RELEASE.2025-10-15T17-29-55Z
     steps:
       - uses: actions/checkout@v4
 
@@ -83,6 +84,27 @@ jobs:
           cp target/debug/sutra-api deploy/docker/demo-bin/sutra-api
           strip --strip-debug deploy/docker/demo-bin/sutra-api
           ls -lh deploy/docker/demo-bin/sutra-api
+      # Part 2 · S4-docs: MinIO (document storage) built from its archived upstream source at a
+      # pinned release tag (no pullable upstream images; no third-party mirrors), cached per tag,
+      # run in compose from deploy/docker/minio-prebuilt.Dockerfile with random root credentials.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: MinIO binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sutra-minio
+          key: minio-${{ env.MINIO_TAG }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Build MinIO from source (${{ env.MINIO_TAG }})
+        run: |
+          set -euo pipefail
+          OUT="$HOME/.cache/sutra-minio/minio" bash deploy/minio/build-from-source.sh
+          mkdir -p deploy/docker/demo-bin
+          cp "$HOME/.cache/sutra-minio/minio" deploy/docker/demo-bin/minio
+          user="demo$(openssl rand -hex 6)"; secret="$(openssl rand -hex 24)"
+          echo "::add-mask::$secret"
+          { echo "SUTRA_COMPOSE_S3_ACCESS_KEY=$user"; echo "SUTRA_COMPOSE_S3_SECRET_KEY=$secret"; } >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: sutraerp/package.json
@@ -108,6 +130,7 @@ jobs:
           # The api service's own environment (compose interpolation included), in its container.
           docker compose run --rm --no-deps api check-config | tee "$DEMO_OUT/logs/api-check-config.txt"
           grep -q "auth=$( [ "$AUTH_MODE" = keycloak ] && echo Keycloak || echo Dev )" "$DEMO_OUT/logs/api-check-config.txt"
+          grep -q "documents=S3" "$DEMO_OUT/logs/api-check-config.txt"
 
       # ---- bring the stack up and wait on every health check
       - name: docker compose up (infra → migrate → api → web)
@@ -164,7 +187,7 @@ jobs:
         if: always()
         run: |
           docker compose ps -a > "$DEMO_OUT/logs/compose-ps.txt" 2>&1 || true
-          for s in postgres keycloak valkey nats mailpit migrate api web; do docker compose logs --no-color --timestamps "$s" > "$DEMO_OUT/logs/$s.log" 2>&1 || true; done
+          for s in postgres keycloak valkey nats mailpit minio migrate api web; do docker compose logs --no-color --timestamps "$s" > "$DEMO_OUT/logs/$s.log" 2>&1 || true; done
           cp -r "$DEMO_OUT/journey-results.json" "$DEMO_OUT/logs/" 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
