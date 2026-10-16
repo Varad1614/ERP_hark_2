@@ -8,6 +8,14 @@
 //!   Keycloak account (student role, institution group, `subject_ref` linked) exactly like a
 //!   student enrolled through admissions. Before the fix no event reached `idp-events` and an
 //!   imported student could never sign in.
+//! * `concurrent_seats_in_one_offering_do_not_starve_a_small_pool` — DEF-P2-CAP-002: seating
+//!   students (`POST /academic/sections/{id}/enrolments`) locked the course offering row and
+//!   then read the student / context / business day / registration through other modules' ports,
+//!   each on a SECOND pool connection. As soon as as many seat requests as pool connections
+//!   queued on one offering, the lock holder could not get its second connection: every request
+//!   failed with 503 "database unavailable" after the acquire timeout (capacity run 38922758612:
+//!   1,816 of 2,000 term registrations + seats failed with the shipped pool of 10 and 12
+//!   concurrent office requests). The port facts are now read before the lock.
 #![cfg(feature = "db-tests")]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -31,17 +39,26 @@ use sutra_platform::identity::{IdentityRuntime, IdentitySettings};
 use uuid::Uuid;
 
 const T_IMPORT_IDP: &str = "0192f5a0-7c3e-7000-8000-0000000ca901";
+const T_SEAT_POOL: &str = "0192f5a0-7c3e-7000-8000-0000000ca902";
 const IMP: &str = "/api/v1/platform/imports";
 
 /// Postgres-backed app (runtime role) in `tenant`, identity provisioning on (memory adapter).
 async fn app(tenant: &'static str) -> (Router, sqlx::PgPool) {
+    app_with(tenant, &[]).await
+}
+
+/// [`app`] with extra configuration (e.g. a small database pool).
+async fn app_with(
+    tenant: &'static str,
+    extra: &[(&'static str, &'static str)],
+) -> (Router, sqlx::PgPool) {
     let owner = owner_pool().await;
     let url = database_url();
     let (scheme, rest) = url.split_once("://").unwrap();
     let host = rest.rsplit_once('@').map_or(rest, |(_, h)| h);
     let runtime: &'static str =
         Box::leak(format!("{scheme}://{RUNTIME_USER}:{RUNTIME_PASSWORD}@{host}").into_boxed_str());
-    let src: HashMap<&'static str, &'static str> = HashMap::from([
+    let mut src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
         ("DATABASE_URL", runtime),
         ("SUTRA_SESSION_STORE", "postgres"),
@@ -53,6 +70,7 @@ async fn app(tenant: &'static str) -> (Router, sqlx::PgPool) {
         ("SUTRA_APPROVAL_MODE", "auto"),
         ("SUTRA_IDP_PROVISIONING", "memory"),
     ]);
+    src.extend(extra.iter().copied());
     let cfg = Config::load(&src).expect("config");
     let ctx = AppContext::from_config(&cfg).expect("context");
     (router(ctx), owner)
@@ -275,4 +293,69 @@ async fn imported_students_are_provisioned_identities() {
         .await
         .expect("idp-sync");
     assert_eq!(idp.user_count(), 2);
+}
+
+/// DEF-P2-CAP-002: twelve office requests seat twelve registered students in ONE section at the
+/// same time through an API whose pool has only three connections. Every seat succeeds (before
+/// the fix the offering-lock holder waited for a second connection the waiters held, and the
+/// requests failed with 503 after the acquire timeout).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_seats_in_one_offering_do_not_starve_a_small_pool() {
+    let (app, pool) = app_with(
+        T_SEAT_POOL,
+        &[
+            ("SUTRA_DB_MAX_CONNECTIONS", "3"),
+            ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "10"),
+        ],
+    )
+    .await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let setup =
+        support::b4::academic_setup(&app, &admin, &pool, T_SEAT_POOL, "Capacity seat pool").await;
+    let off = support::b4::seed_offering(&pool, &setup, "CS101", "enrollment_open").await;
+    let mut students = Vec::new();
+    for i in 0..12 {
+        let s = support::b4::seed_student(&pool, &setup, &format!("Seat{i}"), None).await;
+        support::b4::seed_registration(&pool, &setup, &s, &[off.component_id], "registered").await;
+        students.push(s);
+    }
+    let path = format!("/api/v1/academic/sections/{}/enrolments", off.section_id);
+    let t0 = std::time::Instant::now();
+    let tasks: Vec<_> = students
+        .iter()
+        .map(|s| {
+            let app = app.clone();
+            let req = write(
+                &admin,
+                "POST",
+                &path,
+                json!({"studentId": s.student_id}),
+                None,
+            );
+            tokio::spawn(async move { send(&app, req).await })
+        })
+        .collect();
+    for (i, t) in tasks.into_iter().enumerate() {
+        let (s, _, b) = t.await.unwrap();
+        assert_eq!(s, StatusCode::CREATED, "seat {i}: {b}");
+        assert_eq!(b["status"], "enrolled", "seat {i}: {b}");
+    }
+    let elapsed = t0.elapsed();
+    let seats: i64 = sutra_kernel::db_context::system(async {
+        sqlx::query_scalar(
+            "SELECT count(*) FROM academic.section_enrolment \
+             WHERE offering_id = $1 AND status = 'enrolled'",
+        )
+        .bind(off.offering_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap()
+    })
+    .await;
+    assert_eq!(seats, 12, "one seat per student");
+    // Well inside one acquire timeout: nobody waited for a connection that never came.
+    assert!(
+        elapsed < Duration::from_secs(10),
+        "12 concurrent seats took {elapsed:?}"
+    );
 }

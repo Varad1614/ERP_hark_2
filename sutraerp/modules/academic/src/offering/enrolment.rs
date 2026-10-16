@@ -38,7 +38,7 @@ use sutra_contracts::academic::status::{
     WaitlistStatus,
 };
 use sutra_contracts::student::ids::StudentId;
-use sutra_contracts::student::ports::{StudentContextSummary, StudentSummary};
+use sutra_contracts::student::ports::{StudentContextSummary, StudentSummary, TermRegistration};
 use sutra_contracts::student::status::StudentContextStatus;
 use sutra_kernel::auth::{AuthContext, Permission};
 use sutra_kernel::concurrency::Version;
@@ -348,7 +348,69 @@ async fn effective_restrictions(
         .collect())
 }
 
+/// What a seat decision needs from OTHER modules' ports (student, live contexts, the
+/// institution's business day, the term registration). Every port call takes its own pool
+/// connection, so these are read BEFORE the offering row is locked (Part 2 · S5-capacity,
+/// DEF-P2-CAP-002): a seat transaction that held `course_offering … FOR UPDATE` and then waited
+/// for a second pool connection starved the pool as soon as as many seat requests as pool
+/// connections queued on one offering (each waiter holds a connection) — every request then
+/// failed with 503 "database unavailable" after the acquire timeout.
+pub struct SeatFacts {
+    student_id: StudentId,
+    institution_id: InstitutionId,
+    academic_term_id: Uuid,
+    student: Option<StudentSummary>,
+    today: NaiveDate,
+    local_context: Option<StudentContextSummary>,
+    home_context: Option<StudentContextSummary>,
+    registration: Option<TermRegistration>,
+}
+
+impl SeatFacts {
+    /// Reads the facts for `student_id` and offering `o` (an unlocked read is enough: the
+    /// institution and term of an offering never change; [`evaluate_with`] re-checks them).
+    pub async fn gather(
+        st: &AcademicState,
+        scope: &ExecutionScope,
+        o: &OfferingRow,
+        student_id: StudentId,
+        gate: &Gate,
+    ) -> Result<Self, KernelError> {
+        let student = st.students.student(scope, student_id).await?;
+        let today = business_today(st, scope, o.institution_id).await?;
+        let local_context = st
+            .students
+            .live_context(scope, student_id, o.institution_id)
+            .await?;
+        let home_context = match (&local_context, gate.home_institution) {
+            (None, Some(home)) => st.students.live_context(scope, student_id, home).await?,
+            _ => None,
+        };
+        let registration = if local_context.is_some() {
+            st.registrations
+                .term_registration(scope, student_id, o.academic_term_id)
+                .await?
+        } else {
+            None
+        };
+        Ok(Self {
+            student_id,
+            institution_id: o.institution_id,
+            academic_term_id: o.academic_term_id,
+            student,
+            today,
+            local_context,
+            home_context,
+            registration,
+        })
+    }
+}
+
 /// Evaluates a seat request for `student_id` in section `s` of the locked offering `o`.
+///
+/// Reads the port facts itself (nested pool connections while `o` is locked): only for the
+/// low-volume paths (waitlist, offers, overrides). The seat hot path gathers [`SeatFacts`]
+/// before locking and calls [`evaluate_with`].
 pub async fn evaluate(
     st: &AcademicState,
     conn: &mut PgConnection,
@@ -358,6 +420,26 @@ pub async fn evaluate(
     student_id: StudentId,
     gate: &Gate,
 ) -> Result<SeatBasis, KernelError> {
+    let facts = SeatFacts::gather(st, scope, o, student_id, gate).await?;
+    evaluate_with(st, conn, scope, o, s, facts, gate).await
+}
+
+/// [`evaluate`] with facts gathered before the offering was locked: inside the transaction it
+/// only reads through `conn` (no second pool connection), except for an override that needs a
+/// new approval.
+pub async fn evaluate_with(
+    st: &AcademicState,
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    o: &OfferingRow,
+    s: &SectionRow,
+    facts: SeatFacts,
+    gate: &Gate,
+) -> Result<SeatBasis, KernelError> {
+    let student_id = facts.student_id;
+    if facts.institution_id != o.institution_id || facts.academic_term_id != o.academic_term_id {
+        return Err(conflict("the course offering changed while the seat was evaluated; retry"));
+    }
     if !o.status.accepts_enrolment() {
         return Err(conflict(format!(
             "the course offering is {}; it does not accept enrolment",
@@ -370,21 +452,20 @@ pub async fn evaluate(
             s.status
         )));
     }
-    let student = st
-        .students
-        .student(scope, student_id)
-        .await?
-        .ok_or_else(|| invalid("studentId", "not_found", "no such student"))?;
-    let today = business_today(st, scope, o.institution_id).await?;
+    let SeatFacts {
+        student,
+        today,
+        local_context,
+        home_context,
+        registration,
+        ..
+    } = facts;
+    let student = student.ok_or_else(|| invalid("studentId", "not_found", "no such student"))?;
     let overriding = gate.override_reason.is_some();
     let mut failures: Vec<String> = Vec::new();
     // Context in the offering's institution, or a cross-institution permit.
     let mut cross_institution = false;
-    let context = match st
-        .students
-        .live_context(scope, student_id, o.institution_id)
-        .await?
-    {
+    let context = match local_context {
         Some(c) => c,
         None => {
             let home = gate.home_institution.ok_or_else(|| {
@@ -400,12 +481,9 @@ pub async fn evaluate(
                 ));
             }
             cross_institution = true;
-            st.students
-                .live_context(scope, student_id, home)
-                .await?
-                .ok_or_else(|| {
-                    conflict("the student has no live context in the home institution")
-                })?
+            home_context.ok_or_else(|| {
+                conflict("the student has no live context in the home institution")
+            })?
         }
     };
     if context.status != StudentContextStatus::Active {
@@ -486,10 +564,7 @@ pub async fn evaluate(
     let covered = if cross_institution {
         None
     } else {
-        st.registrations
-            .term_registration(scope, student_id, o.academic_term_id)
-            .await?
-            .filter(|r| r.covers(o.curriculum_component_id))
+        registration.filter(|r| r.covers(o.curriculum_component_id))
     };
     match covered {
         Some(r) => {
@@ -646,9 +721,19 @@ async fn seat(
     gate: Gate,
 ) -> Result<SectionEnrolment, KernelError> {
     let s0 = load_section(&st.pool, tenant(ctx), section).await?;
+    // Port reads first, then the lock (DEF-P2-CAP-002: no second pool connection under it).
+    let o0 = crate::shared::offering::load_offering(&st.pool, tenant(ctx), s0.offering_id).await?;
+    let facts = SeatFacts::gather(
+        st,
+        &crate::shared::scope::institution_scope(ctx, o0.institution_id),
+        &o0,
+        student,
+        &gate,
+    )
+    .await?;
     let mut c = begin(st, ctx, s0.offering_id, None).await?;
     let s = lock_section(&mut c.tx, c.o.tenant_id, section).await?;
-    let b = evaluate(st, &mut c.tx, &c.scope, &c.o, &s, student, &gate).await?;
+    let b = evaluate_with(st, &mut c.tx, &c.scope, &c.o, &s, facts, &gate).await?;
     let origin = b.origin;
     let e = insert_seat(&mut c.tx, &c.scope, &c.o, &s, &b, origin, None, &c.actor).await?;
     c.tx.commit().await.map_err(map_db_error)?;
