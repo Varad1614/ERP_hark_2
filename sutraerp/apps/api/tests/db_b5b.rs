@@ -31,6 +31,7 @@ const T_UNIDENTIFIED: &str = "0192f5a0-7c3e-7000-8000-0000000b5b03";
 const T_REFUND: &str = "0192f5a0-7c3e-7000-8000-0000000b5b04";
 const T_RECEIVABLE: &str = "0192f5a0-7c3e-7000-8000-0000000b5b05";
 const T_AWAIT: &str = "0192f5a0-7c3e-7000-8000-0000000b5b06";
+const T_LATE_FEE: &str = "0192f5a0-7c3e-7000-8000-0000000b5b07";
 
 const F: &str = "/api/v1/finance";
 
@@ -1893,4 +1894,246 @@ async fn approvals_await_a_decision() {
     ledger_agrees(&pool, &setup).await;
     // The inbox rule makes a to-do for the staff requester of a refund.
     assert_eq!(events(&pool, T_AWAIT, "refund.requested").await, 2);
+}
+
+// ------------------------------------------------------------------ ERP_EXTENSIONS 1D
+
+/// Makes `parameters` the effective version of a rule (the governed lifecycle is 5A's own test).
+async fn effective_rule(
+    pool: &sqlx::PgPool,
+    setup: &b5::FinanceSetup,
+    key: &str,
+    parameters: Value,
+) {
+    sqlx::query(
+        "UPDATE finance.finance_rule SET status = 'superseded', effective_until = now() \
+         WHERE institution_id = $1 AND rule_key = $2 AND status = 'effective'",
+    )
+    .bind(setup.institution().as_uuid())
+    .bind(key)
+    .execute(pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO finance.finance_rule (tenant_id, institution_id, rule_key, version_no, parameters, status, \
+         effective_from, approved_at) VALUES ($1, $2, $3, (SELECT coalesce(max(version_no), 0) + 1 FROM \
+         finance.finance_rule WHERE institution_id = $2 AND rule_key = $3), $4, 'effective', now(), now())",
+    )
+    .bind(setup.tenant().as_uuid())
+    .bind(setup.institution().as_uuid())
+    .bind(key)
+    .bind(parameters)
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn late_fees_accrue_idempotently_and_reminders_follow_the_schedule() {
+    let (app, pool) = app(T_LATE_FEE).await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let setup = b5::finance_setup(
+        &app,
+        &admin,
+        &pool,
+        T_LATE_FEE,
+        "Fines College",
+        Some(b4::AARAV),
+    )
+    .await;
+    let inst = setup.institution();
+    let today = Utc::now().date_naive();
+    let late = b5::seed_charge(
+        &pool,
+        &setup,
+        "20000.00",
+        "published",
+        Some(today - chrono::Duration::days(40)),
+    )
+    .await;
+    // Within the grace days: priced, nothing to charge.
+    b5::seed_charge(
+        &pool,
+        &setup,
+        "5000.00",
+        "published",
+        Some(today - chrono::Duration::days(2)),
+    )
+    .await;
+
+    // No rule yet; a malformed rule is refused by the configuration validator.
+    call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/late-fees/preview"),
+        json!({}),
+        None,
+        StatusCode::CONFLICT,
+    )
+    .await;
+    call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/finance-rules"),
+        json!({"ruleKey": "late_fee", "values": {"mode": "per_day"}}),
+        None,
+        StatusCode::UNPROCESSABLE_ENTITY,
+    )
+    .await;
+    call(&app, &admin, "POST", &format!("/institutions/{inst}/finance-rules"),
+        json!({"ruleKey": "late_fee", "values": {"mode": "per_day", "amount": "10.00", "graceDays": 5, "cap": "300.00"}}),
+        None, StatusCode::CREATED).await;
+
+    // ₹10 a day after 5 grace days, capped at ₹300.
+    effective_rule(
+        &pool,
+        &setup,
+        "late_fee",
+        json!({"mode": "per_day", "amount": "10.00", "graceDays": 5, "cap": "300.00"}),
+    )
+    .await;
+    let preview = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/late-fees/preview"),
+        json!({}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        (preview["charged"].as_i64(), preview["total"].as_str()),
+        (Some(1), Some("300.00")),
+        "{preview}"
+    );
+    assert_eq!(preview["items"].as_array().unwrap().len(), 2);
+    let as_of: NaiveDate = preview["asOf"].as_str().unwrap().parse().unwrap();
+    let run = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/late-fees"),
+        json!({}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        (run["charged"].as_i64(), run["total"].as_str()),
+        (Some(1), Some("300.00")),
+        "{run}"
+    );
+    let item = run["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|x| x["chargeNumber"] == late.charge_number.as_str())
+        .unwrap()
+        .clone();
+    assert!(item["feeChargeNumber"].is_string());
+    let (src, status, total): (String, String, Decimal) = sqlx::query_as(
+        "SELECT source_type, status, total_amount FROM finance.charge WHERE source_id = $1",
+    )
+    .bind(late.charge_id.as_uuid())
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        (src.as_str(), status.as_str(), total),
+        ("fine", "published", amount("300.00"))
+    );
+    let again = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/late-fees"),
+        json!({}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(again["charged"], 0, "idempotent: {again}");
+
+    // A richer rule charges only the difference: 2 % a month, 40 days late = 2 months = ₹800.
+    effective_rule(
+        &pool,
+        &setup,
+        "late_fee",
+        json!({"mode": "percent", "percent": "2", "frequency": "monthly"}),
+    )
+    .await;
+    let run = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/late-fees"),
+        json!({}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        (run["charged"].as_i64(), run["total"].as_str()),
+        (Some(1), Some("500.00")),
+        "{run}"
+    );
+    assert_eq!(events(&pool, T_LATE_FEE, "late_fee.charged").await, 2);
+    ledger_agrees(&pool, &setup).await;
+
+    // Pre-due reminders: 7 days before the due date, once.
+    b5::seed_charge(
+        &pool,
+        &setup,
+        "10000.00",
+        "published",
+        Some(as_of + chrono::Duration::days(7)),
+    )
+    .await;
+    call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/fee-reminders"),
+        json!({}),
+        None,
+        StatusCode::CONFLICT,
+    )
+    .await;
+    effective_rule(
+        &pool,
+        &setup,
+        "reminder_schedule",
+        json!({"beforeDays": [7, 1], "afterDays": [1, 15, 30]}),
+    )
+    .await;
+    let sent = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/fee-reminders"),
+        json!({}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(sent["sent"], 1, "{sent}");
+    assert!(sent["items"][0]["message"]
+        .as_str()
+        .unwrap()
+        .contains("₹10,000.00"));
+    let again = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/fee-reminders"),
+        json!({}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(again["sent"], 0);
+    assert_eq!(events(&pool, T_LATE_FEE, "fee_reminder.sent").await, 1);
 }
