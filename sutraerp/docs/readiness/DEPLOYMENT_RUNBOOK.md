@@ -176,8 +176,10 @@ A backup holds: `sutra.dump` + `flowable.dump` + `manifest.json` (format `sutra-
 migration version, row counts and audit-chain heads from the dump's own snapshot), `keycloak.dump`,
 `minio-data.tar.gz` (document objects), `etc-sutraerp.tar.gz` (configuration **including secrets** —
 mode 600; store backups encrypted / offline), `onprem.sha256`, `onprem.release`. Restore stops the
-application, restores all three databases and the objects, re-runs migrations, checks row counts and
-audit grants against the manifest and starts everything again.
+application, **recreates the `sutra` and `flowable` databases empty** (a restore replaces the data;
+after an upgrade, `pg_restore --clean` alone cannot drop tables that newer migrations made other
+tables depend on), restores all three databases and the objects, re-runs migrations, checks row
+counts and audit grants against the manifest and starts everything again.
 
 Schedule (targets RPO 24 h / RTO 2 h, `docs/runbooks/backup-dr.md`): a systemd timer, e.g.
 

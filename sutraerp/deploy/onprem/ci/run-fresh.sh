@@ -103,6 +103,13 @@ column -t -s $'\t' "$OUT/chaos.tsv"
 say "backup (timing + size)"
 bdir=$($SO backup --label staging | tail -1)
 result backup "$bdir $(sudo du -sh "$bdir" | cut -f1): $(sudo ls "$bdir" | tr '\n' ' ')"
+
+say "restore of that backup onto the running server (RTO drill: replace data, verify, serve)"
+t0=$(now)
+$SO restore "$bdir"
+record restore_wall "$(since "$t0")"
+same_data "$c_ref" "$(counts)" "after restore of the staging backup"
+SMOKE_SUFFIX=_after_restore smoke verify
 sudo du -sh /var/lib/docker >"$OUT/docker-disk.txt" 2>&1 || true
 resources final
 
