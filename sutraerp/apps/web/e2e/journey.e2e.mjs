@@ -968,6 +968,41 @@ try {
       noServerErrors(e);
     });
 
+    // ============================================================ 8. Data import (Part 2 · S4-ui-import)
+    await step("8 Data import", "Admin Data import: a 2.2 MiB students CSV (above the 2 MiB default body limit, through nginx) → suggested mapping → dry run → commit → reconciliation", "browser (admin /data-import)", async (e) => {
+      need(ids.id, "institution");
+      const page = P.administrator;
+      // The screen works on the selected institution (picker state in localStorage).
+      await page.evaluate((id) => window.localStorage.setItem("sutra.selectedInstitution", id), ids.id);
+      await go(page, "/data-import");
+      await page.locator('[data-screen="data-import"]').waitFor();
+      await page.selectOption('select[name="entity"]', "students");
+      const tag = `IMP${Date.now().toString(36).toUpperCase().slice(-5)}`;
+      const notes = "n".repeat(560 * 1024);
+      const lines = ["student_number,given_name,family_name,date_of_birth,programme_code,notes"];
+      for (let i = 1; i <= 4; i++) lines.push(`${tag}-${i},Migrated${i},Student,2006-05-0${i},BTECH-CSE,${notes}`);
+      const file = Buffer.from(`${lines.join("\n")}\n`);
+      check(file.length > 2 * 1024 * 1024, `file is ${file.length} bytes (> 2 MiB)`, e);
+      await page.locator('input[name="file"]').setInputFiles({ name: "legacy-students.csv", mimeType: "text/csv", buffer: file });
+      let r = await ui(page, "POST", /^\/api\/v1\/platform\/imports$/, () => page.click("[data-import-upload]"), e);
+      check(r.status === 201, `upload accepted through nginx (${r.status})`, e);
+      ids.importJobId = r.body.id;
+      check(r.body.fileBytes === file.length && r.body.summary.rowsInFile === 4, "job holds the whole file (4 rows)", e);
+      await page.locator("[data-import-mapping]").waitFor();
+      r = await ui(page, "POST", /\/api\/v1\/platform\/imports\/[^/]+\/dry-run$/, () => page.click("[data-import-dry-run]"), e);
+      check(r.status === 200 && r.body.status === "validated" && r.body.actions.create === 4, `dry run: ${r.body?.status}, ${r.body?.actions?.create} to create`, e);
+      await page.locator('[data-import-dryrun="validated"]').waitFor();
+      r = await ui(page, "POST", /\/api\/v1\/platform\/imports\/[^/]+\/commit$/, () => page.click("[data-import-commit]"), e);
+      check(r.status === 200 && r.body.status === "committed" && r.body.summary.created === 4, `committed: ${r.body?.summary?.created} created`, e);
+      await page.locator('[data-import-reconciliation="committed"]').waitFor();
+      e(`admin sees the reconciliation (${await snap(page, "8-admin-data-import")})`);
+      noServerErrors(e);
+      db(e, "imported students", `SELECT count(*) FROM student.student WHERE student_number LIKE ${q(`${tag}-%`)}`, (v) => v === "4");
+      db(e, "import job", `SELECT status || '|' || file_bytes FROM platform.import_job WHERE id = ${q(ids.importJobId)}`, (v) => v === `committed|${file.length}`);
+      audit(e, ids.importJobId, ["platform.import.upload", "platform.import.dry_run", "platform.import.commit"], "import job");
+      await sees(e, "faculty", faculty, `/api/v1/platform/imports/${ids.importJobId}`, 403);
+    });
+
     R.snapshot.pgStartedAt = psql("SELECT pg_postmaster_start_time()");
     state.snapshot = R.snapshot;
     save();

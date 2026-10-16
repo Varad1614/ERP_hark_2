@@ -407,7 +407,7 @@ function SampleCell({ job, header }: { job: ImportJob; header: string }) {
   const api = useImportApi();
   const rows = useQuery({ queryKey: ikeys.rows(job.id, false), queryFn: () => api.rows(job.id, false) });
   const v = rows.data?.[0]?.cells[header];
-  return <>{v ? v : "—"}</>;
+  return <>{v ? (v.length > 60 ? `${v.slice(0, 57)}…` : v) : "—"}</>;
 }
 
 function errorText(r: ImportJobRow): string {
