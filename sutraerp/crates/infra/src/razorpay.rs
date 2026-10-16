@@ -668,6 +668,9 @@ pub mod stub {
         pub log: Vec<String>,
         /// Refund idempotency keys → refund id.
         pub refund_keys: HashMap<String, String>,
+        /// Per-stub id tag: Razorpay ids are globally unique, so two stubs (parallel tests on one
+        /// database) must never hand out the same `order_…` / `pay_…` id.
+        pub tag: String,
         counter: u64,
     }
 
@@ -821,7 +824,7 @@ pub mod stub {
         }
         st.counter += 1;
         let order = json!({
-            "id": format!("order_Stub{:010}", st.counter),
+            "id": format!("order_Stub{}{:06}", st.tag, st.counter),
             "entity": "order",
             "amount": amount,
             "amount_paid": 0,
@@ -972,7 +975,7 @@ pub mod stub {
         }
         st.counter += 1;
         let r = json!({
-            "id": format!("rfnd_Stub{:010}", st.counter),
+            "id": format!("rfnd_Stub{}{:06}", st.tag, st.counter),
             "entity": "refund",
             "amount": amount,
             "currency": "INR",
@@ -1027,7 +1030,17 @@ pub mod stub {
             let key_id = "rzp_test_StubKey000001".to_owned();
             let key_secret = "stub-key-secret-0123456789abcdef".to_owned();
             let webhook_secret = "stub-webhook-secret-0123456789abcdef".to_owned();
-            let state = Arc::new(Mutex::new(StubState::default()));
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+            let addr = listener.local_addr()?;
+            let nanos = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos();
+            let tag = format!("{:08x}{:04x}", nanos & 0xffff_ffff, addr.port());
+            let state = Arc::new(Mutex::new(StubState {
+                tag,
+                ..StubState::default()
+            }));
             let shared = Shared {
                 auth: format!(
                     "Basic {}",
@@ -1041,8 +1054,6 @@ pub mod stub {
                 .route("/v1/payments/{id}/refund", post(refund))
                 .route("/v1/payments/{id}/refunds", get(payment_refunds))
                 .with_state(shared);
-            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
-            let addr = listener.local_addr()?;
             tokio::spawn(async move {
                 let _ = axum::serve(listener, app).await;
             });
@@ -1104,7 +1115,7 @@ pub mod stub {
             };
             // Shape of https://razorpay.com/docs/api/orders/fetch-payments/ (items[]).
             let p = json!({
-                "id": format!("pay_Stub{:010}", st.counter),
+                "id": format!("pay_Stub{}{:06}", st.tag, st.counter),
                 "entity": "payment",
                 "amount": amount,
                 "currency": "INR",
