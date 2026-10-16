@@ -85,7 +85,11 @@ async fn backlog_gauges_count_every_tenant_as_the_runtime_role() {
             .fetch_one(&owner)
             .await
             .unwrap();
-        assert_eq!(gauge(status), truth, "sutra_idp_sync_links{{status={status}}}");
+        assert_eq!(
+            gauge(status),
+            truth,
+            "sutra_idp_sync_links{{status={status}}}"
+        );
     }
     assert!(gauge("failed") >= 2);
     assert!(gauge("conflict") >= 1);
@@ -95,7 +99,10 @@ async fn backlog_gauges_count_every_tenant_as_the_runtime_role() {
 
     // The exposition carries the families with bounded labels only.
     let text = global().render();
-    assert!(text.contains("sutra_idp_sync_links{status=\"failed\"}"), "{text}");
+    assert!(
+        text.contains("sutra_idp_sync_links{status=\"failed\"}"),
+        "{text}"
+    );
     assert!(text.contains("# TYPE sutra_gateway_payments_open_stale gauge"));
     assert!(!text.contains(&a.to_string()));
 
