@@ -159,7 +159,10 @@ mod tests {
     fn label_values_round_trip_and_are_snake_case() {
         for e in SecurityEvent::ALL {
             assert_eq!(SecurityEvent::parse(e.as_str()), Some(e));
-            assert!(e.as_str().bytes().all(|b| b.is_ascii_lowercase() || b == b'_'));
+            assert!(e
+                .as_str()
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b == b'_'));
         }
         for i in Integration::ALL {
             assert_eq!(Integration::parse(i.as_str()), Some(i));

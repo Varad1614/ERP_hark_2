@@ -27,9 +27,9 @@ use prometheus_client::metrics::histogram::Histogram;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
 use std::net::SocketAddr;
-use sutra_kernel::signal::{CallOutcome, Integration, SecurityEvent};
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
+use sutra_kernel::signal::{CallOutcome, Integration, SecurityEvent};
 use tokio_util::sync::CancellationToken;
 use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
@@ -596,7 +596,9 @@ fn apply(target: &str, f: &EventFields) {
     }
     if let (Some(i), Some(o)) = (
         f.integration.as_deref().and_then(Integration::parse),
-        f.integration_outcome.as_deref().and_then(CallOutcome::parse),
+        f.integration_outcome
+            .as_deref()
+            .and_then(CallOutcome::parse),
     ) {
         m.integration_calls
             .get_or_create(&IntegrationLabels {
