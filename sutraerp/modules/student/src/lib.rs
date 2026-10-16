@@ -21,6 +21,7 @@ pub mod academic_ports; // Batch 4 foundation: ports Domain D calls
 pub mod adapters;
 pub mod directory;
 pub mod finance_ports; // Batch 5 foundation: ports Domain F calls
+pub mod identity_source; // Part 2 · S4-idp
 pub mod metrics; // Batch 8 foundation: Domain H figures
 pub mod search_source;
 pub mod shared; // 9C

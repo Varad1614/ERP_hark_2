@@ -160,6 +160,24 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "sutra-idp-admin",
+      "name": "SutraERP identity provisioning",
+      "description": "Confidential service-account client of the SutraERP identity provisioning adapter (Part 2 S4-idp). Least privilege: realm-management manage-users, view-users, query-users, query-groups (+ query-clients). No browser or password flows.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": true,
+      "attributes": {
+        "access.token.lifespan": "300"
+      }
     }
   ],
   "sslRequired": "all",

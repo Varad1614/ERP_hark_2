@@ -109,6 +109,10 @@ pub struct AppContext {
     /// Part 1 · Stage 3 (S3-config): transport hardening (headers, CORS, body limit, ops
     /// endpoints) and the public-endpoint rate limiter.
     pub http: HttpLayers,
+    /// Part 2 · S4-idp: identity provisioning admin API state (`SUTRA_IDP_PROVISIONING`).
+    pub identity: sutra_platform::identity::http::IdentityState,
+    /// Part 2 · S4-idp: provisioning runtime (start-up check in `main`), `None` when off.
+    pub identity_runtime: Option<sutra_platform::identity::IdentityRuntime>,
 }
 
 /// Part 1 · Stage 3 (S3-config): settings of the transport layers built in [`router`].
@@ -376,6 +380,10 @@ impl AppContext {
             cfg.privileged_mfa,
         );
         let observability = Some(build_observability(cfg, &pool)); // 9A
+                                                                   // Part 2 · S4-idp: identity provisioning (admin API + idp-events / idp-sync jobs).
+        let (identity, identity_runtime, consumers) =
+            crate::idp_wiring::wire(cfg, &pool, sessions.clone(), consumers)
+                .map_err(BuildError::Auth)?;
         Ok(Self {
             pool,
             readiness,
@@ -415,8 +423,10 @@ impl AppContext {
                 consumers,
                 observability, // 9A
             },
-            search,          // 9C
-            payment_gateway, // INT: SEC-9D-003 (+ Part 2 S4-pay: razorpay)
+            search,           // 9C
+            payment_gateway,  // INT: SEC-9D-003 (+ Part 2 S4-pay: razorpay)
+            identity,         // Part 2 · S4-idp
+            identity_runtime, // Part 2 · S4-idp
         })
     }
 
@@ -1049,6 +1059,7 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
         .merge(sutra_platform::search::router(ctx.search.clone())) // 9C
+        .merge(sutra_platform::identity::http::router(ctx.identity.clone())) // Part 2 · S4-idp
         .merge(sutra_institution::router(
             sutra_institution::InstitutionDeps {
                 pool: ctx.pool.clone(),

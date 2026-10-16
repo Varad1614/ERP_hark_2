@@ -94542,6 +94542,1191 @@
         ]
       }
     },
+    "/api/v1/platform/identities": {
+      "get": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Identities of the session tenant (newest first).",
+        "operationId": "platform_identity_list",
+        "parameters": [
+          {
+            "name": "subjectType",
+            "in": "query",
+            "description": "`student` | `staff` | `admin`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "syncStatus",
+            "in": "query",
+            "description": "`pending` | `synced` | `failed` | `conflict`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1–500 (default 100), newest first.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing `platform.identity.read`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/admins": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Creates a platform administrator identity (no ERP record) and a role request for its roles:\nprivileged roles wait for another administrator's decision; until then the identity can sign\nin to nothing (no role → `403` at sign-in).",
+        "operationId": "platform_identity_admin_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminIdentityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminIdentityCreated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/provision": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Provisions (or re-queues) the identity of a student or staff member from the owning record:\nlifecycle state, institution, e-mail and base role come from the record. Existing identities\nare matched first (one identity per subject; username / e-mail unique per IdP), so calling\nit twice never creates a second account.",
+        "operationId": "platform_identity_provision",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Identity already existed (re-queued when its facts changed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Identity created and queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such student / staff member in the session tenant",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate identity (username / e-mail already used)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provisioning is off",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}": {
+      "get": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "One identity.",
+        "operationId": "platform_identity_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/reactivate": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Lifts an administrative suspension. The account is re-enabled only when the ERP record is\nactive too (a suspended student stays suspended).",
+        "operationId": "platform_identity_reactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/required-actions": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Triggers required actions: `verifyEmail` + `updatePassword` (activation), `updatePassword`\n(password recovery), `configureTotp` (MFA enrolment / re-enrolment). Applied by the next sync.",
+        "operationId": "platform_identity_required_actions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequiredActionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission, or your own identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/retry": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Re-queues a `failed` / `conflict` identity after the cause was fixed.",
+        "operationId": "platform_identity_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/role-requests": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Requests role changes. Revocations and non-privileged grants apply at once; a grant of a\nprivileged role (administrator, approver roles) waits for another administrator's decision.",
+        "operationId": "platform_identity_role_request_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleRequestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission, or your own identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request is already pending",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/suspend": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Administrative suspension: the account is disabled and every session (IdP and SutraERP) is\nended at the next sync, whatever the ERP record says.",
+        "operationId": "platform_identity_suspend",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission / step-up, or your own identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identity-role-mappings": {
+      "get": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "ERP-role → IdP mappings of the session tenant.",
+        "operationId": "platform_identity_role_mapping_list",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMappingPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Adds an IdP target (realm role, client role or group) to an ERP role, optionally for one\ninstitution. SutraERP's own role names and tenant groups are refused as targets (they are\nmanaged 1:1 and carry the tenant scope).",
+        "operationId": "platform_identity_role_mapping_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRoleMapping"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMappingView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mapping exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identity-role-mappings/{id}": {
+      "delete": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Retires a mapping (the target is removed from every identity at the next sync).",
+        "operationId": "platform_identity_role_mapping_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identity-role-requests": {
+      "get": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Role requests of the session tenant (newest first).",
+        "operationId": "platform_identity_role_request_list",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`pending` | `approved` | `rejected` | `applied`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleRequestPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identity-role-requests/{id}/decision": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Decides a pending privileged role request. The decider must hold\n`platform.identity.role.approve`, must not be the requester (separation of duties) and must\nnot be the identity concerned. Approval applies the roles (and triggers TOTP enrolment) at the\nnext sync.",
+        "operationId": "platform_identity_role_request_decision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleRequestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission / step-up, the requester, or your own identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not pending",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/platform/modules": {
       "get": {
         "tags": [
@@ -132480,6 +133665,64 @@
           }
         }
       },
+      "AdminIdentityCreated": {
+        "type": "object",
+        "description": "Created administrator identity + its role request.",
+        "required": [
+          "identity",
+          "roleRequest"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/IdentityView"
+          },
+          "roleRequest": {
+            "$ref": "#/components/schemas/RoleRequestView"
+          }
+        }
+      },
+      "AdminIdentityRequest": {
+        "type": "object",
+        "description": "Create a platform administrator identity. The roles are requested, not granted: privileged\nroles wait for a second administrator's decision.",
+        "required": [
+          "email",
+          "givenName",
+          "roles",
+          "reason"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "familyName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "givenName": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Pin the identity to one institution (default: tenant-wide)."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Requested SutraERP roles (e.g. `administrator`, `registrar`)."
+          }
+        }
+      },
       "Admission": {
         "type": "object",
         "description": "Admission Record (wire form; contract §5.3 minimum fields included).",
@@ -154185,6 +155428,18 @@
           }
         }
       },
+      "HoldRequest": {
+        "type": "object",
+        "description": "Reason of an administrative suspension / re-enabling.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "HoldSource": {
         "type": "string",
         "description": "Who placed a hold.",
@@ -154934,6 +156189,182 @@
             "items": {
               "$ref": "#/components/schemas/IdentityCorrection"
             }
+          }
+        }
+      },
+      "IdentityPage": {
+        "type": "object",
+        "description": "Page of identities.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdentityView"
+            }
+          }
+        }
+      },
+      "IdentityView": {
+        "type": "object",
+        "description": "One identity (link between an ERP subject and its IdP account).",
+        "required": [
+          "id",
+          "subjectType",
+          "subjectId",
+          "idp",
+          "username",
+          "givenName",
+          "erpState",
+          "adminHold",
+          "desiredState",
+          "roles",
+          "baseRoles",
+          "grantedRoles",
+          "pendingActions",
+          "syncStatus",
+          "attempts",
+          "nextAttemptAt",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "adminHold": {
+            "type": "boolean"
+          },
+          "appliedState": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "baseRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "desiredState": {
+            "type": "string",
+            "description": "State the IdP account is driven to."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "erpState": {
+            "type": "string",
+            "description": "State the ERP record calls for: `active` | `suspended` | `disabled`."
+          },
+          "familyName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "givenName": {
+            "type": "string"
+          },
+          "grantedRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "holdReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idp": {
+            "type": "string",
+            "description": "`keycloak` | `memory`."
+          },
+          "idpUserId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "IdP user id (the OIDC `sub`), once provisioned."
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nextAttemptAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pendingActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keycloak required actions still to be triggered."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Effective SutraERP roles (record roles + granted roles)."
+          },
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subjectType": {
+            "type": "string",
+            "description": "`student` | `staff` | `admin`."
+          },
+          "syncStatus": {
+            "type": "string",
+            "description": "`pending` | `synced` | `failed` | `conflict`."
+          },
+          "syncedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "username": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -166202,6 +167633,42 @@
           }
         }
       },
+      "NewRoleMapping": {
+        "type": "object",
+        "description": "New ERP-role → IdP mapping.",
+        "required": [
+          "erpRole",
+          "targetKind",
+          "target"
+        ],
+        "properties": {
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Required for `client_role`."
+          },
+          "erpRole": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "target": {
+            "type": "string",
+            "description": "Realm role, client role or group path (`/lms/teachers`)."
+          },
+          "targetKind": {
+            "type": "string",
+            "description": "`realm_role` | `client_role` | `group`."
+          }
+        }
+      },
       "NewSchedulingRequirement": {
         "type": "object",
         "required": [
@@ -173717,6 +175184,24 @@
           }
         }
       },
+      "ProvisionRequest": {
+        "type": "object",
+        "description": "Provision the identity of a student or staff member.",
+        "required": [
+          "subjectType",
+          "subjectId"
+        ],
+        "properties": {
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subjectType": {
+            "type": "string",
+            "description": "`student` | `staff`."
+          }
+        }
+      },
       "PublicationCreate": {
         "type": "object",
         "description": "New publication.",
@@ -178307,6 +179792,34 @@
           }
         }
       },
+      "RequiredAction": {
+        "type": "string",
+        "description": "Keycloak required action triggered for an account (the user performs it at next sign-in, or\nthrough the \"execute actions\" e-mail).",
+        "enum": [
+          "verifyEmail",
+          "updatePassword",
+          "configureTotp"
+        ]
+      },
+      "RequiredActionsRequest": {
+        "type": "object",
+        "description": "Trigger required actions (activation, password recovery, MFA enrolment).",
+        "required": [
+          "actions"
+        ],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequiredAction"
+            }
+          },
+          "sendEmail": {
+            "type": "boolean",
+            "description": "Also e-mail the user an \"execute actions\" link (needs SMTP in the realm)."
+          }
+        }
+      },
       "RequisitionCreate": {
         "type": "object",
         "description": "A new requisition (`draft`).",
@@ -180048,6 +181561,197 @@
           "payroll_approver",
           "procurement_approver"
         ]
+      },
+      "RoleChangeRequest": {
+        "type": "object",
+        "description": "Grant and / or revoke SutraERP roles of an identity.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "grant": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          },
+          "revoke": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RoleDecision": {
+        "type": "object",
+        "description": "Decision on a pending role request.",
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "`approve` | `reject`."
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "RoleMappingPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleMappingView"
+            }
+          }
+        }
+      },
+      "RoleMappingView": {
+        "type": "object",
+        "description": "Extra IdP target of an ERP role.",
+        "required": [
+          "id",
+          "erpRole",
+          "targetKind",
+          "target",
+          "createdBy",
+          "createdAt"
+        ],
+        "properties": {
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "erpRole": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "target": {
+            "type": "string"
+          },
+          "targetKind": {
+            "type": "string",
+            "description": "`realm_role` | `client_role` | `group`."
+          }
+        }
+      },
+      "RoleRequestPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleRequestView"
+            }
+          }
+        }
+      },
+      "RoleRequestView": {
+        "type": "object",
+        "description": "One role request.",
+        "required": [
+          "id",
+          "identityId",
+          "grantRoles",
+          "revokeRoles",
+          "privileged",
+          "reason",
+          "status",
+          "requestedBy",
+          "createdAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grantRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "identityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "privileged": {
+            "type": "boolean",
+            "description": "A privileged role is granted: another administrator must decide."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string"
+          },
+          "revokeRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "`pending` | `approved` | `rejected` | `applied` (non-privileged, no decision needed)."
+          }
+        }
       },
       "RoomInspectionComplete": {
         "type": "object",

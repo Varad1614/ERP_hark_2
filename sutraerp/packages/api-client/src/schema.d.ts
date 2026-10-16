@@ -20238,6 +20238,258 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Identities of the session tenant (newest first). */
+        get: operations["platform_identity_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a platform administrator identity (no ERP record) and a role request for its roles:
+         *     privileged roles wait for another administrator's decision; until then the identity can sign
+         *     in to nothing (no role → `403` at sign-in).
+         */
+        post: operations["platform_identity_admin_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Provisions (or re-queues) the identity of a student or staff member from the owning record:
+         *     lifecycle state, institution, e-mail and base role come from the record. Existing identities
+         *     are matched first (one identity per subject; username / e-mail unique per IdP), so calling
+         *     it twice never creates a second account.
+         */
+        post: operations["platform_identity_provision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One identity. */
+        get: operations["platform_identity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lifts an administrative suspension. The account is re-enabled only when the ERP record is
+         *     active too (a suspended student stays suspended).
+         */
+        post: operations["platform_identity_reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/required-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Triggers required actions: `verifyEmail` + `updatePassword` (activation), `updatePassword`
+         *     (password recovery), `configureTotp` (MFA enrolment / re-enrolment). Applied by the next sync.
+         */
+        post: operations["platform_identity_required_actions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-queues a `failed` / `conflict` identity after the cause was fixed. */
+        post: operations["platform_identity_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/role-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Requests role changes. Revocations and non-privileged grants apply at once; a grant of a
+         *     privileged role (administrator, approver roles) waits for another administrator's decision.
+         */
+        post: operations["platform_identity_role_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Administrative suspension: the account is disabled and every session (IdP and SutraERP) is
+         *     ended at the next sync, whatever the ERP record says.
+         */
+        post: operations["platform_identity_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ERP-role → IdP mappings of the session tenant. */
+        get: operations["platform_identity_role_mapping_list"];
+        put?: never;
+        /**
+         * Adds an IdP target (realm role, client role or group) to an ERP role, optionally for one
+         *     institution. SutraERP's own role names and tenant groups are refused as targets (they are
+         *     managed 1:1 and carry the tenant scope).
+         */
+        post: operations["platform_identity_role_mapping_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-mappings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retires a mapping (the target is removed from every identity at the next sync). */
+        delete: operations["platform_identity_role_mapping_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Role requests of the session tenant (newest first). */
+        get: operations["platform_identity_role_request_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a pending privileged role request. The decider must hold
+         *     `platform.identity.role.approve`, must not be the requester (separation of duties) and must
+         *     not be the identity concerned. Approval applies the roles (and triggers TOTP enrolment) at the
+         *     next sync.
+         */
+        post: operations["platform_identity_role_request_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/modules": {
         parameters: {
             query?: never;
@@ -27455,6 +27707,28 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Created administrator identity + its role request. */
+        AdminIdentityCreated: {
+            identity: components["schemas"]["IdentityView"];
+            roleRequest: components["schemas"]["RoleRequestView"];
+        };
+        /**
+         * @description Create a platform administrator identity. The roles are requested, not granted: privileged
+         *     roles wait for a second administrator's decision.
+         */
+        AdminIdentityRequest: {
+            email: string;
+            familyName?: string | null;
+            givenName: string;
+            /**
+             * Format: uuid
+             * @description Pin the identity to one institution (default: tenant-wide).
+             */
+            institutionId?: string | null;
+            reason: string;
+            /** @description Requested SutraERP roles (e.g. `administrator`, `registrar`). */
+            roles: string[];
+        };
         /** @description Admission Record (wire form; contract §5.3 minimum fields included). */
         Admission: {
             /** Format: uuid */
@@ -34289,6 +34563,10 @@ export interface components {
             financeEvidence: components["schemas"]["FinanceEvidence"];
             items: components["schemas"]["RegistrationHold"][];
         };
+        /** @description Reason of an administrative suspension / re-enabling. */
+        HoldRequest: {
+            reason: string;
+        };
         /**
          * @description Who placed a hold.
          * @enum {string}
@@ -34546,6 +34824,57 @@ export interface components {
         /** @description Collection. */
         IdentityCorrectionList: {
             items: components["schemas"]["IdentityCorrection"][];
+        };
+        /** @description Page of identities. */
+        IdentityPage: {
+            items: components["schemas"]["IdentityView"][];
+        };
+        /** @description One identity (link between an ERP subject and its IdP account). */
+        IdentityView: {
+            adminHold: boolean;
+            appliedState?: string | null;
+            /** Format: int32 */
+            attempts: number;
+            baseRoles: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description State the IdP account is driven to. */
+            desiredState: string;
+            email?: string | null;
+            /** @description State the ERP record calls for: `active` | `suspended` | `disabled`. */
+            erpState: string;
+            familyName?: string | null;
+            givenName: string;
+            grantedRoles: string[];
+            holdReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `keycloak` | `memory`. */
+            idp: string;
+            /** @description IdP user id (the OIDC `sub`), once provisioned. */
+            idpUserId?: string | null;
+            /** Format: uuid */
+            institutionId?: string | null;
+            lastError?: string | null;
+            /** Format: date-time */
+            nextAttemptAt: string;
+            /** @description Keycloak required actions still to be triggered. */
+            pendingActions: string[];
+            /** @description Effective SutraERP roles (record roles + granted roles). */
+            roles: string[];
+            /** Format: uuid */
+            subjectId: string;
+            /** @description `student` | `staff` | `admin`. */
+            subjectType: string;
+            /** @description `pending` | `synced` | `failed` | `conflict`. */
+            syncStatus: string;
+            /** Format: date-time */
+            syncedAt?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            username: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description A statement line explained outside the ledger (e.g. a bank-side reversal pair). */
         IgnoreLine: {
@@ -38099,6 +38428,18 @@ export interface components {
             rationale?: string | null;
             sourceKey?: string | null;
         };
+        /** @description New ERP-role → IdP mapping. */
+        NewRoleMapping: {
+            /** @description Required for `client_role`. */
+            clientId?: string | null;
+            erpRole: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            /** @description Realm role, client role or group path (`/lms/teachers`). */
+            target: string;
+            /** @description `realm_role` | `client_role` | `group`. */
+            targetKind: string;
+        };
         NewSchedulingRequirement: {
             notes?: string | null;
             preferredDays?: number[];
@@ -40467,6 +40808,13 @@ export interface components {
             providerReference?: string | null;
             studentNumber: string;
         };
+        /** @description Provision the identity of a student or staff member. */
+        ProvisionRequest: {
+            /** Format: uuid */
+            subjectId: string;
+            /** @description `student` | `staff`. */
+            subjectType: string;
+        };
         /** @description New publication. */
         PublicationCreate: {
             /**
@@ -41936,6 +42284,18 @@ export interface components {
             orgUnitId: components["schemas"]["OrgUnitId"];
             toParentId: components["schemas"]["OrgUnitId"];
         };
+        /**
+         * @description Keycloak required action triggered for an account (the user performs it at next sign-in, or
+         *     through the "execute actions" e-mail).
+         * @enum {string}
+         */
+        RequiredAction: "verifyEmail" | "updatePassword" | "configureTotp";
+        /** @description Trigger required actions (activation, password recovery, MFA enrolment). */
+        RequiredActionsRequest: {
+            actions: components["schemas"]["RequiredAction"][];
+            /** @description Also e-mail the user an "execute actions" link (needs SMTP in the realm). */
+            sendEmail?: boolean;
+        };
         /** @description A new requisition (`draft`). */
         RequisitionCreate: {
             /** Format: uuid */
@@ -42486,6 +42846,60 @@ export interface components {
          * @enum {string}
          */
         Role: "administrator" | "faculty" | "student" | "finance_approver" | "exam_controller" | "registrar" | "payroll_approver" | "procurement_approver";
+        /** @description Grant and / or revoke SutraERP roles of an identity. */
+        RoleChangeRequest: {
+            grant?: string[];
+            reason: string;
+            revoke?: string[];
+        };
+        /** @description Decision on a pending role request. */
+        RoleDecision: {
+            /** @description `approve` | `reject`. */
+            decision: string;
+            reason: string;
+        };
+        RoleMappingPage: {
+            items: components["schemas"]["RoleMappingView"][];
+        };
+        /** @description Extra IdP target of an ERP role. */
+        RoleMappingView: {
+            clientId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            erpRole: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            target: string;
+            /** @description `realm_role` | `client_role` | `group`. */
+            targetKind: string;
+        };
+        RoleRequestPage: {
+            items: components["schemas"]["RoleRequestView"][];
+        };
+        /** @description One role request. */
+        RoleRequestView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            grantRoles: string[];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            identityId: string;
+            /** @description A privileged role is granted: another administrator must decide. */
+            privileged: boolean;
+            reason: string;
+            requestedBy: string;
+            revokeRoles: string[];
+            /** @description `pending` | `approved` | `rejected` | `applied` (non-privileged, no decision needed). */
+            status: string;
+        };
         /** @description Inspection outcome. */
         RoomInspectionComplete: {
             /**
@@ -97370,6 +97784,831 @@ export interface operations {
                 };
             };
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_list: {
+        parameters: {
+            query?: {
+                /** @description `student` | `staff` | `admin`. */
+                subjectType?: string;
+                /** @description `pending` | `synced` | `failed` | `conflict`. */
+                syncStatus?: string;
+                /** @description 1–500 (default 100), newest first. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.identity.read` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_admin_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIdentityRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminIdentityCreated"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate identity */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_provision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProvisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Identity already existed (re-queued when its facts changed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            /** @description Identity created and queued */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No such student / staff member in the session tenant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate identity (username / e-mail already used) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Provisioning is off */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_reactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_required_actions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequiredActionsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleChangeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A request is already pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMappingPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewRoleMapping"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMappingView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Mapping exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_list: {
+        parameters: {
+            query?: {
+                /** @description `pending` | `approved` | `rejected` | `applied`. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, the requester, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

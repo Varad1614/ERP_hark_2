@@ -25,6 +25,7 @@
 pub mod audit; // 9A
 pub mod auth;
 pub mod catalog;
+pub mod identity; // Part 2 · S4-idp
 pub mod inbox;
 pub mod search; // 9C
 pub mod sweep;
