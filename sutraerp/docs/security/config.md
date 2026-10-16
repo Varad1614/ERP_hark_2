@@ -93,6 +93,13 @@ one year). Applies to 404 / 413 / 429 / timeout / panic answers too.
 * The API's duplicates are hidden behind the proxy (`proxy_hide_header`) so each header appears once.
 * `client_max_body_size 2m`, client / proxy timeouts, `limit_req` zones (credentials 10 r/s burst 50,
   API 100 r/s burst 400 per client; 429).
+* Part 2 · S5-capacity (DEF-P2-CAP-003): "per client" means the real client behind the edge /
+  ingress. When the peer is on a private network (the proxy) the zone key is the last
+  `X-Forwarded-For` entry that proxy appended; otherwise the peer's own address. `$remote_addr` is
+  not rewritten, so the API's `SUTRA_TRUSTED_PROXY_HOPS` rule is unchanged. Expose the web port only
+  to the edge: a client reaching it directly from a private network could choose its bucket via
+  `X-Forwarded-For` (the API limiter, keyed by the trusted-hop rule, still applies). Regression:
+  `deploy/capacity/run.sh flood-check` (capacity workflow).
 
 ## 4. Admin / ops endpoints
 

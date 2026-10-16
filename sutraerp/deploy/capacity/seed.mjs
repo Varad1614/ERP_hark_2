@@ -27,6 +27,7 @@
 /* global process, console, setTimeout, Buffer, fetch, URLSearchParams */
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 const CAP_DIR = process.env.CAP_DIR ?? `${process.cwd()}/capacity-run`;
 const DOMAIN = process.env.CAP_DOMAIN ?? "sutra.test";
@@ -37,7 +38,7 @@ const DIV = 60;
 const DIVS = Math.ceil(N / DIV);
 const SSO = `https://sso.${DOMAIN}`;
 
-const { login } = await import("../../apps/web/e2e/lib/auth.mjs");
+const { login: signIn } = await import("../../apps/web/e2e/lib/auth.mjs");
 const { approve, CHECKERS } = await import("../../apps/web/e2e/lib/approvals.mjs");
 const { seedInstitution, I, psql } = await import("../../apps/web/e2e/lib/harness.mjs");
 const STAFF = JSON.parse(readFileSync(path.join(CAP_DIR, "staff.json"), "utf8"));
@@ -51,11 +52,45 @@ const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const day = (n = 0) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date(Date.now() + n * 86400000));
 
+/**
+ * The seed is ONE client of the production stack, so it meets the per-client flood guards (web
+ * nginx 100 r/s + burst, the API's own limiter): on 429 it waits (Retry-After, else backoff) and
+ * retries with the SAME idempotency key — the request was refused before any handler ran. The
+ * guards are never relaxed for the seed; how often it was throttled is in the seed report.
+ */
+let throttled = 0;
+function polite(c) {
+  const { raw, upload } = c;
+  const retry = async (fn) => {
+    for (let k = 0; ; k++) {
+      const r = await fn();
+      if (r.status !== 429 || k >= 40) return r;
+      throttled++;
+      const after = Number(r.headers?.get?.("retry-after"));
+      await sleep((after > 0 ? after * 1000 : 200 * 2 ** Math.min(k, 4)) + Math.random() * 250);
+    }
+  };
+  c.raw = (m, p, body, v, o = {}) => {
+    const key = o.key ?? randomUUID();
+    return retry(() => raw(m, p, body, v, { ...o, key }));
+  };
+  c.call = async (m, p, body, v, o = {}) => {
+    const r = await c.raw(m, p, body, v, o);
+    if (r.status >= 400 && !(o.expect ?? []).includes(r.status)) throw new Error(`${m} ${p} → ${r.status} ${r.text.slice(0, 500)}`);
+    return r.json;
+  };
+  c.get = (p) => c.call("GET", p);
+  c.upload = (...a) => retry(() => upload(...a));
+  return c;
+}
+const login = async (who) => polite(await signIn(who));
+
 const report = { startedAt: new Date().toISOString(), students: N, divisions: DIVS, phases: [] };
 const data = { domain: DOMAIN, students: [], sections: {}, office: STAFF.office.map((o) => ({ login: o.login, otp: o.otp })), faculty: [] };
 const log = (...a) => console.log(`[seed ${new Date().toISOString().slice(11, 19)}]`, ...a);
 const save = () => {
   report.finishedAt = new Date().toISOString();
+  report.throttled429 = throttled;
   writeFileSync(path.join(CAP_DIR, "seed-report.json"), JSON.stringify(report, null, 2));
   writeFileSync(path.join(CAP_DIR, "cap-data.json"), JSON.stringify(data));
 };

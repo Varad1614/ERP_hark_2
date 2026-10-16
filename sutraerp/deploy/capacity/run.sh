@@ -2,6 +2,7 @@
 # Part 2 · S5-capacity: the capacity test, end to end (run from sutraerp/; README.md).
 #
 #   run.sh prepare   secrets + private CA, Keycloak realm, host names, CA trust, client IPs
+#   run.sh flood-check  per-client flood buckets behind the edge (DEF-P2-CAP-003; run by up)
 #   run.sh up        build images (api from deploy/docker/demo-bin/sutra-api, web, minio) and
 #                    start the production-mode stack; wait until every service is healthy; bucket
 #   run.sh seed      2,000-student college through the API (deploy/capacity/seed.mjs)
@@ -71,7 +72,21 @@ case "${1:-}" in
     compose run --rm --no-deps api check-config | tee "$CAP_OUT/api-check-config.txt"
     grep -q "env=Production" "$CAP_OUT/api-check-config.txt"
     grep -q "auth=Keycloak" "$CAP_OUT/api-check-config.txt"
+    bash "$here/run.sh" flood-check
     echo "ok stack up (production mode)"
+    ;;
+  flood-check)
+    # DEF-P2-CAP-003 regression: behind the edge every client has its OWN flood-guard bucket in
+    # the web nginx (100 r/s + burst 400 on /api/). Client A floods until it is refused; client B
+    # (another campus address) is still served at once.
+    url="https://erp.$CAP_DOMAIN/api/v1/auth/csrf"
+    seq 1500 | xargs -P 64 -I{} curl -s -o /dev/null -w '%{http_code}\n' -m 10 --interface 10.77.250.1 "$url" >"$CAP_DIR/flood-a.txt" || true
+    b=$(curl -s -o /dev/null -w '%{http_code}' -m 10 --interface 10.77.250.2 "$url")
+    a429=$(grep -c '^429$' "$CAP_DIR/flood-a.txt" || true)
+    a200=$(grep -c '^200$' "$CAP_DIR/flood-a.txt" || true)
+    echo "flood-check: client A 1500 requests → $a200 × 200, $a429 × 429; client B → $b" | tee "$CAP_OUT/flood-check.txt"
+    [[ "$a429" -gt 0 && "$b" == 200 ]] || { echo "flood-check FAILED: the flood guard is not per client"; exit 1; }
+    sleep 6 # let client A's bucket drain before anything else runs
     ;;
   seed)
     set -a; . "$CAP_DIR/env"; set +a

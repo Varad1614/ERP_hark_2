@@ -19,8 +19,34 @@ data:
       ~^/assets/  "public, max-age=31536000, immutable";
       default     "no-cache";
     }
-    limit_req_zone $binary_remote_addr zone=sutra_credentials:10m rate=10r/s;
-    limit_req_zone $binary_remote_addr zone=sutra_api:20m rate=100r/s;
+    # Part 2 · S5-capacity (DEF-P2-CAP-003): the flood-guard key is the CLIENT, not the proxy. The
+    # web container always sits behind a TLS edge / ingress, so $binary_remote_addr was the proxy's
+    # address and the whole college shared ONE 100 r/s bucket (and one 10 r/s credentials bucket).
+    # When the peer is on a private network (the edge, an ingress controller, the compose host
+    # gateway) the key is the address that proxy appended last to X-Forwarded-For; any other peer
+    # is keyed by its own address. $remote_addr itself is untouched, so the API's
+    # SUTRA_TRUSTED_PROXY_HOPS client-address rule (its own limiter, audit) is unchanged. A client
+    # that reaches this port directly from a private network could pick its bucket by sending
+    # X-Forwarded-For; expose the web port only to the edge (docs/security/config.md).
+    geo $sutra_peer_is_proxy {
+      default        0;
+      127.0.0.0/8    1;
+      10.0.0.0/8     1;
+      172.16.0.0/12  1;
+      192.168.0.0/16 1;
+      ::1            1;
+      fc00::/7       1;
+    }
+    map $http_x_forwarded_for $sutra_xff_last {
+      "~(?<sutra_last>[^,\s]+)\s*$" $sutra_last;
+      default "";
+    }
+    map "$sutra_peer_is_proxy:$sutra_xff_last" $sutra_flood_key {
+      "~^1:(?<sutra_client>.+)$" $sutra_client;
+      default $binary_remote_addr;
+    }
+    limit_req_zone $sutra_flood_key zone=sutra_credentials:10m rate=10r/s;
+    limit_req_zone $sutra_flood_key zone=sutra_api:20m rate=100r/s;
     limit_req_status 429;
 
     server {
