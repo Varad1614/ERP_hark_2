@@ -347,6 +347,26 @@ fn scope_of(tenant: TenantId, institution: Uuid) -> ExecutionScope {
     ExecutionScope::institution(tenant, InstitutionId(institution))
 }
 
+/// 404 unless `institution` is an institution of the caller's tenant (Domain B's directory).
+async fn require_institution(
+    st: &ImportState,
+    tenant: TenantId,
+    institution: Uuid,
+) -> Result<(), KernelError> {
+    let scope = ExecutionScope::tenant(tenant);
+    if st
+        .institutions
+        .exists(&scope, InstitutionId(institution))
+        .await?
+    {
+        Ok(())
+    } else {
+        Err(KernelError::NotFound {
+            entity: "institution",
+        })
+    }
+}
+
 // ------------------------------------------------------------------ mapping
 
 /// Suggested mapping: a header matches a column whose name or label normalises to the same key.
@@ -559,6 +579,7 @@ pub async fn upload(
     actor: Option<&str>,
 ) -> Result<(ImportJob, bool), KernelError> {
     let spec = target(st, &u.entity)?.spec();
+    require_institution(st, tenant, u.institution_id).await?;
     let file_name = u.file_name.trim().to_owned();
     let format = FileFormat::from_file_name(&file_name).ok_or_else(|| {
         invalid(
@@ -1599,6 +1620,7 @@ pub async fn export(
 ) -> Result<Vec<u8>, KernelError> {
     let t = target(st, entity)?.clone();
     let spec = t.spec();
+    require_institution(st, tenant, institution).await?;
     let scope = scope_of(tenant, institution);
     let records = t.export(&scope, InstitutionId(institution)).await?;
     let headers: Vec<String> = spec.columns.iter().map(|c| c.name.to_owned()).collect();

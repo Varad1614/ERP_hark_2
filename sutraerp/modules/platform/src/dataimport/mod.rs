@@ -29,6 +29,7 @@ pub mod http;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use sutra_contracts::institution::InstitutionDirectory;
 use sutra_contracts::platform::dataimport::ImportTargetPort;
 use sutra_contracts::platform::workflow::WorkflowPort;
 
@@ -42,6 +43,9 @@ pub struct ImportState {
     /// Registered entities by key (`students`, `staff`, …), wired by the composition root.
     pub targets: Arc<BTreeMap<&'static str, Arc<dyn ImportTargetPort>>>,
     pub workflow: Arc<dyn WorkflowPort>,
+    /// Domain B's directory: an upload / export names an institution of the caller's tenant
+    /// (404 otherwise, so no job is ever recorded against another tenant's institution).
+    pub institutions: Arc<dyn InstitutionDirectory>,
 }
 
 impl ImportState {
@@ -49,6 +53,7 @@ impl ImportState {
         pool: sqlx::PgPool,
         targets: Vec<Arc<dyn ImportTargetPort>>,
         workflow: Arc<dyn WorkflowPort>,
+        institutions: Arc<dyn InstitutionDirectory>,
     ) -> Self {
         let mut map = BTreeMap::new();
         for t in targets {
@@ -58,6 +63,7 @@ impl ImportState {
             pool,
             targets: Arc::new(map),
             workflow,
+            institutions,
         }
     }
 

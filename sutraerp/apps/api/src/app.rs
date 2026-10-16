@@ -991,7 +991,8 @@ pub fn import_state(
         Arc::new(sutra_finance::PgOpeningBalanceImport::new(finance)),
         Arc::new(sutra_student::PgHistoricalResultImport::new(student)),
     ];
-    sutra_platform::dataimport::ImportState::new(pool, targets, workflow)
+    let institutions = Arc::new(sutra_institution::PgInstitutionDirectory::new(pool.clone()));
+    sutra_platform::dataimport::ImportState::new(pool, targets, workflow, institutions)
 }
 
 /// Builds the router plus the generated OpenAPI document.
