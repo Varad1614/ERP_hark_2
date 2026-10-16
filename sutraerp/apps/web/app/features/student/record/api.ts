@@ -9,6 +9,7 @@
  */
 import { ApiProblem, isProblem, isUnsafeMethod, newIdempotencyKey, type components, type paths } from "@sutra/api-client";
 import { getCsrfToken } from "../../../lib/api";
+import { contentTypeOf, filenameOf, type AttachedFile, type DownloadedFile } from "./files";
 
 type S = components["schemas"];
 
@@ -99,6 +100,10 @@ export const PATHS = {
   documents: `${B}/students/{id}/documents`,
   documentVerify: `${B}/students/{id}/documents/{documentId}/verify`,
   myDocuments: `${B}/me/documents`,
+  // Part 2 · S4-docs stored files
+  admissionDocumentFile: `${B}/admissions/{id}/documents/{documentId}/file`,
+  documentFile: `${B}/students/{id}/documents/{documentId}/file`,
+  myDocumentFile: `${B}/me/documents/{documentId}/file`,
   studentRequests: `${B}/students/{id}/document-requests`,
   institutionRequests: `${B}/institutions/{id}/document-requests`,
   myRequests: `${B}/me/document-requests`,
@@ -192,6 +197,12 @@ export interface RecordApi {
   myRequests(): Promise<DocumentRequest[]>;
   raiseMyRequest(input: NewDocumentRequest): Promise<DocumentRequest>;
   cancelMyRequest(id: string, version: number): Promise<DocumentRequest>;
+  // Part 2 · S4-docs: stored files (raw body with the file's own Content-Type, `?filename=`, no Idempotency-Key)
+  uploadAdmissionFile(id: string, documentId: string, file: File): Promise<AttachedFile>;
+  downloadAdmissionFile(id: string, documentId: string): Promise<DownloadedFile>;
+  uploadDocumentFile(studentId: string, documentId: string, file: File): Promise<AttachedFile>;
+  downloadDocumentFile(studentId: string, documentId: string): Promise<DownloadedFile>;
+  downloadMyDocumentFile(documentId: string): Promise<DownloadedFile>;
 }
 
 type Fetch = (input: string, init: RequestInit) => Promise<Response>;
@@ -227,6 +238,36 @@ export function createHttpRecordApi(fetchImpl: Fetch = (i, init) => fetch(i, ini
       throw new ApiProblem({ type: "about:blank", title: `Request failed (${res.status})`, status: res.status, errorCode: `http-${res.status}` });
     }
     return data as T;
+  }
+  async function fail(res: Response): Promise<never> {
+    const text = await res.text().catch(() => "");
+    let data: unknown = undefined;
+    try {
+      data = text ? JSON.parse(text) : undefined;
+    } catch {
+      data = undefined;
+    }
+    if (isProblem(data)) throw new ApiProblem(data);
+    throw new ApiProblem({ type: "about:blank", title: `Request failed (${res.status})`, status: res.status, errorCode: `http-${res.status}` });
+  }
+  /**
+   * PUT of a document file: the raw file as the body with its own media type and `?filename=`.
+   * No `Idempotency-Key` (S4-docs: one file per document, a retry is a 409; bodies above 1 MiB
+   * must not carry one).
+   */
+  async function upload(path: string, file: File): Promise<AttachedFile> {
+    const headers: Record<string, string> = { Accept: "application/json", "Content-Type": contentTypeOf(file.name) ?? (file.type || "application/octet-stream") };
+    const csrf = getCsrfToken();
+    if (csrf) headers["X-CSRF-Token"] = csrf;
+    const res = await fetchImpl(`${baseUrl}${path}?filename=${encodeURIComponent(file.name)}`, { method: "PUT", headers, credentials: "include", body: file });
+    if (!res.ok) return fail(res);
+    return (await res.json()) as AttachedFile;
+  }
+  async function download(path: string): Promise<DownloadedFile> {
+    const res = await fetchImpl(`${baseUrl}${path}`, { method: "GET", headers: { Accept: "application/pdf, image/png, image/jpeg, application/problem+json" }, credentials: "include" });
+    if (!res.ok) return fail(res);
+    const contentType = res.headers.get("content-type") ?? "application/octet-stream";
+    return { blob: await res.blob(), filename: filenameOf(res.headers.get("content-disposition")), contentType, sha256: res.headers.get("x-document-sha256") };
   }
   const P = PATHS;
   const get = <T>(path: string) => request<T>("GET", path);
@@ -279,6 +320,11 @@ export function createHttpRecordApi(fetchImpl: Fetch = (i, init) => fetch(i, ini
     myRequests: () => items(P.myRequests),
     raiseMyRequest: (input) => create(P.myRequests, input),
     cancelMyRequest: (id, v) => command(fill(P.myRequestCancel, { id }), v),
+    uploadAdmissionFile: (id, documentId, file) => upload(fill(P.admissionDocumentFile, { id, documentId }), file),
+    downloadAdmissionFile: (id, documentId) => download(fill(P.admissionDocumentFile, { id, documentId })),
+    uploadDocumentFile: (id, documentId, file) => upload(fill(P.documentFile, { id, documentId }), file),
+    downloadDocumentFile: (id, documentId) => download(fill(P.documentFile, { id, documentId })),
+    downloadMyDocumentFile: (documentId) => download(fill(P.myDocumentFile, { documentId })),
   };
 }
 
