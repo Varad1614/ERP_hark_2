@@ -18,6 +18,7 @@
 //! | `leave/`, `attendance/`, `workload/` | 7B |
 //! | `payroll/`, `payslips/` | 7C |
 
+pub mod dataimport; // Part 2 · S4-import
 pub mod directory;
 pub mod metrics; // Batch 8 foundation: Domain H figures
 pub mod search_source; // 9C
@@ -49,6 +50,7 @@ use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
 pub use directory::{PgLeaveReader, PgWorkforceDirectory};
+pub use dataimport::PgStaffImport; // Part 2 · S4-import
 pub use metrics::PgPeopleMetrics;
 pub use shared::PeopleState;
 pub use staff::SubjectOnlyStaff;
