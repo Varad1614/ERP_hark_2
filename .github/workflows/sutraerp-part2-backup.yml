@@ -1,0 +1,230 @@
+name: SutraERP Part 2 backup and restore drill
+
+# Part 2 · Stage 5 (backup). A GitHub-hosted runner is the "staging host" (NOT college hardware).
+# The production-mode compose stack (Keycloak OIDC + TOTP, human approvals, MinIO document storage,
+# PostgreSQL with WAL archiving: deploy/backup/compose.backup.yml) is brought up, the Part 1
+# journey runs, a base backup is taken, 2,000 students are seeded through the API (document files
+# in MinIO, charges, payments, audit), writers are quiesced and fingerprinted, the nightly set is
+# taken (database + Keycloak dumps, realm export, document objects + sha256 manifest, config
+# inventory; age-encrypted, checksummed, copied offsite), a heartbeat keeps committing, then the
+# host is DESTROYED (postgres kill -9, every container, volume, the WAL archive and the local
+# backup disk) and rebuilt from the offsite copy: base backup + WAL replay, documents, Keycloak,
+# application. Every step is timed (RTO); RPO = lost heartbeat commits; PITR to a chosen
+# timestamp; logical restore into an empty server; damaged backups refused; one tenant's
+# documents restored alone; the journey persistence phase + DB integrity on the restored data.
+# Steps: deploy/backup/drill/drill.sh. Report: sutraerp/docs/readiness/BACKUP_RESTORE_REPORT.md.
+
+on:
+  # push: the drill branch itself (a workflow_dispatch of a workflow that is not on the default
+  # branch yet is refused by the API); dispatch with inputs everywhere else.
+  push:
+    branches: ["part2/s5-backup"]
+    paths: ["sutraerp/deploy/backup/**", ".github/workflows/sutraerp-part2-backup.yml"]
+  workflow_dispatch:
+    inputs:
+      students:
+        description: "students seeded through the API"
+        default: "2000"
+      heartbeat_seconds:
+        description: "seconds of post-backup commits before the disaster"
+        default: "150"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: part2-backup-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  SQLX_OFFLINE: "true"
+  MINIO_TAG: RELEASE.2025-10-15T17-29-55Z
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+jobs:
+  drill:
+    name: Backup → disaster → restore drill (compose · keycloak)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      COMPOSE_FILE: docker-compose.yml:docker-compose.demo.yml:deploy/backup/compose.backup.yml
+      COMPOSE_PROFILES: app
+      SUTRA_COMPOSE_AUTH_MODE: keycloak
+      SUTRA_COMPOSE_WEB_AUTH_MODE: oidc
+      E2E_AUTH: oidc
+      E2E_BASE: http://localhost:3000
+      E2E_KNOWN_DEFECTS: ""
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
+      SUTRA_GIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space + drill paths
+        working-directory: /
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+          D="$RUNNER_TEMP/drill"
+          {
+            echo "D=$D"
+            echo "SUTRA_WAL_ARCHIVE_DIR=$D/host/wal-archive"
+            echo "SUTRA_PG_STAGING_DIR=$D/host/staging"
+            echo "E2E_STATE=$RUNNER_TEMP/journey-state.json"
+            echo "E2E_RESULTS=$RUNNER_TEMP/demo/journey-results.json"
+            echo "E2E_SHOTS=$RUNNER_TEMP/demo/shots"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/demo/shots" "$RUNNER_TEMP/demo/logs"
+
+      - name: Backup tools (age, PostgreSQL 18 client, AWS CLI)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-18 >/dev/null
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+          age --version; /usr/lib/postgresql/18/bin/pg_dump --version; aws --version; jq --version
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: e2e-api
+          cache-on-failure: true
+      - name: Build sutra-api (debug, same build as the CI e2e jobs)
+        run: |
+          cargo build -p sutra-api --locked
+          mkdir -p deploy/docker/demo-bin
+          cp target/debug/sutra-api deploy/docker/demo-bin/sutra-api
+          strip --strip-debug deploy/docker/demo-bin/sutra-api
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: MinIO binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sutra-minio
+          key: minio-${{ env.MINIO_TAG }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Build MinIO from source (${{ env.MINIO_TAG }}) + random root credentials
+        run: |
+          set -euo pipefail
+          OUT="$HOME/.cache/sutra-minio/minio" bash deploy/minio/build-from-source.sh
+          cp "$HOME/.cache/sutra-minio/minio" deploy/docker/demo-bin/minio
+          user="drill$(openssl rand -hex 6)"; secret="$(openssl rand -hex 24)"
+          echo "::add-mask::$secret"
+          { echo "SUTRA_COMPOSE_S3_ACCESS_KEY=$user"; echo "SUTRA_COMPOSE_S3_SECRET_KEY=$secret"; } >> "$GITHUB_ENV"
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: sutraerp/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: sutraerp/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @sutra/web exec playwright install --with-deps chromium
+
+      - name: Static checks (bash -n, shellcheck, compose config)
+        run: |
+          set -euo pipefail
+          for f in deploy/backup/*.sh deploy/backup/drill/*.sh deploy/backup/systemd/install.sh; do bash -n "$f"; done
+          shellcheck -S error deploy/backup/*.sh deploy/backup/drill/drill.sh deploy/backup/systemd/install.sh
+          python3 deploy/backup/gen-chart.py --check
+          node --check deploy/backup/drill/seed.mjs; node --check deploy/backup/drill/verify.mjs
+          docker compose config -q
+          docker compose config | grep -q 'archive_mode=on'
+
+      # ---- staging host: prepare (keys, dirs) → stack → journey ------------------------------------
+      - name: drill prepare (age key pair, WAL archive / staging dirs, runner hardware)
+        run: sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh prepare
+      - name: docker compose up (postgres with WAL archiving, keycloak, minio, … , api, web)
+        run: |
+          set -euo pipefail
+          docker compose build
+          docker compose up -d
+          bash deploy/ci/demo-wait.sh | tee "$RUNNER_TEMP/demo/logs/health-1-startup.txt"
+          docker compose exec -T postgres psql -U sutra -d sutra -tAc "SHOW archive_mode; SHOW archive_timeout;"
+      - name: Journey (Keycloak OIDC + TOTP, human approvals) — marks, attendance, fees, documents, results
+        env:
+          E2E_PHASE: journey
+        run: timeout 2400 node apps/web/e2e/journey.e2e.mjs
+      - name: drill base backup + start WAL shipping
+        run: |
+          sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh base
+          sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh ship-start
+      - name: Seed ${{ inputs.students || '2000' }} students through the API (document files, charges, payments)
+        env:
+          DRILL_STUDENTS: ${{ inputs.students || '2000' }}
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" "$D/evidence"
+          DRILL_OUT="$D/evidence/drill-seed.json" timeout 3600 node deploy/backup/drill/seed.mjs
+      - name: Tenant B fixture, quiesce, fingerprint, nightly backup, heartbeat, DISASTER
+        run: |
+          set -euo pipefail
+          r() { sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh "$@"; }
+          r tenant-b
+          r quiesce
+          r fingerprint before
+          r nightly
+          r heartbeat-start
+          sleep "${{ inputs.heartbeat_seconds || '150' }}"
+          r disaster
+
+      # ---- rebuilt host: restore from the offsite copy ------------------------------------------------
+      - name: RESTORE onto a fresh host (timed steps = RTO)
+        run: sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh restore
+      - name: RPO from the WAL archive (lost heartbeat commits)
+        run: sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh rpo
+      - name: Point-in-time recovery to a chosen timestamp
+        run: sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh pitr
+      - name: Logical restore of the nightly set into an empty PostgreSQL
+        run: sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh logical
+      - name: Partial failures (damaged backup files must be refused)
+        run: sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh corrupt
+      - name: Single-tenant document restore
+        run: sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh tenant-restore
+      - name: Journey persistence phase on the restored data (Keycloak sign-ins, attendance, fees, results)
+        env:
+          E2E_PHASE: persistence
+        run: timeout 900 node apps/web/e2e/journey.e2e.mjs
+      - name: Database integrity on the restored data
+        run: bash deploy/ci/db-integrity.sh 2>&1 | tee "$RUNNER_TEMP/demo/logs/db-integrity-after-restore.txt"; exit "${PIPESTATUS[0]}"
+      - name: Scheduled-backup units (systemd verify) + rotation dry run
+        run: sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh units
+
+      # ---- evidence -----------------------------------------------------------------------------------
+      - name: Report (job summary + drill-metrics.json)
+        if: always()
+        run: |
+          sudo -E env "PATH=$PATH" bash deploy/backup/drill/drill.sh report || true
+          node apps/web/e2e/lib/journey-report.mjs "$E2E_RESULTS" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - name: Collect logs
+        if: always()
+        run: |
+          L="$RUNNER_TEMP/demo/logs"
+          docker compose ps -a > "$L/compose-ps.txt" 2>&1 || true
+          for s in postgres keycloak minio migrate api web; do docker compose logs --no-color --timestamps "$s" > "$L/$s.log" 2>&1 || true; done
+          docker logs sutra-pitr > "$L/pitr-postgres.log" 2>&1 || true
+          cp "$E2E_RESULTS" "$L/" 2>/dev/null || true
+          sudo cp -r "$D/evidence" "$L/drill-evidence" 2>/dev/null || true
+          sudo cp "$D/offsite/wal/ship.log" "$L/drill-evidence/wal-ship.log" 2>/dev/null || true
+          sudo ls -la "$D/offsite/sets" "$D/offsite/sets"/* > "$L/drill-evidence/offsite-listing.txt" 2>&1 || true
+          sudo chown -R "$(id -u):$(id -g)" "$L"
+          # never upload the age identity
+          rm -f "$L/drill-evidence/identity.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: part2-backup-drill
+          path: ${{ runner.temp }}/demo/logs
+          retention-days: 30
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose down -v --remove-orphans || true
+          docker rm -f sutra-pitr sutra-logical >/dev/null 2>&1 || true
