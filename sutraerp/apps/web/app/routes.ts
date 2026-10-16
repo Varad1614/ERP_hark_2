@@ -46,6 +46,8 @@ export default [
     // Batch 8 (Domains G · H · J) screens — owners in docs/batch8-contracts.md §10. Admin Campus
     // reuses `campus/:tab?` above (Batch 2 setup + Batch 8 tabs); Student Library reuses `library`.
     route("reports/:tab?", "routes/admin/reports.tsx"),
+    // Part 2 · S4-ui-import: Admin → Data import (CSV / XLSX migration).
+    route("data-import/:tab?", "routes/admin/data-import.tsx"),
     // One route module serves every workspace in the catalog (99); unknown keys render a 404 tile.
     route("workspaces/:key/:tab?", "routes/workspace.tsx"),
     // Role navigation screens (students, finance, timetable, …) — stubs until their batch lands.
