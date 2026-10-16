@@ -19,6 +19,14 @@
 //! * `separation_of_duties_and_audit` — the requester can never decide (API and database CHECK),
 //!   only the requester withdraws, a request made against an older entitlement version is refused,
 //!   every step is audited.
+//! * `core_academic_without_fees_admits_and_issues_hall_tickets` — commercial-review gap (a):
+//!   with outstanding Finance charges, clearance is refused and the hall ticket withheld while
+//!   `fees` is active; on `core_academic` (no fees) admission clears (`notApplicable`), is
+//!   confirmed and creates the student, and the hall ticket is released.
+//! * `import_jobs_are_gated_by_their_target_module` — commercial-review gap (b): staff / fee-head /
+//!   opening-balance imports are refused (`entitlement.module_inactive`) and hidden on
+//!   `core_academic`, a job created before the downgrade cannot run, student / set-up imports and
+//!   every export stay available, the HR add-on reopens staff imports.
 #![cfg(feature = "db-tests")]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -885,4 +893,392 @@ async fn separation_of_duties_and_audit() {
     ] {
         assert!(actions.iter().any(|x| x == a), "{a} missing: {actions:?}");
     }
+}
+
+// ------------------------------------------------------------------ cross-module facts (fees)
+
+/// Unsafe request with `If-Match` (admission / hall-ticket commands).
+async fn cmd(app: &Router, who: &Login, path: &str, if_match: Option<i64>) -> (StatusCode, Value) {
+    let (s, _, b) = send(app, write(who, "POST", path, json!({}), if_match)).await;
+    (s, b)
+}
+
+fn ver(v: &Value) -> i64 {
+    v["version"]
+        .as_i64()
+        .unwrap_or_else(|| panic!("no version in {v}"))
+}
+
+fn id_of(v: &Value) -> String {
+    v["id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("no id in {v}"))
+        .to_owned()
+}
+
+/// `POST path` (optionally `If-Match`) answering `want`; returns the body.
+async fn post_ok(
+    app: &Router,
+    who: &Login,
+    path: &str,
+    body: Value,
+    if_match: Option<i64>,
+    want: StatusCode,
+) -> Value {
+    let (s, _, b) = send(app, write(who, "POST", path, body, if_match)).await;
+    assert_eq!(s, want, "POST {path}: {b}");
+    b
+}
+
+/// Part 2 · S7 gap (commercial review): admission financial clearance and the examination
+/// hall-ticket entry condition read Finance facts through ports the HTTP gate never sees. A
+/// `core_academic` tenant (no `fees`) must complete admission → confirmation → student, and get
+/// its hall ticket, even when Finance holds outstanding charges (e.g. left from before a
+/// downgrade) that it can no longer see or settle: no Finance obligation applies without `fees`.
+/// Control: the same charges block both while `fees` is active (complete_erp default).
+#[tokio::test]
+async fn core_academic_without_fees_admits_and_issues_hall_tickets() {
+    let tenant = fresh_tenant();
+    let (app, owner) = ent_app(tenant, None).await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let dean = login(&app, "dean@sutra.dev").await;
+    let setup = b6::exam_setup(
+        &app,
+        &admin,
+        &owner,
+        tenant,
+        "Core Academic College",
+        Some(b4::AARAV),
+        "active",
+        "scheduled",
+    )
+    .await;
+    let base = &setup.finance.delivery.base;
+    let inst = base.institution_id;
+
+    // An applicant through to approval (auto-approval in this harness).
+    let st = "/api/v1/student";
+    let app_body = json!({
+        "programmeId": base.programme_id, "givenName": "Meenal", "familyName": "Kulkarni",
+        "dateOfBirth": "2007-03-14", "email": "meenal.kulkarni@example.in",
+        "phone": "+91 98765 43210", "admissionTermId": base.term_ids[0],
+    });
+    let mut a = post_ok(
+        &app,
+        &admin,
+        &format!("{st}/institutions/{inst}/admission-applications"),
+        app_body,
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+    for step in ["submit", "review", "offer"] {
+        let path = format!("{st}/admission-applications/{}/{step}", id_of(&a));
+        let (s, b) = cmd(&app, &admin, &path, Some(ver(&a))).await;
+        assert_eq!(s, StatusCode::OK, "{step}: {b}");
+        a = b;
+    }
+    assert_eq!(a["status"], "offered", "{a}");
+    let aid = a["admissionId"].as_str().unwrap().to_owned();
+    let (_, _, adm) = send(&app, get(&admin, &format!("{st}/admissions/{aid}"))).await;
+    let adm = post_ok(
+        &app,
+        &admin,
+        &format!("{st}/admissions/{aid}/accept"),
+        json!({}),
+        Some(ver(&adm)),
+        StatusCode::OK,
+    )
+    .await;
+    let mut docs = vec![];
+    for t in adm["requiredDocuments"].as_array().unwrap().clone() {
+        let d = post_ok(
+            &app,
+            &admin,
+            &format!("{st}/admissions/{aid}/documents"),
+            json!({"documentType": t, "title": format!("{t} scan"), "fileRef": "dms://x"}),
+            None,
+            StatusCode::CREATED,
+        )
+        .await;
+        docs.push(d);
+    }
+    let adm = post_ok(
+        &app,
+        &admin,
+        &format!("{st}/admissions/{aid}/submit-documents"),
+        json!({}),
+        Some(ver(&adm)),
+        StatusCode::OK,
+    )
+    .await;
+    for d in &docs {
+        post_ok(
+            &app,
+            &admin,
+            &format!("{st}/admissions/{aid}/documents/{}/verify", id_of(d)),
+            json!({"outcome": "verified"}),
+            Some(ver(d)),
+            StatusCode::OK,
+        )
+        .await;
+    }
+    let (_, _, adm) = send(&app, get(&admin, &format!("{st}/admissions/{aid}"))).await;
+    let adm = post_ok(
+        &app,
+        &admin,
+        &format!("{st}/admissions/{aid}/submit-for-approval"),
+        json!({}),
+        Some(ver(&adm)),
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(adm["status"], "approved", "{adm}");
+
+    // Finance holds an unpaid admission charge and an unpaid student charge.
+    let adm_charge = b5::seed_charge(&owner, &setup.finance, "5000", "published", None).await;
+    sqlx::query("UPDATE finance.charge SET admission_id = $2 WHERE id = $1")
+        .bind(adm_charge.charge_id.as_uuid())
+        .bind(aid.parse::<uuid::Uuid>().unwrap())
+        .execute(&owner)
+        .await
+        .unwrap();
+    b5::seed_charge(&owner, &setup.finance, "1000", "published", None).await;
+    let papers = [setup.paper_id];
+    b6::seed_registration(
+        &owner,
+        &setup,
+        setup.session_id,
+        &papers,
+        sutra_contracts::exams::status::ExamRegistrationStatus::Confirmed,
+    )
+    .await;
+    let clearance = format!("{st}/admissions/{aid}/financial-clearance");
+    let sid = setup.session_id.as_uuid();
+    let tickets = format!("/api/v1/exams/exam-sessions/{sid}/hall-tickets");
+
+    // Control — fees active (complete_erp default): the dues block clearance and the ticket.
+    let (s, b) = cmd(&app, &admin, &clearance, Some(ver(&adm))).await;
+    assert_eq!(s, StatusCode::CONFLICT, "outstanding admission dues: {b}");
+    assert!(b["detail"].as_str().unwrap().contains("outstanding"), "{b}");
+    let (s, b) = cmd(&app, &admin, &format!("{tickets}/issue"), None).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    let (_, _, list) = send(&app, get(&admin, &tickets)).await;
+    let ticket = list["items"][0].clone();
+    assert_eq!(ticket["status"], "withheld", "{list}");
+    assert_eq!(
+        ticket["conditions"]["dues"]["kind"],
+        "outstanding",
+        "{ticket}"
+    );
+
+    // core_academic: fees is not active.
+    change(
+        &app,
+        &admin,
+        &dean,
+        json!({"kind": "activate", "package": "core_academic", "reason": "offline fees"}),
+    )
+    .await;
+    refused(
+        "fees API",
+        &call(
+            &app,
+            &admin,
+            "GET",
+            &format!("/api/v1/finance/institutions/{inst}/student-accounts"),
+            Value::Null,
+        )
+        .await,
+        "entitlement.module_inactive",
+    );
+
+    // Admission → financial clearance → confirmation → student.
+    let (s, adm) = cmd(&app, &admin, &clearance, Some(ver(&adm))).await;
+    assert_eq!(s, StatusCode::OK, "{adm}");
+    assert_eq!(adm["status"], "financially_cleared", "{adm}");
+    assert_eq!(adm["financeEvidence"]["kind"], "notApplicable", "{adm}");
+    let confirm = format!("{st}/admissions/{aid}/confirm");
+    let (s, adm) = cmd(&app, &admin, &confirm, Some(ver(&adm))).await;
+    assert_eq!(s, StatusCode::OK, "{adm}");
+    assert_eq!(adm["status"], "confirmed", "{adm}");
+    let create = format!("{st}/admissions/{aid}/create-student");
+    let (s, adm) = cmd(&app, &admin, &create, Some(ver(&adm))).await;
+    assert_eq!(s, StatusCode::OK, "{adm}");
+    assert_eq!(adm["status"], "student_created", "{adm}");
+    assert!(adm["studentId"].is_string(), "{adm}");
+
+    // Examination eligibility: the withheld ticket is released (no Finance obligation applies).
+    let (s, t) = cmd(
+        &app,
+        &admin,
+        &format!("/api/v1/exams/hall-tickets/{}/release", id_of(&ticket)),
+        Some(ver(&ticket)),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{t}");
+    assert_eq!(t["status"], "active", "{t}");
+    assert_eq!(t["conditions"]["dues"]["kind"], "notApplicable", "{t}");
+}
+
+// ------------------------------------------------------------------ data import per module
+
+const IMP: &str = "/api/v1/platform/imports";
+
+fn b64(bytes: &[u8]) -> String {
+    const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::new();
+    for chunk in bytes.chunks(3) {
+        let b = [
+            chunk[0],
+            chunk.get(1).copied().unwrap_or(0),
+            chunk.get(2).copied().unwrap_or(0),
+        ];
+        let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
+        for (i, shift) in [18u32, 12, 6, 0].into_iter().enumerate() {
+            if i <= chunk.len() {
+                out.push(A[(n >> shift) as usize & 63] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
+
+async fn upload(app: &Router, who: &Login, entity: &str, inst: &str) -> (StatusCode, Value) {
+    let body = json!({
+        "entity": entity,
+        "institutionId": inst,
+        "fileName": format!("{entity}.csv"),
+        "contentBase64": b64(b"code,name\nX1,Legacy row\n"),
+    });
+    let (s, _, b) = call(app, who, "POST", IMP, body).await;
+    (s, b)
+}
+
+async fn entities(app: &Router, who: &Login) -> Vec<String> {
+    let (s, _, v) = call(app, who, "GET", &format!("{IMP}/entities"), Value::Null).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    v["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["entity"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+/// Part 2 · S7 gap (commercial review): the import endpoints live under the always-available
+/// platform area, so the path gate alone would let a `core_academic` tenant load staff, fee
+/// heads or opening balances. Each entity is gated on the module it writes into (registry
+/// `imports`): upload, mapping, dry run, commit and the commit decision answer
+/// `403 entitlement.module_inactive`; the entity list hides those entities; student and
+/// institution set-up imports stay available; export is never gated; an add-on reopens at once.
+#[tokio::test]
+async fn import_jobs_are_gated_by_their_target_module() {
+    let tenant = fresh_tenant();
+    let (app, _owner) = ent_app(tenant, None).await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let dean = login(&app, "dean@sutra.dev").await;
+    let inst = register_institution(&app, &admin, "Import Entitlement College").await;
+
+    // complete_erp default: every entity is offered and a staff job can be created.
+    let all = entities(&app, &admin).await;
+    for e in ["students", "staff", "fee_heads", "opening_balances", "campuses"] {
+        assert!(all.iter().any(|x| x == e), "{e} missing: {all:?}");
+    }
+    let (s, staff_job) = upload(&app, &admin, "staff", &inst).await;
+    assert_eq!(s, StatusCode::CREATED, "{staff_job}");
+    let staff_job = id_of(&staff_job);
+
+    change(
+        &app,
+        &admin,
+        &dean,
+        json!({"kind": "activate", "package": "core_academic", "reason": "pilot contract"}),
+    )
+    .await;
+
+    let offered = entities(&app, &admin).await;
+    for e in ["staff", "fee_heads", "opening_balances"] {
+        assert!(!offered.iter().any(|x| x == e), "{e} offered: {offered:?}");
+    }
+    for e in ["students", "historical_results", "campuses", "programmes"] {
+        assert!(offered.iter().any(|x| x == e), "{e} hidden: {offered:?}");
+    }
+    for e in ["staff", "fee_heads", "opening_balances"] {
+        let (s, b) = upload(&app, &admin, e, &inst).await;
+        assert_eq!(s, StatusCode::FORBIDDEN, "{e}: {b}");
+        assert_eq!(code(&b), "entitlement.module_inactive", "{e}: {b}");
+    }
+    for e in ["students", "campuses"] {
+        let (s, b) = upload(&app, &admin, e, &inst).await;
+        assert_eq!(s, StatusCode::CREATED, "{e}: {b}");
+    }
+    // A staff job created before the downgrade can no longer be mapped, run or committed.
+    for (method, path, body) in [
+        ("POST", format!("{IMP}/{staff_job}/dry-run"), json!({})),
+        ("POST", format!("{IMP}/{staff_job}/commit"), json!({})),
+        (
+            "PUT",
+            format!("{IMP}/{staff_job}/mapping"),
+            json!({"mapping": {"code": "employee_code"}}),
+        ),
+        (
+            "POST",
+            format!("{IMP}/{staff_job}/decision"),
+            json!({"approve": true}),
+        ),
+    ] {
+        let r = call(&app, &dean, method, &path, body).await;
+        let what = format!("{method} {path}");
+        refused(&what, &r, "entitlement.module_inactive");
+    }
+    let r = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("{IMP}/mapping-profiles"),
+        json!({"entity": "fee_heads", "name": "legacy", "mapping": {"code": "code"}}),
+    )
+    .await;
+    refused("fee-head profile", &r, "entitlement.module_inactive");
+    // The job itself stays readable and every entity stays exportable (no data hostage).
+    let job_path = format!("{IMP}/{staff_job}");
+    not_gated(
+        "staff job read",
+        &call(&app, &admin, "GET", &job_path, Value::Null).await,
+    );
+    let export = format!("{IMP}/entities/staff/export?institutionId={inst}");
+    let r = call(&app, &admin, "GET", &export, Value::Null).await;
+    assert_eq!(r.0, StatusCode::OK, "staff export: {}", r.2);
+
+    // The HR add-on reopens staff imports at once (fees stays closed).
+    change(
+        &app,
+        &admin,
+        &dean,
+        json!({"kind": "change", "package": "core_academic", "addOnModules": ["hr"],
+               "reason": "hr add-on"}),
+    )
+    .await;
+    let (s, b) = upload(&app, &admin, "staff", &inst).await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    not_gated(
+        "staff dry run after add-on",
+        &call(
+            &app,
+            &admin,
+            "POST",
+            &format!("{IMP}/{staff_job}/dry-run"),
+            json!({}),
+        )
+        .await,
+    );
+    let (s, b) = upload(&app, &admin, "fee_heads", &inst).await;
+    assert_eq!(
+        (s, code(&b)),
+        (StatusCode::FORBIDDEN, "entitlement.module_inactive"),
+        "{b}"
+    );
 }
