@@ -296,6 +296,32 @@ async fn rls_catalog_covers_every_tenant_table() {
     );
 }
 
+/// S3-int capacity regression (quality 38856685913): the isolation predicate must read the
+/// session settings once per statement (InitPlan), never once per row. Every policy calls the
+/// settings functions only inside a scalar sub-select.
+#[tokio::test]
+async fn isolation_policies_read_the_session_context_once_per_statement() {
+    let owner = owner_pool().await;
+    let per_row: Vec<(String,)> = sqlx::query_as(
+        "SELECT p.polrelid::regclass::text FROM pg_policy p \
+          WHERE p.polname = 'sutra_tenant_isolation' \
+            AND (regexp_replace(pg_get_expr(p.polqual, p.polrelid), \
+                   '\\(\\s*SELECT\\s+(platform\\.)?rls_(tenant|institution|system)\\(\\)[^)]*\\)', '', 'g') \
+                   ~ 'rls_(tenant|institution|system)\\(\\)' \
+              OR regexp_replace(pg_get_expr(p.polwithcheck, p.polrelid), \
+                   '\\(\\s*SELECT\\s+(platform\\.)?rls_(tenant|institution|system)\\(\\)[^)]*\\)', '', 'g') \
+                   ~ 'rls_(tenant|institution|system)\\(\\)') \
+          ORDER BY 1",
+    )
+    .fetch_all(&owner)
+    .await
+    .unwrap();
+    assert!(
+        per_row.is_empty(),
+        "policies evaluating the RLS context per row: {per_row:?}"
+    );
+}
+
 #[tokio::test]
 async fn id_only_sql_as_runtime_role_cannot_touch_another_tenant() {
     let owner = owner_pool().await;
