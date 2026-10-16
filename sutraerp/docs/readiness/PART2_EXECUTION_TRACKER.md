@@ -13,20 +13,25 @@ Status values: NOT_STARTED / IN_PROGRESS / TESTING / BLOCKED_TECHNICAL / BLOCKED
 | 4.1 | Payment gateway (Razorpay adapter, server-side verification, webhooks, recovery, settlement reconciliation) | `part2/s4-pay` | `ade78149` | CI 38882654896 · quality 38882640013 · demo 38883421629 | merged `889ce90c` | COMPLETED (live Razorpay BLOCKED_EXTERNAL) |
 | 4.2 | Document storage (S3 SigV4 adapter, document vault, student file endpoints, MinIO from source) | `part2/s4-docs` | `3346cbd4` | CI 38885937911 · demo 38886172253 · quality 38885968170 | merged `e457a216` | COMPLETED (live AWS/college S3 BLOCKED_EXTERNAL) |
 | 4.3 | Identity provisioning (Keycloak admin adapter, sync jobs, admin API, live Keycloak tests) | `part2/s4-idp` | `1e0e66e0` | CI 38883041680 · demo 38883044332 · quality 38883047191 | merged `a7a66acd` | COMPLETED (college SMTP / prod Keycloak grant BLOCKED_EXTERNAL) |
-| 4.4 | Bulk data import | `part2/s4-import` | — | — | not merged (another worker finishing; merges on top of `part2/s4-int`) | IN_PROGRESS |
+| 4.4 | Data import (job engine CSV/XLSX, dry run, commit, reconciliation, 9 import targets, opening balances SoD, export) | `part2/s4-import` | `43865d32` | CI 38885818493 + 38888559376 · quality 38887796602 | merged `4cd4983a` | READY_FOR_REVIEW (admin import UI NOT_STARTED) |
 | 5 | — | — | — | — | — | NOT_STARTED |
 | 6 | — | — | — | — | — | NOT_STARTED |
 | 7 | — | — | — | — | — | NOT_STARTED |
 
-**Integrated head `X`** (4.1 + 4.2 + 4.3): SutraERP CI X · Part 1 demo (full stack) X · quality gates X · deploy (Helm · kind) X · pilot X.
+**Integrated head `66f74382`** (4.1 + 4.2 + 4.3 + 4.4): SutraERP CI 38891621862 · Part 1 demo (full stack) 38891624891 · quality gates 38891641991 · deploy (Helm · kind) 38891629673 · pilot 38891627148.
 
 ### Integration notes
-- Merge order (all `--no-ff`): s4-pay → s4-idp → s4-docs.
+- Merge order (all `--no-ff`): s4-pay (`889ce90c`) → s4-idp (`a7a66acd`) → s4-docs (`e457a216`) → s4-import (`4cd4983a`).
+- s4-import conflicts (kept both): `crates/kernel/src/auth.rs` (identity 4 + import 2 permissions → `ALL: [Permission; 119]`; `as_str`, step-up list, Administrator grants, both unit tests), `crates/contracts/src/platform/mod.rs` + `modules/platform/src/lib.rs` (modules `dataimport` + `documents` + `identity`, sorted), `APPROVAL_CONTROL_MATRIX.md` (rows `platform_identity_role_request_decision` + `platform_import_job_decision`).
 - Conflicts resolved keeping both sides: `apps/api/src/app.rs` (AppContext fields `payment_gateway` + `identity` + `identity_runtime` + `documents`; `BuildError::Payments` + `Documents`; identity + documents routers), `apps/api/src/config.rs` (`idp` + `documents`), `apps/api/Cargo.toml` (pay `sutra-infra` razorpay-stub dev-dep, idp `reqwest`/`tokio` dev-deps, pay `rust_decimal` + docs `http-body-util`; features `keycloak-tests` + `s3-tests`), `crates/infra/{Cargo.toml,src/lib.rs}` (`razorpay-stub` + `s3-tests`; modules `razorpay` + `s3`), `modules/platform/src/lib.rs` (`documents` + `identity`), `.github/workflows/sutraerp-ci.yml` rust-db job (Keycloak container + live Keycloak step, and MinIO-from-source + live S3 steps).
-- `.gitleaks.toml`: pay/idp/docs carried a byte-identical allowlist block (SEC-P2-PAY-001) — one copy kept.
+- `.gitleaks.toml`: pay/idp/docs/import carried a byte-identical allowlist block (SEC-P2-PAY-001) — one copy kept.
 - `kernel/src/auth.rs`: only s4-idp adds permissions (113 → 117); no count conflict.
-- Migrations (no collisions, all after 20261230000101, independent tables): `20261231000400_platform_document_object`, `20261231000401_student_document_file` (docs), `20261231000410_finance_payment_gateway_razorpay` (pay), `20261231004300_platform_identity_link` (idp).
-- `openapi/openapi.json` + `packages/api-client/src/schema.d.ts` regenerated from the CI `openapi-regenerated` artifact of run 38888839990 (merged head `e457a216`), commit `9156bc9d`; operation set = exact union of the three branches (1,787 path×method). Not hand-merged.
+- Migrations (no collisions, all after 20261230000101, independent tables, applied in timestamp order): `20261231000400_platform_document_object`, `20261231000401_student_document_file` (docs), `20261231000410_finance_payment_gateway_razorpay` (pay), `20261231004300_platform_identity_link` (idp), `20261231044001_platform_data_import` (import).
+- `openapi/openapi.json` + `packages/api-client/src/schema.d.ts` regenerated from the CI `openapi-regenerated` artifact (3-way: run 38888839990 → `9156bc9d`; 4-way: run 38890881049 on `4cd4983a` → `66f74382`); operation set = exact union of the four branches (1,801 path×method). Never hand-merged.
+- Intermediate 3-way head (pay+idp+docs) evidence: demo 38888868538 (e457a216) + 38890518505 (9156bc9d), pilot 38888876255 + 38890521134, deploy 38888874078, quality 38888871313 (e457a216) — all green.
+- Merged-head evidence (CI 38891621862): fmt · clippy · unit, OpenAPI drift, Web, full DB suite on PG 18, live NATS/Valkey, live Keycloak 26.7 `live_keycloak_idp` 3/3, MinIO-from-source `live_s3` 3/3 + `db_p2_docs` 7/7, `db_p2_import` 2,000-student timing (upload 116 ms, dry run 7,805 ms, commit 7,491 ms, total 15,412 ms), container images. Quality 38891641991: Security (cargo-deny/audit, pnpm audit, gitleaks), Semgrep, Trivy/Grype/ZAP, Performance gate k6, Capacity k6 — all green (no regression to compare).
+- Gap (not red): the 8 Playwright `E2E (preview)` suites in SutraERP CI only run on `batch*/ui/reskin2/part1/**` and `erp_merge`, so they were **skipped** on `part2/s4-int` (as on every part2 worker branch). They will run when this lands on `erp_merge`; the Part 1 demo journey (30 steps incl. document upload) did run green.
+- Not built in Stage 4: admin data-import UI (4.4, NOT_STARTED), student Fees UI → Razorpay Checkout (DEF-F-007, NOT_STARTED), web document upload control (4.2 gap).
 
 ## BLOCKED_EXTERNAL
 
@@ -37,7 +42,7 @@ Status values: NOT_STARTED / IN_PROGRESS / TESTING / BLOCKED_TECHNICAL / BLOCKED
 - **4.3 S4-idp** — Activation / recovery e-mails: realm SMTP of the college mail relay
 - **4.3 S4-idp** — Production service-account grant: realm-admin access to the production Keycloak
 
-## Stage 4 rows (merged from `tracker/p2-s4-pay.md`, `p2-s4-docs.md`, `p2-s4-idp.md`)
+## Stage 4 rows (merged from `tracker/p2-s4-pay.md`, `p2-s4-docs.md`, `p2-s4-idp.md`, `p2-s4-import.md`)
 
 | Worker | Stage | Task | Defect / feature | Changed files | Tests | Actual result + run id | Status | Blockers | Commit |
 |---|---|---|---|---|---|---|---|---|---|
@@ -84,4 +89,13 @@ Status values: NOT_STARTED / IN_PROGRESS / TESTING / BLOCKED_TECHNICAL / BLOCKED
 | S4-idp | 4.3 | Clippy doc lint | D: doc lint in the previous worker's code (CI 38878752835) | identity docs | clippy | fixed d5eb0c53, green since | COMPLETED | — | d5eb0c53 |
 | S4-idp | 4.3 | Activation / recovery e-mails | Keycloak execute-actions e-mail | — | adapter path covered by memory-adapter test; live run marks e-mail verified | — | BLOCKED_EXTERNAL | realm SMTP of the college mail relay | — |
 | S4-idp | 4.3 | Production service-account grant | `sutra-idp-admin` roles on a real Keycloak | — | start-up check | — | BLOCKED_EXTERNAL | realm-admin access to the production Keycloak | — |
-| S4-import | 4.4 | Bulk data import | F | — | — | not merged yet | IN_PROGRESS | another worker finishing `part2/s4-import` | — |
+| S4-import | 4.4 | Import job engine, CSV/XLSX files, HTTP API, migration | Feature: data migration (upload → mapping → dry run → commit → reconciliation, error report, export) | `modules/platform/src/dataimport/*`, `crates/contracts/src/platform/dataimport.rs`, `crates/persistence` batch runner, `migrations/20261231044001_platform_data_import.sql`, `crates/kernel/src/auth.rs` | unit tests in `files.rs`, `engine.rs`, `auth.rs::part2_data_import_grants` | Rust fmt · clippy · test green, CI 38885818493 | COMPLETED | — | 53615cbc … 08387444 |
+| S4-import | 4.4 | Nine import targets in their owning modules + wiring | Feature: campuses, org units, programmes, curricula, staff, students + guardian, historical results, fee heads, opening balances (through 5A's charge/posting flow) | `modules/{institution,people,student,finance}/src/dataimport.rs`, module writers (`create_in` / `register_in` / `create_head_in` / `import_guardian`), `apps/api/src/app.rs` | per-target unit tests; `db_p2_import` | green, CI 38885818493 | COMPLETED | — | 36f948a0 … a68be36e |
+| S4-import | 4.4 | Clippy `items_after_test_module` | Defect (build): `import_guardian` after the tests module | `modules/student/src/guardian/repo.rs` | clippy | green, CI 38885818493 (was red in 38883875424) | COMPLETED | — | e6729142 |
+| S4-import | 4.4 | Upload / export against another tenant's institution | Defect (tenant isolation): a job could be recorded with a foreign institution id (nothing was written to the domain, but the job row existed) | `modules/platform/src/dataimport/{mod,engine}.rs`, `apps/api/src/app.rs` (InstitutionDirectory port) | `db_p2_import::cross_tenant_jobs_and_institutions_are_invisible` | 404, no job row, CI 38885818493 | COMPLETED | — | a4b64701 |
+| S4-import | 4.4 | DB tests | Dry-run errors, in-file + DB duplicates, failed-batch rollback + resume, idempotent re-import, opening balances SoD + ledger reconciliation, cross-tenant denial, XLSX round trip, formula-safe export | `apps/api/tests/db_p2_import.rs` | 6 DB tests (below) | all ok, CI 38885818493 job "Rust integration" | COMPLETED | — | b0574f90 |
+| S4-import | 4.4 | 2,000-student CSV volume | Performance evidence | `apps/api/tests/db_p2_import.rs`, `.github/workflows/sutraerp-ci.yml` (step with `--nocapture`) | `two_thousand_students_import_timing` | upload 113 ms, dry run 7,552 ms, commit 7,619 ms (4 × 500), total 15,285 ms — CI 38885818493 | COMPLETED | — | b0574f90 |
+| S4-import | 4.4 | OpenAPI + TS client | 14 operations, tag `platform-import` | `openapi/openapi.json`, `packages/api-client/src/schema.d.ts` (artifact `openapi-regenerated` of run 38883875424) | OpenAPI drift | green, CI 38885818493 | COMPLETED | — | 1325bf08 |
+| S4-import | 4.4 | Approval control matrix | `platform_import_job_decision` (126 decision endpoints; finance_approver holds `platform.import.approve`) | `docs/readiness/APPROVAL_CONTROL_MATRIX.md` | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | green, CI 38885818493 | COMPLETED | — | 1325bf08 |
+| S4-import | 4.4 | Quality gates | gitleaks scans every ref and flagged S4-pay's stub fixture (7fc92f45, not on this branch); same narrow allow-list as S4-pay (SEC-P2-PAY-001) | `sutraerp/.gitleaks.toml` | quality workflow | green, quality 38887796602 (red in 38886758313 before the allow-list) | COMPLETED | — | 7ba1def3 |
+| S4-import | 4.4 | Admin UI | Out of scope for this worker (later task) | — | — | — | NOT_STARTED | assigned to a later worker | — |
