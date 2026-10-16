@@ -21,7 +21,8 @@ name: SutraERP Part 2 on-prem install
 on:
   # A workflow that is not on the default branch cannot be dispatched: pushes to the S5 branch that
   # touch the on-prem tooling run it. "[onprem-reuse:<run id>]" in the head commit message reuses that
-  # run's bundles (skips the 30-minute bundle build when only the drills changed).
+  # run's bundles (skips the bundle build) — only valid when nothing that goes INTO the bundle
+  # (deploy/onprem/bin, compose, config, images) changed, i.e. for changes to deploy/onprem/ci/ only.
   push:
     branches: ["part2/s5-deploy"]
     paths: [".github/workflows/sutraerp-part2-onprem.yml", "sutraerp/deploy/onprem/**"]
