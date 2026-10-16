@@ -403,8 +403,10 @@ pub async fn case_decide(
     Json(b): Json<MalpracticeDecisionCreate>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::MarksManage)?;
-    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "malpractice decision").await?;
+    // Part 2 · S6-pilot (DEF-P2-PILOT-001): this is the MAKER step (the committee decision is
+    // proposed and requests MALPRACTICE_DECISION); the separation-of-duties check belongs on the
+    // governed decision, `case_approval`. Checking here refused a re-proposal by the same exam
+    // official after a rejection and left the real decision unchecked.
     let v = if_match_or_return!(headers);
     let t = tenant(ctx);
     let c = repo::propose_decision(
@@ -492,6 +494,10 @@ pub async fn case_approval(
     Json(b): Json<MalpracticeApprovalBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::ExamApprove)?;
+    // Part 2 · S6-pilot (DEF-P2-PILOT-001, found by the UAT dry run): the exam official who
+    // proposed the committee decision / review outcome never approves it (maker ≠ checker,
+    // DEF-X-002); a system or unidentified actor never decides it either.
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "malpractice decision").await?;
     let v = if_match_or_return!(headers);
     let approve = match b.decision.as_str() {
         "approve" => true,
