@@ -1,9 +1,9 @@
 //! Part 2 · S4-idp: composition of identity provisioning (`docs/readiness/part2/s4-idp.md`).
 //!
-//! `SUTRA_IDP_PROVISIONING=keycloak` → [`KeycloakAdmin`] + the student / staff identity sources
-//! + jobs `idp-events` and `idp-sync` on the consumer scheduler; `memory` → the in-memory adapter
-//! (development / tests; production refuses it while loading the configuration); `off` → the admin
-//! API answers reads and refuses changes with `503`.
+//! `SUTRA_IDP_PROVISIONING=keycloak` → [`KeycloakAdmin`], the student / staff identity sources
+//! and the jobs `idp-events` / `idp-sync` on the consumer scheduler; `memory` → the in-memory
+//! adapter (development / tests; production refuses it while loading the configuration); `off` →
+//! the admin API answers reads and refuses changes with `503`.
 
 use crate::config::{Config, Environment};
 use crate::config_idp::IdpMode;
