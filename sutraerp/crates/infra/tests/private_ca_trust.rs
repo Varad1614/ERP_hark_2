@@ -50,7 +50,10 @@ fn make_pki(dir: &Path) {
          -addext basicConstraints=critical,CA:TRUE \
          -addext keyUsage=critical,keyCertSign,cRLSign",
     );
-    openssl(dir, "req -newkey rsa:2048 -nodes -keyout srv.key -out srv.csr -subj /CN=localhost");
+    openssl(
+        dir,
+        "req -newkey rsa:2048 -nodes -keyout srv.key -out srv.csr -subj /CN=localhost",
+    );
     std::fs::write(
         dir.join("srv.ext"),
         "basicConstraints=CA:FALSE\n\
@@ -128,7 +131,11 @@ async fn outbound_https_trusts_the_private_ca_in_ssl_cert_file() {
         .send()
         .await
         .expect("the private CA named by SSL_CERT_FILE must be trusted");
-    assert!(res.status().is_success(), "openssl s_server -www answered {}", res.status());
+    assert!(
+        res.status().is_success(),
+        "openssl s_server -www answered {}",
+        res.status()
+    );
     std::env::remove_var("SSL_CERT_FILE");
     let _ = std::fs::remove_dir_all(&dir);
 }
