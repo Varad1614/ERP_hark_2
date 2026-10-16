@@ -61,7 +61,7 @@ fn make_pki(dir: &Path) {
          extendedKeyUsage=serverAuth\n\
          subjectAltName=DNS:localhost,IP:127.0.0.1\n",
     )
-    .unwrap();
+    .expect("write srv.ext");
     openssl(
         dir,
         "x509 -req -in srv.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out srv.crt -days 2 \
@@ -70,8 +70,8 @@ fn make_pki(dir: &Path) {
 }
 
 fn free_port() -> u16 {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    listener.local_addr().unwrap().port()
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind an ephemeral port");
+    listener.local_addr().expect("local address").port()
 }
 
 fn serve(dir: &Path, port: u16) -> Server {
