@@ -702,6 +702,45 @@ async fn tampered_object_is_detected_and_quarantined() {
     assert!(audit_actions(&pool, &object)
         .await
         .contains(&"platform.document.integrity_failed".to_owned()));
+    // A second document with its file, then the documents are submitted: verification is only
+    // possible once the admission is `documents_submitted`, so the 409s below are the integrity
+    // checks, not the admission state.
+    let doc2 = add_document(&app, &admin, &aid, "qualifying_marksheet").await;
+    let did2 = id(&doc2);
+    let (s, b) = upload(
+        &app,
+        &admin,
+        &file_path(&aid, &did2),
+        "marks.png",
+        "image/png",
+        PNG.to_vec(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let object2 = b["file"]["id"].as_str().unwrap().to_owned();
+    let v2 = b["documentVersion"].as_i64().unwrap();
+    let now = ok(
+        &app,
+        &admin,
+        "GET",
+        &format!("{API}/admissions/{aid}"),
+        json!(null),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    let now = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{API}/admissions/{aid}/submit-documents"),
+        json!({}),
+        Some(ver(&now)),
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(now["status"], "documents_submitted", "{now}");
+
     // Quarantine sticks: restoring the bytes does not silently re-open the file, verification
     // is refused, and the stamp cannot be cleared by the runtime.
     bucket()
@@ -720,6 +759,7 @@ async fn tampered_object_is_detected_and_quarantined() {
     )
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "{b}");
+    assert!(b.to_string().contains("quarantined"), "{b}");
     let cleared = sqlx::query(
         "UPDATE platform.document_object SET quarantined_at = NULL WHERE id = $1::uuid",
     )
@@ -729,20 +769,6 @@ async fn tampered_object_is_detected_and_quarantined() {
     assert!(cleared.is_err(), "quarantine stamp is permanent");
 
     // A missing object is an integrity failure too (verification step).
-    let doc2 = add_document(&app, &admin, &aid, "qualifying_marksheet").await;
-    let did2 = id(&doc2);
-    let (s, b) = upload(
-        &app,
-        &admin,
-        &file_path(&aid, &did2),
-        "marks.png",
-        "image/png",
-        PNG.to_vec(),
-    )
-    .await;
-    assert_eq!(s, StatusCode::CREATED, "{b}");
-    let object2 = b["file"]["id"].as_str().unwrap().to_owned();
-    let v2 = b["documentVersion"].as_i64().unwrap();
     bucket()
         .delete_object(&storage_key(&pool, &object2).await)
         .await
@@ -757,6 +783,7 @@ async fn tampered_object_is_detected_and_quarantined() {
     )
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "{b}");
+    assert!(b.to_string().contains("integrity"), "{b}");
     let status: String =
         sqlx::query_scalar("SELECT status FROM student.admission_document WHERE id = $1::uuid")
             .bind(&did2)
@@ -807,7 +834,8 @@ async fn oversize_and_forbidden_types_are_rejected() {
             b"PK\x03\x04docx".to_vec(),
             "type_not_allowed",
         ),
-        ("scan.png", "image/png", PDF.to_vec(), "extension_mismatch"),
+        // Declared type matches the content; only the extension disagrees.
+        ("scan.png", "application/pdf", PDF.to_vec(), "extension_mismatch"),
         ("scan.pdf", "image/png", PDF.to_vec(), "type_mismatch"),
         (
             "macro.pdf",
