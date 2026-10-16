@@ -454,7 +454,7 @@ try {
         e(`admin GET …/documents/${f.type}/file → ${d.status}, ${d.bytes.length} bytes, ${d.headers.get("content-type")}, ${d.headers.get("content-disposition")}`);
         check(d.status === 200 && d.bytes.length === f.size && sha256hex(d.bytes) === f.sha256, `${f.type}: identical bytes downloaded`, e);
         check(d.headers.get("content-type") === "application/pdf" && (d.headers.get("content-disposition") ?? "").startsWith("attachment;") && d.headers.get("x-document-sha256") === f.sha256, `${f.type}: attachment, own content type, SHA-256 header`, e);
-        db(e, `${f.type} object`, `SELECT content_type || '|' || size_bytes || '|' || sha256 || '|' || (quarantined_at IS NULL) FROM platform.document_object WHERE id = ${q(f.objectId)}`, (v) => v === `application/pdf|${f.size}|${f.sha256}|t`);
+        db(e, `${f.type} object`, `SELECT content_type || '|' || size_bytes || '|' || sha256 || '|' || CASE WHEN quarantined_at IS NULL THEN 'clean' ELSE 'quarantined' END FROM platform.document_object WHERE id = ${q(f.objectId)}`, (v) => v === `application/pdf|${f.size}|${f.sha256}|clean`);
         db(e, `${f.type} linked`, `SELECT status || '|' || document_object_id FROM student.admission_document WHERE id = ${q(f.documentId)}`, (v) => v === `verified|${f.objectId}`);
         const au = audit(e, f.objectId, ["platform.document.upload", "platform.document.verify_integrity", "platform.document.download"], `${f.type} file`);
         check(au.actors.includes(admin.subject), "the administrator is the actor of the file audit trail", e);
