@@ -277,6 +277,51 @@ try {
     await signOut(page);
   }
 
+  // Part 2 · S7-entitle: a core_academic institution — inactive modules leave the navigation,
+  // their routes show "not active", and the API refuses direct calls (403) whatever the role.
+  await step(page, "entitlements: core_academic hides inactive modules (UI) and the API refuses them", async () => {
+    // Home tiles of inactive modules read the API and get the gate's 403 — expected here.
+    expectedFailures.push((p, status, body) => status === 403 && body.includes("entitlement.module_inactive"));
+    const dean = await apiLogin("dean@sutra.dev");
+    const decide = async (body) => {
+      const req = await admin.call("POST", "/api/v1/platform/entitlement-requests", { ...body, reason: "e2e entitlement check" });
+      const done = await dean.call("POST", `/api/v1/platform/entitlement-requests/${req.id}/decision`, { decision: "approve", reason: "e2e second approver" });
+      check(done.request.status === "approved", `${body.package} approved by a second administrator`);
+      return done.entitlement;
+    };
+    const core = await decide({ kind: "change", package: "core_academic" });
+    check(core.modules.length === 5 && !core.modules.includes("fees"), `core_academic = ${core.modules.join(", ")}`);
+    await signIn(page, "administrator");
+    await go(page, "/");
+    await page.waitForFunction(() => document.querySelectorAll("nav.sb-pills a").length === 6, null, { timeout: 15000 });
+    const labels = (await page.locator("nav.sb-pills a").allTextContents()).map((t) => t.trim());
+    const want = ["Home", "Students", "Academics", "Examinations", "Campus", "Workspaces"];
+    check(JSON.stringify(labels) === JSON.stringify(want), `pills = ${want.join(" / ")} (got ${labels.join(" / ")})`);
+    await go(page, "/finance");
+    await page.locator('[data-module-inactive="fees"]').waitFor();
+    check((await page.getByText("Fees & finance is not active").count()) === 1, "/finance shows the module-not-active state");
+    await shot(page, "adm-entitlement-inactive");
+    await page.keyboard.press("Control+k");
+    await page.locator("[data-palette-input]").fill("payroll");
+    await page.waitForTimeout(300);
+    check((await page.locator('[data-palette-item="ws:W-E06"]').count()) === 0, "palette hides the Payroll workspace");
+    await page.keyboard.press("Escape");
+    let refused = "";
+    try {
+      await admin.call("GET", `/api/v1/finance/institutions/${setup.id}/fee-heads`);
+    } catch (e) {
+      refused = e instanceof Error ? e.message : String(e);
+    }
+    check(refused.includes("403") && refused.includes("entitlement.module_inactive"), "direct API call to Finance → 403 entitlement.module_inactive");
+    const all = await decide({ kind: "change", package: "complete_erp" });
+    check(all.modules.length === 15, "complete_erp restored");
+    await page.reload();
+    await settle(page);
+    await page.waitForFunction((n) => document.querySelectorAll("nav.sb-pills a").length === n, NAV.administrator.length, { timeout: 15000 });
+    check(true, "every pill is back after the change");
+    await signOut(page);
+  });
+
   const late = newProblems();
   if (late.length) failed.push(`errors outside the steps:\n    ${late.join("\n    ")}`);
   else log("  ✓ no unexpected console/page/network errors");

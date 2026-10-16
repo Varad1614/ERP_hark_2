@@ -47,6 +47,12 @@ export type PasskeyInfo = Schemas["PasskeyInfo"];
 export type SessionView = Schemas["SessionView"];
 export type WebauthnCeremony = Schemas["WebauthnCeremony"];
 export type WebauthnChallengeResponse = Schemas["WebauthnChallengeResponse"];
+// Part 2 · S7-entitle: module entitlements + licence state
+export type EffectiveEntitlement = Schemas["EffectiveEntitlement"];
+export type LicenceStatus = Schemas["LicenceStatus"];
+export type EntitlementOrigin = Schemas["EntitlementOrigin"];
+export type EntitlementCatalogue = Schemas["EntitlementCatalogue"];
+export type EntitlementRequestView = Schemas["EntitlementRequestView"];
 
 export interface ClientOptions {
   /** Origin of the API; empty string = same origin (default, via dev proxy / ingress). */
