@@ -41,6 +41,14 @@
     "resources": { "default": "procurement", "rules": [["asset", "assets"], ["requisition", "procurement"], ["sourcing", "procurement"], ["supplier", "procurement"], ["purchase-order", "procurement"], ["goods-receipt", "procurement"], ["vendor-", "procurement"], ["item", "inventory"], ["store", "inventory"], ["stock", "inventory"], ["replenishment", "inventory"]] },
     "services": { "default": "reporting", "rules": [] }
   },
+  "imports": {
+    "$comment": "Data-import entity -> module it writes into (server-side, enforced by the import job handlers on upload / mapping / dry-run / commit / decision; the entity list hides the others). Entities not listed (campuses, org_units, programmes, curricula) are institution set-up (core). Export is never gated (no data hostage).",
+    "students": "students",
+    "historical_results": "students",
+    "staff": "hr",
+    "fee_heads": "fees",
+    "opening_balances": "fees"
+  },
   "web": {
     "$comment": "UI-only mirrors (never the control; the API gate above is). routes: first path segment -> module; workspaces: catalog workspace key prefix -> module (longest prefix wins).",
     "routes": {

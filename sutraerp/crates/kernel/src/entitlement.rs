@@ -109,6 +109,8 @@ struct RawRegistry {
     default_package: String,
     api: BTreeMap<String, serde_json::Value>,
     #[serde(default)]
+    imports: BTreeMap<String, String>,
+    #[serde(default)]
     web: WebMirror,
 }
 
@@ -123,6 +125,10 @@ pub struct Registry {
     /// [`DefaultEntitlement`]).
     pub default_package: String,
     pub api: BTreeMap<String, AreaRules>,
+    /// Data-import entity → module whose records it writes (`staff` → `hr`, `fee_heads` →
+    /// `fees`, …). Entities not listed (institution set-up) are core. Enforced by the import
+    /// handlers (`sutra_platform::dataimport`) through [`EntitlementPolicy::require_module`].
+    pub imports: BTreeMap<String, String>,
     pub web: WebMirror,
 }
 
@@ -147,6 +153,11 @@ impl Registry {
             packages: raw.packages,
             default_package: raw.default_package,
             api,
+            imports: raw
+                .imports
+                .into_iter()
+                .filter(|(k, _)| !k.starts_with('$'))
+                .collect(),
             web: raw.web,
         };
         let problems = reg.problems();
@@ -213,6 +224,11 @@ impl Registry {
                 if !keys.contains(m.as_str()) {
                     out.push(format!("api.{area} names unknown module `{m}`"));
                 }
+            }
+        }
+        for (entity, m) in &self.imports {
+            if !keys.contains(m.as_str()) {
+                out.push(format!("imports.{entity} names unknown module `{m}`"));
             }
         }
         for m in self.web.routes.values().chain(self.web.workspaces.values()) {
@@ -295,6 +311,11 @@ impl Registry {
         } else {
             Err(errors)
         }
+    }
+
+    /// Module a data-import entity writes into; `None` = core (institution set-up).
+    pub fn import_module(&self, entity: &str) -> Option<&str> {
+        self.imports.get(entity).map(String::as_str)
     }
 
     /// Module a request path belongs to; `None` = core (never gated).
@@ -633,6 +654,37 @@ impl EntitlementPolicy {
         let ent = stored.unwrap_or_else(|| self.default.entitlement());
         Ok(ent.effective(reg, self.clock.now()))
     }
+
+    /// Whether `module` is active for `tenant` now (fails closed like [`Self::effective`]).
+    /// Cross-module ports use it to treat an inactive module's facts as not applicable (e.g.
+    /// Finance dues when `fees` is not active).
+    pub async fn module_active(&self, tenant: TenantId, module: &str) -> Result<bool, KernelError> {
+        Ok(self.effective(tenant).await?.has_module(module))
+    }
+
+    /// `Ok` when `module` is active for `tenant`, else
+    /// [`KernelError::Entitlement`] with [`MODULE_INACTIVE`] (`403`).
+    pub async fn require_module(&self, tenant: TenantId, module: &str) -> Result<(), KernelError> {
+        if self.module_active(tenant, module).await? {
+            return Ok(());
+        }
+        Err(module_inactive(module))
+    }
+}
+
+/// The [`KernelError::Entitlement`] of an inactive module (same detail as the HTTP gate).
+pub fn module_inactive(module: &str) -> KernelError {
+    let name = registry()
+        .ok()
+        .and_then(|r| r.module(module))
+        .map_or(module, |s| s.name.as_str());
+    KernelError::Entitlement {
+        code: MODULE_INACTIVE,
+        detail: format!(
+            "the {name} module (`{module}`) is not active for this institution; \
+             a platform administrator can activate it"
+        ),
+    }
 }
 
 /// Paths reachable whatever the entitlement: sign-in / sign-out / session and the entitlement
@@ -820,6 +872,29 @@ mod tests {
         let e = Registry::parse(&bad).unwrap_err();
         assert!(e.contains("requires unknown `nonexistent`"), "{e}");
         assert!(Registry::parse("{}").is_err());
+    }
+
+    #[test]
+    fn import_entities_map_onto_their_modules() {
+        let r = reg();
+        assert_eq!(r.import_module("students"), Some("students"));
+        assert_eq!(r.import_module("historical_results"), Some("students"));
+        assert_eq!(r.import_module("staff"), Some("hr"));
+        assert_eq!(r.import_module("fee_heads"), Some("fees"));
+        assert_eq!(r.import_module("opening_balances"), Some("fees"));
+        for core in ["campuses", "org_units", "programmes", "curricula"] {
+            assert_eq!(r.import_module(core), None, "{core} is institution set-up");
+        }
+        let bad = REGISTRY_JSON.replace("\"staff\": \"hr\"", "\"staff\": \"humans\"");
+        assert_ne!(bad, REGISTRY_JSON, "fixture must change the document");
+        let e = Registry::parse(&bad).unwrap_err();
+        assert!(
+            e.contains("imports.staff names unknown module `humans`"),
+            "{e}"
+        );
+        let err = module_inactive("fees");
+        assert_eq!(err.code(), MODULE_INACTIVE);
+        assert!(err.to_string().contains("Fees & finance"), "{err}");
     }
 
     #[test]

@@ -3,6 +3,7 @@
 use crate::config::{
     AuthProvider, CacheBackend, Config, MailMode, OutboxRelayMode, SmtpTlsMode, StoreBackend,
 };
+use crate::entitlement_ports::{EntitledExamFees, EntitledFinanceClearance};
 use crate::openapi::ApiDoc;
 use axum::routing::get;
 use axum::{Json, Router};
@@ -1140,6 +1141,9 @@ pub fn import_state(
 /// idempotency middleware keys its records by the authenticated owner, so it must run inside
 /// the authentication layer.
 pub fn build(ctx: AppContext) -> OpenApiRouter {
+    // Part 2 · S7-entitle: Finance facts read / written through ports follow the `fees`
+    // entitlement (see `crate::entitlement_ports`).
+    let policy = ctx.entitlement.policy().clone();
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
@@ -1164,6 +1168,7 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         .merge(sutra_student::router({
             let mut deps = student_deps_with(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals);
             deps.documents = ctx.documents.clone(); // Part 2 · S4-docs
+            deps.finance = EntitledFinanceClearance::wrap(deps.finance, &policy); // Part 2 · S7
             deps
         }))
         .merge(sutra_academic::router(academic_deps_with(
@@ -1192,22 +1197,24 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.workflow.clone(),
             ctx.approvals,
         )))
-        .merge(sutra_exams::router(exams_deps_with(
-            ctx.pool.clone(),
-            ctx.workflow.clone(),
-            ctx.approvals,
-        )))
+        .merge(sutra_exams::router({
+            let mut deps = exams_deps_with(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals);
+            // Part 2 · S7-entitle: hall-ticket dues and exam fees follow the `fees` entitlement.
+            deps.finance = EntitledFinanceClearance::wrap(deps.finance, &policy);
+            deps.fees = EntitledExamFees::wrap(deps.fees, &policy);
+            deps
+        }))
         .merge(sutra_resources::router(resources_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
             ctx.approvals,
         )))
         // Part 2 · S4-import: data migration jobs over every module's import targets.
-        .merge(sutra_platform::dataimport::router(import_state(
-            ctx.pool.clone(),
-            ctx.workflow.clone(),
-            ctx.approvals,
-        )))
+        // Part 2 · S7-entitle: each entity is gated on the module it writes into.
+        .merge(sutra_platform::dataimport::router(
+            import_state(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals)
+                .with_entitlement(policy),
+        ))
         .layer(axum::middleware::from_fn_with_state(
             ctx.idempotency,
             sutra_web::idempotency::idempotency,

@@ -68,6 +68,11 @@ pub enum KernelError {
     Unavailable(String),
     #[error("internal error")]
     Internal(#[source] Box<dyn std::error::Error + Send + Sync>),
+    /// Part 2 · S7-entitle: the tenant's licence does not cover the operation (`403`). `code` is
+    /// one of the stable `entitlement.*` codes of [`crate::entitlement`] (e.g.
+    /// `entitlement.module_inactive` when an import job targets a module that is not active).
+    #[error("not entitled: {detail}")]
+    Entitlement { code: &'static str, detail: String },
 }
 
 impl KernelError {
@@ -88,6 +93,7 @@ impl KernelError {
             Self::NotImplemented(_) => "not-implemented",
             Self::Unavailable(_) => "dependency-unavailable",
             Self::Internal(_) => "internal-error",
+            Self::Entitlement { code, .. } => code,
         }
     }
 

@@ -134,6 +134,17 @@ impl ApiError {
                 Some(public_unavailable_detail(d)),
             ),
             KernelError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal error", None),
+            // Part 2 · S7-entitle: same status / code / title as the entitlement gate.
+            KernelError::Entitlement { code, detail } => (
+                StatusCode::FORBIDDEN,
+                match *code {
+                    sutra_kernel::entitlement::MODULE_INACTIVE => "Module not active",
+                    sutra_kernel::entitlement::LICENCE_EXPIRED => "Licence expired",
+                    sutra_kernel::entitlement::LICENCE_SUSPENDED => "Licence suspended",
+                    _ => "Not entitled",
+                },
+                Some(detail.clone()),
+            ),
         };
         let mut p = Problem::new(status, code, title);
         p.detail = detail;
