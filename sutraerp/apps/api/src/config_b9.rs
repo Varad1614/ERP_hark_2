@@ -732,7 +732,13 @@ mod tests {
             );
         }
         // Secrets from files (trailing newline trimmed); an unreadable file is an error.
-        let dir = std::env::temp_dir().join(format!("sutra-cfg-{}", std::process::id()));
+        // Per-test directory next to the test binary (target/<profile>/deps), not the shared,
+        // world-writable system temp dir (Semgrep rust.lang.security.temp-dir).
+        let dir = std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join(format!("sutra-cfg-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("razorpay_key_secret");
         std::fs::write(&file, "from-file-secret\n").unwrap();

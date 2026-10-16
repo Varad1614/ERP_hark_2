@@ -36,3 +36,11 @@ regexes = [
   '''Kc7tY2mQ9vR4xL8pW1sN6bZ3''',
   '''Fw9pL2xR7tQ4mZ8vN3bK''',
 ]
+
+[[allowlists]]
+description = "Part 2 S4-pay: Razorpay HTTP contract-stub fixture 'stub-key-secret-…' committed once in 7fc92f45 (test-only stub key, never a Razorpay credential) and replaced by a per-run generated value; commit, path and literal must all match (docs/security/findings.md SEC-P2-PAY-001)"
+condition = "AND"
+commits = ["7fc92f4534c00efe9cdfeaffeed44d09ad0fe9d6"]
+paths = ['''^sutraerp/crates/infra/src/razorpay\.rs$''']
+regexTarget = "match"
+regexes = ['''stub-key-secret-0123456789abcdef''']

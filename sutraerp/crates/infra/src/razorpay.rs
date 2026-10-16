@@ -1028,8 +1028,6 @@ pub mod stub {
         /// Starts the stub on `127.0.0.1:<random port>` (runs until the runtime stops).
         pub async fn start() -> std::io::Result<Self> {
             let key_id = "rzp_test_StubKey000001".to_owned();
-            let key_secret = "stub-key-secret-0123456789abcdef".to_owned();
-            let webhook_secret = "stub-webhook-secret-0123456789abcdef".to_owned();
             let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
             let addr = listener.local_addr()?;
             let nanos = std::time::SystemTime::now()
@@ -1037,6 +1035,11 @@ pub mod stub {
                 .unwrap_or_default()
                 .as_nanos();
             let tag = format!("{:08x}{:04x}", nanos & 0xffff_ffff, addr.port());
+            // Generated per stub at test time, never a committed literal: the stub only checks
+            // that the client sends back exactly what it was handed (docs/security/findings.md
+            // SEC-P2-PAY-001; the earlier hard-coded fixture tripped gitleaks).
+            let key_secret = format!("stub-only-{tag}");
+            let webhook_secret = format!("stub-webhook-only-not-secret-{tag}");
             let state = Arc::new(Mutex::new(StubState {
                 tag,
                 ..StubState::default()
