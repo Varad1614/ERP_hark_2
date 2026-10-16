@@ -311,6 +311,9 @@ pub struct Config {
     /// Part 2 · S4-docs: document storage (`SUTRA_DOCUMENT_STORAGE`, `SUTRA_S3_*`,
     /// `SUTRA_DOCS_*`; `config_docs`). Production refuses to start without S3 storage.
     pub documents: crate::config_docs::DocumentStorageConfig,
+    /// Part 2 · S7-entitle: module entitlement store + default (`SUTRA_ENTITLEMENT_*`;
+    /// `config_entitlement`).
+    pub entitlement: crate::config_entitlement::EntitlementConfig,
 }
 
 /// A secret string whose `Debug` is redacted.
@@ -757,6 +760,7 @@ impl Config {
             http: crate::config_http::HttpSecurityConfig::load(src, env)?,
             idp: crate::config_idp::IdpConfig::load(src, env)?, // Part 2 · S4-idp
             documents: crate::config_docs::DocumentStorageConfig::load(src, env)?, // Part 2 · S4-docs
+            entitlement: crate::config_entitlement::EntitlementConfig::load(src, env)?, // Part 2 · S7-entitle
         };
         cfg.validate()?;
         Ok(cfg)
