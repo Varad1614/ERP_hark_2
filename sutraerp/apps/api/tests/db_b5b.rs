@@ -32,6 +32,7 @@ const T_REFUND: &str = "0192f5a0-7c3e-7000-8000-0000000b5b04";
 const T_RECEIVABLE: &str = "0192f5a0-7c3e-7000-8000-0000000b5b05";
 const T_AWAIT: &str = "0192f5a0-7c3e-7000-8000-0000000b5b06";
 const T_LATE_FEE: &str = "0192f5a0-7c3e-7000-8000-0000000b5b07";
+const T_BILLING: &str = "0192f5a0-7c3e-7000-8000-0000000b5b08";
 
 const F: &str = "/api/v1/finance";
 
@@ -2137,4 +2138,268 @@ async fn late_fees_accrue_idempotently_and_reminders_follow_the_schedule() {
     .await;
     assert_eq!(again["sent"], 0);
     assert_eq!(events(&pool, T_LATE_FEE, "fee_reminder.sent").await, 1);
+}
+
+/// ERP_EXTENSIONS 1E: a billing plan bills each enrolled student once per period (a line per
+/// plan, published, `source_type` billing_run); a repeat run bills nothing more, a cancelled
+/// charge frees the period, holds and exclusions skip, and schedules are kept per frequency.
+#[tokio::test]
+async fn billing_runs_bill_once_per_period_and_schedules_are_kept() {
+    let (app, pool) = app(T_BILLING).await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let setup = b5::finance_setup(
+        &app,
+        &admin,
+        &pool,
+        T_BILLING,
+        "Billing College",
+        Some(b4::AARAV),
+    )
+    .await;
+    let inst = setup.institution();
+    let student = setup.student.student_id;
+    let head = setup.fee_head_id.as_uuid();
+
+    // Validation: bad code, bad frequency.
+    call(&app, &admin, "POST", &format!("/institutions/{inst}/billing-plans"),
+        json!({"code": "x", "name": "Hostel", "feeHeadId": head, "amount": "4500.00", "frequency": "monthly"}),
+        None, StatusCode::UNPROCESSABLE_ENTITY).await;
+    call(&app, &admin, "POST", &format!("/institutions/{inst}/billing-plans"),
+        json!({"code": "HOSTEL", "name": "Hostel", "feeHeadId": head, "amount": "4500.00", "frequency": "daily"}),
+        None, StatusCode::UNPROCESSABLE_ENTITY).await;
+    let hostel = call(&app, &admin, "POST", &format!("/institutions/{inst}/billing-plans"),
+        json!({"code": "HOSTEL", "name": "Hostel rent", "feeHeadId": head, "amount": "4500.00", "frequency": "monthly"}),
+        None, StatusCode::CREATED).await;
+    let mess = call(&app, &admin, "POST", &format!("/institutions/{inst}/billing-plans"),
+        json!({"code": "MESS", "name": "Mess", "feeHeadId": head, "amount": "3000.00", "frequency": "monthly"}),
+        None, StatusCode::CREATED).await;
+    call(&app, &admin, "POST", &format!("/institutions/{inst}/billing-plans"),
+        json!({"code": "HOSTEL", "name": "Again", "feeHeadId": head, "amount": "1.00", "frequency": "monthly"}),
+        None, StatusCode::CONFLICT).await;
+    let (hostel_id, mess_id) = (id(&hostel), id(&mess));
+    call(
+        &app,
+        &admin,
+        "PUT",
+        &format!("/billing-plans/{hostel_id}/enrolments"),
+        json!({"studentId": student}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    let e = call(
+        &app,
+        &admin,
+        "PUT",
+        &format!("/billing-plans/{mess_id}/enrolments"),
+        json!({"studentId": student, "amount": "2500.00"}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(e["amount"], "2500.00");
+    call(
+        &app,
+        &admin,
+        "PUT",
+        &format!("/billing-plans/{mess_id}/enrolments"),
+        json!({"studentId": Uuid::now_v7()}),
+        None,
+        StatusCode::UNPROCESSABLE_ENTITY,
+    )
+    .await;
+    let plans = read(&app, &admin, &format!("/institutions/{inst}/billing-plans")).await;
+    assert_eq!(plans["items"].as_array().unwrap().len(), 2);
+
+    // Preview, then run: one charge with both plan lines.
+    let body = json!({"frequency": "monthly", "dueDays": 10});
+    let preview = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/billing-runs/preview"),
+        body.clone(),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        (preview["billed"].as_i64(), preview["total"].as_str()),
+        (Some(1), Some("7000.00")),
+        "{preview}"
+    );
+    assert!(preview["id"].is_null());
+    let run = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/billing-runs"),
+        body.clone(),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        (run["billed"].as_i64(), run["failed"].as_i64()),
+        (Some(1), Some(0)),
+        "{run}"
+    );
+    let charge_id: Uuid = run["items"][0]["chargeId"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let (src, status, total, lines): (String, String, Decimal, i64) = sqlx::query_as(
+        "SELECT c.source_type, c.status, c.total_amount, (SELECT count(*) FROM finance.charge_line l WHERE l.charge_id = c.id) \
+         FROM finance.charge c WHERE c.id = $1",
+    )
+    .bind(charge_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        (src.as_str(), status.as_str(), total, lines),
+        ("billing_run", "published", amount("7000.00"), 2)
+    );
+
+    // Re-running the same period bills nothing more.
+    let again = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/billing-runs"),
+        body.clone(),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(again["billed"].as_i64(), Some(0), "{again}");
+    assert_eq!(again["skips"][0]["reason"], "already_billed");
+
+    // A cancelled charge frees the period; a hold then skips the student.
+    sqlx::query("UPDATE finance.charge SET status = 'cancelled' WHERE id = $1")
+        .bind(charge_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    for plan in [&hostel_id, &mess_id] {
+        call(
+            &app,
+            &admin,
+            "PUT",
+            &format!("/billing-plans/{plan}/enrolments"),
+            json!({"studentId": student, "onHold": true}),
+            None,
+            StatusCode::OK,
+        )
+        .await;
+    }
+    let held = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/billing-runs/preview"),
+        body.clone(),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        (held["billed"].as_i64(), held["skips"][0]["reason"].as_str()),
+        (Some(0), Some("on_hold")),
+        "{held}"
+    );
+    call(
+        &app,
+        &admin,
+        "PUT",
+        &format!("/billing-plans/{hostel_id}/enrolments"),
+        json!({"studentId": student}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    let excluded = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/billing-runs/preview"),
+        json!({"frequency": "monthly", "excludeStudentIds": [student]}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(excluded["skips"][0]["reason"], "excluded");
+    let rebill = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("/institutions/{inst}/billing-runs"),
+        body.clone(),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        (rebill["billed"].as_i64(), rebill["total"].as_str()),
+        (Some(1), Some("4500.00")),
+        "{rebill}"
+    );
+    let voided: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM finance.billing_run_item WHERE institution_id = $1 AND status = 'void'",
+    )
+    .bind(inst.as_uuid())
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(voided, 1);
+
+    // History and detail.
+    let runs = read(&app, &admin, &format!("/institutions/{inst}/billing-runs")).await;
+    assert_eq!(runs["items"].as_array().unwrap().len(), 3);
+    let rid = rebill["id"].as_str().unwrap();
+    let detail = read(&app, &admin, &format!("/billing-runs/{rid}")).await;
+    assert_eq!(detail["items"].as_array().unwrap().len(), 1);
+
+    // Schedules: all five frequencies listed; set one.
+    let sched = read(
+        &app,
+        &admin,
+        &format!("/institutions/{inst}/billing-schedules"),
+    )
+    .await;
+    assert_eq!(sched["items"].as_array().unwrap().len(), 5);
+    call(
+        &app,
+        &admin,
+        "PUT",
+        &format!("/institutions/{inst}/billing-schedules/monthly"),
+        json!({"enabled": true, "runDay": 40, "dueDays": 7}),
+        None,
+        StatusCode::UNPROCESSABLE_ENTITY,
+    )
+    .await;
+    let set = call(
+        &app,
+        &admin,
+        "PUT",
+        &format!("/institutions/{inst}/billing-schedules/monthly"),
+        json!({"enabled": true, "runDay": 5, "dueDays": 10}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        (set["enabled"].as_bool(), set["runDay"].as_i64()),
+        (Some(true), Some(5))
+    );
+
+    // Audit trail.
+    let audits: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM platform.audit_log WHERE action LIKE 'finance.billing_%'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(audits >= 8, "{audits}");
 }
