@@ -11,6 +11,7 @@ import type {
   BankAccount,
   BankTransaction,
   CashPosition,
+  FinancialStatement,
   FinancialYear,
   Items,
   JournalEntry,
@@ -22,6 +23,8 @@ import type {
   Reconciliation,
   Statement,
   StatementFileOptions,
+  StatementKind,
+  StatementParams,
   StatementPreview,
   TrialBalance,
 } from "./types";
@@ -40,6 +43,8 @@ export interface LedgerApi {
   submitJournal(id: string, version: number): Promise<ManualJournal>;
   decideJournal(id: string, version: number, approve: boolean, reason?: string): Promise<ManualJournal>;
   trialBalance(institutionId: string, asOf?: string): Promise<TrialBalance>;
+  /** ERP_EXTENSIONS 1C: a financial statement computed on the server. */
+  financialStatement(institutionId: string, kind: StatementKind, params: StatementParams): Promise<FinancialStatement>;
   reconciliations(institutionId: string): Promise<Reconciliation[]>;
   reconcile(institutionId: string): Promise<Reconciliation>;
   // periods
@@ -69,6 +74,10 @@ export const PATHS = {
   submit: `${B}/manual-journals/{id}/submit`,
   decision: `${B}/manual-journals/{id}/decision`,
   trialBalance: `${B}/institutions/{id}/trial-balance`,
+  incomeExpenditure: `${B}/institutions/{id}/financial-statements/income-expenditure`,
+  balanceSheet: `${B}/institutions/{id}/financial-statements/balance-sheet`,
+  cashFlow: `${B}/institutions/{id}/financial-statements/cash-flow`,
+  generalLedger: `${B}/institutions/{id}/financial-statements/general-ledger`,
   reconciliations: `${B}/institutions/{id}/reconciliations`,
   years: `${B}/institutions/{id}/financial-years`,
   yOpen: `${B}/financial-years/{id}/open`,
@@ -140,6 +149,11 @@ export function createHttpLedgerApi(fetchImpl: Fetch = (i, init) => fetch(i, ini
     submitJournal: (id, v) => request("POST", fill(PATHS.submit, { id }), { body: {}, ifMatch: v, idempotent: true }),
     decideJournal: (id, v, approve, reason) => request("POST", fill(PATHS.decision, { id }), { body: { decision: approve ? "approve" : "reject", reason }, ifMatch: v, idempotent: true }),
     trialBalance: (inst, asOf) => request("GET", fill(PATHS.trialBalance, { id: inst }) + (asOf ? `?asOf=${encodeURIComponent(asOf)}` : "")),
+    financialStatement: (inst, kind, params) => {
+      const path = { "income-expenditure": PATHS.incomeExpenditure, "balance-sheet": PATHS.balanceSheet, "cash-flow": PATHS.cashFlow, "general-ledger": PATHS.generalLedger }[kind];
+      const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)])).toString();
+      return request("GET", fill(path, { id: inst }) + (qs ? `?${qs}` : ""));
+    },
     reconciliations: (inst) => items(fill(PATHS.reconciliations, { id: inst })),
     reconcile: (inst) => request("POST", fill(PATHS.reconciliations, { id: inst }), { body: {}, idempotent: true }),
     years: (inst) => items(fill(PATHS.years, { id: inst })),

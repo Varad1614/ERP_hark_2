@@ -20,6 +20,7 @@ import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { ledger, rowActions, useFinanceAsk } from "../ui";
 import { lkeys, useLedgerApi } from "./hooks";
+import { FinancialStatementsTile } from "./financial-statements";
 import { StatementFileImport } from "./statement-file";
 import type { FinancialYear, ManualJournal, Period } from "./types";
 
@@ -171,6 +172,7 @@ export function LedgerAdminTab({ institution }: { institution: Institution | nul
           <EmptyState icon={Scale} title="Nothing posted yet">Postings from charges, payments and journals appear here.</EmptyState>
         )}
       </BentoTile>
+      <FinancialStatementsTile institutionId={inst} />
       <BentoTile span={12} title="Journal entries" data-journal-entries>
         <DataTable
           caption="Journal entries"

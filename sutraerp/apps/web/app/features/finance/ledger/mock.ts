@@ -133,6 +133,7 @@ export function createMockLedgerApi(): LedgerApi {
       return j;
     },
     trialBalance: async (inst, asOf) => tb(inst, asOf ?? new Date().toISOString().slice(0, 10)),
+    financialStatement: async (_inst, kind) => ({ id: kind, title: kind, subtitle: "", columns: [{ key: "total", label: "Total" }], rows: [], net: "0.00", balanced: kind === "balance-sheet" ? true : null, reconciled: null }),
     reconciliations: async (inst) => recs.filter((r) => r.inst === inst),
     reconcile: async (inst) => {
       const r = { inst, id: nid("rec"), scope: "receivables", asOf: new Date().toISOString().slice(0, 10), status: "matched", sourceTotal: "0.00", ledgerTotal: "0.00", difference: "0.00", exceptions: [], createdAt: new Date().toISOString() };

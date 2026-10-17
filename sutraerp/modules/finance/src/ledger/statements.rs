@@ -135,8 +135,15 @@ impl StatementGroup {
     /// The ledger account type a group belongs to (`asset` … `expense`).
     pub fn account_type(self) -> &'static str {
         match self {
-            Self::Bank | Self::Receivable | Self::OtherCurrentAsset | Self::FixedAsset | Self::OtherAsset => "asset",
-            Self::Payable | Self::CreditCard | Self::OtherCurrentLiability | Self::LongTermLiability => "liability",
+            Self::Bank
+            | Self::Receivable
+            | Self::OtherCurrentAsset
+            | Self::FixedAsset
+            | Self::OtherAsset => "asset",
+            Self::Payable
+            | Self::CreditCard
+            | Self::OtherCurrentLiability
+            | Self::LongTermLiability => "liability",
             Self::Fund => "equity",
             Self::Income | Self::OtherIncome => "income",
             Self::DirectCost | Self::Expense | Self::OtherExpense => "expense",

@@ -3,6 +3,7 @@
 //! renamed or deactivated).
 
 use super::common::{invalid, opt_text, require_text, require_version};
+use super::statements::StatementGroup;
 use crate::shared::coa::ensure_default_chart;
 use crate::shared::guard::{require_institution, require_institution_writable};
 use crate::shared::http::{actor, if_match, with_etag};
@@ -28,7 +29,6 @@ use sutra_kernel::scope::{InstitutionId, TenantId};
 use sutra_persistence::map_db_error;
 use sutra_web::idempotency::require_idempotency_key;
 use sutra_web::{ApiResult, Authenticated, Problem};
-use super::statements::StatementGroup;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -96,9 +96,15 @@ fn from_row(r: &PgRow) -> Result<LedgerAccountView, KernelError> {
         statement_group: {
             let g: Option<String> = r.try_get("statement_group").map_err(map_db_error)?;
             let key: Option<String> = r.try_get("system_key").map_err(map_db_error)?;
-            g.as_deref().and_then(StatementGroup::parse).unwrap_or_else(|| {
-                StatementGroup::default_for(ty.as_str(), key.as_deref(), r.try_get("is_bank").unwrap_or(false))
-            })
+            g.as_deref()
+                .and_then(StatementGroup::parse)
+                .unwrap_or_else(|| {
+                    StatementGroup::default_for(
+                        ty.as_str(),
+                        key.as_deref(),
+                        r.try_get("is_bank").unwrap_or(false),
+                    )
+                })
         },
         currency: r.try_get("currency").map_err(map_db_error)?,
         status: st,
@@ -187,13 +193,15 @@ async fn set_group(
             &format!("{} is not a group for a {account_type} account", g.as_str()),
         ));
     }
-    sqlx::query("UPDATE finance.ledger_account SET statement_group = $3 WHERE tenant_id = $1 AND id = $2")
-        .bind(t.as_uuid())
-        .bind(id)
-        .bind(g.as_str())
-        .execute(&mut *conn)
-        .await
-        .map_err(map_db_error)?;
+    sqlx::query(
+        "UPDATE finance.ledger_account SET statement_group = $3 WHERE tenant_id = $1 AND id = $2",
+    )
+    .bind(t.as_uuid())
+    .bind(id)
+    .bind(g.as_str())
+    .execute(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
     Ok(())
 }
 

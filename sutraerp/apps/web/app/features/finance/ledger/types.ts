@@ -254,3 +254,42 @@ export interface StatementPreview {
   lines: StatementPreviewLine[];
   skipped: { row: number; reason: string }[];
 }
+
+// ------------------------------------------------------------------ ERP_EXTENSIONS 1C
+
+export type StatementKind = "income-expenditure" | "balance-sheet" | "cash-flow" | "general-ledger";
+export type StatementRowKind = "section" | "account" | "subtotal" | "total" | "grand" | "row";
+
+export interface StatementRow {
+  kind: StatementRowKind;
+  /** Stable structure key of headings and totals. */
+  key?: string | null;
+  label: string;
+  depth: number;
+  /** One decimal string per column, `null` = blank; a `pct` column holds basis points. */
+  values: (string | null)[];
+  accountId?: string | null;
+  emphasis: boolean;
+  detail?: { date: string; entryId: string; entryNumber: string; description: string; sourceType: string } | null;
+}
+
+export interface FinancialStatement {
+  id: string;
+  title: string;
+  subtitle: string;
+  columns: { key: string; label: string; from?: string | null; to?: string | null }[];
+  rows: StatementRow[];
+  net?: string | null;
+  balanced?: boolean | null;
+  reconciled?: boolean | null;
+}
+
+export interface StatementParams {
+  from?: string;
+  to?: string;
+  asOf?: string;
+  columns?: string;
+  compare?: string;
+  comparePreviousYear?: boolean;
+  ledgerAccountId?: string;
+}
