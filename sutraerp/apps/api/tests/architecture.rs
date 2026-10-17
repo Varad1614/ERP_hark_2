@@ -635,6 +635,8 @@ async fn batch8_operations_follow_the_slice_prefix_and_tag_rules() {
                 "resources_payable_",
                 // ERP_EXTENSIONS 3C: contracts and MoUs
                 "resources_contract_",
+                // ERP_EXTENSIONS 3D: staff expense claims
+                "resources_expense_",
             ],
         ),
         (
