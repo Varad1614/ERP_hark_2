@@ -595,6 +595,7 @@ async fn batch8_operations_follow_the_slice_prefix_and_tag_rules() {
             "campus-facilities",
             &[
                 "campus_ticket_",
+                "campus_servicedesk_",
                 "campus_workorder_",
                 "campus_maintenance_",
                 "campus_lab_",
