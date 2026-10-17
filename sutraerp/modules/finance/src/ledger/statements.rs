@@ -1021,26 +1021,25 @@ pub fn balance_sheet(
     };
     use StatementGroup as G;
     let mut rows = Vec::new();
-    let group =
-        |key: &str, label: &str, groups: &[G], depth: u32, rows: &mut Vec<StatementRow>| {
-            let (tree, total) = account_tree(books, groups, &values_for, n, false);
-            if tree.is_empty() && total.iter().all(Decimal::is_zero) {
-                return total;
-            }
-            rows.push(heading(key, label, depth, n));
-            rows.extend(tree.into_iter().map(|mut r| {
-                r.depth += depth;
-                r
-            }));
-            rows.push(line(
-                RowKind::Subtotal,
-                &format!("Total {key}"),
-                &format!("Total {}", label.to_lowercase()),
-                depth,
-                &total,
-            ));
-            total
-        };
+    let group = |key: &str, label: &str, groups: &[G], depth: u32, rows: &mut Vec<StatementRow>| {
+        let (tree, total) = account_tree(books, groups, &values_for, n, false);
+        if tree.is_empty() && total.iter().all(Decimal::is_zero) {
+            return total;
+        }
+        rows.push(heading(key, label, depth, n));
+        rows.extend(tree.into_iter().map(|mut r| {
+            r.depth += depth;
+            r
+        }));
+        rows.push(line(
+            RowKind::Subtotal,
+            &format!("Total {key}"),
+            &format!("Total {}", label.to_lowercase()),
+            depth,
+            &total,
+        ));
+        total
+    };
     rows.push(heading("Assets", "Assets", 0, n));
     rows.push(heading("Current Assets", "Current assets", 1, n));
     let bank = group("Bank Accounts", "Cash and bank", &[G::Bank], 2, &mut rows);
