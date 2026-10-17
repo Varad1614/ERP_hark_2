@@ -115,6 +115,7 @@ pub fn router_with_state(st: PeopleState) -> OpenApiRouter {
         .merge(leave::router(st.clone())) // 7B
         .merge(attendance::router(st.clone())) // 7B
         .merge(workload::router(st.clone())) // 7B
+        .merge(roster::http::router(st.clone())) // ERP_EXTENSIONS 3A
         .merge(payroll::router(st.clone())) // 7C
         .merge(payslips::router(st)) // 7C
 }

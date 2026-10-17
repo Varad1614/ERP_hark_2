@@ -502,6 +502,8 @@ async fn people_operations_follow_the_slice_prefix_and_tag_rules() {
             "people-attendance",
             &["people_attendance_", "people_workload_"],
         ),
+        // ERP_EXTENSIONS 3A
+        ("people-roster", &["people_roster_"]),
         // 7C
         (
             "people-payroll",
