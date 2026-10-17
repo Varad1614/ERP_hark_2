@@ -106,7 +106,10 @@ fn event_lines(e: &Event, stamp: &str, out: &mut Vec<String>) {
     out.push(format!("DTSTAMP:{stamp}"));
     out.push(format!("SEQUENCE:{}", e.sequence));
     out.push(format!("DTSTART;VALUE=DATE:{}", ics_date(e.date)));
-    out.push(format!("DTEND;VALUE=DATE:{}", ics_date(add_days(e.date, 1))));
+    out.push(format!(
+        "DTEND;VALUE=DATE:{}",
+        ics_date(add_days(e.date, 1))
+    ));
     out.push(format!("SUMMARY:{}", escape_text(&e.summary)));
     out.push("TRANSP:TRANSPARENT".into());
     if !e.description.is_empty() {

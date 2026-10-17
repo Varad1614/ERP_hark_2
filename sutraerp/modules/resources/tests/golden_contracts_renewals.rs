@@ -5,8 +5,8 @@ use chrono::NaiveDate;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use sutra_resources::contracts::ical::{
-    build_calendar, contract_events, escape_text, fold_line, DatedObligation, Event,
-    EventContext, EventOptions, PRODID, UID_HOST,
+    build_calendar, contract_events, escape_text, fold_line, DatedObligation, Event, EventContext,
+    EventOptions, PRODID, UID_HOST,
 };
 use sutra_resources::contracts::rules::{
     advance_occurrence, agreement_end, all_obligations, completed_terms, contract_stats,
@@ -288,7 +288,10 @@ fn contracts_renewals_match_everything() {
         // Our PRODID and UID domain are our own.
         let mut want = case.expected.clone();
         let mut text = want["calendar"].as_str().unwrap().to_owned();
-        text = text.replace("PRODID:-//Puter//Contract Manager//EN", &format!("PRODID:{PRODID}"));
+        text = text.replace(
+            "PRODID:-//Puter//Contract Manager//EN",
+            &format!("PRODID:{PRODID}"),
+        );
         for e in &i.calendar {
             let ours = format!("UID:sutra-{}@{UID_HOST}", e.uid.trim_end_matches("@x"));
             text = text.replace(&format!("UID:{}\r\n", e.uid), &format!("{ours}\r\n"));
