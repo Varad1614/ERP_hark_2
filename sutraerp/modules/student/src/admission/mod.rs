@@ -12,6 +12,7 @@ pub mod application;
 pub mod domain;
 pub mod duplicates;
 pub mod flow;
+pub mod funnel;
 
 use crate::shared::StudentState;
 use utoipa_axum::router::OpenApiRouter;
