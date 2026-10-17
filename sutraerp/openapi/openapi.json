@@ -55718,6 +55718,62 @@
         ]
       }
     },
+    "/api/v1/finance/bank-accounts/{id}/brs": {
+      "get": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Bank reconciliation statement (`finance.read`): balance as per cash book, plus cheques issued\nnot presented, less deposits not credited, plus / less bank credits / debits not yet booked,\ngives the balance as per pass book; compared with an imported statement closing that day.",
+        "operationId": "finance_bank_recon_brs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "asOf",
+            "in": "query",
+            "description": "`YYYY-MM-DD`; defaults to today.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrsView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/bank-accounts/{id}/close": {
       "post": {
         "tags": [
@@ -55840,6 +55896,278 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BankAccountView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/bank-accounts/{id}/reconciliation": {
+      "get": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Unreconciled entries on a bank account up to a statement date, the carried-forward balance\nand the last reconciliation (`finance.read`).",
+        "operationId": "finance_bank_recon_workspace",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "statementDate",
+            "in": "query",
+            "description": "`YYYY-MM-DD`; defaults to the period end of the latest imported statement, else today.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconWorkspace"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/bank-accounts/{id}/reconciliation/preview": {
+      "post": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Figures for ticked entries against an ending balance, without saving (`finance.read`).",
+        "operationId": "finance_bank_recon_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankReconInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconSummary"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/bank-accounts/{id}/reconciliations": {
+      "get": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Reconciliation history of a bank account, newest first (`finance.read`).",
+        "operationId": "finance_bank_recon_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Finishes a reconciliation (`treasury.manage`): the ticked entries become reconciled once the\ncleared balance equals the statement ending balance (difference zero). The statement date\ncannot precede the last reconciliation's or be in the future; the bank account row is locked so\ntwo finishes serialize.",
+        "operationId": "finance_bank_recon_finish",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankReconInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/bank-accounts/{id}/reconciliations/undo-last": {
+      "post": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Undoes the latest finished reconciliation (`treasury.manage`): its entries become\nunreconciled again and the carried-forward balance steps back. The record stays as `undone`.",
+        "operationId": "finance_bank_recon_undo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankReconUndo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconView"
                 }
               }
             }
@@ -56284,6 +56612,72 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StatementView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/bank-statements/{id}/lines/{lineId}/suggestions": {
+      "get": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Up to 8 match suggestions for one statement line (`finance.read`): entries on the bank account\nwith the same amount and direction within the window that no line has taken and no\nreconciliation has cleared (closest first), then open student charges of exactly the amount\nfor money in.",
+        "operationId": "finance_statement_line_suggestions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "lineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "window",
+            "in": "query",
+            "description": "Days either side of the value date (default 10, at most 60).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementLineSuggestionList"
                 }
               }
             }
@@ -60820,6 +61214,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BankAccountView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/bank-reconciliation-discrepancies": {
+      "get": {
+        "tags": [
+          "finance-treasury"
+        ],
+        "summary": "Changes after reconciliation across an institution's bank accounts (`finance.read`).",
+        "operationId": "finance_bank_recon_discrepancies",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconDiscrepancyList"
                 }
               }
             }
@@ -137153,6 +137594,348 @@
           }
         }
       },
+      "BankReconDiscrepancy": {
+        "type": "object",
+        "description": "A reconciled entry whose amount on the bank account changed afterwards.",
+        "required": [
+          "reconciliationId",
+          "bankAccountId",
+          "bankAccountName",
+          "statementDate",
+          "journalEntryId",
+          "reconciledAmount",
+          "currentAmount",
+          "change"
+        ],
+        "properties": {
+          "bankAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bankAccountName": {
+            "type": "string"
+          },
+          "change": {
+            "type": "string"
+          },
+          "currentAmount": {
+            "type": "string"
+          },
+          "entryNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "journalEntryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "postingDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "reconciledAmount": {
+            "type": "string"
+          },
+          "reconciliationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "statementDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "BankReconDiscrepancyList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankReconDiscrepancy"
+            }
+          }
+        }
+      },
+      "BankReconInput": {
+        "type": "object",
+        "description": "Ticked entries against a statement ending balance.",
+        "required": [
+          "statementDate",
+          "endingBalance"
+        ],
+        "properties": {
+          "endingBalance": {
+            "type": "string",
+            "description": "Statement ending balance (decimal string; an overdraft is negative)."
+          },
+          "journalEntryIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The ticked journal entries (unreconciled entries on the account up to the date)."
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "statementDate": {
+            "type": "string",
+            "description": "`YYYY-MM-DD`, the statement's closing date."
+          }
+        }
+      },
+      "BankReconItem": {
+        "type": "object",
+        "description": "An unreconciled entry on the bank account.",
+        "required": [
+          "journalEntryId",
+          "entryNumber",
+          "postingDate",
+          "description",
+          "amount",
+          "cleared"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "description": "Money into the bank positive, out negative.",
+            "example": "-2500.00"
+          },
+          "cleared": {
+            "type": "boolean",
+            "description": "The bank has shown it on an imported statement (matched line): pre-ticked."
+          },
+          "description": {
+            "type": "string"
+          },
+          "entryNumber": {
+            "type": "string"
+          },
+          "journalEntryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "postingDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "BankReconList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankReconView"
+            }
+          }
+        }
+      },
+      "BankReconSummary": {
+        "type": "object",
+        "description": "The reconcile screen's figures.",
+        "required": [
+          "statementDate",
+          "beginningBalance",
+          "increases",
+          "decreases",
+          "increaseCount",
+          "decreaseCount",
+          "clearedBalance",
+          "endingBalance",
+          "difference",
+          "balanced"
+        ],
+        "properties": {
+          "balanced": {
+            "type": "boolean"
+          },
+          "beginningBalance": {
+            "type": "string"
+          },
+          "clearedBalance": {
+            "type": "string"
+          },
+          "decreaseCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "decreases": {
+            "type": "string",
+            "description": "Σ ticked money out."
+          },
+          "difference": {
+            "type": "string",
+            "description": "Ending − cleared; a reconciliation can finish only at zero."
+          },
+          "endingBalance": {
+            "type": "string"
+          },
+          "increaseCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "increases": {
+            "type": "string",
+            "description": "Σ ticked money in."
+          },
+          "statementDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "BankReconUndo": {
+        "type": "object",
+        "description": "Which reconciliation to undo (must be the latest finished one).",
+        "required": [
+          "reconciliationId"
+        ],
+        "properties": {
+          "reconciliationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "BankReconView": {
+        "type": "object",
+        "description": "One reconciliation of a bank account.",
+        "required": [
+          "id",
+          "bankAccountId",
+          "statementDate",
+          "beginningBalance",
+          "endingBalance",
+          "clearedCount",
+          "status",
+          "finishedAt"
+        ],
+        "properties": {
+          "bankAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "beginningBalance": {
+            "type": "string",
+            "example": "97500.00"
+          },
+          "clearedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "endingBalance": {
+            "type": "string",
+            "example": "97500.00"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "statementDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "description": "`done` or `undone`."
+          },
+          "undoneAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "undoneBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "BankReconWorkspace": {
+        "type": "object",
+        "description": "What reconciling a bank account up to a statement date starts from.",
+        "required": [
+          "bankAccountId",
+          "statementDate",
+          "beginningBalance",
+          "items"
+        ],
+        "properties": {
+          "bankAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "beginningBalance": {
+            "type": "string",
+            "description": "Balance carried forward from finished reconciliations.",
+            "example": "97500.00"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankReconItem"
+            }
+          },
+          "lastReconciliation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BankReconView"
+              }
+            ]
+          },
+          "statementClosingBalance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Closing balance of an imported statement ending on the statement date, if any."
+          },
+          "statementDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
       "BankReconciliationId": {
         "type": "string",
         "format": "uuid",
@@ -137455,6 +138238,135 @@
           "moderationRequired": {
             "type": "boolean",
             "description": "Every marked submission needs an approved moderation before finalisation."
+          }
+        }
+      },
+      "BrsItem": {
+        "type": "object",
+        "description": "One item of the bank reconciliation statement.",
+        "required": [
+          "date",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "journalEntryId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Entry number or statement reference."
+          },
+          "statementLineId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "BrsView": {
+        "type": "object",
+        "description": "Bank reconciliation statement as of a date.",
+        "required": [
+          "bankAccountId",
+          "asOf",
+          "bookBalance",
+          "issuedNotPresented",
+          "depositedNotCredited",
+          "bankCreditsNotBooked",
+          "bankDebitsNotBooked",
+          "bankBalance",
+          "issued",
+          "deposited",
+          "bankCredits",
+          "bankDebits"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "bankAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bankBalance": {
+            "type": "string",
+            "description": "Balance as per pass book (bank) the adjustments arrive at."
+          },
+          "bankCredits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrsItem"
+            }
+          },
+          "bankCreditsNotBooked": {
+            "type": "string"
+          },
+          "bankDebits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrsItem"
+            }
+          },
+          "bankDebitsNotBooked": {
+            "type": "string"
+          },
+          "bookBalance": {
+            "type": "string",
+            "description": "Balance as per cash book (the bank's ledger account)."
+          },
+          "deposited": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrsItem"
+            }
+          },
+          "depositedNotCredited": {
+            "type": "string"
+          },
+          "difference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issued": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrsItem"
+            },
+            "description": "The items behind each adjustment (at most 500 per list)."
+          },
+          "issuedNotPresented": {
+            "type": "string"
+          },
+          "statementBalance": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -184485,6 +185397,61 @@
               "null"
             ],
             "description": "Defaults to the file's own statement reference (MT940 `:20:`) or the period."
+          }
+        }
+      },
+      "StatementLineSuggestion": {
+        "type": "object",
+        "description": "A match suggestion for a statement line.",
+        "required": [
+          "kind",
+          "id",
+          "number",
+          "description",
+          "date",
+          "amount",
+          "daysApart"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "daysApart": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Days between the line and the entry date (or the charge's due date)."
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`entry` (a ledger entry on the bank account) or `charge` (an open student charge of\nexactly this amount, probably being paid)."
+          },
+          "number": {
+            "type": "string"
+          }
+        }
+      },
+      "StatementLineSuggestionList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementLineSuggestion"
+            }
           }
         }
       },
