@@ -937,7 +937,9 @@ async fn manual_journals_reversal_trial_balance_and_reconciliation() {
     let cf = read(
         &app,
         &admin,
-        &format!("/institutions/{inst}/financial-statements/cash-flow?from=2017-01-01&to=2026-12-31"),
+        &format!(
+            "/institutions/{inst}/financial-statements/cash-flow?from=2017-01-01&to=2026-12-31"
+        ),
     )
     .await;
     assert_eq!(cf["reconciled"], true, "{cf}");
