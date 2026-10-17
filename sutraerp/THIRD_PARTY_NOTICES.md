@@ -15,6 +15,7 @@ Ported so far:
 | `crates/kernel/src/money.rs` `allocate` | `src/accounting/src/lib/money.js` `allocate` |
 | `modules/finance/src/treasury/bankfile.rs` (CSV, dates, amounts, column guess, OFX, de-dupe) | `src/accounting/src/lib/bankimport.js`, `csv.js`, `money.js` `parseMoney` |
 | `modules/finance/src/receivables/latefee.rs` (instalment fill, overdue base, due date, late fee, reminder stage) | `src/invoicing/src/lib/money.js` `scheduleRows`, `doc.js` `dueDateFor`, `aging.js` `overdueAmount`, `latefee.js` `lateFeeAmount`, `reminders.js` `daysLate` / `reminderStage` |
+| `modules/finance/src/ledger/statements.rs` (income & expenditure, balance sheet, cash flow, general ledger, account tree, period buckets, comparisons) | `src/accounting/src/lib/reports.js` `profitAndLoss` / `balanceSheet` / `cashFlow` / `generalLedger`, `dates.js` buckets / `previousPeriod` / `yearBefore` / `fiscalYearStart`, `accounts.js` `ACCOUNT_TYPES` / `sortChart` |
 
 ```
 MIT License

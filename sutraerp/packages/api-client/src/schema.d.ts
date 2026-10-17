@@ -13660,6 +13660,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/institutions/{id}/financial-statements/balance-sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Balance sheet as of a date (`finance.read`). */
+        get: operations["finance_ledger_balance_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/financial-statements/cash-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cash flow statement (indirect method) for a period (`finance.read`). */
+        get: operations["finance_ledger_cash_flow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/financial-statements/general-ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * General ledger for a period: opening balance, each journal entry with a running balance, and
+         *     the period total per account (`finance.read`).
+         */
+        get: operations["finance_ledger_general_ledger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/financial-statements/income-expenditure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Income & expenditure account (profit and loss) for a period (`finance.read`). */
+        get: operations["finance_ledger_income_expenditure"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/institutions/{id}/financial-years": {
         parameters: {
             query?: never;
@@ -29940,6 +30011,15 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description A statement column (a period, or an as-of date). */
+        Column: {
+            /** Format: date */
+            from?: string | null;
+            key: string;
+            label: string;
+            /** Format: date */
+            to?: string | null;
+        };
         /** @description CSV column positions (0-based). An omitted column is absent from the file. */
         ColumnMapping: {
             /**
@@ -35972,6 +36052,7 @@ export interface components {
             name: string;
             /** Format: uuid */
             parentId?: string | null;
+            statementGroup?: null | components["schemas"]["StatementGroup"];
         };
         /**
          * Format: uuid
@@ -35995,6 +36076,7 @@ export interface components {
         LedgerAccountUpdate: {
             isPostable?: boolean | null;
             name?: string | null;
+            statementGroup?: null | components["schemas"]["StatementGroup"];
             status?: null | components["schemas"]["LedgerAccountStatus"];
         };
         /** @description A ledger account with its current balance (normal side). */
@@ -36018,11 +36100,25 @@ export interface components {
             parentId?: string | null;
             /** Format: int64 */
             postingCount: number;
+            /**
+             * @description Where the account sits on the financial statements (ERP_EXTENSIONS 1C); derived from the
+             *     role / type unless set.
+             */
+            statementGroup: components["schemas"]["StatementGroup"];
             status: components["schemas"]["LedgerAccountStatus"];
             /** @description Seeded role (`student_receivables`, `bank_main`, …); `null` for user accounts. */
             systemKey?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        LedgerLine: {
+            /** Format: date */
+            date: string;
+            description: string;
+            /** Format: uuid */
+            entryId: string;
+            entryNumber: string;
+            sourceType: string;
         };
         /**
          * Format: uuid
@@ -42793,6 +42889,8 @@ export interface components {
             /** Format: int32 */
             versionNo: number;
         };
+        /** @enum {string} */
+        RowKind: "section" | "account" | "subtotal" | "total" | "grand" | "row";
         /**
          * @description A new rule version; decimals as strings:
          *     * `late_fee` {`mode` flat | percent | per_day | slabs | none, `amount`, `percent`,
@@ -43727,6 +43825,28 @@ export interface components {
         StateCommand: {
             reason?: string | null;
         };
+        /** @description A computed statement. */
+        Statement: {
+            /** @description Balance sheet: assets = funds + liabilities in every column. */
+            balanced?: boolean | null;
+            columns: components["schemas"]["Column"][];
+            id: string;
+            /**
+             * @description Surplus of the period (income & expenditure, first column when comparing) or the net
+             *     cash change (cash flow).
+             */
+            net?: string | null;
+            /** @description Cash flow: the net cash change equals the movement on cash and bank accounts. */
+            reconciled?: boolean | null;
+            rows: components["schemas"]["StatementRow"][];
+            subtitle: string;
+            title: string;
+        };
+        /**
+         * @description Where an account sits on the statements (Everything's account type).
+         * @enum {string}
+         */
+        StatementGroup: "bank" | "receivable" | "other_current_asset" | "fixed_asset" | "other_asset" | "payable" | "credit_card" | "other_current_liability" | "long_term_liability" | "fund" | "income" | "other_income" | "direct_cost" | "expense" | "other_expense";
         /** @description A statement to import. */
         StatementImport: {
             /** @example 99000.00 */
@@ -43841,6 +43961,21 @@ export interface components {
              * @description 1-based row (CSV) or line (MT940) of the file.
              */
             row: number;
+        };
+        /** @description One statement line. */
+        StatementRow: {
+            /** Format: uuid */
+            accountId?: string | null;
+            /** Format: int32 */
+            depth: number;
+            detail?: null | components["schemas"]["LedgerLine"];
+            emphasis: boolean;
+            /** @description Stable structure key (Everything's English label) for headings and totals. */
+            key?: string | null;
+            kind: components["schemas"]["RowKind"];
+            label: string;
+            /** @description One cell per column; `null` = blank. Decimal strings (percent cells: basis points). */
+            values: (string | null)[];
         };
         /** @description An imported bank statement. */
         StatementView: {
@@ -79228,6 +79363,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PolicyVersionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_ledger_balance_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description Default: today. */
+                asOf: string | null;
+                /** @description `total` (default), `month` or `quarter` (six period ends). */
+                columns: string | null;
+                /** @description Add the same date a year earlier. */
+                comparePreviousYear: boolean | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Statement"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_ledger_cash_flow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                from: string | null;
+                to: string | null;
+                /** @description General ledger only: one account (default: every account with activity). */
+                ledgerAccountId: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Statement"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_ledger_general_ledger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                from: string | null;
+                to: string | null;
+                /** @description General ledger only: one account (default: every account with activity). */
+                ledgerAccountId: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Statement"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_ledger_income_expenditure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description First day (default: start of the fiscal year of `to`). */
+                from: string | null;
+                /** @description Last day (default: today). */
+                to: string | null;
+                /** @description `total` (default), `month`, `quarter` or `year` (fiscal years). */
+                columns: string | null;
+                /** @description `previous_period` or `previous_year`: two columns with ₹ and % change. */
+                compare: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Statement"];
                 };
             };
             "4XX": {

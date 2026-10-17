@@ -61820,6 +61820,355 @@
         ]
       }
     },
+    "/api/v1/finance/institutions/{id}/financial-statements/balance-sheet": {
+      "get": {
+        "tags": [
+          "finance-ledger"
+        ],
+        "summary": "Balance sheet as of a date (`finance.read`).",
+        "operationId": "finance_ledger_balance_sheet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "asOf",
+            "in": "path",
+            "description": "Default: today.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "path",
+            "description": "`total` (default), `month` or `quarter` (six period ends).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "comparePreviousYear",
+            "in": "path",
+            "description": "Add the same date a year earlier.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Statement"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/financial-statements/cash-flow": {
+      "get": {
+        "tags": [
+          "finance-ledger"
+        ],
+        "summary": "Cash flow statement (indirect method) for a period (`finance.read`).",
+        "operationId": "finance_ledger_cash_flow",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "ledgerAccountId",
+            "in": "path",
+            "description": "General ledger only: one account (default: every account with activity).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Statement"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/financial-statements/general-ledger": {
+      "get": {
+        "tags": [
+          "finance-ledger"
+        ],
+        "summary": "General ledger for a period: opening balance, each journal entry with a running balance, and\nthe period total per account (`finance.read`).",
+        "operationId": "finance_ledger_general_ledger",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "ledgerAccountId",
+            "in": "path",
+            "description": "General ledger only: one account (default: every account with activity).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Statement"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/financial-statements/income-expenditure": {
+      "get": {
+        "tags": [
+          "finance-ledger"
+        ],
+        "summary": "Income & expenditure account (profit and loss) for a period (`finance.read`).",
+        "operationId": "finance_ledger_income_expenditure",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "path",
+            "description": "First day (default: start of the fiscal year of `to`).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "path",
+            "description": "Last day (default: today).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "path",
+            "description": "`total` (default), `month`, `quarter` or `year` (fiscal years).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "compare",
+            "in": "path",
+            "description": "`previous_period` or `previous_year`: two columns with ₹ and % change.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Statement"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/institutions/{id}/financial-years": {
       "get": {
         "tags": [
@@ -140367,6 +140716,36 @@
           }
         }
       },
+      "Column": {
+        "type": "object",
+        "description": "A statement column (a period, or an as-of date).",
+        "required": [
+          "key",
+          "label"
+        ],
+        "properties": {
+          "from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      },
       "ColumnMapping": {
         "type": "object",
         "description": "CSV column positions (0-based). An omitted column is absent from the file.",
@@ -159139,6 +159518,17 @@
               "null"
             ],
             "format": "uuid"
+          },
+          "statementGroup": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StatementGroup",
+                "description": "Statement placement (must fit the account type); derived when absent."
+              }
+            ]
           }
         }
       },
@@ -159196,6 +159586,17 @@
               "null"
             ]
           },
+          "statementGroup": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StatementGroup",
+                "description": "Statement placement (must fit the account type)."
+              }
+            ]
+          },
           "status": {
             "oneOf": [
               {
@@ -159219,6 +159620,7 @@
           "accountType",
           "normalBalance",
           "isPostable",
+          "statementGroup",
           "currency",
           "status",
           "debitTotal",
@@ -159276,6 +159678,10 @@
             "type": "integer",
             "format": "int64"
           },
+          "statementGroup": {
+            "$ref": "#/components/schemas/StatementGroup",
+            "description": "Where the account sits on the financial statements (ERP_EXTENSIONS 1C); derived from the\nrole / type unless set."
+          },
           "status": {
             "$ref": "#/components/schemas/LedgerAccountStatus"
           },
@@ -159289,6 +159695,35 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "LedgerLine": {
+        "type": "object",
+        "required": [
+          "date",
+          "entryId",
+          "entryNumber",
+          "description",
+          "sourceType"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string"
+          },
+          "entryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entryNumber": {
+            "type": "string"
+          },
+          "sourceType": {
+            "type": "string"
           }
         }
       },
@@ -180812,6 +181247,17 @@
           }
         }
       },
+      "RowKind": {
+        "type": "string",
+        "enum": [
+          "section",
+          "account",
+          "subtotal",
+          "total",
+          "grand",
+          "row"
+        ]
+      },
       "RuleCreate": {
         "type": "object",
         "description": "A new rule version; decimals as strings:\n* `late_fee` {`mode` flat | percent | per_day | slabs | none, `amount`, `percent`,\n  `frequency` once | monthly, `graceDays`, `cap`, `capPercent`, `slabs` [{`fromDay`, `amount`}],\n  `roundToRupee`, `minOverdue`, `feeHeadCode`} (the 5A shape {percent, graceDays, cap} is a\n  one-off percentage);\n* `reminder_schedule` {`beforeDays` [7, 1], `afterDays` [1, 15, 30], `lateFromDays`};\n* `rounding` {mode}, `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},\n  `write_off_threshold` {amount}.",
@@ -183885,6 +184331,82 @@
           }
         }
       },
+      "Statement": {
+        "type": "object",
+        "description": "A computed statement.",
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "columns",
+          "rows"
+        ],
+        "properties": {
+          "balanced": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Balance sheet: assets = funds + liabilities in every column."
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Column"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "net": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Surplus of the period (income & expenditure, first column when comparing) or the net\ncash change (cash flow)."
+          },
+          "reconciled": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Cash flow: the net cash change equals the movement on cash and bank accounts."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementRow"
+            }
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "StatementGroup": {
+        "type": "string",
+        "description": "Where an account sits on the statements (Everything's account type).",
+        "enum": [
+          "bank",
+          "receivable",
+          "other_current_asset",
+          "fixed_asset",
+          "other_asset",
+          "payable",
+          "credit_card",
+          "other_current_liability",
+          "long_term_liability",
+          "fund",
+          "income",
+          "other_income",
+          "direct_cost",
+          "expense",
+          "other_expense"
+        ]
+      },
       "StatementImport": {
         "type": "object",
         "description": "A statement to import.",
@@ -184259,6 +184781,68 @@
             "type": "integer",
             "format": "int32",
             "description": "1-based row (CSV) or line (MT940) of the file."
+          }
+        }
+      },
+      "StatementRow": {
+        "type": "object",
+        "description": "One statement line.",
+        "required": [
+          "kind",
+          "label",
+          "depth",
+          "values",
+          "emphasis"
+        ],
+        "properties": {
+          "accountId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "detail": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LedgerLine",
+                "description": "General ledger lines: date, entry number, description, source."
+              }
+            ]
+          },
+          "emphasis": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable structure key (Everything's English label) for headings and totals."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RowKind"
+          },
+          "label": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": "One cell per column; `null` = blank. Decimal strings (percent cells: basis points)."
           }
         }
       },

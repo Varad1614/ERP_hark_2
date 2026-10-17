@@ -907,6 +907,64 @@ async fn manual_journals_reversal_trial_balance_and_reconciliation() {
     .await;
     assert_eq!(early["totalDebit"], "125000.00");
 
+    // ---- ERP_EXTENSIONS 1C: statements agree with the trial balance.
+    let dec = |v: &Value| v.as_str().unwrap().parse::<Decimal>().unwrap();
+    let net: Decimal = tb["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| match r["accountType"].as_str().unwrap() {
+            "income" => dec(&r["balance"]),
+            "expense" => -dec(&r["balance"]),
+            _ => Decimal::ZERO,
+        })
+        .sum();
+    let ie = read(
+        &app,
+        &admin,
+        &format!("/institutions/{inst}/financial-statements/income-expenditure?from=2017-01-01&to=2026-12-31"),
+    )
+    .await;
+    assert_eq!(dec(&ie["net"]), net, "{ie}");
+    let bs = read(
+        &app,
+        &admin,
+        &format!("/institutions/{inst}/financial-statements/balance-sheet?asOf=2026-12-31&comparePreviousYear=true"),
+    )
+    .await;
+    assert_eq!(bs["balanced"], true, "{bs}");
+    assert_eq!(bs["columns"].as_array().unwrap().len(), 2);
+    let cf = read(
+        &app,
+        &admin,
+        &format!("/institutions/{inst}/financial-statements/cash-flow?from=2017-01-01&to=2026-12-31"),
+    )
+    .await;
+    assert_eq!(cf["reconciled"], true, "{cf}");
+    let acct_5950 = tb["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["code"] == "5950")
+        .unwrap()["ledgerAccountId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let gl = read(
+        &app,
+        &admin,
+        &format!("/institutions/{inst}/financial-statements/general-ledger?from=2017-01-01&to=2026-12-31&ledgerAccountId={acct_5950}"),
+    )
+    .await;
+    let last = gl["rows"].as_array().unwrap().last().unwrap().clone();
+    assert_eq!(last["values"][1], "500.00", "{gl}");
+    let (s, _, _) = send(
+        &app,
+        get(&admin, &format!("{F}/institutions/{inst}/financial-statements/cash-flow?from=2026-12-31&to=2026-04-01")),
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+
     // ---- reconciliation: receivables agree; a receivable touched outside a charge is caught.
     let rec = call(
         &app,
