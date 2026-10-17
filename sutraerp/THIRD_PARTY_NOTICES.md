@@ -17,6 +17,7 @@ Ported so far:
 | `modules/finance/src/receivables/latefee.rs` (instalment fill, overdue base, due date, late fee, reminder stage) | `src/invoicing/src/lib/money.js` `scheduleRows`, `doc.js` `dueDateFor`, `aging.js` `overdueAmount`, `latefee.js` `lateFeeAmount`, `reminders.js` `daysLate` / `reminderStage` |
 | `modules/finance/src/ledger/statements.rs` (income & expenditure, balance sheet, cash flow, general ledger, account tree, period buckets, comparisons) | `src/accounting/src/lib/reports.js` `profitAndLoss` / `balanceSheet` / `cashFlow` / `generalLedger`, `dates.js` buckets / `previousPeriod` / `yearBefore` / `fiscalYearStart`, `accounts.js` `ACCOUNT_TYPES` / `sortChart` |
 | `modules/finance/src/treasury/reconcile.rs` (unreconciled candidates, reconcile summary, carried-forward balance, last reconciliation, changes after reconciliation, statement-line match suggestions) | `src/accounting/src/lib/reconcile.js` `candidates` / `summarize` / `beginningBalance` / `finishRecord` / `lastReconciliation`, `reports.js` `reconDiscrepancy`, `banking.js` `findMatches` |
+| `modules/finance/src/charges/billing.rs` (billing period of a day, which students a periodic billing run bills with which plan lines, plan totals) | `src/childcare/src/core/billing.js` `periodFor` / `planBillingRun` / `planTotals` |
 
 ```
 MIT License
