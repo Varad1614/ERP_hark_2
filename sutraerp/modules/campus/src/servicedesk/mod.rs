@@ -4,6 +4,7 @@
 //! `crate::router_with_state`; [`http`] holds the handlers.
 
 pub mod http;
+pub mod rules;
 
 use crate::shared::CampusState;
 use utoipa_axum::router::OpenApiRouter;
