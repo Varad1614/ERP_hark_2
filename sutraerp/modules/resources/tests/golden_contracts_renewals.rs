@@ -1,5 +1,6 @@
 //! Golden vectors for `contracts::{rules, ical}`, generated from Everything's original
 //! `contracts/src/lib/{dates,store,ical}.js` by `tools/golden/generate.mjs`.
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use chrono::NaiveDate;
 use serde::Deserialize;

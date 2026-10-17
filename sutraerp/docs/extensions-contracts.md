@@ -33,7 +33,7 @@ Source: HeyPuter/everything @ `06802a1` (MIT). Credit in `THIRD_PARTY_NOTICES.md
 | 2D fleet maintenance | `modules/campus/src/transport` | fleet | 20270102000400–499 |
 | 3A duty rosters | `modules/people/src/workload` | shifts `core/rules.js`, `scheduling.js` | 20270103000100–199 |
 | 3B hiring scorecards | `modules/people/src/hr` | hiring `core/scorecards.js` | 20270103000200–299 |
-| 3C contracts & MoUs | `modules/resources/src/sourcing`, `modules/services/src/accreditation` | contracts `lib/` | 20270103000300–399 |
+| 3C contracts & MoUs | `modules/resources/src/contracts` (MoU evidence also reaches accreditation through the `resources.functional_mous` metric) | contracts `lib/dates.js`, `store.js`, `ical.js` | 20270103000300–399 (done: 300 `contract`, `contract_term`, `contract_obligation`, `contract_activity`, `contract_settings`; endpoints `resources_contract_*`: settings, list/create/get/update, decision, obligations create/update/complete/undo/delete, activities, dashboard, reconcile-terms, calendar.ics (book and one contract), mou-evidence per AQAR year; golden `modules/resources/tests/golden/contracts_renewals.json`) |
 | 3D expense claims | `modules/people`, `modules/resources/src/payables` | expense `lib/` | 20270103000400–499 |
 | 3E fee-counter receipts | `apps/web` (WebUSB/WebSerial) | pos `escpos.js`, `printer.js` | none |
 

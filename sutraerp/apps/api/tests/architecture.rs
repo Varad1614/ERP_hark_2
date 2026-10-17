@@ -633,6 +633,8 @@ async fn batch8_operations_follow_the_slice_prefix_and_tag_rules() {
                 "resources_po_",
                 "resources_receipt_",
                 "resources_payable_",
+                // ERP_EXTENSIONS 3C: contracts and MoUs
+                "resources_contract_",
             ],
         ),
         (
