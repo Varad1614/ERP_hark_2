@@ -55,6 +55,7 @@ pub fn is_terminal(stage: &str) -> bool {
 /// One funnel stage with its win probability.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelStage)]
 pub struct Stage {
     pub id: String,
     pub label: String,
@@ -195,6 +196,7 @@ impl Enquiry {
 /// One stage row of the funnel.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelRow)]
 pub struct FunnelRow {
     pub stage: String,
     pub label: String,
@@ -211,6 +213,7 @@ pub struct FunnelRow {
 /// Totals over the tracked enquiries.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelTotals)]
 pub struct FunnelTotals {
     pub enquiries: u32,
     pub admitted: u32,
@@ -222,6 +225,7 @@ pub struct FunnelTotals {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelReport)]
 pub struct FunnelReport {
     pub rows: Vec<FunnelRow>,
     pub totals: FunnelTotals,
@@ -434,6 +438,7 @@ pub fn weighted_pipeline(
 /// Expected admissions (fee value) per stage, in configured order.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelStageSummary)]
 pub struct StageSummary {
     pub stage: String,
     pub label: String,
@@ -494,6 +499,7 @@ pub fn shift_month_key(key: &str, n: i32) -> String {
 /// One month of the forecast.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelForecastMonth)]
 pub struct ForecastMonth {
     pub key: String,
     /// Fee value of the open enquiries expected to join this month (unweighted).
@@ -567,6 +573,7 @@ pub fn forecast_by_month(
 /// Admitted / lost counts and the rate (`None` until something has closed).
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelWinRate)]
 pub struct WinRate {
     pub admitted: u32,
     pub lost: u32,
@@ -587,6 +594,7 @@ pub fn win_rate(enquiries: &[Enquiry]) -> WinRate {
 /// Win rate of one group (a lead source, a programme…).
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelGroupRate)]
 pub struct GroupRate {
     pub key: String,
     pub admitted: u32,
@@ -658,6 +666,7 @@ fn js_locale_cmp(a: &str, b: &str) -> std::cmp::Ordering {
 /// Closed enquiries of one stage grouped by recorded reason, plus how many have none.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelReasonBreakdown)]
 pub struct ReasonBreakdown {
     pub rows: Vec<ReasonRow>,
     pub unrecorded: u32,
@@ -666,6 +675,7 @@ pub struct ReasonBreakdown {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelReasonRow)]
 pub struct ReasonRow {
     pub reason: String,
     pub count: u32,
@@ -713,6 +723,7 @@ pub fn close_reason_breakdown(enquiries: &[Enquiry], stage: &str) -> ReasonBreak
 /// Average fee value of what closed, admitted vs lost.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelClosedValues)]
 pub struct ClosedValues {
     pub admitted: Option<f64>,
     pub lost: Option<f64>,
@@ -769,6 +780,7 @@ pub fn stalled(enquiries: &[Enquiry], stale_days: i64, now_ms: f64) -> Vec<&Enqu
 /// Average days spent in a stage, over completed transitions only.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelStageVelocity)]
 pub struct StageVelocity {
     pub stage: String,
     pub label: String,

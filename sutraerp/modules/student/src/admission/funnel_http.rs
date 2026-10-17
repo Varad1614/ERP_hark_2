@@ -139,6 +139,7 @@ async fn load_settings(
 /// One recorded stage move (wire form).
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelStageMove)]
 pub struct StageMove {
     pub stage: String,
     pub at: DateTime<Utc>,
@@ -555,6 +556,7 @@ pub struct CreateEnquiry {
 /// A record the new enquiry may duplicate.
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelDuplicateRef)]
 pub struct DuplicateRef {
     /// `enquiry` or `application`.
     pub kind: String,
@@ -1408,6 +1410,7 @@ pub struct ForecastQuery {
 /// One month of the joining forecast (amounts in rupees, to paise).
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelForecastRow)]
 pub struct ForecastRow {
     pub key: String,
     pub count: u32,
@@ -1420,6 +1423,7 @@ pub struct ForecastRow {
 /// Seat fill of one programme and intake.
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelSeatFill)]
 pub struct SeatFill {
     pub programme_id: Uuid,
     pub intake: String,
@@ -1436,6 +1440,7 @@ pub struct SeatFill {
 /// An enquiry that has not moved for the stale threshold.
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelStalledRef)]
 pub struct StalledRef {
     pub id: Uuid,
     pub enquiry_number: String,
@@ -1677,6 +1682,7 @@ async fn duplicate_universe(
 /// One possible duplicate pair; `a` is the older record (the one to keep).
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionDuplicatePair)]
 pub struct DuplicatePairWire {
     pub a: DuplicateRef,
     pub b: DuplicateRef,
@@ -1745,6 +1751,7 @@ pub async fn duplicates(
 /// A seat target for one programme and intake.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[schema(as = AdmissionFunnelIntakeTarget)]
 pub struct IntakeTarget {
     pub programme_id: Uuid,
     /// `YYYY` or `YYYY-MM`.
@@ -1754,6 +1761,7 @@ pub struct IntakeTarget {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(as = AdmissionFunnelSettings)]
 pub struct FunnelSettings {
     /// The effective stage list (open stages, then Admitted and Lost).
     pub stages: Vec<Stage>,
@@ -1769,6 +1777,7 @@ pub struct FunnelSettings {
 /// Replaces the funnel settings. `stages` empty restores the default funnel.
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[schema(as = AdmissionFunnelPutFunnelSettings)]
 pub struct PutFunnelSettings {
     pub stages: Vec<Stage>,
     pub stale_days: i64,

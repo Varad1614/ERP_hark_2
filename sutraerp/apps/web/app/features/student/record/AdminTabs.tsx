@@ -29,6 +29,7 @@ import { student360Path } from "../index";
 import { DialogFrame, NoInstitution, REASON, rowProps, SpecField, useAsk, type FieldSpec, type FormValues, type RowAction } from "../ui";
 import { admissionActions, type Admission, type AdmissionApplication, type AdmissionCommand, type Student } from "./api";
 import { rkeys, useRecordApi, useRecordCommand } from "./hooks";
+import { AdmissionFunnelTile } from "../funnel/AdmissionFunnelTile";
 import { FEE_LABEL, feeStatus, overallAttendance, useAttendanceIndex, useFeeAccounts, type FeeStatus } from "./insights";
 
 const ADMISSION_LABEL: Record<string, string> = {
@@ -369,6 +370,7 @@ export function AdmissionsTab({ institution }: { institution: Institution | null
   const admissions = adms.data ?? [];
   return (
     <>
+      <AdmissionFunnelTile institutionId={institution.id} programmes={(programmes.data ?? []).map((p) => ({ id: p.id, name: p.name }))} />
       <BentoTile span={12} title="Applications" action={<span className="st-count">{`${applications.length.toLocaleString("en-IN")} total`}</span>}>
         {applications.length === 0 ? (
           <EmptyState icon={UserPlus} title="No applications yet" compact>
