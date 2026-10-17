@@ -56852,6 +56852,264 @@
         ]
       }
     },
+    "/api/v1/finance/billing-plans/{id}": {
+      "patch": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Changes a billing plan (`charge.manage`).",
+        "operationId": "finance_charge_billing_plan_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingPlanUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlanView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/billing-plans/{id}/enrolments": {
+      "get": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Students on a plan (`finance.read`).",
+        "operationId": "finance_charge_billing_enrolment_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingEnrolmentList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Enrols a student on a plan or changes their enrolment (`charge.manage`). The student must\nhave a live context in the plan's institution.",
+        "operationId": "finance_charge_billing_enrolment_upsert",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingEnrolmentUpsert"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingEnrolmentView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/billing-plans/{id}/enrolments/{studentId}": {
+      "delete": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Takes a student off a plan (`charge.manage`); charges already raised stay.",
+        "operationId": "finance_charge_billing_enrolment_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/billing-runs/{id}": {
+      "get": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "One billing run with the charges it raised (`finance.read`).",
+        "operationId": "finance_charge_billing_run_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRunDetail"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/charges/{id}": {
       "get": {
         "tags": [
@@ -61325,6 +61583,383 @@
         },
         "security": [
           {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/billing-plans": {
+      "get": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Billing plans of an institution (`finance.read`).",
+        "operationId": "finance_charge_billing_plan_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlanList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Creates a billing plan (`charge.manage`).",
+        "operationId": "finance_charge_billing_plan_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingPlanCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlanView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/billing-runs": {
+      "get": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Recent billing runs, newest first (`finance.read`).",
+        "operationId": "finance_charge_billing_run_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRunList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Runs billing for a period (`charge.manage`): one published charge per student not yet billed\nfor it. Safe to repeat.",
+        "operationId": "finance_charge_billing_run_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRunView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/billing-runs/preview": {
+      "post": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "What a billing run would charge, without charging (`charge.manage`).",
+        "operationId": "finance_charge_billing_run_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRunView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/billing-schedules": {
+      "get": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "The automatic run of each frequency (`finance.read`).",
+        "operationId": "finance_charge_billing_schedule_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingScheduleList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/billing-schedules/{frequency}": {
+      "put": {
+        "tags": [
+          "finance-charges"
+        ],
+        "summary": "Turns a frequency's automatic run on or off (`charge.manage`).",
+        "operationId": "finance_charge_billing_schedule_set",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "frequency",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingScheduleUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingScheduleView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
             "session_cookie": []
           }
         ]
@@ -138200,6 +138835,725 @@
           "stipend"
         ]
       },
+      "BillingEnrolmentList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingEnrolmentView"
+            }
+          }
+        }
+      },
+      "BillingEnrolmentUpsert": {
+        "type": "object",
+        "description": "Enrols a student on the plan, or changes their enrolment.",
+        "required": [
+          "studentId"
+        ],
+        "properties": {
+          "amount": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The student's own amount (`\"0.00\"` bills nothing); absent / null uses the plan's."
+          },
+          "endDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "onHold": {
+            "type": "boolean"
+          },
+          "startDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BillingEnrolmentView": {
+        "type": "object",
+        "description": "A student on a plan.",
+        "required": [
+          "id",
+          "planId",
+          "studentId",
+          "studentName",
+          "onHold"
+        ],
+        "properties": {
+          "amount": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The student's own amount (else the plan's).",
+            "example": "4000.00"
+          },
+          "endDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "onHold": {
+            "type": "boolean"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "BillingLineView": {
+        "type": "object",
+        "description": "One plan line billed (or to bill).",
+        "required": [
+          "planId",
+          "description",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "4500.00"
+          },
+          "description": {
+            "type": "string"
+          },
+          "periodDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "proratedDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Days billed of the period when the line was prorated."
+          }
+        }
+      },
+      "BillingPlanCreate": {
+        "type": "object",
+        "description": "New billing plan.",
+        "required": [
+          "code",
+          "name",
+          "feeHeadId",
+          "amount",
+          "frequency"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "4500.00"
+          },
+          "code": {
+            "type": "string",
+            "description": "`^[A-Z0-9][A-Z0-9_-]{1,31}$`, unique in the institution."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "feeHeadId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "An active fee head of the institution: the plan's income."
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "proration": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Defaults to `none`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "BillingPlanList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingPlanView"
+            }
+          }
+        }
+      },
+      "BillingPlanUpdate": {
+        "type": "object",
+        "description": "Billing plan changes (absent fields stay). A new amount applies to later runs.",
+        "properties": {
+          "amount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "proration": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`active | retired` (a retired plan is not billed)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "BillingPlanView": {
+        "type": "object",
+        "description": "A billing plan.",
+        "required": [
+          "id",
+          "institutionId",
+          "code",
+          "name",
+          "feeHeadId",
+          "feeHeadCode",
+          "amount",
+          "frequency",
+          "proration",
+          "status",
+          "enrolled",
+          "version"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "4500.00"
+          },
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enrolled": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Students enrolled."
+          },
+          "feeHeadCode": {
+            "type": "string"
+          },
+          "feeHeadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "frequency": {
+            "type": "string",
+            "description": "`weekly | monthly | quarterly | half_yearly | annual` (quarters, halves and years follow\nthe institution's financial year)."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "proration": {
+            "type": "string",
+            "description": "`none | daily` — how a part period is billed."
+          },
+          "status": {
+            "type": "string",
+            "description": "`active | retired`."
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BillingRunDetail": {
+        "type": "object",
+        "description": "A past run with its charges.",
+        "required": [
+          "run",
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingRunItemView"
+            }
+          },
+          "run": {
+            "$ref": "#/components/schemas/BillingRunSummary"
+          }
+        }
+      },
+      "BillingRunItemView": {
+        "type": "object",
+        "description": "One student's charge in a run.",
+        "required": [
+          "studentId",
+          "studentName",
+          "dueDate",
+          "total",
+          "lines"
+        ],
+        "properties": {
+          "chargeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "chargeNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the student could not be billed (the run went on)."
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingLineView"
+            }
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total": {
+            "type": "string",
+            "example": "4500.00"
+          }
+        }
+      },
+      "BillingRunList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingRunSummary"
+            }
+          }
+        }
+      },
+      "BillingRunRequest": {
+        "type": "object",
+        "description": "A billing run (or its preview).",
+        "required": [
+          "frequency"
+        ],
+        "properties": {
+          "day": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "A day in the period to bill (default: today). At most 62 days ahead."
+          },
+          "dueDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Days from the later of the period's start and the run day to the due date (0–365,\ndefault 7)."
+          },
+          "excludeStudentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Students to leave out of this run."
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "weekStart": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Weekly periods start on 0 = Sunday … 6 = Saturday (default 1, Monday).",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "BillingRunSkipView": {
+        "type": "object",
+        "description": "A student with plans of the frequency that the run leaves out.",
+        "required": [
+          "studentId",
+          "studentName",
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "`inactive | already_billed | not_started | ended | on_hold | excluded | nothing_to_bill`."
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentName": {
+            "type": "string"
+          }
+        }
+      },
+      "BillingRunSummary": {
+        "type": "object",
+        "description": "A past run.",
+        "required": [
+          "id",
+          "frequency",
+          "periodKey",
+          "periodLabel",
+          "runDate",
+          "trigger",
+          "billed",
+          "skipped",
+          "failed",
+          "total",
+          "createdAt"
+        ],
+        "properties": {
+          "billed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "periodKey": {
+            "type": "string"
+          },
+          "periodLabel": {
+            "type": "string"
+          },
+          "runDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "string",
+            "example": "90000.00"
+          },
+          "trigger": {
+            "type": "string"
+          }
+        }
+      },
+      "BillingRunView": {
+        "type": "object",
+        "description": "What a run did (or, as a preview, would do).",
+        "required": [
+          "preview",
+          "frequency",
+          "periodKey",
+          "periodLabel",
+          "periodStart",
+          "periodEnd",
+          "runDate",
+          "dueDays",
+          "trigger",
+          "billed",
+          "skipped",
+          "failed",
+          "total",
+          "items",
+          "skips"
+        ],
+        "properties": {
+          "billed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dueDays": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The run (none for a preview)."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingRunItemView"
+            }
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodKey": {
+            "type": "string"
+          },
+          "periodLabel": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "preview": {
+            "type": "boolean"
+          },
+          "runDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "skips": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingRunSkipView"
+            }
+          },
+          "total": {
+            "type": "string",
+            "example": "90000.00"
+          },
+          "trigger": {
+            "type": "string",
+            "description": "`manual | schedule`."
+          }
+        }
+      },
+      "BillingScheduleList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingScheduleView"
+            }
+          }
+        }
+      },
+      "BillingScheduleUpdate": {
+        "type": "object",
+        "description": "Sets a frequency's automatic run.",
+        "required": [
+          "enabled",
+          "runDay",
+          "dueDays"
+        ],
+        "properties": {
+          "dueDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "0–365."
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "runDay": {
+            "type": "integer",
+            "format": "int32",
+            "description": "1–31."
+          }
+        },
+        "additionalProperties": false
+      },
+      "BillingScheduleView": {
+        "type": "object",
+        "description": "The automatic run of one frequency.",
+        "required": [
+          "frequency",
+          "enabled",
+          "runDay",
+          "dueDays",
+          "currentPeriodLabel"
+        ],
+        "properties": {
+          "currentPeriodLabel": {
+            "type": "string",
+            "description": "The period the current one would bill."
+          },
+          "dueDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "lastPeriodKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastRunId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "runDay": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The day of each period it runs on (1 = the first; past a short period's end, its last)."
+          }
+        }
+      },
       "BlueprintComponent": {
         "type": "object",
         "description": "One weighted blueprint component.",
@@ -141173,7 +142527,8 @@
           "aid_recovery",
           "fine",
           "exam_fee",
-          "campus_charge"
+          "campus_charge",
+          "billing_run"
         ]
       },
       "ChargeStatus": {
