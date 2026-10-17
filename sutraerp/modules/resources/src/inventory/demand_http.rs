@@ -61,7 +61,12 @@ pub struct InventoryDemandSettings {
 
 impl Default for InventoryDemandSettings {
     fn default() -> Self {
-        Self { demand_days: 30, safety_days: 3, coverage_days: 0, expiry_days: 30 }
+        Self {
+            demand_days: 30,
+            safety_days: 3,
+            coverage_days: 0,
+            expiry_days: 30,
+        }
     }
 }
 
@@ -79,12 +84,16 @@ async fn settings_of(
     .fetch_optional(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    Ok(row.map_or_else(InventoryDemandSettings::default, |(a, b, c, d)| InventoryDemandSettings {
-        demand_days: a,
-        safety_days: b,
-        coverage_days: c,
-        expiry_days: d,
-    }))
+    Ok(
+        row.map_or_else(InventoryDemandSettings::default, |(a, b, c, d)| {
+            InventoryDemandSettings {
+                demand_days: a,
+                safety_days: b,
+                coverage_days: c,
+                expiry_days: d,
+            }
+        }),
+    )
 }
 
 /// Demand settings (`resources.read`; defaults until saved).
@@ -126,7 +135,12 @@ pub async fn put_settings(
     ];
     for (field, v, lo, hi) in checks {
         if v < lo || v > hi {
-            return Err(invalid(field, "out_of_range", &format!("between {lo} and {hi} days")).into());
+            return Err(invalid(
+                field,
+                "out_of_range",
+                &format!("between {lo} and {hi} days"),
+            )
+            .into());
         }
     }
     let actor = actor(ctx);
@@ -235,7 +249,18 @@ pub struct StockDemandQuery {
     pub attention: Option<bool>,
 }
 
-type ItemRow = (Uuid, String, String, String, Option<Decimal>, Option<Decimal>, Option<i32>, Option<Decimal>, Option<i32>, bool);
+type ItemRow = (
+    Uuid,
+    String,
+    String,
+    String,
+    Option<Decimal>,
+    Option<Decimal>,
+    Option<i32>,
+    Option<Decimal>,
+    Option<i32>,
+    bool,
+);
 
 async fn demand_report(
     conn: &mut PgConnection,
@@ -300,14 +325,19 @@ async fn demand_report(
     .await
     .map_err(map_db_error)?;
     let at = |d: NaiveDate| {
-        d.and_hms_opt(12, 0, 0).map_or(0.0, |t| t.and_utc().timestamp_millis() as f64)
+        d.and_hms_opt(12, 0, 0)
+            .map_or(0.0, |t| t.and_utc().timestamp_millis() as f64)
     };
     let now = Utc::now().timestamp_millis() as f64;
     let mut log: Vec<Movement> = rows
         .into_iter()
         .map(|(item, kind, q, d)| Movement {
             product_id: Some(item.to_string()),
-            kind: if q > Decimal::ZERO { "add".into() } else { "remove".into() },
+            kind: if q > Decimal::ZERO {
+                "add".into()
+            } else {
+                "remove".into()
+            },
             delta: f(q),
             at: Some(at(d)),
             reason: (kind == "adjustment" && q < Decimal::ZERO).then_some("lost".to_owned()),
@@ -315,7 +345,13 @@ async fn demand_report(
         .collect();
     // The log's reach: the oldest entry ever, as a zero-delta marker.
     if let Some(o) = oldest {
-        log.push(Movement { product_id: None, kind: "note".into(), delta: 0.0, at: Some(at(o)), reason: None });
+        log.push(Movement {
+            product_id: None,
+            kind: "note".into(),
+            delta: 0.0,
+            at: Some(at(o)),
+            reason: None,
+        });
     }
     let rates = demand::demand_rates(&log, f64::from(window), now);
     let po: Vec<(Uuid, Decimal, Decimal)> = sqlx::query_as(
@@ -333,7 +369,11 @@ async fn demand_report(
         status: "ordered".into(),
         lines: po
             .into_iter()
-            .map(|(item, q, r)| OrderLine { product_id: Some(item.to_string()), qty: f(q), received: f(r) })
+            .map(|(item, q, r)| OrderLine {
+                product_id: Some(item.to_string()),
+                qty: f(q),
+                received: f(r),
+            })
             .collect(),
     }];
     let incoming = demand::on_order_qty(&orders, &["ordered"]);
@@ -384,14 +424,25 @@ async fn demand_report(
             restock_days: demand::restock_days(lead_f, f64::from(safety_days)),
             pack_size: pack,
             reorder_level: level,
-            suggested_reorder_level: demand::suggested_threshold(&p, per_day, lead_f, f64::from(safety_days)).map(dec),
+            suggested_reorder_level: demand::suggested_threshold(
+                &p,
+                per_day,
+                lead_f,
+                f64::from(safety_days),
+            )
+            .map(dec),
             running_out: short,
             status: status.to_owned(),
             suggested_order_quantity: dec(order),
             track_expiry: track,
         });
     }
-    Ok(StockDemandReport { window_days: window, measured_days: rates.days, enough: rates.enough, items: out })
+    Ok(StockDemandReport {
+        window_days: window,
+        measured_days: rates.days,
+        enough: rates.enough,
+        items: out,
+    })
 }
 
 fn needs_attention(r: &StockDemandRow) -> bool {
@@ -429,7 +480,11 @@ pub async fn list_demand(
             x.cover_days.unwrap_or(f64::INFINITY)
         }
     };
-    r.items.sort_by(|a, b| urgency(a).partial_cmp(&urgency(b)).unwrap_or(std::cmp::Ordering::Equal));
+    r.items.sort_by(|a, b| {
+        urgency(a)
+            .partial_cmp(&urgency(b))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     Ok(Json(r))
 }
 
@@ -479,7 +534,10 @@ pub async fn apply_thresholds(
             result.skipped += 1;
             continue;
         };
-        let Some(level) = row.suggested_reorder_level.filter(|l| Some(*l) != row.reorder_level) else {
+        let Some(level) = row
+            .suggested_reorder_level
+            .filter(|l| Some(*l) != row.reorder_level)
+        else {
             result.skipped += 1;
             continue;
         };
@@ -555,7 +613,9 @@ pub async fn put_planning(
     if b.safety_days.is_some_and(|d| !(0..=365).contains(&d)) {
         return Err(invalid("safetyDays", "out_of_range", "between 0 and 365 days").into());
     }
-    if b.pack_size.is_some_and(|p| p <= Decimal::ZERO || p.normalize().scale() > 3) {
+    if b.pack_size
+        .is_some_and(|p| p <= Decimal::ZERO || p.normalize().scale() > 3)
+    {
         return Err(invalid("packSize", "invalid", "> 0 with at most three decimals").into());
     }
     sqlx::query(
@@ -638,12 +698,14 @@ pub async fn list_lots(
     require_institution(&st, &scope, institution).await?;
     let today = business_today(&st, &scope, institution).await?;
     let s = settings_of(&mut conn, t, institution.as_uuid()).await?;
-    let track: bool = sqlx::query_scalar("SELECT track_expiry FROM resources.item WHERE id = $1 AND tenant_id = $2")
-        .bind(id)
-        .bind(t.as_uuid())
-        .fetch_one(&mut *conn)
-        .await
-        .map_err(map_db_error)?;
+    let track: bool = sqlx::query_scalar(
+        "SELECT track_expiry FROM resources.item WHERE id = $1 AND tenant_id = $2",
+    )
+    .bind(id)
+    .bind(t.as_uuid())
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
     let rows: Vec<(Uuid, String, Option<NaiveDate>, Decimal)> = sqlx::query_as(
         "SELECT s.location_id, l.code, s.expiry_on, s.quantity FROM resources.stock_lot s \
          JOIN resources.store_location l ON l.id = s.location_id WHERE s.tenant_id = $1 \
@@ -656,7 +718,12 @@ pub async fn list_lots(
     .map_err(map_db_error)?;
     let merged: Vec<Lot> = rows
         .iter()
-        .map(|(_, _, d, q)| Lot { date: d.map(|d| d.format("%Y-%m-%d").to_string()).unwrap_or_default(), qty: f(*q) })
+        .map(|(_, _, d, q)| Lot {
+            date: d
+                .map(|d| d.format("%Y-%m-%d").to_string())
+                .unwrap_or_default(),
+            qty: f(*q),
+        })
         .collect();
     let status = lots::expiry_status(&merged, today, i64::from(s.expiry_days));
     Ok(Json(StockLotList {
@@ -666,12 +733,14 @@ pub async fn list_lots(
         status,
         items: rows
             .into_iter()
-            .map(|(location_id, location_code, expiry_on, quantity)| StockLotView {
-                location_id,
-                location_code,
-                expiry_on,
-                quantity,
-            })
+            .map(
+                |(location_id, location_code, expiry_on, quantity)| StockLotView {
+                    location_id,
+                    location_code,
+                    expiry_on,
+                    quantity,
+                },
+            )
             .collect(),
     }))
 }
@@ -763,7 +832,12 @@ pub async fn list_expiry(
             lots: lot_rows
                 .iter()
                 .filter(|(i, _, _)| i == iid)
-                .map(|(_, d, q)| Lot { date: d.map(|d| d.format("%Y-%m-%d").to_string()).unwrap_or_default(), qty: f(*q) })
+                .map(|(_, d, q)| Lot {
+                    date: d
+                        .map(|d| d.format("%Y-%m-%d").to_string())
+                        .unwrap_or_default(),
+                    qty: f(*q),
+                })
                 .collect(),
         })
         .collect();
@@ -783,7 +857,11 @@ pub async fn list_expiry(
             })
         })
         .collect();
-    Ok(Json(StockExpiryReport { as_of: today, horizon_days: horizon, items: rows }))
+    Ok(Json(StockExpiryReport {
+        as_of: today,
+        horizon_days: horizon,
+        items: rows,
+    }))
 }
 
 /// Routes of demand, planning, lots and expiry.
@@ -805,6 +883,9 @@ mod tests {
     #[test]
     fn default_settings() {
         let s = InventoryDemandSettings::default();
-        assert_eq!((s.demand_days, s.safety_days, s.coverage_days, s.expiry_days), (30, 3, 0, 30));
+        assert_eq!(
+            (s.demand_days, s.safety_days, s.coverage_days, s.expiry_days),
+            (30, 3, 0, 30)
+        );
     }
 }

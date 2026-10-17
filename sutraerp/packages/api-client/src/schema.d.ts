@@ -21255,6 +21255,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resources/institutions/{id}/stock-demand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Demand, cover and reorder suggestions of every active consumable (`resources.read`):
+         *     most urgent first — out of stock, then fewest days of cover, unknown demand last.
+         */
+        get: operations["resources_stock_demand_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stock-demand/apply-thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set the reorder level of the chosen items to what demand suggests
+         *     (`resources.inventory.manage`; audited per item).
+         */
+        post: operations["resources_stock_demand_apply_thresholds"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stock-demand/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Demand settings (`resources.read`; defaults until saved). */
+        get: operations["resources_stock_demand_settings_get"];
+        /** Save demand settings (`resources.inventory.manage`; audited). */
+        put: operations["resources_stock_demand_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/stock-expiry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Items that track expiry with anything expired or expiring within the horizon
+         *     (`resources.read`): anything expired first, then by value at standard cost.
+         */
+        get: operations["resources_stock_expiry_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/institutions/{id}/stock-issues": {
         parameters: {
             query?: never;
@@ -21464,6 +21542,43 @@ export interface paths {
         put?: never;
         /** Deactivate an item (`resources.inventory.manage`; If-Match): no new purchases or movements. */
         post: operations["resources_item_deactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/items/{id}/lots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An item's dated lots (`resources.read`). */
+        get: operations["resources_stock_lot_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/items/{id}/planning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set an item's planning fields (`resources.inventory.manage`; audited). Switching expiry
+         *     tracking on starts undated lots for the stock already on hand.
+         */
+        put: operations["resources_item_planning_update"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -29039,6 +29154,16 @@ export interface components {
             /** Format: uuid */
             reversesEntryId?: string | null;
         };
+        /** @description Items whose reorder level should take the demand suggestion. */
+        ApplyThresholds: {
+            itemIds: string[];
+        };
+        /** @description What applying suggestions changed. */
+        ApplyThresholdsResult: {
+            /** @description Items with no suggestion (unknown demand), already at it, or not found. */
+            skipped: number;
+            updatedIds: string[];
+        };
         /**
          * @description Decision on a blueprint publication / restructure awaiting approval.
          * @enum {string}
@@ -35146,6 +35271,11 @@ export interface components {
         /** @description One delivered order line. */
         GoodsReceiptLineInput: {
             /**
+             * Format: date
+             * @description Expiry date of the delivered lot, for items that track expiry (ERP_EXTENSIONS 2C).
+             */
+            expiryOn?: string | null;
+            /**
              * Format: int32
              * @description Purchase order line number.
              */
@@ -35163,6 +35293,11 @@ export interface components {
              */
             assetsRegistered: number;
             description: string;
+            /**
+             * Format: date
+             * @description Expiry date of the delivered lot (items that track expiry; ERP_EXTENSIONS 2C).
+             */
+            expiryOn?: string | null;
             /** Format: uuid */
             id: string;
             itemCode?: string | null;
@@ -36405,6 +36540,29 @@ export interface components {
          * @enum {string}
          */
         InterventionStatus: "planned" | "triggered" | "in_progress" | "completed" | "cancelled";
+        /** @description Demand settings of an institution. */
+        InventoryDemandSettings: {
+            /**
+             * Format: int32
+             * @description Days of demand an order should carry (0 = order back up to twice the reorder level).
+             */
+            coverageDays: number;
+            /**
+             * Format: int32
+             * @description Window demand is measured over (7…365 days; default 30).
+             */
+            demandDays: number;
+            /**
+             * Format: int32
+             * @description "Expiring soon" horizon (default 30 days).
+             */
+            expiryDays: number;
+            /**
+             * Format: int32
+             * @description Days of cover on top of a supplier's lead time (default 3; an item may override).
+             */
+            safetyDays: number;
+        };
         /** @description Create an item. */
         InventoryItemCreate: {
             category?: string | null;
@@ -36470,6 +36628,26 @@ export interface components {
          * @enum {string}
          */
         ItemKind: "criterion" | "recommendation" | "action" | "corrective_action";
+        /** @description Planning fields of an item. */
+        ItemPlanning: {
+            /**
+             * Format: int32
+             * @description Supplier lead time in days (0…365).
+             */
+            leadTimeDays?: number | null;
+            /**
+             * @description Bought in packs of this many (> 1 rounds orders up to whole packs).
+             * @example 12
+             */
+            packSize?: string | null;
+            /**
+             * Format: int32
+             * @description Override of the institution's safety days.
+             */
+            safetyDays?: number | null;
+            /** @description Keep dated lots (expiry) for this item. */
+            trackExpiry: boolean;
+        };
         /**
          * @description Item lifecycle: open → in_progress → done → verified; cancelled.
          * @enum {string}
@@ -45670,6 +45848,122 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Demand of an institution's stock items. */
+        StockDemandReport: {
+            /** @description Under seven days of ledger: no rates, and no suggestions from them. */
+            enough: boolean;
+            items: components["schemas"]["StockDemandRow"][];
+            /**
+             * Format: double
+             * @description The ledger's reach inside the window (days).
+             */
+            measuredDays: number;
+            /** Format: int32 */
+            windowDays: number;
+        };
+        /** @description Demand and reorder suggestion of one item. */
+        StockDemandRow: {
+            /**
+             * @description On hand − reserved: what demand and cover are judged on.
+             * @example 40.000
+             */
+            available: string;
+            /**
+             * Format: double
+             * @description Days of stock left at that rate (null when unknown).
+             */
+            coverDays?: number | null;
+            coverLabel: string;
+            itemCode: string;
+            /** Format: uuid */
+            itemId: string;
+            itemName: string;
+            /** Format: int32 */
+            leadTimeDays?: number | null;
+            /** @example 40.000 */
+            onHand: string;
+            /**
+             * @description Still due on issued / acknowledged / partially received purchase orders.
+             * @example 0.000
+             */
+            onOrder: string;
+            packSize?: string | null;
+            /**
+             * Format: double
+             * @description Units issued per day over the measured span (0 when unknown).
+             */
+            perDay: number;
+            /** @description "≈1.4 units a day" (blank when unknown). */
+            rateLabel: string;
+            reorderLevel?: string | null;
+            /** @example 0.000 */
+            reserved: string;
+            /**
+             * Format: int64
+             * @description Lead time + safety days.
+             */
+            restockDays: number;
+            /** @description Runs out before a restock could land. */
+            runningOut: boolean;
+            /**
+             * Format: int32
+             * @description The safety days used (item override or the institution default).
+             */
+            safetyDays: number;
+            /** @description `out | low | ok` against the reorder level (no level = never low). */
+            status: string;
+            /**
+             * @description How many to order now (0 = nothing; whole packs; less what is on order).
+             * @example 24.000
+             */
+            suggestedOrderQuantity: string;
+            /** @description The reorder level demand implies (null when there is no arithmetic to show). */
+            suggestedReorderLevel?: string | null;
+            trackExpiry: boolean;
+            unit: string;
+        };
+        /** @description Expiry report. */
+        StockExpiryReport: {
+            /** Format: date */
+            asOf: string;
+            /** Format: int32 */
+            horizonDays: number;
+            items: components["schemas"]["StockExpiryRow"][];
+        };
+        /** @description An item with stock expired or expiring. */
+        StockExpiryRow: {
+            /** @example 4.000 */
+            expired: string;
+            itemCode: string;
+            /** Format: uuid */
+            itemId: string;
+            itemName: string;
+            /** @example 6.000 */
+            soon: string;
+            /** Format: date */
+            soonest?: string | null;
+            unit: string;
+            /**
+             * @description (expired + soon) × standard cost, ₹.
+             * @example 480.00
+             */
+            value: string;
+        };
+        /** @description How dated stock stands against the calendar. */
+        StockExpiryStatus: {
+            /**
+             * Format: double
+             * @description Units already past their date.
+             */
+            expired: number;
+            /**
+             * Format: double
+             * @description Units expiring within the horizon (expired excluded).
+             */
+            soon: number;
+            /** @description The earliest date on hand (`""` when none is dated). */
+            soonest: string;
+        };
         /** @description Request stock from a store. */
         StockIssueCreate: {
             /**
@@ -45729,6 +46023,29 @@ export interface components {
             statusReason?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        /** @description An item's lots, first-expired-first-out, with how it stands against the calendar. */
+        StockLotList: {
+            /** Format: int32 */
+            horizonDays: number;
+            /** Format: uuid */
+            itemId: string;
+            items: components["schemas"]["StockLotView"][];
+            status: components["schemas"]["StockExpiryStatus"];
+            trackExpiry: boolean;
+        };
+        /** @description One dated lot at a location. */
+        StockLotView: {
+            /**
+             * Format: date
+             * @description Null = date unknown.
+             */
+            expiryOn?: string | null;
+            locationCode: string;
+            /** Format: uuid */
+            locationId: string;
+            /** @example 12.000 */
+            quantity: string;
         };
         StockMovementList: {
             items: components["schemas"]["StockMovementView"][];
@@ -101616,6 +101933,167 @@ export interface operations {
             };
         };
     };
+    resources_stock_demand_list: {
+        parameters: {
+            query?: {
+                /** @description Override the window (7…365 days). */
+                days?: number;
+                /** @description Only items that are out, low, running out, or have something to order. */
+                attention?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockDemandReport"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_demand_apply_thresholds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyThresholds"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyThresholdsResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_demand_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDemandSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_demand_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryDemandSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDemandSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_expiry_list: {
+        parameters: {
+            query?: {
+                /** @description Horizon override (1…365 days). */
+                days?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockExpiryReport"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     resources_stock_issue_list: {
         parameters: {
             query?: {
@@ -102213,6 +102691,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InventoryItemView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_stock_lot_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockLotList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_item_planning_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemPlanning"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPlanning"];
                 };
             };
             "4XX": {

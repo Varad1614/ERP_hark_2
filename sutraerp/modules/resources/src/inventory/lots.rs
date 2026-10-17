@@ -39,7 +39,13 @@ fn round3(n: f64) -> f64 {
 pub fn clean_date(d: &str) -> String {
     let b = d.as_bytes();
     let ok = b.len() == 10
-        && b.iter().enumerate().all(|(i, c)| if i == 4 || i == 7 { *c == b'-' } else { c.is_ascii_digit() });
+        && b.iter().enumerate().all(|(i, c)| {
+            if i == 4 || i == 7 {
+                *c == b'-'
+            } else {
+                c.is_ascii_digit()
+            }
+        });
     if ok {
         d.to_owned()
     } else {
@@ -71,7 +77,10 @@ pub fn normalize_lots(list: &[Lot]) -> Vec<Lot> {
         let date = clean_date(&lot.date);
         match by.iter_mut().find(|l| l.date == date) {
             Some(l) => l.qty = round3(l.qty + qty),
-            None => by.push(Lot { date, qty: round3(qty) }),
+            None => by.push(Lot {
+                date,
+                qty: round3(qty),
+            }),
         }
     }
     by.sort_by(fefo);
@@ -79,7 +88,11 @@ pub fn normalize_lots(list: &[Lot]) -> Vec<Lot> {
 }
 
 pub fn lots_total(lots: &[Lot]) -> f64 {
-    round3(lots.iter().map(|l| if l.qty.is_finite() { l.qty } else { 0.0 }).sum())
+    round3(
+        lots.iter()
+            .map(|l| if l.qty.is_finite() { l.qty } else { 0.0 })
+            .sum(),
+    )
 }
 
 /// A receipt: one more lot (or more of an existing one).
@@ -88,7 +101,10 @@ pub fn add_lot(lots: &[Lot], date: &str, qty: f64) -> Vec<Lot> {
         return normalize_lots(lots);
     }
     let mut all = lots.to_vec();
-    all.push(Lot { date: clean_date(date), qty });
+    all.push(Lot {
+        date: clean_date(date),
+        qty,
+    });
     normalize_lots(&all)
 }
 
@@ -106,10 +122,16 @@ pub fn consume_lots(lots: &[Lot], qty: f64) -> (Vec<Lot>, Vec<Lot>) {
         let take = lot.qty.min(need);
         need = round3(need - take);
         if take > 0.0 {
-            taken.push(Lot { date: lot.date.clone(), qty: take });
+            taken.push(Lot {
+                date: lot.date.clone(),
+                qty: take,
+            });
         }
         if lot.qty - take > 0.0 {
-            rest.push(Lot { date: lot.date, qty: round3(lot.qty - take) });
+            rest.push(Lot {
+                date: lot.date,
+                qty: round3(lot.qty - take),
+            });
         }
     }
     (rest, taken)
@@ -129,12 +151,18 @@ pub fn consume_lot_at(lots: &[Lot], date: &str, qty: f64) -> (Vec<Lot>, Vec<Lot>
     let (spill_rest, spill_taken) = consume_lots(&others, round3(need - from_hit));
     let mut left = Vec::new();
     if hit_rest > 0.0 {
-        left.push(Lot { date: wanted.clone(), qty: hit_rest });
+        left.push(Lot {
+            date: wanted.clone(),
+            qty: hit_rest,
+        });
     }
     left.extend(spill_rest);
     let mut taken = Vec::new();
     if from_hit > 0.0 {
-        taken.push(Lot { date: wanted, qty: from_hit });
+        taken.push(Lot {
+            date: wanted,
+            qty: from_hit,
+        });
     }
     taken.extend(spill_taken);
     (normalize_lots(&left), taken)
@@ -142,7 +170,11 @@ pub fn consume_lot_at(lots: &[Lot], date: &str, qty: f64) -> (Vec<Lot>, Vec<Lot>
 
 /// Make the lots sum to `target`: growth is undated, shrinkage leaves FEFO.
 pub fn resize_lots(lots: &[Lot], target: f64) -> Vec<Lot> {
-    let want = if target.is_finite() { target.max(0.0) } else { 0.0 };
+    let want = if target.is_finite() {
+        target.max(0.0)
+    } else {
+        0.0
+    };
     let have = lots_total(lots);
     if want == have {
         return normalize_lots(lots);
@@ -173,7 +205,11 @@ fn stamp(d: NaiveDate) -> String {
 pub fn expiry_status(lots: &[Lot], today: NaiveDate, days: i64) -> ExpiryStatus {
     let t = stamp(today);
     let horizon = stamp(today + Duration::days(days));
-    let mut s = ExpiryStatus { expired: 0.0, soon: 0.0, soonest: String::new() };
+    let mut s = ExpiryStatus {
+        expired: 0.0,
+        soon: 0.0,
+        soonest: String::new(),
+    };
     for lot in normalize_lots(lots) {
         if lot.date.is_empty() {
             continue;
@@ -225,13 +261,18 @@ pub fn expiring_products(products: &[Tracked], today: NaiveDate, days: i64) -> V
                 return None;
             }
             let value = js_round((s.expired + s.soon) * p.cost * 100.0) / 100.0;
-            Some(Expiring { id: p.id.clone(), status: s, value })
+            Some(Expiring {
+                id: p.id.clone(),
+                status: s,
+                value,
+            })
         })
         .collect();
     out.sort_by(|a, b| {
         let ea = a.status.expired > 0.0;
         let eb = b.status.expired > 0.0;
-        eb.cmp(&ea).then(b.value.partial_cmp(&a.value).unwrap_or(Ordering::Equal))
+        eb.cmp(&ea)
+            .then(b.value.partial_cmp(&a.value).unwrap_or(Ordering::Equal))
     });
     out
 }
@@ -241,13 +282,24 @@ mod tests {
     use super::*;
 
     fn l(date: &str, qty: f64) -> Lot {
-        Lot { date: date.into(), qty }
+        Lot {
+            date: date.into(),
+            qty,
+        }
     }
 
     #[test]
     fn fefo_consumes_dated_first() {
-        let lots = vec![l("", 5.0), l("2027-03-01", 2.0), l("2027-01-01", 3.0), l("2027-01-01", 1.0)];
-        assert_eq!(normalize_lots(&lots), vec![l("2027-01-01", 4.0), l("2027-03-01", 2.0), l("", 5.0)]);
+        let lots = vec![
+            l("", 5.0),
+            l("2027-03-01", 2.0),
+            l("2027-01-01", 3.0),
+            l("2027-01-01", 1.0),
+        ];
+        assert_eq!(
+            normalize_lots(&lots),
+            vec![l("2027-01-01", 4.0), l("2027-03-01", 2.0), l("", 5.0)]
+        );
         let (rest, taken) = consume_lots(&lots, 5.0);
         assert_eq!(taken, vec![l("2027-01-01", 4.0), l("2027-03-01", 1.0)]);
         assert_eq!(lots_total(&rest), 6.0);
@@ -256,7 +308,10 @@ mod tests {
         assert_eq!(resize_lots(&lots, 13.0).last(), Some(&l("", 7.0)));
         let today = NaiveDate::from_ymd_opt(2027, 1, 15).unwrap_or_default();
         let s = expiry_status(&lots, today, 60);
-        assert_eq!((s.expired, s.soon, s.soonest.as_str()), (4.0, 2.0, "2027-01-01"));
+        assert_eq!(
+            (s.expired, s.soon, s.soonest.as_str()),
+            (4.0, 2.0, "2027-01-01")
+        );
         assert_eq!(clean_date("2027-1-1"), "");
     }
 }

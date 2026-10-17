@@ -125,7 +125,12 @@ fn is_demand(m: &Movement) -> bool {
 }
 
 /// `movementByProduct`: per product, in first-seen order.
-pub fn movement_by_product(entries: &[Movement], days: f64, now: f64, demand_only: bool) -> Vec<MovementRow> {
+pub fn movement_by_product(
+    entries: &[Movement],
+    days: f64,
+    now: f64,
+    demand_only: bool,
+) -> Vec<MovementRow> {
     let from = now - days * DAY_MS;
     let mut rows: Vec<MovementRow> = Vec::new();
     for a in entries {
@@ -148,7 +153,11 @@ pub fn movement_by_product(entries: &[Movement], days: f64, now: f64, demand_onl
         let idx = match rows.iter().position(|r| r.product_id == pid) {
             Some(i) => i,
             None => {
-                rows.push(MovementRow { product_id: pid.to_owned(), r#in: 0.0, out: 0.0 });
+                rows.push(MovementRow {
+                    product_id: pid.to_owned(),
+                    r#in: 0.0,
+                    out: 0.0,
+                });
                 rows.len() - 1
             }
         };
@@ -164,10 +173,13 @@ pub fn movement_by_product(entries: &[Movement], days: f64, now: f64, demand_onl
 
 /// The oldest timestamp in the log.
 pub fn log_reach(entries: &[Movement]) -> Option<f64> {
-    entries.iter().filter_map(|a| a.at).fold(None, |acc, t| match acc {
-        Some(o) if o <= t => Some(o),
-        _ => Some(t),
-    })
+    entries
+        .iter()
+        .filter_map(|a| a.at)
+        .fold(None, |acc, t| match acc {
+            Some(o) if o <= t => Some(o),
+            _ => Some(t),
+        })
 }
 
 /// Units out per day per product, and the span they were measured over.
@@ -186,7 +198,11 @@ pub fn demand_rates(entries: &[Movement], days: f64, now: f64) -> DemandRates {
     };
     let mut rates = BTreeMap::new();
     if span < MIN_DEMAND_DAYS {
-        return DemandRates { days: round1(span), rates, enough: false };
+        return DemandRates {
+            days: round1(span),
+            rates,
+            enough: false,
+        };
     }
     for row in movement_by_product(entries, days, now, true) {
         if row.out <= 0.0 {
@@ -194,7 +210,11 @@ pub fn demand_rates(entries: &[Movement], days: f64, now: f64) -> DemandRates {
         }
         rates.insert(row.product_id, row.out / span);
     }
-    DemandRates { days: round1(span), rates, enough: true }
+    DemandRates {
+        days: round1(span),
+        rates,
+        enough: true,
+    }
 }
 
 /// Days of stock left at the current rate; `None` when demand is unknown.
@@ -207,13 +227,24 @@ pub fn cover_days(quantity: f64, per_day: f64) -> Option<f64> {
 
 /// Supplier lead time plus safety days, whole days.
 pub fn restock_days(lead_time_days: f64, safety_days: f64) -> i64 {
-    let r = |x: f64| if x.is_finite() { js_round(x).max(0.0) as i64 } else { 0 };
+    let r = |x: f64| {
+        if x.is_finite() {
+            js_round(x).max(0.0) as i64
+        } else {
+            0
+        }
+    };
     r(lead_time_days) + r(safety_days)
 }
 
 /// The reorder point demand implies, rounded up to something orderable; `None` when there is
 /// no arithmetic to show.
-pub fn suggested_threshold(p: &Product, per_day: f64, lead_time_days: f64, safety_days: f64) -> Option<f64> {
+pub fn suggested_threshold(
+    p: &Product,
+    per_day: f64,
+    lead_time_days: f64,
+    safety_days: f64,
+) -> Option<f64> {
     let window = restock_days(lead_time_days, safety_days);
     if per_day.is_nan() || per_day <= 0.0 || window <= 0 {
         return None;
@@ -228,12 +259,16 @@ pub fn suggested_threshold(p: &Product, per_day: f64, lead_time_days: f64, safet
     } else {
         need
     };
-    Some(round_qty(up.max(if count { 1.0 } else { 0.001 }), p.unit.as_deref()))
+    Some(round_qty(
+        up.max(if count { 1.0 } else { 0.001 }),
+        p.unit.as_deref(),
+    ))
 }
 
 /// Will it run out before a restock could land?
 pub fn running_out(quantity: f64, per_day: f64, lead_time_days: f64, safety_days: f64) -> bool {
-    cover_days(quantity, per_day).is_some_and(|c| c <= restock_days(lead_time_days, safety_days) as f64)
+    cover_days(quantity, per_day)
+        .is_some_and(|c| c <= restock_days(lead_time_days, safety_days) as f64)
 }
 
 fn js_num(n: f64) -> String {
@@ -249,9 +284,17 @@ pub fn rate_label(per_day: f64, unit: Option<&str>) -> String {
     if per_day.is_nan() || per_day <= 0.0 {
         return String::new();
     }
-    let n = if per_day >= 10.0 { js_round(per_day) } else { js_round(per_day * 10.0) / 10.0 };
+    let n = if per_day >= 10.0 {
+        js_round(per_day)
+    } else {
+        js_round(per_day * 10.0) / 10.0
+    };
     let word = if is_count_unit(unit) {
-        if n == 1.0 { "unit".to_owned() } else { "units".to_owned() }
+        if n == 1.0 {
+            "unit".to_owned()
+        } else {
+            "units".to_owned()
+        }
     } else {
         unit.unwrap_or("").to_owned()
     };
@@ -267,21 +310,39 @@ pub fn cover_label(cover: Option<f64>) -> String {
     if c < 1.0 {
         return "under a day of cover".into();
     }
-    let n = if c >= 10.0 { js_round(c) } else { js_round(c * 10.0) / 10.0 };
-    format!("{} day{} of cover", js_num(n), if n == 1.0 { "" } else { "s" })
+    let n = if c >= 10.0 {
+        js_round(c)
+    } else {
+        js_round(c * 10.0) / 10.0
+    };
+    format!(
+        "{} day{} of cover",
+        js_num(n),
+        if n == 1.0 { "" } else { "s" }
+    )
 }
 
 /// How many to order: a fixed reorder quantity wins; else enough to reach the target (twice
 /// the threshold, or `coverage_days` of demand when set), less what is already on order,
 /// rounded up to whole packs. `0` = nothing left to order.
-pub fn suggested_qty(p: &Product, default_low: f64, incoming: f64, per_day: f64, coverage_days: f64) -> f64 {
+pub fn suggested_qty(
+    p: &Product,
+    default_low: f64,
+    incoming: f64,
+    per_day: f64,
+    coverage_days: f64,
+) -> f64 {
     let fixed = p.reorder_qty.filter(|x| x.is_finite()).unwrap_or(0.0);
     let low = p.low_stock.unwrap_or(default_low);
     let low = if low.is_finite() { low } else { 0.0 };
     let on_hand = p.quantity;
     let inbound = incoming.max(0.0);
     let rate = per_day.max(0.0);
-    let horizon = if coverage_days.is_finite() { js_round(coverage_days).max(0.0) } else { 0.0 };
+    let horizon = if coverage_days.is_finite() {
+        js_round(coverage_days).max(0.0)
+    } else {
+        0.0
+    };
     let target = if horizon > 0.0 && rate > 0.0 {
         (rate * horizon).max(low + 1.0).max(1.0)
     } else {
@@ -348,7 +409,9 @@ pub fn on_order_qty(orders: &[Order], open: &[&str]) -> BTreeMap<String, f64> {
     for o in orders.iter().filter(|o| open.contains(&o.status.as_str())) {
         for l in &o.lines {
             let rem = line_remaining(l.qty, l.received);
-            let Some(pid) = l.product_id.as_deref().filter(|p| !p.is_empty()) else { continue };
+            let Some(pid) = l.product_id.as_deref().filter(|p| !p.is_empty()) else {
+                continue;
+            };
             if rem <= 0.0 {
                 continue;
             }
@@ -387,7 +450,12 @@ mod tests {
         assert!(r.enough);
         assert_eq!(r.days, 20.0);
         assert_eq!(r.rates["a"], 0.5);
-        let p = Product { id: "a".into(), quantity: 3.0, pack_size: Some(6.0), ..Product::default() };
+        let p = Product {
+            id: "a".into(),
+            quantity: 3.0,
+            pack_size: Some(6.0),
+            ..Product::default()
+        };
         assert_eq!(cover_days(3.0, 0.5), Some(6.0));
         assert_eq!(suggested_threshold(&p, 0.5, 7.0, 3.0), Some(6.0));
         assert!(running_out(3.0, 0.5, 7.0, 3.0));

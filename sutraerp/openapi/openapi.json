@@ -98750,6 +98750,290 @@
         ]
       }
     },
+    "/api/v1/resources/institutions/{id}/stock-demand": {
+      "get": {
+        "tags": [
+          "resources-inventory"
+        ],
+        "summary": "Demand, cover and reorder suggestions of every active consumable (`resources.read`):\nmost urgent first — out of stock, then fewest days of cover, unknown demand last.",
+        "operationId": "resources_stock_demand_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Override the window (7…365 days).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "attention",
+            "in": "query",
+            "description": "Only items that are out, low, running out, or have something to order.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockDemandReport"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/stock-demand/apply-thresholds": {
+      "post": {
+        "tags": [
+          "resources-inventory"
+        ],
+        "summary": "Set the reorder level of the chosen items to what demand suggests\n(`resources.inventory.manage`; audited per item).",
+        "operationId": "resources_stock_demand_apply_thresholds",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyThresholds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyThresholdsResult"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/stock-demand/settings": {
+      "get": {
+        "tags": [
+          "resources-inventory"
+        ],
+        "summary": "Demand settings (`resources.read`; defaults until saved).",
+        "operationId": "resources_stock_demand_settings_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDemandSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "resources-inventory"
+        ],
+        "summary": "Save demand settings (`resources.inventory.manage`; audited).",
+        "operationId": "resources_stock_demand_settings_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryDemandSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryDemandSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/stock-expiry": {
+      "get": {
+        "tags": [
+          "resources-inventory"
+        ],
+        "summary": "Items that track expiry with anything expired or expiring within the horizon\n(`resources.read`): anything expired first, then by value at standard cost.",
+        "operationId": "resources_stock_expiry_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Horizon override (1…365 days).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockExpiryReport"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/resources/institutions/{id}/stock-issues": {
       "get": {
         "tags": [
@@ -99899,6 +100183,111 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/InventoryItemView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/items/{id}/lots": {
+      "get": {
+        "tags": [
+          "resources-inventory"
+        ],
+        "summary": "An item's dated lots (`resources.read`).",
+        "operationId": "resources_stock_lot_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockLotList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/items/{id}/planning": {
+      "put": {
+        "tags": [
+          "resources-inventory"
+        ],
+        "summary": "Set an item's planning fields (`resources.inventory.manage`; audited). Switching expiry\ntracking on starts undated lots for the stock already on hand.",
+        "operationId": "resources_item_planning_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemPlanning"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPlanning"
                 }
               }
             }
@@ -138607,6 +138996,44 @@
           }
         }
       },
+      "ApplyThresholds": {
+        "type": "object",
+        "description": "Items whose reorder level should take the demand suggestion.",
+        "required": [
+          "itemIds"
+        ],
+        "properties": {
+          "itemIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ApplyThresholdsResult": {
+        "type": "object",
+        "description": "What applying suggestions changed.",
+        "required": [
+          "updatedIds",
+          "skipped"
+        ],
+        "properties": {
+          "skipped": {
+            "type": "integer",
+            "description": "Items with no suggestion (unknown demand), already at it, or not found.",
+            "minimum": 0
+          },
+          "updatedIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
       "ApprovalDecision": {
         "type": "string",
         "description": "Decision on a blueprint publication / restructure awaiting approval.",
@@ -157804,6 +158231,14 @@
           "quantity"
         ],
         "properties": {
+          "expiryOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Expiry date of the delivered lot, for items that track expiry (ERP_EXTENSIONS 2C)."
+          },
           "lineNo": {
             "type": "integer",
             "format": "int32",
@@ -157843,6 +158278,14 @@
           },
           "description": {
             "type": "string"
+          },
+          "expiryOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Expiry date of the delivered lot (items that track expiry; ERP_EXTENSIONS 2C)."
           },
           "id": {
             "type": "string",
@@ -161755,6 +162198,38 @@
           "cancelled"
         ]
       },
+      "InventoryDemandSettings": {
+        "type": "object",
+        "description": "Demand settings of an institution.",
+        "required": [
+          "demandDays",
+          "safetyDays",
+          "coverageDays",
+          "expiryDays"
+        ],
+        "properties": {
+          "coverageDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Days of demand an order should carry (0 = order back up to twice the reorder level)."
+          },
+          "demandDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Window demand is measured over (7…365 days; default 30)."
+          },
+          "expiryDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "\"Expiring soon\" horizon (default 30 days)."
+          },
+          "safetyDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Days of cover on top of a supplier's lead time (default 3; an item may override)."
+          }
+        }
+      },
       "InventoryItemCreate": {
         "type": "object",
         "description": "Create an item.",
@@ -161965,6 +162440,43 @@
           "action",
           "corrective_action"
         ]
+      },
+      "ItemPlanning": {
+        "type": "object",
+        "description": "Planning fields of an item.",
+        "required": [
+          "trackExpiry"
+        ],
+        "properties": {
+          "leadTimeDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Supplier lead time in days (0…365)."
+          },
+          "packSize": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Bought in packs of this many (> 1 rounds orders up to whole packs).",
+            "example": "12"
+          },
+          "safetyDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Override of the institution's safety days."
+          },
+          "trackExpiry": {
+            "type": "boolean",
+            "description": "Keep dated lots (expiry) for this item."
+          }
+        }
       },
       "ItemStatus": {
         "type": "string",
@@ -191109,6 +191621,263 @@
           }
         }
       },
+      "StockDemandReport": {
+        "type": "object",
+        "description": "Demand of an institution's stock items.",
+        "required": [
+          "windowDays",
+          "measuredDays",
+          "enough",
+          "items"
+        ],
+        "properties": {
+          "enough": {
+            "type": "boolean",
+            "description": "Under seven days of ledger: no rates, and no suggestions from them."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockDemandRow"
+            }
+          },
+          "measuredDays": {
+            "type": "number",
+            "format": "double",
+            "description": "The ledger's reach inside the window (days)."
+          },
+          "windowDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "StockDemandRow": {
+        "type": "object",
+        "description": "Demand and reorder suggestion of one item.",
+        "required": [
+          "itemId",
+          "itemCode",
+          "itemName",
+          "unit",
+          "onHand",
+          "reserved",
+          "available",
+          "onOrder",
+          "perDay",
+          "rateLabel",
+          "coverLabel",
+          "safetyDays",
+          "restockDays",
+          "runningOut",
+          "status",
+          "suggestedOrderQuantity",
+          "trackExpiry"
+        ],
+        "properties": {
+          "available": {
+            "type": "string",
+            "description": "On hand − reserved: what demand and cover are judged on.",
+            "example": "40.000"
+          },
+          "coverDays": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Days of stock left at that rate (null when unknown)."
+          },
+          "coverLabel": {
+            "type": "string"
+          },
+          "itemCode": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "leadTimeDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "onHand": {
+            "type": "string",
+            "example": "40.000"
+          },
+          "onOrder": {
+            "type": "string",
+            "description": "Still due on issued / acknowledged / partially received purchase orders.",
+            "example": "0.000"
+          },
+          "packSize": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "perDay": {
+            "type": "number",
+            "format": "double",
+            "description": "Units issued per day over the measured span (0 when unknown)."
+          },
+          "rateLabel": {
+            "type": "string",
+            "description": "\"≈1.4 units a day\" (blank when unknown)."
+          },
+          "reorderLevel": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reserved": {
+            "type": "string",
+            "example": "0.000"
+          },
+          "restockDays": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Lead time + safety days."
+          },
+          "runningOut": {
+            "type": "boolean",
+            "description": "Runs out before a restock could land."
+          },
+          "safetyDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The safety days used (item override or the institution default)."
+          },
+          "status": {
+            "type": "string",
+            "description": "`out | low | ok` against the reorder level (no level = never low)."
+          },
+          "suggestedOrderQuantity": {
+            "type": "string",
+            "description": "How many to order now (0 = nothing; whole packs; less what is on order).",
+            "example": "24.000"
+          },
+          "suggestedReorderLevel": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The reorder level demand implies (null when there is no arithmetic to show)."
+          },
+          "trackExpiry": {
+            "type": "boolean"
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      },
+      "StockExpiryReport": {
+        "type": "object",
+        "description": "Expiry report.",
+        "required": [
+          "asOf",
+          "horizonDays",
+          "items"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "horizonDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockExpiryRow"
+            }
+          }
+        }
+      },
+      "StockExpiryRow": {
+        "type": "object",
+        "description": "An item with stock expired or expiring.",
+        "required": [
+          "itemId",
+          "itemCode",
+          "itemName",
+          "unit",
+          "expired",
+          "soon",
+          "value"
+        ],
+        "properties": {
+          "expired": {
+            "type": "string",
+            "example": "4.000"
+          },
+          "itemCode": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "soon": {
+            "type": "string",
+            "example": "6.000"
+          },
+          "soonest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "(expired + soon) × standard cost, ₹.",
+            "example": "480.00"
+          }
+        }
+      },
+      "StockExpiryStatus": {
+        "type": "object",
+        "description": "How dated stock stands against the calendar.",
+        "required": [
+          "expired",
+          "soon",
+          "soonest"
+        ],
+        "properties": {
+          "expired": {
+            "type": "number",
+            "format": "double",
+            "description": "Units already past their date."
+          },
+          "soon": {
+            "type": "number",
+            "format": "double",
+            "description": "Units expiring within the horizon (expired excluded)."
+          },
+          "soonest": {
+            "type": "string",
+            "description": "The earliest date on hand (`\"\"` when none is dated)."
+          }
+        }
+      },
       "StockIssueCreate": {
         "type": "object",
         "description": "Request stock from a store.",
@@ -191274,6 +192043,69 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "StockLotList": {
+        "type": "object",
+        "description": "An item's lots, first-expired-first-out, with how it stands against the calendar.",
+        "required": [
+          "itemId",
+          "trackExpiry",
+          "horizonDays",
+          "status",
+          "items"
+        ],
+        "properties": {
+          "horizonDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockLotView"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/StockExpiryStatus"
+          },
+          "trackExpiry": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StockLotView": {
+        "type": "object",
+        "description": "One dated lot at a location.",
+        "required": [
+          "locationId",
+          "locationCode",
+          "quantity"
+        ],
+        "properties": {
+          "expiryOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Null = date unknown."
+          },
+          "locationCode": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "12.000"
           }
         }
       },

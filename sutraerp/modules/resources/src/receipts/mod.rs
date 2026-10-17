@@ -362,8 +362,15 @@ pub async fn create(
         .ok_or_else(|| invalid("locationId", "required", "the receiving store location"))?;
     active_location(&mut tx, t, institution, "locationId", location).await?;
     let po_lines = orders::lines_of(&mut tx, id).await?;
-    let mut planned: Vec<(i32, Uuid, Option<Uuid>, String, Decimal, Decimal, Option<NaiveDate>)> =
-        Vec::new();
+    let mut planned: Vec<(
+        i32,
+        Uuid,
+        Option<Uuid>,
+        String,
+        Decimal,
+        Decimal,
+        Option<NaiveDate>,
+    )> = Vec::new();
     for (i, l) in b.lines.iter().enumerate() {
         let pl = po_lines
             .iter()
@@ -435,7 +442,8 @@ pub async fn create(
     .fetch_one(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    for (n, (_po_line_no, pl_id, item, line_kind, qty, cost, expiry)) in planned.iter().enumerate() {
+    for (n, (_po_line_no, pl_id, item, line_kind, qty, cost, expiry)) in planned.iter().enumerate()
+    {
         sqlx::query(
             "INSERT INTO resources.goods_receipt_line (tenant_id, goods_receipt_id, line_no, \
              purchase_order_line_id, item_id, line_kind, received_quantity, unit_cost, expiry_on) \

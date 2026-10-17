@@ -27,7 +27,8 @@ fn dec(x: f64) -> Decimal {
 }
 
 fn date_str(d: Option<NaiveDate>) -> String {
-    d.map(|d| d.format("%Y-%m-%d").to_string()).unwrap_or_default()
+    d.map(|d| d.format("%Y-%m-%d").to_string())
+        .unwrap_or_default()
 }
 
 fn parse(d: &str) -> Option<NaiveDate> {
@@ -98,7 +99,11 @@ pub async fn store(
     Ok(())
 }
 
-async fn moved_by(conn: &mut PgConnection, tenant: TenantId, entry: Uuid) -> Result<Vec<Lot>, KernelError> {
+async fn moved_by(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    entry: Uuid,
+) -> Result<Vec<Lot>, KernelError> {
     let rows = sqlx::query(
         "SELECT expiry_on, quantity FROM resources.stock_lot_movement WHERE tenant_id = $1 \
          AND ledger_entry_id = $2 ORDER BY created_at, id",
@@ -121,7 +126,13 @@ async fn moved_by(conn: &mut PgConnection, tenant: TenantId, entry: Uuid) -> Res
 
 /// Pure: what an entry does to the lots. `given` are the dated quantities a reversal gives
 /// back or takes back (positive); returns the new lots and the signed dated quantities moved.
-pub fn plan(current: &[Lot], before: f64, quantity: f64, expiry: Option<&str>, given: &[Lot]) -> (Vec<Lot>, Vec<Lot>) {
+pub fn plan(
+    current: &[Lot],
+    before: f64,
+    quantity: f64,
+    expiry: Option<&str>,
+    given: &[Lot],
+) -> (Vec<Lot>, Vec<Lot>) {
     let mut lots_now = lots::resize_lots(current, before);
     let mut moved = Vec::new();
     if quantity > 0.0 {
@@ -132,13 +143,19 @@ pub fn plan(current: &[Lot], before: f64, quantity: f64, expiry: Option<&str>, g
                 continue;
             }
             lots_now = lots::add_lot(&lots_now, &g.date, q);
-            moved.push(Lot { date: g.date.clone(), qty: q });
+            moved.push(Lot {
+                date: g.date.clone(),
+                qty: q,
+            });
             left = ((left - q) * 1000.0).round() / 1000.0;
         }
         if left > 0.0 {
             let d = expiry.unwrap_or(NO_DATE);
             lots_now = lots::add_lot(&lots_now, d, left);
-            moved.push(Lot { date: lots::clean_date(d), qty: left });
+            moved.push(Lot {
+                date: lots::clean_date(d),
+                qty: left,
+            });
         }
     } else {
         let mut need = -quantity;
@@ -151,13 +168,19 @@ pub fn plan(current: &[Lot], before: f64, quantity: f64, expiry: Option<&str>, g
             lots_now = rest;
             for t in taken {
                 need = ((need - t.qty) * 1000.0).round() / 1000.0;
-                moved.push(Lot { date: t.date, qty: -t.qty });
+                moved.push(Lot {
+                    date: t.date,
+                    qty: -t.qty,
+                });
             }
         }
         if need > 0.0 {
             let (rest, taken) = lots::consume_lots(&lots_now, need);
             lots_now = rest;
-            moved.extend(taken.into_iter().map(|t| Lot { date: t.date, qty: -t.qty }));
+            moved.extend(taken.into_iter().map(|t| Lot {
+                date: t.date,
+                qty: -t.qty,
+            }));
         }
     }
     (lots_now, moved)
@@ -170,12 +193,14 @@ pub async fn follow(
     entry: Uuid,
     before: Decimal,
 ) -> Result<(), KernelError> {
-    let track: bool = sqlx::query_scalar("SELECT track_expiry FROM resources.item WHERE id = $1 AND tenant_id = $2")
-        .bind(m.item_id.as_uuid())
-        .bind(m.tenant.as_uuid())
-        .fetch_one(&mut *conn)
-        .await
-        .map_err(map_db_error)?;
+    let track: bool = sqlx::query_scalar(
+        "SELECT track_expiry FROM resources.item WHERE id = $1 AND tenant_id = $2",
+    )
+    .bind(m.item_id.as_uuid())
+    .bind(m.tenant.as_uuid())
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
     if !track {
         return Ok(());
     }
@@ -187,12 +212,21 @@ pub async fn follow(
         (StockMovementKind::Reversal, Some(rev)) => moved_by(conn, m.tenant, rev.as_uuid())
             .await?
             .into_iter()
-            .map(|l| Lot { date: l.date, qty: l.qty.abs() })
+            .map(|l| Lot {
+                date: l.date,
+                qty: l.qty.abs(),
+            })
             .collect(),
         _ => Vec::new(),
     };
     let expiry = m.expiry_on.map(|d| d.format("%Y-%m-%d").to_string());
-    let (next, moved) = plan(&current, f(before), f(m.quantity), expiry.as_deref(), &given);
+    let (next, moved) = plan(
+        &current,
+        f(before),
+        f(m.quantity),
+        expiry.as_deref(),
+        &given,
+    );
     store(conn, m.tenant, m.institution, item, location, &next).await?;
     for l in moved {
         sqlx::query(
@@ -243,7 +277,10 @@ mod tests {
     use super::*;
 
     fn l(d: &str, q: f64) -> Lot {
-        Lot { date: d.into(), qty: q }
+        Lot {
+            date: d.into(),
+            qty: q,
+        }
     }
 
     #[test]

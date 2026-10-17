@@ -2542,22 +2542,67 @@ async fn stock_demand_lots_and_expiry() {
     let days = |n: i64| today + chrono::Duration::days(n);
 
     // 40 in twenty days ago, 10 issued ten days ago: ≈0.5 a day.
-    b8::seed_movement(&pool, &setup, milk, store, K::Receipt, "40", days(-20), "r1", None).await;
-    b8::seed_movement(&pool, &setup, milk, store, K::Issue, "-10", days(-10), "i1", None).await;
-    let rep = fetch(&app, &admin, &format!("{R}/institutions/{inst}/stock-demand")).await;
+    b8::seed_movement(
+        &pool,
+        &setup,
+        milk,
+        store,
+        K::Receipt,
+        "40",
+        days(-20),
+        "r1",
+        None,
+    )
+    .await;
+    b8::seed_movement(
+        &pool,
+        &setup,
+        milk,
+        store,
+        K::Issue,
+        "-10",
+        days(-10),
+        "i1",
+        None,
+    )
+    .await;
+    let rep = fetch(
+        &app,
+        &admin,
+        &format!("{R}/institutions/{inst}/stock-demand"),
+    )
+    .await;
     assert_eq!(rep["enough"], true, "{rep}");
-    let row = rep["items"].as_array().unwrap().iter().find(|r| r["itemId"] == milk_id.as_str()).unwrap().clone();
+    let row = rep["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["itemId"] == milk_id.as_str())
+        .unwrap()
+        .clone();
     let per_day = row["perDay"].as_f64().unwrap();
     assert!((0.45..=0.55).contains(&per_day), "{row}");
     assert_eq!(row["status"], "ok");
     assert_eq!(row["runningOut"], false);
     assert!(row["rateLabel"].as_str().unwrap().starts_with('≈'), "{row}");
     let q = |v: &Value| v.as_str().and_then(|s| s.parse::<f64>().ok());
-    assert_eq!(q(&row["suggestedOrderQuantity"]), Some(0.0), "nothing to order: {row}");
+    assert_eq!(
+        q(&row["suggestedOrderQuantity"]),
+        Some(0.0),
+        "nothing to order: {row}"
+    );
 
     // Planning: 2 days' lead time, packs of 6, expiry tracking → 30 undated on hand.
-    ok(&app, &admin, "PUT", &format!("{R}/items/{milk_id}/planning"),
-        json!({"leadTimeDays": 2, "packSize": "6", "trackExpiry": true}), None, StatusCode::OK).await;
+    ok(
+        &app,
+        &admin,
+        "PUT",
+        &format!("{R}/items/{milk_id}/planning"),
+        json!({"leadTimeDays": 2, "packSize": "6", "trackExpiry": true}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
     let lots = fetch(&app, &admin, &format!("{R}/items/{milk_id}/lots")).await;
     assert_eq!(lots["trackExpiry"], true);
     assert_eq!(lots["items"].as_array().unwrap().len(), 1, "{lots}");
@@ -2565,15 +2610,57 @@ async fn stock_demand_lots_and_expiry() {
     assert_eq!(q(&lots["items"][0]["quantity"]), Some(30.0));
 
     // Dated receipts: 12 good for five days, 6 already past their date.
-    b8::seed_movement(&pool, &setup, milk, store, K::Receipt, "12", today, "r2", Some(days(5))).await;
-    b8::seed_movement(&pool, &setup, milk, store, K::Receipt, "6", today, "r3", Some(days(-1))).await;
-    let exp = fetch(&app, &admin, &format!("{R}/institutions/{inst}/stock-expiry")).await;
+    b8::seed_movement(
+        &pool,
+        &setup,
+        milk,
+        store,
+        K::Receipt,
+        "12",
+        today,
+        "r2",
+        Some(days(5)),
+    )
+    .await;
+    b8::seed_movement(
+        &pool,
+        &setup,
+        milk,
+        store,
+        K::Receipt,
+        "6",
+        today,
+        "r3",
+        Some(days(-1)),
+    )
+    .await;
+    let exp = fetch(
+        &app,
+        &admin,
+        &format!("{R}/institutions/{inst}/stock-expiry"),
+    )
+    .await;
     let e = &exp["items"][0];
     assert_eq!(e["itemId"], milk_id.as_str(), "{exp}");
-    assert_eq!((q(&e["expired"]), q(&e["soon"]), q(&e["value"])), (Some(6.0), Some(12.0), Some(1800.0)), "{exp}");
+    assert_eq!(
+        (q(&e["expired"]), q(&e["soon"]), q(&e["value"])),
+        (Some(6.0), Some(12.0), Some(1800.0)),
+        "{exp}"
+    );
 
     // An issue of 8 leaves first-expired-first-out; reversing it gives the dates back.
-    let out = b8::seed_movement(&pool, &setup, milk, store, K::Issue, "-8", today, "i2", None).await;
+    let out = b8::seed_movement(
+        &pool,
+        &setup,
+        milk,
+        store,
+        K::Issue,
+        "-8",
+        today,
+        "i2",
+        None,
+    )
+    .await;
     let lots = fetch(&app, &admin, &format!("{R}/items/{milk_id}/lots")).await;
     assert_eq!(lots["items"].as_array().unwrap().len(), 2, "{lots}");
     assert_eq!(q(&lots["items"][0]["quantity"]), Some(10.0), "{lots}");
@@ -2585,23 +2672,69 @@ async fn stock_demand_lots_and_expiry() {
     assert_eq!(lots["status"]["soon"].as_f64(), Some(12.0), "{lots}");
 
     // The reversed issue is not demand: still ≈0.5 a day; the suggestion is 5 days × 0.5 → one pack.
-    let rep = fetch(&app, &admin, &format!("{R}/institutions/{inst}/stock-demand")).await;
-    let row = rep["items"].as_array().unwrap().iter().find(|r| r["itemId"] == milk_id.as_str()).unwrap().clone();
-    assert!((0.45..=0.55).contains(&row["perDay"].as_f64().unwrap()), "{row}");
+    let rep = fetch(
+        &app,
+        &admin,
+        &format!("{R}/institutions/{inst}/stock-demand"),
+    )
+    .await;
+    let row = rep["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["itemId"] == milk_id.as_str())
+        .unwrap()
+        .clone();
+    assert!(
+        (0.45..=0.55).contains(&row["perDay"].as_f64().unwrap()),
+        "{row}"
+    );
     assert_eq!(row["restockDays"], 5);
     assert_eq!(q(&row["suggestedReorderLevel"]), Some(6.0), "{row}");
-    let applied = ok(&app, &admin, "POST", &format!("{R}/institutions/{inst}/stock-demand/apply-thresholds"),
-        json!({"itemIds": [milk_id]}), None, StatusCode::OK).await;
-    assert_eq!(applied["updatedIds"].as_array().unwrap().len(), 1, "{applied}");
+    let applied = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{R}/institutions/{inst}/stock-demand/apply-thresholds"),
+        json!({"itemIds": [milk_id]}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        applied["updatedIds"].as_array().unwrap().len(),
+        1,
+        "{applied}"
+    );
     let item = fetch(&app, &admin, &format!("{R}/items/{milk_id}")).await;
     assert_eq!(q(&item["reorderLevel"]), Some(6.0), "{item}");
 
     // Settings.
-    let (s, _) = call(&app, &admin, "PUT", &format!("{R}/institutions/{inst}/stock-demand/settings"),
-        json!({"demandDays": 3, "safetyDays": 3, "coverageDays": 0, "expiryDays": 30}), None).await;
+    let (s, _) = call(
+        &app,
+        &admin,
+        "PUT",
+        &format!("{R}/institutions/{inst}/stock-demand/settings"),
+        json!({"demandDays": 3, "safetyDays": 3, "coverageDays": 0, "expiryDays": 30}),
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
-    ok(&app, &admin, "PUT", &format!("{R}/institutions/{inst}/stock-demand/settings"),
-        json!({"demandDays": 60, "safetyDays": 1, "coverageDays": 14, "expiryDays": 10}), None, StatusCode::OK).await;
-    let st = fetch(&app, &admin, &format!("{R}/institutions/{inst}/stock-demand/settings")).await;
+    ok(
+        &app,
+        &admin,
+        "PUT",
+        &format!("{R}/institutions/{inst}/stock-demand/settings"),
+        json!({"demandDays": 60, "safetyDays": 1, "coverageDays": 14, "expiryDays": 10}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    let st = fetch(
+        &app,
+        &admin,
+        &format!("{R}/institutions/{inst}/stock-demand/settings"),
+    )
+    .await;
     assert_eq!(st["demandDays"], 60);
 }
