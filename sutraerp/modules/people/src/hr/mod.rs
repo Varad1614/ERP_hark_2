@@ -7,6 +7,7 @@ pub mod certificate;
 pub mod onboarding;
 pub mod probation;
 pub mod recruitment;
+pub mod scorecards; // ERP_EXTENSIONS 3B
 pub mod separation;
 
 use crate::shared::PeopleState;
