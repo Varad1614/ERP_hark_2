@@ -14,5 +14,5 @@ export type FunnelRow = S["AdmissionFunnelRow"];
 export type Forecast = S["AdmissionForecast"];
 export type Duplicates = S["AdmissionDuplicates"];
 export type FunnelSettings = S["AdmissionFunnelSettings"];
-export type FunnelSettingsInput = S["AdmissionPutFunnelSettings"];
+export type FunnelSettingsInput = S["AdmissionFunnelPutFunnelSettings"];
 export type IntakeTarget = S["AdmissionFunnelIntakeTarget"];

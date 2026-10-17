@@ -108399,6 +108399,366 @@
         ]
       }
     },
+    "/api/v1/student/admission-enquiries/{id}": {
+      "get": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "One enquiry (`student.read`).",
+        "operationId": "admission_funnel_enquiry_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionEnquiry"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Edit or move an enquiry (`admission.manage`, `If-Match`).",
+        "operationId": "admission_funnel_enquiry_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the version being changed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnquiry"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionEnquiry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed `If-Match` or request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF failure, missing permission or missing MFA step-up.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Illegal lifecycle transition, unmet precondition or read-only institution.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "`If-Match` is stale.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "`If-Match` missing.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/admission-enquiries/{id}/link-application": {
+      "post": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Link the enquiry to its admission application (`admission.manage`, `If-Match`). The\nenquiry moves to the applied stage when it is behind it, then follows the application.",
+        "operationId": "admission_funnel_enquiry_link_application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the version being changed",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkApplication"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionEnquiry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed `If-Match` or request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF failure, missing permission or missing MFA step-up.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Illegal lifecycle transition, unmet precondition or read-only institution.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "`If-Match` is stale.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "`If-Match` missing.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/student/admissions/{id}": {
       "get": {
         "tags": [
@@ -116418,6 +116778,696 @@
           },
           "422": {
             "description": "Validation failed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/institutions/{id}/admission-duplicates": {
+      "get": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Possible duplicate enquirers across open enquiries and in-flight applications: same e-mail,\nname or phone after normalisation (`student.read`).",
+        "operationId": "admission_funnel_duplicates",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionDuplicates"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/institutions/{id}/admission-enquiries": {
+      "get": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Enquiries of an institution (`student.read`).",
+        "operationId": "admission_funnel_enquiry_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "stage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "programmeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Name, number, e-mail or phone contains.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stalled",
+            "in": "query",
+            "description": "Only open enquiries past the stale threshold.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Only open enquiries (not admitted / lost).",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionEnquiryList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Record a new enquiry (`admission.manage`).",
+        "operationId": "admission_funnel_enquiry_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnquiry"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedEnquiry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing `Idempotency-Key` or malformed request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF failure, missing permission or missing MFA step-up.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Parent resource missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate, illegal state or read-only institution.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/institutions/{id}/admission-forecast": {
+      "get": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Joining forecast, conversion by source and programme, velocity, stalled enquiries and seat\nfill against intake targets (`student.read`).",
+        "operationId": "admission_funnel_forecast",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "months",
+            "in": "query",
+            "description": "Months to forecast (1–24, default 6).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "First month `YYYY-MM` (default: this month).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "programmeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionForecast"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/institutions/{id}/admission-funnel": {
+      "get": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "The admissions funnel (`student.read`): per stage entered, advanced, dropped, still open.",
+        "operationId": "admission_funnel_report",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "programmeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "window",
+            "in": "query",
+            "description": "Cohort by first contact: `all` (default), `quarter`, `last_quarter`, `year` (calendar)\nor `fy` (the April–March financial year).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionFunnel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/institutions/{id}/admission-funnel-settings": {
+      "get": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Funnel settings of an institution (`student.read`).",
+        "operationId": "admission_funnel_settings_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionFunnelSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Replace the funnel settings and seat targets (`admission.manage`).",
+        "operationId": "admission_funnel_settings_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdmissionFunnelPutFunnelSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionFunnelSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed `If-Match` or request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No live session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF failure, missing permission or missing MFA step-up.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing, or owned by another tenant.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Illegal lifecycle transition, unmet precondition or read-only institution.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "`If-Match` is stale.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "`If-Match` missing.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -134444,6 +135494,274 @@
           }
         }
       },
+      "AdmissionDuplicatePair": {
+        "type": "object",
+        "description": "One possible duplicate pair; `a` is the older record (the one to keep).",
+        "required": [
+          "a",
+          "b",
+          "reasons"
+        ],
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/AdmissionFunnelDuplicateRef"
+          },
+          "b": {
+            "$ref": "#/components/schemas/AdmissionFunnelDuplicateRef"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdmissionDuplicates": {
+        "type": "object",
+        "required": [
+          "pairs",
+          "limit"
+        ],
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "At most this many pairs are listed.",
+            "minimum": 0
+          },
+          "pairs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionDuplicatePair"
+            }
+          }
+        }
+      },
+      "AdmissionEnquiry": {
+        "type": "object",
+        "description": "An admission enquiry (wire form).",
+        "required": [
+          "id",
+          "institutionId",
+          "enquiryNumber",
+          "givenName",
+          "displayName",
+          "source",
+          "stage",
+          "stageLabel",
+          "stageHistory",
+          "stageEnteredAt",
+          "daysInStage",
+          "stalled",
+          "expectedFee",
+          "probability",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "applicationId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "campaign": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closeReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Own win probability (0..1); `null` uses the stage's."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "daysInStage": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enquiryNumber": {
+            "type": "string"
+          },
+          "expectedFee": {
+            "type": "string"
+          },
+          "expectedJoin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "familyName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "givenName": {
+            "type": "string"
+          },
+          "guardianName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "intake": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`YYYY` or `YYYY-MM` intake the enquirer wants."
+          },
+          "nextFollowUp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "probability": {
+            "type": "number",
+            "format": "double",
+            "description": "Effective win probability used by the forecast."
+          },
+          "programmeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "stageEnteredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stageHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelStageMove"
+            }
+          },
+          "stageLabel": {
+            "type": "string"
+          },
+          "stalled": {
+            "type": "boolean",
+            "description": "Open and unmoved for the institution's stale threshold."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AdmissionEnquiryList": {
+        "type": "object",
+        "required": [
+          "items",
+          "stages",
+          "staleDays"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionEnquiry"
+            }
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelStage"
+            }
+          },
+          "staleDays": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "AdmissionExpirySweep": {
         "type": "object",
         "description": "Result of an expiry sweep.",
@@ -134462,6 +135780,761 @@
             "items": {
               "$ref": "#/components/schemas/AdmissionId"
             }
+          }
+        }
+      },
+      "AdmissionForecast": {
+        "type": "object",
+        "required": [
+          "months",
+          "pipeline",
+          "weighted",
+          "winRate",
+          "bySource",
+          "byProgramme",
+          "reasonsAdmitted",
+          "reasonsLost",
+          "avgClosed",
+          "velocity",
+          "stalled",
+          "seats",
+          "staleDays"
+        ],
+        "properties": {
+          "avgClosed": {
+            "$ref": "#/components/schemas/AdmissionFunnelClosedValues"
+          },
+          "avgCycleDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "byProgramme": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelGroupRate"
+            }
+          },
+          "bySource": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelGroupRate"
+            }
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelForecastRow"
+            }
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "reasonsAdmitted": {
+            "$ref": "#/components/schemas/AdmissionFunnelReasonBreakdown"
+          },
+          "reasonsLost": {
+            "$ref": "#/components/schemas/AdmissionFunnelReasonBreakdown"
+          },
+          "seats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelSeatFill"
+            }
+          },
+          "staleDays": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stalled": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelStalledRef"
+            }
+          },
+          "velocity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelStageVelocity"
+            }
+          },
+          "weighted": {
+            "type": "string"
+          },
+          "winRate": {
+            "$ref": "#/components/schemas/AdmissionFunnelWinRate"
+          }
+        }
+      },
+      "AdmissionFunnel": {
+        "type": "object",
+        "required": [
+          "stages",
+          "window",
+          "report",
+          "summary",
+          "generatedAt"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "report": {
+            "$ref": "#/components/schemas/AdmissionFunnelReport"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelStage"
+            }
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelStageSummary"
+            }
+          },
+          "window": {
+            "type": "string"
+          }
+        }
+      },
+      "AdmissionFunnelClosedValues": {
+        "type": "object",
+        "description": "Average fee value of what closed, admitted vs lost.",
+        "properties": {
+          "admitted": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "lost": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "AdmissionFunnelDuplicateRef": {
+        "type": "object",
+        "description": "A record the new enquiry may duplicate.",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "reasons"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`enquiry` or `application`."
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "`email`, `name`, `phone`."
+          }
+        }
+      },
+      "AdmissionFunnelForecastRow": {
+        "type": "object",
+        "description": "One month of the joining forecast (amounts in rupees, to paise).",
+        "required": [
+          "key",
+          "count",
+          "expectedJoiners",
+          "best",
+          "weighted",
+          "admitted"
+        ],
+        "properties": {
+          "admitted": {
+            "type": "string"
+          },
+          "best": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "expectedJoiners": {
+            "type": "number",
+            "format": "double"
+          },
+          "key": {
+            "type": "string"
+          },
+          "weighted": {
+            "type": "string"
+          }
+        }
+      },
+      "AdmissionFunnelGroupRate": {
+        "type": "object",
+        "description": "Win rate of one group (a lead source, a programme…).",
+        "required": [
+          "key",
+          "admitted",
+          "lost",
+          "admittedValue",
+          "total",
+          "rate"
+        ],
+        "properties": {
+          "admitted": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "admittedValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "key": {
+            "type": "string"
+          },
+          "lost": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "AdmissionFunnelIntakeTarget": {
+        "type": "object",
+        "description": "A seat target for one programme and intake.",
+        "required": [
+          "programmeId",
+          "intake",
+          "seats"
+        ],
+        "properties": {
+          "intake": {
+            "type": "string",
+            "description": "`YYYY` or `YYYY-MM`."
+          },
+          "programmeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seats": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdmissionFunnelPutFunnelSettings": {
+        "type": "object",
+        "description": "Replaces the funnel settings. `stages` empty restores the default funnel.",
+        "required": [
+          "stages",
+          "staleDays",
+          "version"
+        ],
+        "properties": {
+          "appliedStage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offeredStage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelStage"
+            }
+          },
+          "staleDays": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelIntakeTarget"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The version read (0 before anything was saved)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdmissionFunnelReasonBreakdown": {
+        "type": "object",
+        "description": "Closed enquiries of one stage grouped by recorded reason, plus how many have none.",
+        "required": [
+          "rows",
+          "unrecorded",
+          "total"
+        ],
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelReasonRow"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "unrecorded": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "AdmissionFunnelReasonRow": {
+        "type": "object",
+        "required": [
+          "reason",
+          "count",
+          "value"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AdmissionFunnelReport": {
+        "type": "object",
+        "required": [
+          "rows",
+          "totals",
+          "untracked"
+        ],
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelRow"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AdmissionFunnelTotals"
+          },
+          "untracked": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Enquiries closed with no recorded journey through the open stages (left out).",
+            "minimum": 0
+          }
+        }
+      },
+      "AdmissionFunnelRow": {
+        "type": "object",
+        "description": "One stage row of the funnel.",
+        "required": [
+          "stage",
+          "label",
+          "gone",
+          "entered",
+          "advanced",
+          "lostHere",
+          "open"
+        ],
+        "properties": {
+          "advanceRate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "advanced": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "entered": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "gone": {
+            "type": "boolean",
+            "description": "A stage only the history remembers (removed from the funnel since)."
+          },
+          "label": {
+            "type": "string"
+          },
+          "lossShare": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "lostHere": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "open": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "stage": {
+            "type": "string"
+          }
+        }
+      },
+      "AdmissionFunnelSeatFill": {
+        "type": "object",
+        "description": "Seat fill of one programme and intake.",
+        "required": [
+          "programmeId",
+          "intake",
+          "seats",
+          "admitted",
+          "open",
+          "expected",
+          "remaining"
+        ],
+        "properties": {
+          "admitted": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "coverage": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Expected joiners over remaining seats (`null` when the intake is full)."
+          },
+          "expected": {
+            "type": "number",
+            "format": "double",
+            "description": "Probability-weighted joiners among the open enquiries."
+          },
+          "intake": {
+            "type": "string"
+          },
+          "open": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "programmeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "remaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "seats": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdmissionFunnelSettings": {
+        "type": "object",
+        "required": [
+          "stages",
+          "customised",
+          "staleDays",
+          "targets",
+          "version"
+        ],
+        "properties": {
+          "appliedStage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customised": {
+            "type": "boolean",
+            "description": "Whether the open stages are the institution's own (else the defaults)."
+          },
+          "offeredStage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelStage"
+            },
+            "description": "The effective stage list (open stages, then Admitted and Lost)."
+          },
+          "staleDays": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelIntakeTarget"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AdmissionFunnelStage": {
+        "type": "object",
+        "description": "One funnel stage with its win probability.",
+        "required": [
+          "id",
+          "label",
+          "probability"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AdmissionFunnelStageMove": {
+        "type": "object",
+        "description": "One recorded stage move (wire form).",
+        "required": [
+          "stage",
+          "at"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stage": {
+            "type": "string"
+          }
+        }
+      },
+      "AdmissionFunnelStageSummary": {
+        "type": "object",
+        "description": "Expected admissions (fee value) per stage, in configured order.",
+        "required": [
+          "stage",
+          "label",
+          "count",
+          "value",
+          "weighted"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "label": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "weighted": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AdmissionFunnelStageVelocity": {
+        "type": "object",
+        "description": "Average days spent in a stage, over completed transitions only.",
+        "required": [
+          "stage",
+          "label",
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "label": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          }
+        }
+      },
+      "AdmissionFunnelStalledRef": {
+        "type": "object",
+        "description": "An enquiry that has not moved for the stale threshold.",
+        "required": [
+          "id",
+          "enquiryNumber",
+          "name",
+          "stage",
+          "daysInStage"
+        ],
+        "properties": {
+          "daysInStage": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "enquiryNumber": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          }
+        }
+      },
+      "AdmissionFunnelTotals": {
+        "type": "object",
+        "description": "Totals over the tracked enquiries.",
+        "required": [
+          "enquiries",
+          "admitted",
+          "lost",
+          "open",
+          "lostShareBase"
+        ],
+        "properties": {
+          "admitted": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "admittedRate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "enquiries": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "lost": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "lostShareBase": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "open": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "AdmissionFunnelWinRate": {
+        "type": "object",
+        "description": "Admitted / lost counts and the rate (`None` until something has closed).",
+        "required": [
+          "admitted",
+          "lost"
+        ],
+        "properties": {
+          "admitted": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "lost": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "rate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
           }
         }
       },
@@ -144448,6 +146521,127 @@
           }
         }
       },
+      "CreateEnquiry": {
+        "type": "object",
+        "description": "A new enquiry.",
+        "required": [
+          "givenName"
+        ],
+        "properties": {
+          "campaign": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expectedFee": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expectedJoin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "familyName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "givenName": {
+            "type": "string"
+          },
+          "guardianName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "intake": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nextFollowUp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "programmeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One of `walk_in` (default), `website`, `phone`, `referral`, `campaign`,\n`education_fair`, `social`, `agent`, `school_visit`, `other`."
+          },
+          "stage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "An open stage (default: the first)."
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateMigration": {
         "type": "object",
         "required": [
@@ -144759,6 +146953,25 @@
               "null"
             ],
             "format": "date"
+          }
+        }
+      },
+      "CreatedEnquiry": {
+        "type": "object",
+        "description": "The created enquiry and records that look like the same person.",
+        "required": [
+          "enquiry",
+          "possibleDuplicates"
+        ],
+        "properties": {
+          "enquiry": {
+            "$ref": "#/components/schemas/AdmissionEnquiry"
+          },
+          "possibleDuplicates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdmissionFunnelDuplicateRef"
+            }
           }
         }
       },
@@ -163404,6 +165617,20 @@
             ]
           }
         }
+      },
+      "LinkApplication": {
+        "type": "object",
+        "description": "The application an enquiry turned into.",
+        "required": [
+          "applicationId"
+        ],
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
       },
       "LoginOutcome": {
         "type": "string",
@@ -193159,6 +195386,131 @@
             ]
           }
         }
+      },
+      "UpdateEnquiry": {
+        "type": "object",
+        "description": "Changes to an enquiry; `stage` moves it (Lost needs `closeReason`). `null` clears a field.",
+        "properties": {
+          "campaign": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closeReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expectedFee": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expectedJoin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "familyName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "givenName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "intake": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nextFollowUp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "programmeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
       },
       "UpdateFacultyAssignment": {
         "type": "object",

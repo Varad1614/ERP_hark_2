@@ -23449,6 +23449,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/admission-enquiries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One enquiry (`student.read`). */
+        get: operations["admission_funnel_enquiry_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit or move an enquiry (`admission.manage`, `If-Match`). */
+        patch: operations["admission_funnel_enquiry_update"];
+        trace?: never;
+    };
+    "/api/v1/student/admission-enquiries/{id}/link-application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link the enquiry to its admission application (`admission.manage`, `If-Match`). The
+         *     enquiry moves to the applied stage when it is behind it, then follows the application.
+         */
+        post: operations["admission_funnel_enquiry_link_application"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/admissions/{id}": {
         parameters: {
             query?: never;
@@ -24777,6 +24815,99 @@ export interface paths {
         put?: never;
         /** Record a new application in `draft` (`admission.manage`). */
         post: operations["admission_application_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/institutions/{id}/admission-duplicates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Possible duplicate enquirers across open enquiries and in-flight applications: same e-mail,
+         *     name or phone after normalisation (`student.read`).
+         */
+        get: operations["admission_funnel_duplicates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/institutions/{id}/admission-enquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Enquiries of an institution (`student.read`). */
+        get: operations["admission_funnel_enquiry_list"];
+        put?: never;
+        /** Record a new enquiry (`admission.manage`). */
+        post: operations["admission_funnel_enquiry_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/institutions/{id}/admission-forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Joining forecast, conversion by source and programme, velocity, stalled enquiries and seat
+         *     fill against intake targets (`student.read`).
+         */
+        get: operations["admission_funnel_forecast"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/institutions/{id}/admission-funnel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The admissions funnel (`student.read`): per stage entered, advanced, dropped, still open. */
+        get: operations["admission_funnel_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/institutions/{id}/admission-funnel-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Funnel settings of an institution (`student.read`). */
+        get: operations["admission_funnel_settings_get"];
+        /** Replace the funnel settings and seat targets (`admission.manage`). */
+        put: operations["admission_funnel_settings_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -28001,6 +28132,82 @@ export interface components {
         AdmissionDocumentList: {
             items: components["schemas"]["AdmissionDocument"][];
         };
+        /** @description One possible duplicate pair; `a` is the older record (the one to keep). */
+        AdmissionDuplicatePair: {
+            a: components["schemas"]["AdmissionFunnelDuplicateRef"];
+            b: components["schemas"]["AdmissionFunnelDuplicateRef"];
+            reasons: string[];
+        };
+        AdmissionDuplicates: {
+            /** @description At most this many pairs are listed. */
+            limit: number;
+            pairs: components["schemas"]["AdmissionDuplicatePair"][];
+        };
+        /** @description An admission enquiry (wire form). */
+        AdmissionEnquiry: {
+            /** Format: uuid */
+            applicationId?: string | null;
+            campaign?: string | null;
+            city?: string | null;
+            closeReason?: string | null;
+            /** Format: date-time */
+            closedAt?: string | null;
+            /**
+             * Format: double
+             * @description Own win probability (0..1); `null` uses the stage's.
+             */
+            confidence?: number | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            daysInStage: number;
+            displayName: string;
+            email?: string | null;
+            enquiryNumber: string;
+            expectedFee: string;
+            /** Format: date */
+            expectedJoin?: string | null;
+            familyName?: string | null;
+            givenName: string;
+            guardianName?: string | null;
+            guardianPhone?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description `YYYY` or `YYYY-MM` intake the enquirer wants. */
+            intake?: string | null;
+            /** Format: date */
+            nextFollowUp?: string | null;
+            notes?: string | null;
+            ownerRef?: string | null;
+            phone?: string | null;
+            /**
+             * Format: double
+             * @description Effective win probability used by the forecast.
+             */
+            probability: number;
+            /** Format: uuid */
+            programmeId?: string | null;
+            source: string;
+            stage: string;
+            /** Format: date-time */
+            stageEnteredAt: string;
+            stageHistory: components["schemas"]["AdmissionFunnelStageMove"][];
+            stageLabel: string;
+            /** @description Open and unmoved for the institution's stale threshold. */
+            stalled: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AdmissionEnquiryList: {
+            items: components["schemas"]["AdmissionEnquiry"][];
+            stages: components["schemas"]["AdmissionFunnelStage"][];
+            /** Format: int64 */
+            staleDays: number;
+        };
         /** @description Result of an expiry sweep. */
         AdmissionExpirySweep: {
             /**
@@ -28009,6 +28216,245 @@ export interface components {
              */
             asOf: string;
             expired: components["schemas"]["AdmissionId"][];
+        };
+        AdmissionForecast: {
+            avgClosed: components["schemas"]["AdmissionFunnelClosedValues"];
+            /** Format: int64 */
+            avgCycleDays?: number | null;
+            byProgramme: components["schemas"]["AdmissionFunnelGroupRate"][];
+            bySource: components["schemas"]["AdmissionFunnelGroupRate"][];
+            months: components["schemas"]["AdmissionFunnelForecastRow"][];
+            pipeline: string;
+            reasonsAdmitted: components["schemas"]["AdmissionFunnelReasonBreakdown"];
+            reasonsLost: components["schemas"]["AdmissionFunnelReasonBreakdown"];
+            seats: components["schemas"]["AdmissionFunnelSeatFill"][];
+            /** Format: int64 */
+            staleDays: number;
+            stalled: components["schemas"]["AdmissionFunnelStalledRef"][];
+            velocity: components["schemas"]["AdmissionFunnelStageVelocity"][];
+            weighted: string;
+            winRate: components["schemas"]["AdmissionFunnelWinRate"];
+        };
+        AdmissionFunnel: {
+            /** Format: date-time */
+            generatedAt: string;
+            report: components["schemas"]["AdmissionFunnelReport"];
+            stages: components["schemas"]["AdmissionFunnelStage"][];
+            summary: components["schemas"]["AdmissionFunnelStageSummary"][];
+            window: string;
+        };
+        /** @description Average fee value of what closed, admitted vs lost. */
+        AdmissionFunnelClosedValues: {
+            /** Format: double */
+            admitted?: number | null;
+            /** Format: double */
+            lost?: number | null;
+        };
+        /** @description A record the new enquiry may duplicate. */
+        AdmissionFunnelDuplicateRef: {
+            /** Format: uuid */
+            id: string;
+            /** @description `enquiry` or `application`. */
+            kind: string;
+            name: string;
+            number?: string | null;
+            /** @description `email`, `name`, `phone`. */
+            reasons: string[];
+        };
+        /** @description One month of the joining forecast (amounts in rupees, to paise). */
+        AdmissionFunnelForecastRow: {
+            admitted: string;
+            best: string;
+            /** Format: int32 */
+            count: number;
+            /** Format: double */
+            expectedJoiners: number;
+            key: string;
+            weighted: string;
+        };
+        /** @description Win rate of one group (a lead source, a programme…). */
+        AdmissionFunnelGroupRate: {
+            /** Format: int32 */
+            admitted: number;
+            /** Format: double */
+            admittedValue: number;
+            key: string;
+            /** Format: int32 */
+            lost: number;
+            /** Format: double */
+            rate: number;
+            /** Format: int32 */
+            total: number;
+        };
+        /** @description A seat target for one programme and intake. */
+        AdmissionFunnelIntakeTarget: {
+            /** @description `YYYY` or `YYYY-MM`. */
+            intake: string;
+            /** Format: uuid */
+            programmeId: string;
+            /** Format: int32 */
+            seats: number;
+        };
+        /** @description Replaces the funnel settings. `stages` empty restores the default funnel. */
+        AdmissionFunnelPutFunnelSettings: {
+            appliedStage?: string | null;
+            offeredStage?: string | null;
+            stages: components["schemas"]["AdmissionFunnelStage"][];
+            /** Format: int64 */
+            staleDays: number;
+            targets?: components["schemas"]["AdmissionFunnelIntakeTarget"][];
+            /**
+             * Format: int64
+             * @description The version read (0 before anything was saved).
+             */
+            version: number;
+        };
+        /** @description Closed enquiries of one stage grouped by recorded reason, plus how many have none. */
+        AdmissionFunnelReasonBreakdown: {
+            rows: components["schemas"]["AdmissionFunnelReasonRow"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            unrecorded: number;
+        };
+        AdmissionFunnelReasonRow: {
+            /** Format: int32 */
+            count: number;
+            reason: string;
+            /** Format: double */
+            value: number;
+        };
+        AdmissionFunnelReport: {
+            rows: components["schemas"]["AdmissionFunnelRow"][];
+            totals: components["schemas"]["AdmissionFunnelTotals"];
+            /**
+             * Format: int32
+             * @description Enquiries closed with no recorded journey through the open stages (left out).
+             */
+            untracked: number;
+        };
+        /** @description One stage row of the funnel. */
+        AdmissionFunnelRow: {
+            /** Format: double */
+            advanceRate?: number | null;
+            /** Format: int32 */
+            advanced: number;
+            /** Format: int32 */
+            entered: number;
+            /** @description A stage only the history remembers (removed from the funnel since). */
+            gone: boolean;
+            label: string;
+            /** Format: double */
+            lossShare?: number | null;
+            /** Format: int32 */
+            lostHere: number;
+            /** Format: int32 */
+            open: number;
+            stage: string;
+        };
+        /** @description Seat fill of one programme and intake. */
+        AdmissionFunnelSeatFill: {
+            /** Format: int32 */
+            admitted: number;
+            /**
+             * Format: double
+             * @description Expected joiners over remaining seats (`null` when the intake is full).
+             */
+            coverage?: number | null;
+            /**
+             * Format: double
+             * @description Probability-weighted joiners among the open enquiries.
+             */
+            expected: number;
+            intake: string;
+            /** Format: int32 */
+            open: number;
+            /** Format: uuid */
+            programmeId: string;
+            /** Format: int32 */
+            remaining: number;
+            /** Format: int32 */
+            seats: number;
+        };
+        AdmissionFunnelSettings: {
+            appliedStage?: string | null;
+            /** @description Whether the open stages are the institution's own (else the defaults). */
+            customised: boolean;
+            offeredStage?: string | null;
+            /** @description The effective stage list (open stages, then Admitted and Lost). */
+            stages: components["schemas"]["AdmissionFunnelStage"][];
+            /** Format: int64 */
+            staleDays: number;
+            targets: components["schemas"]["AdmissionFunnelIntakeTarget"][];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description One funnel stage with its win probability. */
+        AdmissionFunnelStage: {
+            id: string;
+            label: string;
+            /** Format: double */
+            probability: number;
+        };
+        /** @description One recorded stage move (wire form). */
+        AdmissionFunnelStageMove: {
+            /** Format: date-time */
+            at: string;
+            stage: string;
+        };
+        /** @description Expected admissions (fee value) per stage, in configured order. */
+        AdmissionFunnelStageSummary: {
+            /** Format: int32 */
+            count: number;
+            label: string;
+            stage: string;
+            /** Format: double */
+            value: number;
+            /** Format: double */
+            weighted: number;
+        };
+        /** @description Average days spent in a stage, over completed transitions only. */
+        AdmissionFunnelStageVelocity: {
+            /** Format: int32 */
+            count: number;
+            /** Format: int64 */
+            days?: number | null;
+            label: string;
+            stage: string;
+        };
+        /** @description An enquiry that has not moved for the stale threshold. */
+        AdmissionFunnelStalledRef: {
+            /** Format: int64 */
+            daysInStage: number;
+            enquiryNumber: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            stage: string;
+        };
+        /** @description Totals over the tracked enquiries. */
+        AdmissionFunnelTotals: {
+            /** Format: int32 */
+            admitted: number;
+            /** Format: double */
+            admittedRate?: number | null;
+            /** Format: int32 */
+            enquiries: number;
+            /** Format: int32 */
+            lost: number;
+            /** Format: int32 */
+            lostShareBase: number;
+            /** Format: int32 */
+            open: number;
+        };
+        /** @description Admitted / lost counts and the rate (`None` until something has closed). */
+        AdmissionFunnelWinRate: {
+            /** Format: int32 */
+            admitted: number;
+            /** Format: int32 */
+            lost: number;
+            /** Format: double */
+            rate?: number | null;
         };
         /** @description Admission history. */
         AdmissionHistory: {
@@ -31192,6 +31638,36 @@ export interface components {
             /** Format: double */
             sgpa?: number | null;
         };
+        /** @description A new enquiry. */
+        CreateEnquiry: {
+            campaign?: string | null;
+            city?: string | null;
+            /** Format: double */
+            confidence?: number | null;
+            email?: string | null;
+            expectedFee?: string | null;
+            /** Format: date */
+            expectedJoin?: string | null;
+            familyName?: string | null;
+            givenName: string;
+            guardianName?: string | null;
+            guardianPhone?: string | null;
+            intake?: string | null;
+            /** Format: date */
+            nextFollowUp?: string | null;
+            notes?: string | null;
+            ownerRef?: string | null;
+            phone?: string | null;
+            /** Format: uuid */
+            programmeId?: string | null;
+            /**
+             * @description One of `walk_in` (default), `website`, `phone`, `referral`, `campaign`,
+             *     `education_fair`, `social`, `agent`, `school_visit`, `other`.
+             */
+            source?: string | null;
+            /** @description An open stage (default: the first). */
+            stage?: string | null;
+        };
         CreateMigration: {
             creditMapping?: components["schemas"]["CreditMappingItem"][];
             reason: string;
@@ -31294,6 +31770,11 @@ export interface components {
             name?: string | null;
             /** Format: date */
             opensOn?: string | null;
+        };
+        /** @description The created enquiry and records that look like the same person. */
+        CreatedEnquiry: {
+            enquiry: components["schemas"]["AdmissionEnquiry"];
+            possibleDuplicates: components["schemas"]["AdmissionFunnelDuplicateRef"][];
         };
         /**
          * @description Academic Credit Ledger entry kind (L3-C-028; ledger is append-only).
@@ -37310,6 +37791,11 @@ export interface components {
             /** Format: uuid */
             curriculumComponentId: string;
             kind?: null | components["schemas"]["RegistrationLineKind"];
+        };
+        /** @description The application an enquiry turned into. */
+        LinkApplication: {
+            /** Format: uuid */
+            applicationId: string;
         };
         /** @enum {string} */
         LoginOutcome: "authenticated" | "mfaRequired";
@@ -46615,6 +47101,32 @@ export interface components {
             headcount?: number | null;
             orgUnitId?: null | components["schemas"]["OrgUnitId"];
             title?: string | null;
+        };
+        /** @description Changes to an enquiry; `stage` moves it (Lost needs `closeReason`). `null` clears a field. */
+        UpdateEnquiry: {
+            campaign?: string | null;
+            city?: string | null;
+            closeReason?: string | null;
+            /** Format: double */
+            confidence?: number | null;
+            email?: string | null;
+            expectedFee?: string | null;
+            /** Format: date */
+            expectedJoin?: string | null;
+            familyName?: string | null;
+            givenName?: string | null;
+            guardianName?: string | null;
+            guardianPhone?: string | null;
+            intake?: string | null;
+            /** Format: date */
+            nextFollowUp?: string | null;
+            notes?: string | null;
+            ownerRef?: string | null;
+            phone?: string | null;
+            /** Format: uuid */
+            programmeId?: string | null;
+            source?: string | null;
+            stage?: string | null;
         };
         UpdateFacultyAssignment: {
             /** Format: date */
@@ -105879,6 +106391,257 @@ export interface operations {
             };
         };
     };
+    admission_funnel_enquiry_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionEnquiry"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_enquiry_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEnquiry"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionEnquiry"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_enquiry_link_application: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the version being changed */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkApplication"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionEnquiry"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     admission_get: {
         parameters: {
             query?: never;
@@ -110756,6 +111519,450 @@ export interface operations {
             };
             /** @description Validation failed. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_duplicates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionDuplicates"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_enquiry_list: {
+        parameters: {
+            query?: {
+                stage?: string;
+                source?: string;
+                programmeId?: string;
+                /** @description Name, number, e-mail or phone contains. */
+                q?: string;
+                /** @description Only open enquiries past the stale threshold. */
+                stalled?: boolean;
+                /** @description Only open enquiries (not admitted / lost). */
+                open?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionEnquiryList"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_enquiry_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEnquiry"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedEnquiry"];
+                };
+            };
+            /** @description Missing `Idempotency-Key` or malformed request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Parent resource missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate, illegal state or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_forecast: {
+        parameters: {
+            query?: {
+                /** @description Months to forecast (1–24, default 6). */
+                months?: number;
+                /** @description First month `YYYY-MM` (default: this month). */
+                from?: string;
+                programmeId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionForecast"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_report: {
+        parameters: {
+            query?: {
+                programmeId?: string;
+                source?: string;
+                /**
+                 * @description Cohort by first contact: `all` (default), `quarter`, `last_quarter`, `year` (calendar)
+                 *     or `fy` (the April–March financial year).
+                 */
+                window?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionFunnel"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionFunnelSettings"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_funnel_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmissionFunnelPutFunnelSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionFunnelSettings"];
+                };
+            };
+            /** @description Malformed `If-Match` or request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No live session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CSRF failure, missing permission or missing MFA step-up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing, or owned by another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `If-Match` missing. */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };
