@@ -634,7 +634,8 @@ async fn reminder_reply(
         .ok_or(KernelError::NotFound {
             entity: "service reminder",
         })?;
-    let s = settings_of(&mut conn, t, row_institution(&mut conn, t, rid).await?).await?;
+    let inst = row_institution(&mut conn, t, rid).await?;
+    let s = settings_of(&mut conn, t, inst).await?;
     let view = reminder_view(&row, &today.format("%Y-%m-%d").to_string(), due_of(&s));
     let v = view.version;
     Ok(with_etag(status, &view, Version(v)))

@@ -43,6 +43,7 @@ use uuid::Uuid;
 const TENANT_H: &str = "0192f5a0-7c3e-7000-8000-0000000b8b00";
 const TENANT_T: &str = "0192f5a0-7c3e-7000-8000-0000000b8b01";
 const TENANT_A: &str = "0192f5a0-7c3e-7000-8000-0000000b8b02";
+const TENANT_F: &str = "0192f5a0-7c3e-7000-8000-0000000b8b03";
 const C: &str = "/api/v1/campus";
 
 async fn call(
@@ -2456,4 +2457,231 @@ async fn governed_decisions_await_a_decision() {
         (Some("active"), Some(1))
     );
     assert!(r["processInstanceId"].is_null());
+}
+
+/// ERP_EXTENSIONS 2D — fleet maintenance: meter, service reminders (overdue by date, graded late
+/// on completion), renewals (anchored roll forward, cost booked as an expense), fuel economy and
+/// warnings, expenses and the cost report.
+#[tokio::test]
+async fn fleet_maintenance_reminders_renewals_fuel_costs() {
+    let (app, pool) = app(TENANT_F).await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let setup = b8::campus_setup(&app, &admin, &pool, TENANT_F, "Fleet College").await;
+    let inst = setup.institution().as_uuid().to_string();
+    let n = |v: &Value| {
+        v.as_str()
+            .and_then(|s| s.parse::<f64>().ok())
+            .or_else(|| v.as_f64())
+    };
+    let bus = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{C}/institutions/{inst}/vehicles"),
+        json!({"registrationNo": "MH15AB0001", "label": "Bus 1", "capacity": 40}),
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+    let vid = id(&bus);
+    let file = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{C}/vehicles/{vid}/meter-readings"),
+        json!({"value": "20000", "setup": {"meterUnit": "km", "fuelCapacity": "50"}}),
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+    assert_eq!(file["meter"].as_f64(), Some(20000.0), "{file}");
+    let today = chrono::Utc::now().date_naive();
+    let ago = (today - chrono::Duration::days(200)).to_string();
+    let oil = ok(&app, &admin, "POST", &format!("{C}/vehicles/{vid}/service-reminders"),
+        json!({"task": "Engine oil", "interval": {"every": 6, "unit": "months"}, "meterInterval": 10000,
+            "startDate": ago, "startMeter": 20000}), None, StatusCode::CREATED).await;
+    assert_eq!(oil["state"]["status"], "overdue", "{oil}");
+    assert_eq!(oil["schedule"], "Every 6 months or 10000 km");
+    let tyres = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{C}/vehicles/{vid}/service-reminders"),
+        json!({"task": "Tyre rotation", "meterInterval": 10000}),
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+    assert_eq!(tyres["state"]["status"], "upcoming", "{tyres}");
+    assert_eq!(tyres["state"]["meterLeft"].as_f64(), Some(10000.0));
+    let (s, _) = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("{C}/vehicles/{vid}/service-reminders"),
+        json!({"task": "Nothing"}),
+        None,
+    )
+    .await;
+    assert_eq!(
+        s,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "a reminder needs a schedule"
+    );
+    let due = (today + chrono::Duration::days(10)).to_string();
+    let ins = ok(&app, &admin, "POST", &format!("{C}/vehicles/{vid}/renewals"),
+        json!({"renewalType": "insurance", "dueDate": due, "repeat": {"every": 1, "unit": "years"}}), None, StatusCode::CREATED).await;
+    assert_eq!(ins["status"], "due_soon", "{ins}");
+
+    let board = fetch(
+        &app,
+        &admin,
+        &format!("{C}/institutions/{inst}/fleet-maintenance"),
+    )
+    .await;
+    assert_eq!(
+        (board["overdue"].as_i64(), board["dueSoon"].as_i64()),
+        (Some(1), Some(1)),
+        "{board}"
+    );
+    assert_eq!(board["items"][0]["title"], "Engine oil");
+    assert_eq!(
+        board["items"].as_array().unwrap().len(),
+        2,
+        "upcoming stays off the board"
+    );
+
+    // A late oil change: graded late, the schedule restarts from it.
+    let file = ok(&app, &admin, "POST", &format!("{C}/vehicles/{vid}/service-entries"),
+        json!({"meter": "20500", "description": "Oil and filter", "vendor": "City Motors", "amount": "3450",
+            "reminderIds": [id(&oil)]}), None, StatusCode::CREATED).await;
+    assert_eq!(file["meter"].as_f64(), Some(20500.0), "{file}");
+    assert_eq!(file["services"].as_array().unwrap().len(), 1);
+    let oil_now = file["reminders"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["task"] == "Engine oil")
+        .unwrap();
+    assert_eq!(oil_now["history"][0]["onTime"], false, "{oil_now}");
+    assert_eq!(oil_now["compliance"].as_f64(), Some(0.0));
+    assert_eq!(oil_now["state"]["status"], "upcoming", "{oil_now}");
+    assert_eq!(oil_now["state"]["nextMeter"].as_f64(), Some(30500.0));
+
+    // Renewal: rolls a year on, its cost goes to other costs.
+    let ins = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{C}/vehicle-renewals/{}/complete", id(&ins)),
+        json!({"cost": "12450"}),
+        ver(&ins),
+        StatusCode::OK,
+    )
+    .await;
+    let next_year = (chrono::NaiveDate::parse_from_str(&due, "%Y-%m-%d")
+        .unwrap()
+        .checked_add_months(chrono::Months::new(12))
+        .unwrap())
+    .to_string();
+    assert_eq!(ins["dueDate"], next_year.as_str(), "{ins}");
+    assert_eq!(ins["status"], "upcoming");
+    assert_eq!(ins["history"].as_array().unwrap().len(), 1);
+
+    // Fuel: full, partial, full → 30 L over 500 km = 6 L/100 km.
+    for (meter, vol, total, partial) in [
+        ("20500", "40", "4000", false),
+        ("20800", "10", "1000", true),
+    ] {
+        ok(
+            &app,
+            &admin,
+            "POST",
+            &format!("{C}/vehicles/{vid}/fuel-entries"),
+            json!({"meter": meter, "volume": vol, "total": total, "partial": partial}),
+            None,
+            StatusCode::CREATED,
+        )
+        .await;
+    }
+    let log = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{C}/vehicles/{vid}/fuel-entries"),
+        json!({"meter": "21000", "volume": "20", "price": "100"}),
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+    assert_eq!(log["economyUnit"], "L/100 km");
+    assert_eq!(n(&log["items"][0]["total"]), Some(2000.0), "{log}");
+    assert_eq!(
+        log["items"][0]["derived"]["economy"].as_f64(),
+        Some(6.0),
+        "{log}"
+    );
+    assert!(log["warnings"].as_array().unwrap().is_empty());
+    let log = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{C}/vehicles/{vid}/fuel-entries"),
+        json!({"meter": "20900", "volume": "60", "total": "6000"}),
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+    assert_eq!(
+        log["warnings"].as_array().unwrap().len(),
+        2,
+        "lower meter and over the tank: {log}"
+    );
+    ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{C}/vehicles/{vid}/expenses"),
+        json!({"expenseType": "Tolls", "amount": "450"}),
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+
+    let costs = fetch(
+        &app,
+        &admin,
+        &format!("{C}/institutions/{inst}/fleet-costs"),
+    )
+    .await;
+    let row = &costs["items"][0];
+    assert_eq!(n(&row["fuel"]), Some(13000.0), "{costs}");
+    assert_eq!(n(&row["service"]), Some(3450.0));
+    assert_eq!(n(&row["other"]), Some(12900.0));
+    assert_eq!(n(&row["total"]), Some(29350.0));
+    assert_eq!(row["usage"].as_f64(), Some(1000.0));
+    assert_eq!(n(&row["costPerMeter"]), Some(29.35));
+
+    let (s, _) = call(
+        &app,
+        &admin,
+        "PUT",
+        &format!("{C}/institutions/{inst}/fleet-settings"),
+        json!({"dueSoonDays": 14, "dueSoonMeter": "500", "volumeUnit": "x"}),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    ok(
+        &app,
+        &admin,
+        "PUT",
+        &format!("{C}/institutions/{inst}/fleet-settings"),
+        json!({"dueSoonDays": 30, "dueSoonMeter": "1000", "volumeUnit": "L"}),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    let tyres = fetch(&app, &admin, &format!("{C}/vehicles/{vid}/maintenance")).await;
+    assert_eq!(tyres["renewals"].as_array().unwrap().len(), 1);
 }
