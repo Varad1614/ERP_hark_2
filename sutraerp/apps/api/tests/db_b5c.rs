@@ -1567,6 +1567,64 @@ async fn treasury_settlement_statement_reconciliation_and_returns() {
     assert_eq!(cash["inTransit"], "0.00");
     assert_eq!(cash["available"], "105921.00");
 
+    // ---- ERP_EXTENSIONS 1B: reconcile the account against the July statement balance.
+    let ws = read(&app, &admin, &format!("/bank-accounts/{mid}/reconciliation?statementDate=2026-07-31")).await;
+    assert_eq!(ws["beginningBalance"], "0.00");
+    assert_eq!(ws["statementClosingBalance"], "105921.00");
+    assert!(ws["lastReconciliation"].is_null());
+    let items = ws["items"].as_array().unwrap().clone();
+    assert!(!items.is_empty());
+    assert!(items.iter().all(|i| i["cleared"] == true), "{ws}");
+    let all: Vec<Value> = items.iter().map(|i| i["journalEntryId"].clone()).collect();
+    let pv = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliation/preview"),
+        json!({"statementDate": "2026-07-31", "endingBalance": "105921.00", "journalEntryIds": all}), None, StatusCode::OK).await;
+    assert_eq!(pv["balanced"], true, "{pv}");
+    assert_eq!(pv["clearedBalance"], "105921.00");
+    let some = &all[..all.len() - 1];
+    let pv2 = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliation/preview"),
+        json!({"statementDate": "2026-07-31", "endingBalance": "105921.00", "journalEntryIds": some}), None, StatusCode::OK).await;
+    assert_eq!(pv2["balanced"], false);
+    call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliations"),
+        json!({"statementDate": "2026-07-31", "endingBalance": "105921.00", "journalEntryIds": some}), None, StatusCode::UNPROCESSABLE_ENTITY).await;
+    call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliations"),
+        json!({"statementDate": "2099-01-01", "endingBalance": "105921.00", "journalEntryIds": all}), None, StatusCode::UNPROCESSABLE_ENTITY).await;
+    call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliations"),
+        json!({"statementDate": "2026-07-31", "endingBalance": "105921.00", "journalEntryIds": [Uuid::now_v7()]}), None, StatusCode::UNPROCESSABLE_ENTITY).await;
+    let rec = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliations"),
+        json!({"statementDate": "2026-07-31", "endingBalance": "105921.00", "journalEntryIds": all, "note": "July"}), None, StatusCode::CREATED).await;
+    assert_eq!(rec["status"], "done");
+    assert_eq!(rec["clearedCount"].as_u64().unwrap() as usize, all.len());
+    let ws2 = read(&app, &admin, &format!("/bank-accounts/{mid}/reconciliation?statementDate=2026-07-31")).await;
+    assert_eq!(ws2["beginningBalance"], "105921.00");
+    assert_eq!(ws2["items"].as_array().unwrap().len(), 0);
+    assert_eq!(ws2["lastReconciliation"]["id"], rec["id"]);
+    // An earlier statement date than the last reconciliation is refused.
+    call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliations"),
+        json!({"statementDate": "2026-07-15", "endingBalance": "0.00", "journalEntryIds": []}), None, StatusCode::UNPROCESSABLE_ENTITY).await;
+    let brs = read(&app, &admin, &format!("/bank-accounts/{mid}/brs?asOf=2026-07-31")).await;
+    assert_eq!(brs["bookBalance"], "105921.00", "{brs}");
+    assert_eq!(brs["bankBalance"], "105921.00");
+    assert_eq!(brs["statementBalance"], "105921.00");
+    assert_eq!(brs["difference"], "0.00");
+    let disc = read(&app, &admin, &format!("/institutions/{inst}/bank-reconciliation-discrepancies")).await;
+    assert_eq!(disc["items"].as_array().unwrap().len(), 0);
+    let hist = read(&app, &admin, &format!("/bank-accounts/{mid}/reconciliations")).await;
+    assert_eq!(hist["items"].as_array().unwrap().len(), 1);
+    call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliations/undo-last"),
+        json!({"reconciliationId": Uuid::now_v7()}), None, StatusCode::CONFLICT).await;
+    let undone = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliations/undo-last"),
+        json!({"reconciliationId": rec["id"]}), None, StatusCode::OK).await;
+    assert_eq!(undone["status"], "undone");
+    let ws3 = read(&app, &admin, &format!("/bank-accounts/{mid}/reconciliation?statementDate=2026-07-31")).await;
+    assert_eq!(ws3["beginningBalance"], "0.00");
+    assert_eq!(ws3["items"].as_array().unwrap().len(), all.len());
+    call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliations"),
+        json!({"statementDate": "2026-07-31", "endingBalance": "105921.00", "journalEntryIds": all}), None, StatusCode::CREATED).await;
+    let sugg = read(&app, &admin, &format!("/bank-statements/{}/lines/{l1}/suggestions", id(&aug))).await;
+    assert!(sugg["items"].is_array());
+    let (s, _, _) = send(&app, get(&admin, &format!("{F}/bank-statements/{}/lines/{l1}/suggestions?window=99", id(&aug)))).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+
     // ---- suspend / close rules.
     let ops = read(&app, &admin, &format!("/bank-accounts/{}", id(&ops))).await;
     call(
