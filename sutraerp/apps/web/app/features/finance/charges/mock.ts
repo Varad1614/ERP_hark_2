@@ -3,7 +3,8 @@
  * integers internally and is rendered back to decimal strings — never floats.
  */
 import type { ChargesApi } from "./api";
-import type { Adjustment, AidAllocation, ChargeDetail, ChargeStatus, FeeHead, FeeStructure, PolicyVersion } from "./types";
+import { periodFor } from "./billing";
+import type { Adjustment, AidAllocation, BillingEnrolment, BillingPlan, BillingRun, BillingRunSummary, BillingSchedule, ChargeDetail, ChargeStatus, FeeHead, FeeStructure, PolicyVersion } from "./types";
 
 const paise = (s: string) => {
   const neg = s.startsWith("-");
@@ -43,6 +44,13 @@ export function createMockChargesApi(): ChargesApi {
   const adjustments: Adjustment[] = [];
   const allocations: AidAllocation[] = [];
   const policies: Record<"config" | "rule", PolicyVersion[]> = { config: [], rule: [] };
+  const billingPlans: BillingPlan[] = [];
+  const enrolments: BillingEnrolment[] = [];
+  const runs: BillingRunSummary[] = [];
+  const billedKeys = new Set<string>();
+  const schedules: BillingSchedule[] = (["weekly", "monthly", "quarterly", "half_yearly", "annual"] as const).map((f) => ({
+    frequency: f, enabled: false, runDay: 1, dueDays: 7, lastPeriodKey: null, lastRunId: null, currentPeriodLabel: periodFor(f, new Date().toISOString().slice(0, 10)).label,
+  }));
   const find = <T extends { id: string }>(list: T[], id: string) => {
     const x = list.find((y) => y.id === id);
     if (!x) throw new Error("not found");
@@ -202,6 +210,73 @@ export function createMockChargesApi(): ChargesApi {
       const p: PolicyVersion = { ...b, id: uid(), versionNo: policies[kind].length + 1, status: "draft", basedOnId: b.id, rollbackReason: reason, approvedAt: null, version: 1 };
       policies[kind].unshift(p);
       return p;
+    },
+    billingPlans: async () => billingPlans.map((p) => ({ ...p, enrolled: enrolments.filter((e) => e.planId === p.id).length })),
+    createBillingPlan: async (_i, input) => {
+      const head = find(heads, input.feeHeadId);
+      const p: BillingPlan = { id: uid(), institutionId: "inst", code: input.code, name: input.name, description: input.description ?? null, feeHeadId: head.id, feeHeadCode: head.code, amount: money(paise(input.amount)), frequency: input.frequency, proration: input.proration ?? "none", status: "active", enrolled: 0, version: 1 };
+      billingPlans.push(p);
+      return p;
+    },
+    updateBillingPlan: async (id, input) => {
+      const p = find(billingPlans, id);
+      Object.assign(p, { ...input, amount: input.amount ? money(paise(input.amount)) : p.amount, version: p.version + 1 });
+      return p;
+    },
+    billingEnrolments: async (planId) => enrolments.filter((e) => e.planId === planId),
+    enrol: async (planId, input) => {
+      let e = enrolments.find((x) => x.planId === planId && x.studentId === input.studentId);
+      if (!e) {
+        e = { id: uid(), planId, studentId: input.studentId, studentName: "Aarav Desai", studentNumber: "S2026-0001", onHold: false };
+        enrolments.push(e);
+      }
+      Object.assign(e, { amount: input.amount ?? null, startDate: input.startDate ?? null, endDate: input.endDate ?? null, onHold: !!input.onHold });
+      return e;
+    },
+    unenrol: async (planId, studentId) => {
+      const i = enrolments.findIndex((x) => x.planId === planId && x.studentId === studentId);
+      if (i >= 0) enrolments.splice(i, 1);
+    },
+    billingRun: async (_i, input, preview) => {
+      const day = input.day ?? new Date().toISOString().slice(0, 10);
+      const period = periodFor(input.frequency, day, input.weekStart ?? 1);
+      const due = new Date(Date.parse(period.start > day ? period.start : day) + (input.dueDays ?? 7) * 86400000).toISOString().slice(0, 10);
+      const plans = billingPlans.filter((p) => p.frequency === input.frequency && p.status === "active");
+      const result: BillingRun = { id: preview ? null : uid(), preview, frequency: input.frequency, periodKey: period.key, periodLabel: period.label, periodStart: period.start, periodEnd: period.end, runDate: day, dueDays: input.dueDays ?? 7, trigger: "manual", billed: 0, skipped: 0, failed: 0, total: "0.00", items: [], skips: [] };
+      const students = [...new Set(enrolments.filter((e) => plans.some((p) => p.id === e.planId)).map((e) => e.studentId))];
+      let total = 0;
+      for (const sid of students) {
+        const mine = enrolments.filter((e) => e.studentId === sid && plans.some((p) => p.id === e.planId));
+        const name = mine[0]!.studentName;
+        if (billedKeys.has(`${sid}|${period.key}`)) {
+          result.skips.push({ studentId: sid, studentName: name, reason: "already_billed" });
+          continue;
+        }
+        const lines = mine.filter((e) => !e.onHold).map((e) => {
+          const p = plans.find((x) => x.id === e.planId)!;
+          return { planId: p.id, description: `${p.name}, ${period.label}`, amount: e.amount ?? p.amount };
+        });
+        const sum = lines.reduce((a, l) => a + paise(l.amount), 0);
+        if (!lines.length || sum <= 0) {
+          result.skips.push({ studentId: sid, studentName: name, reason: lines.length ? "nothing_to_bill" : "on_hold" });
+          continue;
+        }
+        if (!preview) billedKeys.add(`${sid}|${period.key}`);
+        total += sum;
+        result.items.push({ studentId: sid, studentName: name, studentNumber: mine[0]!.studentNumber, dueDate: due, total: money(sum), lines, chargeId: preview ? null : uid(), chargeNumber: preview ? null : `CHG-${String(charges.length + result.items.length + 1).padStart(6, "0")}` });
+      }
+      result.billed = result.items.length;
+      result.skipped = result.skips.length;
+      result.total = money(total);
+      if (!preview) runs.unshift({ id: result.id!, frequency: result.frequency, periodKey: result.periodKey, periodLabel: result.periodLabel, runDate: day, trigger: "manual", billed: result.billed, skipped: result.skipped, failed: 0, total: result.total, createdBy: "you", createdAt: new Date().toISOString() });
+      return result;
+    },
+    billingRuns: async () => runs,
+    billingSchedules: async () => schedules,
+    setBillingSchedule: async (_i, frequency, input) => {
+      const s = schedules.find((x) => x.frequency === frequency)!;
+      Object.assign(s, input);
+      return s;
     },
   };
 }

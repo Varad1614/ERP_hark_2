@@ -9,6 +9,13 @@ import { getCsrfToken } from "../../../lib/api";
 import { fill } from "../../institution/api";
 import type {
   Adjustment,
+  BillingEnrolment,
+  BillingFrequency,
+  BillingPlan,
+  BillingRun,
+  BillingRunRequest,
+  BillingRunSummary,
+  BillingSchedule,
   AdjustmentKind,
   AidAllocation,
   AidDecision,
@@ -68,6 +75,17 @@ export interface ChargesApi {
   createPolicy(institutionId: string, kind: PolicyKind, input: { ruleKey?: string; values: Record<string, unknown>; changeNote?: string }): Promise<PolicyVersion>;
   policyCommand(kind: PolicyKind, id: string, version: number, cmd: "submit" | "activate"): Promise<PolicyVersion>;
   rollback(kind: PolicyKind, id: string, reason: string): Promise<PolicyVersion>;
+  // ERP_EXTENSIONS 1E — periodic billing runs
+  billingPlans(institutionId: string): Promise<BillingPlan[]>;
+  createBillingPlan(institutionId: string, input: { code: string; name: string; feeHeadId: string; amount: string; frequency: BillingFrequency; proration?: "none" | "daily"; description?: string }): Promise<BillingPlan>;
+  updateBillingPlan(id: string, input: { name?: string; amount?: string; proration?: "none" | "daily"; status?: "active" | "retired"; description?: string }): Promise<BillingPlan>;
+  billingEnrolments(planId: string): Promise<BillingEnrolment[]>;
+  enrol(planId: string, input: { studentId: string; amount?: string | null; startDate?: string | null; endDate?: string | null; onHold?: boolean }): Promise<BillingEnrolment>;
+  unenrol(planId: string, studentId: string): Promise<void>;
+  billingRun(institutionId: string, input: BillingRunRequest, preview: boolean): Promise<BillingRun>;
+  billingRuns(institutionId: string): Promise<BillingRunSummary[]>;
+  billingSchedules(institutionId: string): Promise<BillingSchedule[]>;
+  setBillingSchedule(institutionId: string, frequency: BillingFrequency, input: { enabled: boolean; runDay: number; dueDays: number }): Promise<BillingSchedule>;
 }
 
 const B = "/api/v1/finance";
@@ -114,6 +132,14 @@ export const PATHS = {
   ruleSubmit: `${B}/finance-rules/{id}/submit`,
   ruleActivate: `${B}/finance-rules/{id}/activate`,
   ruleRollback: `${B}/finance-rules/{id}/rollback`,
+  billingPlans: `${B}/institutions/{id}/billing-plans`,
+  billingPlan: `${B}/billing-plans/{id}`,
+  billingEnrolments: `${B}/billing-plans/{id}/enrolments`,
+  billingEnrolment: `${B}/billing-plans/{id}/enrolments/{studentId}`,
+  billingRuns: `${B}/institutions/{id}/billing-runs`,
+  billingRunPreview: `${B}/institutions/{id}/billing-runs/preview`,
+  billingSchedules: `${B}/institutions/{id}/billing-schedules`,
+  billingSchedule: `${B}/institutions/{id}/billing-schedules/{frequency}`,
 } as const satisfies Record<string, keyof paths>;
 
 type Fetch = (input: string, init: RequestInit) => Promise<Response>;
@@ -212,5 +238,17 @@ export function createHttpChargesApi(fetchImpl: Fetch = (i, init) => fetch(i, in
     createPolicy: (i, kind, input) => request("POST", fill(POLICY[kind].list, id(i)), { body: input, idempotent: true }),
     policyCommand: (kind, i, v, cmd) => request("POST", fill(POLICY[kind][cmd], id(i)), { ifMatch: v }),
     rollback: (kind, i, reason) => request("POST", fill(POLICY[kind].rollback, id(i)), { body: { reason }, idempotent: true }),
+    billingPlans: (i) => items(fill(PATHS.billingPlans, id(i))),
+    createBillingPlan: (i, input) => request("POST", fill(PATHS.billingPlans, id(i)), { body: input }),
+    updateBillingPlan: (i, input) => request("PATCH", fill(PATHS.billingPlan, id(i)), { body: input }),
+    billingEnrolments: (p) => items(fill(PATHS.billingEnrolments, id(p))),
+    enrol: (p, input) => request("PUT", fill(PATHS.billingEnrolments, id(p)), { body: input }),
+    unenrol: async (p, studentId) => {
+      await request("DELETE", fill(PATHS.billingEnrolment, { id: p, studentId }));
+    },
+    billingRun: (i, input, preview) => request("POST", fill(preview ? PATHS.billingRunPreview : PATHS.billingRuns, id(i)), { body: input }),
+    billingRuns: (i) => items(fill(PATHS.billingRuns, id(i))),
+    billingSchedules: (i) => items(fill(PATHS.billingSchedules, id(i))),
+    setBillingSchedule: (i, frequency, input) => request("PUT", fill(PATHS.billingSchedule, { id: i, frequency }), { body: input }),
   };
 }

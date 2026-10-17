@@ -234,3 +234,106 @@ export interface PolicyVersion {
 }
 
 export type PolicyKind = "config" | "rule";
+
+// ERP_EXTENSIONS 1E — periodic billing runs.
+export type BillingFrequency = "weekly" | "monthly" | "quarterly" | "half_yearly" | "annual";
+
+export interface BillingPlan {
+  id: string;
+  institutionId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  feeHeadId: string;
+  feeHeadCode: string;
+  amount: string;
+  frequency: BillingFrequency;
+  proration: "none" | "daily";
+  status: "active" | "retired";
+  enrolled: number;
+  version: number;
+}
+
+export interface BillingEnrolment {
+  id: string;
+  planId: string;
+  studentId: string;
+  studentName: string;
+  studentNumber?: string | null;
+  amount?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  onHold: boolean;
+}
+
+export interface BillingRunRequest {
+  frequency: BillingFrequency;
+  day?: string;
+  dueDays?: number;
+  weekStart?: number;
+  excludeStudentIds?: string[];
+}
+
+export interface BillingLine {
+  planId: string;
+  description: string;
+  amount: string;
+  proratedDays?: number | null;
+  periodDays?: number | null;
+}
+
+export interface BillingRunItem {
+  studentId: string;
+  studentName: string;
+  studentNumber?: string | null;
+  dueDate: string;
+  total: string;
+  lines: BillingLine[];
+  chargeId?: string | null;
+  chargeNumber?: string | null;
+  error?: string | null;
+}
+
+export interface BillingRun {
+  id?: string | null;
+  preview: boolean;
+  frequency: BillingFrequency;
+  periodKey: string;
+  periodLabel: string;
+  periodStart: string;
+  periodEnd: string;
+  runDate: string;
+  dueDays: number;
+  trigger: "manual" | "schedule";
+  billed: number;
+  skipped: number;
+  failed: number;
+  total: string;
+  items: BillingRunItem[];
+  skips: { studentId: string; studentName: string; reason: string }[];
+}
+
+export interface BillingRunSummary {
+  id: string;
+  frequency: BillingFrequency;
+  periodKey: string;
+  periodLabel: string;
+  runDate: string;
+  trigger: "manual" | "schedule";
+  billed: number;
+  skipped: number;
+  failed: number;
+  total: string;
+  createdBy?: string | null;
+  createdAt: string;
+}
+
+export interface BillingSchedule {
+  frequency: BillingFrequency;
+  enabled: boolean;
+  runDay: number;
+  dueDays: number;
+  lastPeriodKey?: string | null;
+  lastRunId?: string | null;
+  currentPeriodLabel: string;
+}
