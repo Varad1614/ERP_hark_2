@@ -9,6 +9,7 @@
 //! * [`repo`] — charges: create, validate, publish, revise, lifecycle, instalments, disputes.
 //! * [`http`] — the routes.
 
+pub mod billing;
 pub mod domain;
 pub mod fees;
 pub mod http;
