@@ -1579,7 +1579,15 @@ async fn treasury_settlement_statement_reconciliation_and_returns() {
     assert!(ws["lastReconciliation"].is_null());
     let items = ws["items"].as_array().unwrap().clone();
     assert!(!items.is_empty());
-    assert!(items.iter().all(|i| i["cleared"] == true), "{ws}");
+    // Matched statement lines pre-tick their entries. The returned SETL-0002
+    // settlement and its reversal match no line, stay unticked, and net to zero.
+    let unticked: Vec<&Value> = items.iter().filter(|i| i["cleared"] != true).collect();
+    assert_eq!(unticked.len(), 2, "{ws}");
+    let net: f64 = unticked
+        .iter()
+        .map(|i| i["amount"].as_str().unwrap().parse::<f64>().unwrap())
+        .sum();
+    assert!(net.abs() < 0.005, "{ws}");
     let all: Vec<Value> = items.iter().map(|i| i["journalEntryId"].clone()).collect();
     let pv = call(&app, &admin, "POST", &format!("/bank-accounts/{mid}/reconciliation/preview"),
         json!({"statementDate": "2026-07-31", "endingBalance": "105921.00", "journalEntryIds": all}), None, StatusCode::OK).await;
