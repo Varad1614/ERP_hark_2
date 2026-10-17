@@ -8,7 +8,9 @@
 //!   through the foundation's single ledger write path `shared::stock::post_movement`; stock on
 //!   hand is the foundation API `GET /institutions/{id}/stock-on-hand`.
 
+pub mod demand;
 pub mod items;
+pub mod lots;
 pub mod stock;
 
 use crate::shared::ResourcesState;
