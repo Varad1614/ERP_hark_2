@@ -24,6 +24,7 @@ import { fkeys, useFacilitiesApi } from "../facilities/hooks";
 import { rkeys, useResourcesApi } from "./hooks";
 import { StockDemandTile } from "./demand/StockDemandTile";
 import { ContractsTile } from "./contracts/ContractsTile";
+import { ExpensesTile } from "./expenses/ExpensesTile";
 import type { Asset, GoodsReceipt, PurchaseOrder, Requisition, SourcingEvent, Supplier, VendorInvoice, VendorPayment } from "./types";
 import { formatInr } from "../../finance";
 
@@ -573,6 +574,7 @@ function Procurement({ institution }: { institution: Institution }) {
         />
       </BentoTile>
       <ContractsTile institutionId={inst} />
+      <ExpensesTile institutionId={inst} />
       {prompt}
       {dialog}
     </>
