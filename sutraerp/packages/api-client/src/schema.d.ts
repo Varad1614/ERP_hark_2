@@ -17754,6 +17754,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/candidate-interviews/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an interview (`staff.manage`); a cancelled interview owes no feedback. */
+        post: operations["people_recruitment_candidate_interview_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/candidates/{id}": {
         parameters: {
             query?: never;
@@ -17805,6 +17822,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/candidates/{id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A candidate's interviews, scorecards, panel summary and screening (`people.read`). */
+        get: operations["people_recruitment_candidate_feedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/candidates/{id}/interview": {
         parameters: {
             query?: never;
@@ -17816,6 +17850,23 @@ export interface paths {
         put?: never;
         /** Record the interview (`people.staff.manage`; optional notes). */
         post: operations["people_recruitment_candidate_interview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Schedule an interview (`staff.manage`; Idempotency-Key). */
+        post: operations["people_recruitment_candidate_interview_schedule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -17873,6 +17924,43 @@ export interface paths {
         put?: never;
         /** Reject a candidate (`people.staff.manage`; reason required). */
         post: operations["people_recruitment_candidate_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/scorecards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record interview feedback (`staff.manage`; Idempotency-Key). Ratings are 1–5 on the rubric
+         *     in force, which the scorecard snapshots.
+         */
+        post: operations["people_recruitment_candidate_scorecard_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/screening-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Record a candidate's screening answers (`staff.manage`); stored with the question text. */
+        put: operations["people_recruitment_candidate_screening_answers"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -18465,6 +18553,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/institutions/{id}/feedback-due": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Interviews held before yesterday (within 14 days) with no scorecard, for candidates still in
+         *     play, newest first (`people.read`).
+         */
+        get: operations["people_recruitment_feedback_due"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/institutions/{id}/final-settlements": {
         parameters: {
             query?: never;
@@ -18475,6 +18583,27 @@ export interface paths {
         /** Final settlements of an institution (`people.read`). */
         get: operations["people_settlement_list"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/hiring-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hiring settings (`people.read`). */
+        get: operations["people_recruitment_hiring_settings_get"];
+        /**
+         * Save hiring settings (`staff.manage`). Entries without a safe id or a label / question text
+         *     are dropped, as Everything does.
+         */
+        put: operations["people_recruitment_hiring_settings_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -20454,6 +20583,46 @@ export interface paths {
         put?: never;
         /** Decide a pending requisition (`people.approve`, step-up; If-Match). Rejection returns it to draft. */
         post: operations["people_recruitment_requisition_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/requisitions/{id}/hiring-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a requisition's rubric and screening questions (`staff.manage`). A key left out keeps
+         *     what is stored; null clears it.
+         */
+        put: operations["people_recruitment_requisition_hiring_form"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/requisitions/{id}/scorecards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare a requisition's candidates on their feedback (`people.read`): leaning hire first,
+         *     then the higher average, then those with no feedback yet.
+         */
+        get: operations["people_recruitment_requisition_scorecards"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -31277,8 +31446,62 @@ export interface components {
             phone?: string | null;
             source?: string | null;
         };
+        /** @description A candidate's feedback file. */
+        CandidateFeedback: {
+            /** Format: uuid */
+            candidateId: string;
+            interviews: components["schemas"]["CandidateInterviewView"][];
+            name: string;
+            requisitionTitle: string;
+            rubric: components["schemas"]["HiringRatingField"][];
+            scorecards: components["schemas"]["ScorecardView"][];
+            screening: components["schemas"]["CandidateScreening"];
+            status: string;
+            summary: components["schemas"]["HiringScorecardSummary"];
+        };
+        /** @description Schedule an interview. */
+        CandidateInterviewInput: {
+            /** Format: date */
+            date: string;
+            /** @example 11:45 */
+            end: string;
+            /** @description A guide id; default: the best guide for the format and the candidate's stage. */
+            guideId?: string | null;
+            interviewers?: string[];
+            location?: string | null;
+            /** @example 11:00 */
+            start: string;
+            /** @description `phone | video | onsite`. */
+            type: string;
+        };
+        /** @description An interview. */
+        CandidateInterviewView: {
+            /** Format: uuid */
+            candidateId: string;
+            /** Format: date */
+            date: string;
+            end: string;
+            guide?: null | components["schemas"]["HiringGuide"];
+            /** @description Whether a scorecard is linked to it. */
+            hasScorecard: boolean;
+            /** Format: uuid */
+            id: string;
+            interviewers: string[];
+            location?: string | null;
+            start: string;
+            /** @description `scheduled | cancelled`. */
+            status: string;
+            type: string;
+        };
         CandidateList: {
             items: components["schemas"]["CandidateView"][];
+        };
+        /** @description Screening on a candidate. */
+        CandidateScreening: {
+            answers: components["schemas"]["HiringScreeningAnswer"][];
+            /** @description Must-have questions answered with something other than yes. */
+            mismatches: string[];
+            questions: components["schemas"]["HiringScreeningQuestion"][];
         };
         /**
          * @description 7A: candidate of a requisition.
@@ -35382,6 +35605,23 @@ export interface components {
             /** Format: int32 */
             versionNo: number;
         };
+        /** @description Feedback due. */
+        FeedbackDue: {
+            items: components["schemas"]["FeedbackDueRow"][];
+        };
+        /** @description An interview still owed feedback. */
+        FeedbackDueRow: {
+            /** Format: uuid */
+            candidateId: string;
+            candidateName: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            interviewId: string;
+            interviewers: string[];
+            requisitionTitle: string;
+            type: string;
+        };
         /** @description A single field-level validation failure (`validationErrors[]` in problem+json). */
         FieldViolation: {
             /** @description Stable machine-readable reason code. */
@@ -36617,6 +36857,90 @@ export interface components {
             checks?: components["schemas"]["CheckResult"][];
             /** @description `ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`. */
             status: string;
+        };
+        /** @description A requisition's hiring form. */
+        HiringForm: {
+            /** @description The requisition's own rubric (null = the institution's or the default). */
+            ratingFields?: components["schemas"]["HiringRatingField"][] | null;
+            /** Format: uuid */
+            requisitionId: string;
+            /** @description The rubric in force. */
+            rubric: components["schemas"]["HiringRatingField"][];
+            screeningQuestions: components["schemas"]["HiringScreeningQuestion"][];
+        };
+        /** @description The body of a hiring form (entries without a safe id or label are dropped). */
+        HiringFormInput: {
+            ratingFields?: components["schemas"]["HiringRatingField"][] | null;
+            screeningQuestions?: components["schemas"]["HiringScreeningQuestion"][] | null;
+        };
+        /** @description An interview guide. */
+        HiringGuide: {
+            id: string;
+            name: string;
+            questions: components["schemas"]["HiringGuideQuestion"][];
+            /** @description Pipeline stages it opens for. */
+            stages: string[];
+            /** @description Interview formats it opens for. */
+            types: string[];
+        };
+        /** @description An answer to a guide question, snapshotted with its text. */
+        HiringGuideAnswer: {
+            answer: string;
+            field?: string | null;
+            question: string;
+        };
+        /** @description A guide question. */
+        HiringGuideQuestion: {
+            /** @description The rubric key it feeds. */
+            field?: string | null;
+            id: string;
+            text: string;
+        };
+        /** @description A rating dimension. */
+        HiringRatingField: {
+            key: string;
+            label: string;
+        };
+        /** @description A panel's feedback rolled up. */
+        HiringScorecardSummary: {
+            /** Format: double */
+            average?: number | null;
+            /** @description Average per rubric key (null when nobody rated it). */
+            byField: {
+                [key: string]: number | null;
+            };
+            count: number;
+            /** @description `hire | no_hire | split`, null without scorecards. */
+            leaning?: string | null;
+            /** @description Count per recommendation. */
+            recommendations: {
+                [key: string]: number;
+            };
+        };
+        /** @description A candidate's answer, stored with the question's label. */
+        HiringScreeningAnswer: {
+            answer: string;
+            label: string;
+        };
+        /** @description A screening question on the application form. */
+        HiringScreeningQuestion: {
+            id: string;
+            /** @description `short | long | yesno | choice`. */
+            kind: string;
+            label: string;
+            /** @description A yes/no question that should be answered yes (a flag, never a filter). */
+            mustHave?: boolean;
+            options?: string[];
+            required: boolean;
+        };
+        /** @description Institution hiring settings: the default rubric and the interview guides. */
+        HiringSettings: {
+            guides: components["schemas"]["HiringGuide"][];
+            /**
+             * @description The institution's rubric; null = the default four (role skills, experience,
+             *     communication, collaboration).
+             */
+            ratingFields?: components["schemas"]["HiringRatingField"][] | null;
         };
         /** @description One status history entry (historical reconstruction, L3-F-019). */
         HistoryView: {
@@ -45729,6 +46053,63 @@ export interface components {
          * @enum {string}
          */
         ScopeKind: "institution" | "campus" | "org_unit" | "programme";
+        /** @description Candidates of a requisition side by side. */
+        ScorecardCompare: {
+            items: components["schemas"]["ScorecardCompareRow"][];
+            /** Format: uuid */
+            requisitionId: string;
+            rubric: components["schemas"]["HiringRatingField"][];
+        };
+        /** @description One candidate in a comparison. */
+        ScorecardCompareRow: {
+            /** Format: uuid */
+            candidateId: string;
+            name: string;
+            /** @description Must-have screening questions not answered yes. */
+            screeningFlags: number;
+            status: string;
+            summary: components["schemas"]["HiringScorecardSummary"];
+        };
+        /** @description Write a scorecard. */
+        ScorecardInput: {
+            /** @description The reviewer's name as it should read. */
+            authorName: string;
+            guideAnswers?: components["schemas"]["HiringGuideAnswer"][];
+            /**
+             * Format: uuid
+             * @description The interview it is for (optional).
+             */
+            interviewId?: string | null;
+            notes?: string | null;
+            /** @description Rubric key → 1–5 (or null when not rated). */
+            ratings?: Record<string, never>;
+            /** @description `strong_yes | yes | no | strong_no`. */
+            recommendation: string;
+        };
+        /** @description A scorecard. */
+        ScorecardView: {
+            authorName: string;
+            /** Format: double */
+            average?: number | null;
+            /** Format: uuid */
+            candidateId: string;
+            /** Format: date */
+            createdOn: string;
+            /** @description The rubric it was written with. */
+            fields: components["schemas"]["HiringRatingField"][];
+            guideAnswers: components["schemas"]["HiringGuideAnswer"][];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            interviewId?: string | null;
+            notes?: string | null;
+            ratings: Record<string, never>;
+            recommendation: string;
+        };
+        /** @description Screening answers. */
+        ScreeningAnswersInput: {
+            answers: components["schemas"]["HiringScreeningAnswer"][];
+        };
         /** @description One search hit. */
         SearchHit: {
             /** @description The projected document (`_source`). */
@@ -94988,6 +95369,33 @@ export interface operations {
             };
         };
     };
+    people_recruitment_candidate_interview_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_recruitment_candidate_get: {
         parameters: {
             query?: never;
@@ -95092,6 +95500,35 @@ export interface operations {
             };
         };
     };
+    people_recruitment_candidate_feedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateFeedback"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_recruitment_candidate_interview: {
         parameters: {
             query?: never;
@@ -95117,6 +95554,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_interview_schedule: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateInterviewInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateInterviewView"];
                 };
             };
             "4XX": {
@@ -95228,6 +95701,73 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CandidateView"];
                 };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_scorecard_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScorecardInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScorecardView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_candidate_screening_answers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreeningAnswersInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             "4XX": {
                 headers: {
@@ -96516,6 +97056,35 @@ export interface operations {
             };
         };
     };
+    people_recruitment_feedback_due: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackDue"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_settlement_list: {
         parameters: {
             query?: never;
@@ -96533,6 +97102,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FinalSettlementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_hiring_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_hiring_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringSettings"];
                 };
             };
             "4XX": {
@@ -100940,6 +101571,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RequisitionView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_requisition_hiring_form: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringFormInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringForm"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_requisition_scorecards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScorecardCompare"];
                 };
             };
             "4XX": {

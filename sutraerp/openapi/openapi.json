@@ -83635,6 +83635,47 @@
         ]
       }
     },
+    "/api/v1/people/candidate-interviews/{id}/cancel": {
+      "post": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Cancel an interview (`staff.manage`); a cancelled interview owes no feedback.",
+        "operationId": "people_recruitment_candidate_interview_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/people/candidates/{id}": {
       "get": {
         "tags": [
@@ -83837,6 +83878,53 @@
         ]
       }
     },
+    "/api/v1/people/candidates/{id}/feedback": {
+      "get": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "A candidate's interviews, scorecards, panel summary and screening (`people.read`).",
+        "operationId": "people_recruitment_candidate_feedback",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateFeedback"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/people/candidates/{id}/interview": {
       "post": {
         "tags": [
@@ -83888,6 +83976,73 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CandidateView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/candidates/{id}/interviews": {
+      "post": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Schedule an interview (`staff.manage`; Idempotency-Key).",
+        "operationId": "people_recruitment_candidate_interview_schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CandidateInterviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateInterviewView"
                 }
               }
             }
@@ -84112,6 +84267,124 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/candidates/{id}/scorecards": {
+      "post": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Record interview feedback (`staff.manage`; Idempotency-Key). Ratings are 1–5 on the rubric\nin force, which the scorecard snapshots.",
+        "operationId": "people_recruitment_candidate_scorecard_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScorecardInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/candidates/{id}/screening-answers": {
+      "put": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Record a candidate's screening answers (`staff.manage`); stored with the question text.",
+        "operationId": "people_recruitment_candidate_screening_answers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreeningAnswersInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
           },
           "4XX": {
             "description": "",
@@ -86581,6 +86854,53 @@
         ]
       }
     },
+    "/api/v1/people/institutions/{id}/feedback-due": {
+      "get": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Interviews held before yesterday (within 14 days) with no scorecard, for candidates still in\nplay, newest first (`people.read`).",
+        "operationId": "people_recruitment_feedback_due",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackDue"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/people/institutions/{id}/final-settlements": {
       "get": {
         "tags": [
@@ -86623,6 +86943,109 @@
         },
         "security": [
           {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/institutions/{id}/hiring-settings": {
+      "get": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Hiring settings (`people.read`).",
+        "operationId": "people_recruitment_hiring_settings_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Save hiring settings (`staff.manage`). Entries without a safe id or a label / question text\nare dropped, as Everything does.",
+        "operationId": "people_recruitment_hiring_settings_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HiringSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
             "session_cookie": []
           }
         ]
@@ -94918,6 +95341,111 @@
         "security": [
           {
             "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/requisitions/{id}/hiring-form": {
+      "put": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Set a requisition's rubric and screening questions (`staff.manage`). A key left out keeps\nwhat is stored; null clears it.",
+        "operationId": "people_recruitment_requisition_hiring_form",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HiringFormInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringForm"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/requisitions/{id}/scorecards": {
+      "get": {
+        "tags": [
+          "people-hr"
+        ],
+        "summary": "Compare a requisition's candidates on their feedback (`people.read`): leaning hire first,\nthen the higher average, then those with no feedback yet.",
+        "operationId": "people_recruitment_requisition_scorecards",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardCompare"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
             "session_cookie": []
           }
         ]
@@ -145877,6 +146405,175 @@
           }
         }
       },
+      "CandidateFeedback": {
+        "type": "object",
+        "description": "A candidate's feedback file.",
+        "required": [
+          "candidateId",
+          "name",
+          "status",
+          "requisitionTitle",
+          "rubric",
+          "interviews",
+          "scorecards",
+          "summary",
+          "screening"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateInterviewView"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "requisitionTitle": {
+            "type": "string"
+          },
+          "rubric": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringRatingField"
+            }
+          },
+          "scorecards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardView"
+            }
+          },
+          "screening": {
+            "$ref": "#/components/schemas/CandidateScreening"
+          },
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/HiringScorecardSummary"
+          }
+        }
+      },
+      "CandidateInterviewInput": {
+        "type": "object",
+        "description": "Schedule an interview.",
+        "required": [
+          "type",
+          "date",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "example": "11:45"
+          },
+          "guideId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A guide id; default: the best guide for the format and the candidate's stage."
+          },
+          "interviewers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start": {
+            "type": "string",
+            "example": "11:00"
+          },
+          "type": {
+            "type": "string",
+            "description": "`phone | video | onsite`."
+          }
+        }
+      },
+      "CandidateInterviewView": {
+        "type": "object",
+        "description": "An interview.",
+        "required": [
+          "id",
+          "candidateId",
+          "type",
+          "date",
+          "start",
+          "end",
+          "interviewers",
+          "status",
+          "hasScorecard"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string"
+          },
+          "guide": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HiringGuide"
+              }
+            ]
+          },
+          "hasScorecard": {
+            "type": "boolean",
+            "description": "Whether a scorecard is linked to it."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interviewers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "`scheduled | cancelled`."
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
       "CandidateList": {
         "type": "object",
         "required": [
@@ -145887,6 +146584,36 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CandidateView"
+            }
+          }
+        }
+      },
+      "CandidateScreening": {
+        "type": "object",
+        "description": "Screening on a candidate.",
+        "required": [
+          "questions",
+          "answers",
+          "mismatches"
+        ],
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringScreeningAnswer"
+            }
+          },
+          "mismatches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Must-have questions answered with something other than yes."
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringScreeningQuestion"
             }
           }
         }
@@ -158869,6 +159596,63 @@
           }
         }
       },
+      "FeedbackDue": {
+        "type": "object",
+        "description": "Feedback due.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedbackDueRow"
+            }
+          }
+        }
+      },
+      "FeedbackDueRow": {
+        "type": "object",
+        "description": "An interview still owed feedback.",
+        "required": [
+          "interviewId",
+          "candidateId",
+          "candidateName",
+          "requisitionTitle",
+          "date",
+          "type",
+          "interviewers"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "interviewId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interviewers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitionTitle": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
       "FieldViolation": {
         "type": "object",
         "description": "A single field-level validation failure (`validationErrors[]` in problem+json).",
@@ -162711,6 +163495,298 @@
           "status": {
             "type": "string",
             "description": "`ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`."
+          }
+        }
+      },
+      "HiringForm": {
+        "type": "object",
+        "description": "A requisition's hiring form.",
+        "required": [
+          "requisitionId",
+          "rubric",
+          "screeningQuestions"
+        ],
+        "properties": {
+          "ratingFields": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/HiringRatingField"
+            },
+            "description": "The requisition's own rubric (null = the institution's or the default)."
+          },
+          "requisitionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rubric": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringRatingField"
+            },
+            "description": "The rubric in force."
+          },
+          "screeningQuestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringScreeningQuestion"
+            }
+          }
+        }
+      },
+      "HiringFormInput": {
+        "type": "object",
+        "description": "The body of a hiring form (entries without a safe id or label are dropped).",
+        "properties": {
+          "ratingFields": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/HiringRatingField"
+            }
+          },
+          "screeningQuestions": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/HiringScreeningQuestion"
+            }
+          }
+        }
+      },
+      "HiringGuide": {
+        "type": "object",
+        "description": "An interview guide.",
+        "required": [
+          "id",
+          "name",
+          "questions",
+          "types",
+          "stages"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringGuideQuestion"
+            }
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Pipeline stages it opens for."
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Interview formats it opens for."
+          }
+        }
+      },
+      "HiringGuideAnswer": {
+        "type": "object",
+        "description": "An answer to a guide question, snapshotted with its text.",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "question": {
+            "type": "string"
+          }
+        }
+      },
+      "HiringGuideQuestion": {
+        "type": "object",
+        "description": "A guide question.",
+        "required": [
+          "id",
+          "text"
+        ],
+        "properties": {
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The rubric key it feeds."
+          },
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "HiringRatingField": {
+        "type": "object",
+        "description": "A rating dimension.",
+        "required": [
+          "key",
+          "label"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "HiringScorecardSummary": {
+        "type": "object",
+        "description": "A panel's feedback rolled up.",
+        "required": [
+          "count",
+          "byField",
+          "recommendations"
+        ],
+        "properties": {
+          "average": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "byField": {
+            "type": "object",
+            "description": "Average per rubric key (null when nobody rated it).",
+            "additionalProperties": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "leaning": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`hire | no_hire | split`, null without scorecards."
+          },
+          "recommendations": {
+            "type": "object",
+            "description": "Count per recommendation.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "HiringScreeningAnswer": {
+        "type": "object",
+        "description": "A candidate's answer, stored with the question's label.",
+        "required": [
+          "label",
+          "answer"
+        ],
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "HiringScreeningQuestion": {
+        "type": "object",
+        "description": "A screening question on the application form.",
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "required"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`short | long | yesno | choice`."
+          },
+          "label": {
+            "type": "string"
+          },
+          "mustHave": {
+            "type": "boolean",
+            "description": "A yes/no question that should be answered yes (a flag, never a filter)."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "HiringSettings": {
+        "type": "object",
+        "description": "Institution hiring settings: the default rubric and the interview guides.",
+        "required": [
+          "guides"
+        ],
+        "properties": {
+          "guides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringGuide"
+            }
+          },
+          "ratingFields": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/HiringRatingField"
+            },
+            "description": "The institution's rubric; null = the default four (role skills, experience,\ncommunication, collaboration)."
           }
         }
       },
@@ -191320,6 +192396,191 @@
           "org_unit",
           "programme"
         ]
+      },
+      "ScorecardCompare": {
+        "type": "object",
+        "description": "Candidates of a requisition side by side.",
+        "required": [
+          "requisitionId",
+          "rubric",
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardCompareRow"
+            }
+          },
+          "requisitionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rubric": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringRatingField"
+            }
+          }
+        }
+      },
+      "ScorecardCompareRow": {
+        "type": "object",
+        "description": "One candidate in a comparison.",
+        "required": [
+          "candidateId",
+          "name",
+          "status",
+          "summary",
+          "screeningFlags"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "screeningFlags": {
+            "type": "integer",
+            "description": "Must-have screening questions not answered yes.",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/HiringScorecardSummary"
+          }
+        }
+      },
+      "ScorecardInput": {
+        "type": "object",
+        "description": "Write a scorecard.",
+        "required": [
+          "authorName",
+          "recommendation"
+        ],
+        "properties": {
+          "authorName": {
+            "type": "string",
+            "description": "The reviewer's name as it should read."
+          },
+          "guideAnswers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringGuideAnswer"
+            }
+          },
+          "interviewId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The interview it is for (optional)."
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ratings": {
+            "type": "object",
+            "description": "Rubric key → 1–5 (or null when not rated)."
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "`strong_yes | yes | no | strong_no`."
+          }
+        }
+      },
+      "ScorecardView": {
+        "type": "object",
+        "description": "A scorecard.",
+        "required": [
+          "id",
+          "candidateId",
+          "authorName",
+          "recommendation",
+          "ratings",
+          "fields",
+          "guideAnswers",
+          "createdOn"
+        ],
+        "properties": {
+          "authorName": {
+            "type": "string"
+          },
+          "average": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringRatingField"
+            },
+            "description": "The rubric it was written with."
+          },
+          "guideAnswers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringGuideAnswer"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interviewId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ratings": {
+            "type": "object"
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        }
+      },
+      "ScreeningAnswersInput": {
+        "type": "object",
+        "description": "Screening answers.",
+        "required": [
+          "answers"
+        ],
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringScreeningAnswer"
+            }
+          }
+        }
       },
       "SearchHit": {
         "type": "object",
