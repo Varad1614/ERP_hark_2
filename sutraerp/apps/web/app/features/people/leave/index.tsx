@@ -21,6 +21,7 @@ import { fieldErrors, problemText, StatusBadge, statusLabel, useCommand } from "
 import { Acts, days, hours, splitActions, useAsk, type RowAction } from "../ui";
 import type { Institution } from "../../institution/types";
 import { lkeys, useLeaveApi } from "./hooks";
+import { DutyRosterTile } from "../roster/DutyRosterTile";
 import type { AttendanceGridRow, LeaveBalance, LeavePolicy, LeaveRequest, LeaveType, StaffRow } from "./types";
 
 export { LeaveApiProvider } from "./hooks";
@@ -837,6 +838,7 @@ export function AttendanceAdminTab({ institution }: { institution: Institution |
     <>
       <AttendanceTile institutionId={institution.id} />
       <LongLeaveTile institutionId={institution.id} span={12} />
+      <DutyRosterTile institutionId={institution.id} />
     </>
   );
 }
