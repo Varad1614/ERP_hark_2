@@ -20,6 +20,7 @@ import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { ledger, rowActions, useFinanceAsk } from "../ui";
 import { lkeys, useLedgerApi } from "./hooks";
+import { BankReconcileTile } from "./bank-reconcile";
 import { FinancialStatementsTile } from "./financial-statements";
 import { StatementFileImport } from "./statement-file";
 import type { FinancialYear, ManualJournal, Period } from "./types";
@@ -515,6 +516,7 @@ export function TreasuryAdminTab({ institution }: { institution: Institution | n
           />
         )}
       </BentoTile>
+      {bank && <BankReconcileTile institutionId={inst} bankAccountId={bank} />}
       <BentoTile span={12} title="Bank transactions" data-bank-transactions>
         <DataTable
           caption="Bank transactions"

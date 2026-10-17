@@ -9,6 +9,13 @@ import { getCsrfToken } from "../../../lib/api";
 import { fill } from "../../institution/api";
 import type {
   BankAccount,
+  BankRecon,
+  BankReconDiscrepancy,
+  BankReconInput,
+  BankReconSummary,
+  BankReconWorkspace,
+  Brs,
+  LineSuggestion,
   BankTransaction,
   CashPosition,
   FinancialStatement,
@@ -63,6 +70,15 @@ export interface LedgerApi {
   previewStatement(bankAccountId: string, input: { content: string; periodFrom?: string; periodTo?: string } & StatementFileOptions): Promise<StatementPreview>;
   reconcileStatement(id: string, version: number): Promise<Statement>;
   cashPosition(institutionId: string): Promise<CashPosition>;
+  // ERP_EXTENSIONS 1B: reconcile against the statement balance, BRS, suggestions
+  reconWorkspace(bankAccountId: string, statementDate?: string): Promise<BankReconWorkspace>;
+  reconPreview(bankAccountId: string, input: BankReconInput): Promise<BankReconSummary>;
+  reconFinish(bankAccountId: string, input: BankReconInput): Promise<BankRecon>;
+  reconHistory(bankAccountId: string): Promise<BankRecon[]>;
+  reconUndo(bankAccountId: string, reconciliationId: string): Promise<BankRecon>;
+  brs(bankAccountId: string, asOf?: string): Promise<Brs>;
+  reconDiscrepancies(institutionId: string): Promise<BankReconDiscrepancy[]>;
+  lineSuggestions(statementId: string, lineId: string): Promise<LineSuggestion[]>;
 }
 
 const B = "/api/v1/finance";
@@ -95,6 +111,13 @@ export const PATHS = {
   statement: `${B}/bank-statements/{id}`,
   reconcile: `${B}/bank-statements/{id}/reconcile`,
   cash: `${B}/institutions/{id}/cash-position`,
+  reconWorkspace: `${B}/bank-accounts/{id}/reconciliation`,
+  reconPreview: `${B}/bank-accounts/{id}/reconciliation/preview`,
+  reconList: `${B}/bank-accounts/{id}/reconciliations`,
+  reconUndo: `${B}/bank-accounts/{id}/reconciliations/undo-last`,
+  brs: `${B}/bank-accounts/{id}/brs`,
+  reconDiscrepancies: `${B}/institutions/{id}/bank-reconciliation-discrepancies`,
+  lineSuggestions: `${B}/bank-statements/{id}/lines/{lineId}/suggestions`,
 } as const satisfies Record<string, keyof paths>;
 
 const YEAR_CMD: Record<YearCommand, string> = { open: PATHS.yOpen, close: PATHS.yClose, archive: PATHS.yArchive };
@@ -169,5 +192,13 @@ export function createHttpLedgerApi(fetchImpl: Fetch = (i, init) => fetch(i, ini
     previewStatement: (bank, input) => request("POST", fill(PATHS.statementPreview, { id: bank }), { body: input }),
     reconcileStatement: (id, v) => request("POST", fill(PATHS.reconcile, { id }), { body: {}, ifMatch: v }),
     cashPosition: (inst) => request("GET", fill(PATHS.cash, { id: inst })),
+    reconWorkspace: (bank, date) => request("GET", fill(PATHS.reconWorkspace, { id: bank }) + (date ? `?statementDate=${encodeURIComponent(date)}` : "")),
+    reconPreview: (bank, input) => request("POST", fill(PATHS.reconPreview, { id: bank }), { body: input }),
+    reconFinish: (bank, input) => request("POST", fill(PATHS.reconList, { id: bank }), { body: input, idempotent: true }),
+    reconHistory: (bank) => items(fill(PATHS.reconList, { id: bank })),
+    reconUndo: (bank, reconciliationId) => request("POST", fill(PATHS.reconUndo, { id: bank }), { body: { reconciliationId }, idempotent: true }),
+    brs: (bank, asOf) => request("GET", fill(PATHS.brs, { id: bank }) + (asOf ? `?asOf=${encodeURIComponent(asOf)}` : "")),
+    reconDiscrepancies: (inst) => items(fill(PATHS.reconDiscrepancies, { id: inst })),
+    lineSuggestions: (statement, lineId) => items(fill(PATHS.lineSuggestions, { id: statement, lineId })),
   };
 }

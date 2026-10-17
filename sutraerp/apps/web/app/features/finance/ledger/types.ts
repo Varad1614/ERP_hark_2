@@ -293,3 +293,109 @@ export interface StatementParams {
   comparePreviousYear?: boolean;
   ledgerAccountId?: string;
 }
+
+// ------------------------------------------------------------------ ERP_EXTENSIONS 1B
+
+export interface BankRecon {
+  id: string;
+  bankAccountId: string;
+  statementDate: string;
+  beginningBalance: string;
+  endingBalance: string;
+  clearedCount: number;
+  status: "done" | "undone";
+  note?: string | null;
+  finishedBy?: string | null;
+  finishedAt: string;
+  undoneBy?: string | null;
+  undoneAt?: string | null;
+}
+
+export interface BankReconItem {
+  journalEntryId: string;
+  entryNumber: string;
+  postingDate: string;
+  description: string;
+  /** Money in positive, out negative. */
+  amount: string;
+  /** Shown by the bank on an imported statement: pre-ticked. */
+  cleared: boolean;
+}
+
+export interface BankReconWorkspace {
+  bankAccountId: string;
+  statementDate: string;
+  beginningBalance: string;
+  statementClosingBalance?: string | null;
+  lastReconciliation?: BankRecon | null;
+  items: BankReconItem[];
+}
+
+export interface BankReconInput {
+  statementDate: string;
+  endingBalance: string;
+  journalEntryIds: string[];
+  note?: string;
+}
+
+export interface BankReconSummary {
+  statementDate: string;
+  beginningBalance: string;
+  increases: string;
+  decreases: string;
+  increaseCount: number;
+  decreaseCount: number;
+  clearedBalance: string;
+  endingBalance: string;
+  difference: string;
+  balanced: boolean;
+}
+
+export interface BrsItem {
+  date: string;
+  reference?: string | null;
+  description?: string | null;
+  amount: string;
+  journalEntryId?: string | null;
+  statementLineId?: string | null;
+}
+
+export interface Brs {
+  bankAccountId: string;
+  asOf: string;
+  bookBalance: string;
+  issuedNotPresented: string;
+  depositedNotCredited: string;
+  bankCreditsNotBooked: string;
+  bankDebitsNotBooked: string;
+  bankBalance: string;
+  statementBalance?: string | null;
+  difference?: string | null;
+  issued: BrsItem[];
+  deposited: BrsItem[];
+  bankCredits: BrsItem[];
+  bankDebits: BrsItem[];
+}
+
+export interface BankReconDiscrepancy {
+  reconciliationId: string;
+  bankAccountId: string;
+  bankAccountName: string;
+  statementDate: string;
+  journalEntryId: string;
+  entryNumber?: string | null;
+  postingDate?: string | null;
+  reconciledAmount: string;
+  currentAmount: string;
+  change: string;
+}
+
+export interface LineSuggestion {
+  kind: "entry" | "charge";
+  id: string;
+  number: string;
+  description: string;
+  date: string;
+  amount: string;
+  daysApart: number;
+}

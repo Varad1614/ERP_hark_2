@@ -5,7 +5,7 @@
  */
 import { ApiProblem } from "@sutra/api-client";
 import type { LedgerApi } from "./api";
-import type { BankAccount, FinancialYear, JournalEntry, LedgerAccount, ManualJournal, Period, Reconciliation, Statement } from "./types";
+import type { BankAccount, BankRecon, FinancialYear, JournalEntry, LedgerAccount, ManualJournal, Period, Reconciliation, Statement } from "./types";
 
 export const toPaise = (s: string): bigint => {
   const neg = s.startsWith("-");
@@ -41,6 +41,8 @@ export function createMockLedgerApi(): LedgerApi {
   const journals: (ManualJournal & { inst: string })[] = [];
   const years: (FinancialYear & { inst: string })[] = [];
   const banks: (BankAccount & { inst: string })[] = [];
+  const recons: BankRecon[] = [];
+  const reconEntries = new Map<string, string[]>();
   const statements: Statement[] = [];
   const recs: (Reconciliation & { inst: string })[] = [];
   const chart = (inst: string) => {
@@ -80,7 +82,7 @@ export function createMockLedgerApi(): LedgerApi {
     const c = rows.reduce((s, r) => s + toPaise(r.credit), 0n);
     return { asOf, rows, totalDebit: fromPaise(d), totalCredit: fromPaise(c), balanced: d === c };
   };
-  return {
+  const api: LedgerApi = {
     accounts: async (inst) => chart(inst),
     createAccount: async (inst, input) => {
       const c = chart(inst);
@@ -216,12 +218,56 @@ export function createMockLedgerApi(): LedgerApi {
       s.version += 1;
       return s;
     },
+    // ERP_EXTENSIONS 1B: every entry touching a bank's ledger account is a candidate.
+    reconWorkspace: async (bank, date) => {
+      const b = banks.find((x) => x.id === bank)!;
+      const done = recons.filter((r) => r.bankAccountId === bank && r.status === "done");
+      const taken = new Set(done.flatMap((r) => reconEntries.get(r.id) ?? []));
+      const statementDate = date ?? new Date().toISOString().slice(0, 10);
+      const items = entries
+        .filter((e) => e.postingDate <= statementDate && !taken.has(e.id))
+        .map((e) => {
+          const v = e.lines.filter((l) => l.ledgerAccountId === b.ledgerAccountId).reduce((s, l) => s + toPaise(l.debit) - toPaise(l.credit), 0n);
+          return { journalEntryId: e.id, entryNumber: e.entryNumber, postingDate: e.postingDate, description: e.description, amount: fromPaise(v), cleared: false };
+        })
+        .filter((i) => i.amount !== "0.00");
+      const beginning = fromPaise(done.reduce((s, r) => s + toPaise(r.endingBalance) - toPaise(r.beginningBalance), 0n));
+      return { bankAccountId: bank, statementDate, beginningBalance: beginning, statementClosingBalance: null, lastReconciliation: done[0] ?? null, items };
+    },
+    reconPreview: async () => {
+      throw conflict("preview is computed in the browser in mock mode");
+    },
+    reconFinish: async (bank, input) => {
+      const w = await api.reconWorkspace(bank, input.statementDate);
+      const sum = w.items.filter((i) => input.journalEntryIds.includes(i.journalEntryId)).reduce((s, i) => s + toPaise(i.amount), toPaise(w.beginningBalance));
+      if (sum !== toPaise(input.endingBalance)) throw conflict("the cleared balance differs from the ending balance");
+      const r: BankRecon = { id: nid("rec"), bankAccountId: bank, statementDate: input.statementDate, beginningBalance: w.beginningBalance, endingBalance: fromPaise(toPaise(input.endingBalance)), clearedCount: input.journalEntryIds.length, status: "done", finishedAt: new Date().toISOString() };
+      recons.unshift(r);
+      reconEntries.set(r.id, [...input.journalEntryIds]);
+      return r;
+    },
+    reconHistory: async (bank) => recons.filter((r) => r.bankAccountId === bank),
+    reconUndo: async (bank, id) => {
+      const last = recons.find((r) => r.bankAccountId === bank && r.status === "done");
+      if (!last || last.id !== id) throw conflict("only the latest reconciliation can be undone");
+      last.status = "undone";
+      last.undoneAt = new Date().toISOString();
+      return last;
+    },
+    brs: async (bank, asOf) => {
+      const b = banks.find((x) => x.id === bank)!;
+      const book = chart(b.inst).find((a) => a.id === b.ledgerAccountId)?.balance ?? "0.00";
+      return { bankAccountId: bank, asOf: asOf ?? new Date().toISOString().slice(0, 10), bookBalance: book, issuedNotPresented: "0.00", depositedNotCredited: "0.00", bankCreditsNotBooked: "0.00", bankDebitsNotBooked: "0.00", bankBalance: book, statementBalance: null, difference: null, issued: [], deposited: [], bankCredits: [], bankDebits: [] };
+    },
+    reconDiscrepancies: async () => [],
+    lineSuggestions: async () => [],
     cashPosition: async (inst) => {
       const rows = banks.filter((b) => b.inst === inst).map((b) => ({ kind: "bank", bankAccountId: b.id, name: b.name, ledgerAccountCode: b.ledgerAccountCode, balance: chart(inst).find((a) => a.id === b.ledgerAccountId)?.balance ?? "0.00", unreconciledLines: 0 }));
       const total = fromPaise(rows.reduce((s, r) => s + toPaise(r.balance), 0n));
       return { asOf: new Date().toISOString().slice(0, 10), rows, available: total, inTransit: "0.00", total };
     },
-  };
+    };
+  return api;
 }
 
 /** Mock-only reader for `Date,Narration,Amount` CSV with ISO dates (the server does the real parsing). */
