@@ -266,7 +266,7 @@ export function createMockLedgerApi(): LedgerApi {
       const total = fromPaise(rows.reduce((s, r) => s + toPaise(r.balance), 0n));
       return { asOf: new Date().toISOString().slice(0, 10), rows, available: total, inTransit: "0.00", total };
     },
-    };
+  };
   return api;
 }
 
