@@ -8,6 +8,8 @@
 //!   (draft → submit → approval through the WorkflowPort → posting), trial balance,
 //!   receivables reconciliation.
 //! * [`trial`] — the trial balance computation (also snapshotted by the period close).
+//! * [`statements`] / [`statements_http`] — ERP_EXTENSIONS 1C financial statements (income &
+//!   expenditure, balance sheet, cash flow, general ledger; ported from Everything, MIT).
 //! * [`common`] — helpers shared by the 5C areas (`periods`, `treasury` use them too).
 //!
 //! The ledger has ONE write path: `shared::posting::{post, reverse}`.
@@ -16,6 +18,7 @@ pub mod accounts;
 pub mod common;
 pub mod journals;
 pub mod statements;
+pub mod statements_http;
 pub mod trial;
 
 use crate::shared::FinanceState;
@@ -32,6 +35,10 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
             accounts::ledger_account_get,
             accounts::ledger_account_update
         ))
+        .routes(routes!(statements_http::income_expenditure_get))
+        .routes(routes!(statements_http::balance_sheet_get))
+        .routes(routes!(statements_http::cash_flow_get))
+        .routes(routes!(statements_http::general_ledger_get))
         .routes(routes!(journals::journal_list))
         .routes(routes!(journals::journal_get))
         .routes(routes!(journals::journal_reverse))

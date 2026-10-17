@@ -524,6 +524,27 @@ impl Books {
 
 // ---------------------------------------------------------------------------- rows
 
+fn money(d: Decimal) -> String {
+    let d = if d.is_zero() { Decimal::ZERO } else { d };
+    format!("{:.2}", d.round_dp(2))
+}
+
+fn cell<S: serde::Serializer>(v: &Option<Decimal>, s: S) -> Result<S::Ok, S::Error> {
+    match v {
+        Some(d) => s.serialize_some(&money(*d)),
+        None => s.serialize_none(),
+    }
+}
+
+fn cells<S: serde::Serializer>(v: &[Option<Decimal>], s: S) -> Result<S::Ok, S::Error> {
+    use serde::ser::SerializeSeq;
+    let mut seq = s.serialize_seq(Some(v.len()))?;
+    for x in v {
+        seq.serialize_element(&x.map(money))?;
+    }
+    seq.end()
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RowKind {
@@ -546,6 +567,7 @@ pub struct StatementRow {
     pub depth: u32,
     /// One cell per column; `null` = blank. Decimal strings (percent cells: basis points).
     #[schema(value_type = Vec<Option<String>>)]
+    #[serde(serialize_with = "cells")]
     pub values: Vec<Option<Decimal>>,
     pub account_id: Option<Uuid>,
     pub emphasis: bool,
@@ -717,8 +739,10 @@ pub struct Statement {
     pub subtitle: String,
     pub columns: Vec<Column>,
     pub rows: Vec<StatementRow>,
-    /// Surplus of the period (income & expenditure, first column when comparing).
+    /// Surplus of the period (income & expenditure, first column when comparing) or the net
+    /// cash change (cash flow).
     #[schema(value_type = Option<String>)]
+    #[serde(serialize_with = "cell")]
     pub net: Option<Decimal>,
     /// Balance sheet: assets = funds + liabilities in every column.
     pub balanced: Option<bool>,
