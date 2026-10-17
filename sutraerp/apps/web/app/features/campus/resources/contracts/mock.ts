@@ -135,7 +135,7 @@ export function createMockContractsApi(today: string = iso(Date.now())): Contrac
       const inr = active.reduce((s, c) => s + c.annualValue, 0);
       return {
         today,
-        stats: { active: active.length, expiring60: active.filter((c) => c.renewal.daysLeft !== null && c.renewal.daysLeft <= 60).length, openObligations: obligations.filter((o) => !o.done).length, expired: all.filter((c) => c.renewal.phase === "expired").length, annualByCurrency: inr ? { INR: inr } : {} },
+        stats: { active: active.length, expiring60: active.filter((c) => c.renewal.daysLeft !== null && c.renewal.daysLeft <= 60).length, openObligations: obligations.filter((o) => !o.done).length, expired: all.filter((c) => c.renewal.phase === "expired").length, annualByCurrency: (inr ? { INR: inr } : {}) as Record<string, number> },
         attention: all.filter((c) => c.attention),
         upcoming: all.filter((c) => c.renewal.daysLeft !== null && c.renewal.daysLeft >= 0 && c.renewal.daysLeft <= settings.soonDays),
         dueObligations: obligations.filter((o) => !o.done && o.daysLeft !== null && o.daysLeft <= settings.obligationDays)
