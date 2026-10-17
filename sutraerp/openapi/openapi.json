@@ -99735,6 +99735,582 @@
         ]
       }
     },
+    "/api/v1/resources/contract-activities/{id}": {
+      "delete": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Remove an activity (`resources.procurement.manage`).",
+        "operationId": "resources_contract_activity_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/contract-obligations/{id}": {
+      "put": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Change an obligation (`resources.procurement.manage`; `version` required). A repeating one\nkeeps its anchor whenever it still puts the due date where it is.",
+        "operationId": "resources_contract_obligation_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractObligationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractObligationView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Remove an obligation (`resources.procurement.manage`).",
+        "operationId": "resources_contract_obligation_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/contract-obligations/{id}/complete": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Tick off the live occurrence (`resources.procurement.manage`): a repeating obligation moves\nto its next occurrence, or finishes when the series is over.",
+        "operationId": "resources_contract_obligation_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractObligationView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/contract-obligations/{id}/undo": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Undo the last completion (`resources.procurement.manage`).",
+        "operationId": "resources_contract_obligation_undo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractObligationView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/contracts/{id}": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "A contract with its obligations, terms and activities (`resources.read`).",
+        "operationId": "resources_contract_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetail"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Change a contract (`resources.procurement.manage`; `version` required). A recorded decision\nstays with the term end it answered; a finished series the change gives room again resumes.",
+        "operationId": "resources_contract_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetail"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/contracts/{id}/activities": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Record an activity (`resources.procurement.manage`; Idempotency-Key). It cannot be dated in\nthe future, nor before the agreement started.",
+        "operationId": "resources_contract_activity_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractActivityInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractActivityView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/contracts/{id}/calendar.ics": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "One contract's deadlines as an iCalendar file (`resources.read`).",
+        "operationId": "resources_contract_calendar_one",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/calendar": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/contracts/{id}/decision": {
+      "put": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Record (or clear) the decision about the contract's next term end\n(`resources.procurement.manage`). It answers that term end only; once the term is over it\nstops applying.",
+        "operationId": "resources_contract_decision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractDecisionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetail"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/contracts/{id}/obligations": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Add an obligation (`resources.procurement.manage`; Idempotency-Key).",
+        "operationId": "resources_contract_obligation_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractObligationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractObligationView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/resources/goods-receipts/{id}": {
       "get": {
         "tags": [
@@ -100137,6 +100713,401 @@
         ]
       }
     },
+    "/api/v1/resources/institutions/{id}/contract-dashboard": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Dashboard (`resources.read`). Values are totalled per currency, never across currencies.",
+        "operationId": "resources_contract_dashboard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDashboard"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/contract-settings": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Contract settings (`resources.read`; defaults until saved).",
+        "operationId": "resources_contract_settings_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Save contract settings (`resources.procurement.manage`; audited).",
+        "operationId": "resources_contract_settings_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/contracts": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Contracts and MoUs of an institution, soonest term end first (`resources.read`).",
+        "operationId": "resources_contract_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "A kind, or `mou` for every MoU.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attention",
+            "in": "query",
+            "description": "Only the contracts waiting on a decision.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Matches title, counterparty, tags and notes.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractView"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Add a contract or MoU (`resources.procurement.manage`; Idempotency-Key).",
+        "operationId": "resources_contract_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetail"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/contracts/calendar.ics": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Every deadline of the contract book as an iCalendar file (`resources.read`): notice\ndeadlines, term ends and the next renewals, and dated obligations, with reminders.",
+        "operationId": "resources_contract_calendar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/calendar": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/contracts/reconcile-terms": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Bring the book up to date (`resources.procurement.manage`): finished terms are recorded once\neach, a contract whose notice was given closes on that term end instead of rolling forward,\nand a decision about a term the contract has moved past is cleared. Safe to repeat.",
+        "operationId": "resources_contract_reconcile_terms",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractReconcileResult"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/resources/institutions/{id}/goods-receipts": {
       "get": {
         "tags": [
@@ -100313,6 +101284,62 @@
         "security": [
           {
             "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/mou-evidence": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Functional MoUs and their activities for an AQAR year (`resources.read`): the evidence NAAC\ncriterion 3.7 asks for (MoUs with institutions and industries, in India and abroad, for\ninternships, on-the-job training, project work, exchanges and collaborative research).",
+        "operationId": "resources_contract_mou_evidence",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "description": "AQAR year, e.g. `2025-26` (1 July – 30 June); default the year containing today.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MouEvidence"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
             "session_cookie": []
           }
         ]
@@ -149401,6 +150428,785 @@
           "other"
         ]
       },
+      "ContractActivityInput": {
+        "type": "object",
+        "description": "An activity under an MoU or contract.",
+        "required": [
+          "heldOn",
+          "kind",
+          "title"
+        ],
+        "properties": {
+          "evidenceRef": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where the evidence is kept (a document reference or link)."
+          },
+          "heldOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`internship`, `on_job_training`, `project_work`, `student_exchange`, `faculty_exchange`,\n`collaborative_research`, `workshop`, `training`, `consultancy`, `placement`,\n`publication`, `other`."
+          },
+          "outcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "staff": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "students": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ContractActivityView": {
+        "type": "object",
+        "description": "Something that happened under a contract or MoU.",
+        "required": [
+          "id",
+          "contractId",
+          "heldOn",
+          "kind",
+          "title",
+          "students",
+          "staff"
+        ],
+        "properties": {
+          "contractId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evidenceRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "heldOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "staff": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "students": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ContractDashboard": {
+        "type": "object",
+        "description": "The contract book at a glance.",
+        "required": [
+          "today",
+          "stats",
+          "attention",
+          "upcoming",
+          "dueObligations"
+        ],
+        "properties": {
+          "attention": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractView"
+            },
+            "description": "Waiting on a decision (notice window open or past the end), soonest first."
+          },
+          "dueObligations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractDueObligation"
+            },
+            "description": "Open obligations overdue or due within the obligation horizon, most urgent first."
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ContractStats"
+          },
+          "today": {
+            "type": "string",
+            "format": "date"
+          },
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractView"
+            },
+            "description": "Term ends within the \"soon\" horizon."
+          }
+        }
+      },
+      "ContractDecisionInput": {
+        "type": "object",
+        "description": "A renewal decision.",
+        "properties": {
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`notice-given`, `renewing`, `not-renewing`, `snoozed`; null clears the decision."
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Required for `snoozed`: the day the snooze stops holding."
+          }
+        }
+      },
+      "ContractDetail": {
+        "type": "object",
+        "description": "A contract with its obligations, term history and activities.",
+        "required": [
+          "contract",
+          "obligations",
+          "terms",
+          "activities"
+        ],
+        "properties": {
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractActivityView"
+            }
+          },
+          "contract": {
+            "$ref": "#/components/schemas/ContractView"
+          },
+          "obligations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractObligationView"
+            }
+          },
+          "terms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractTermView"
+            }
+          }
+        }
+      },
+      "ContractDueObligation": {
+        "type": "object",
+        "description": "An obligation due soon, with its contract.",
+        "required": [
+          "obligation",
+          "contractTitle",
+          "counterpartyName"
+        ],
+        "properties": {
+          "contractTitle": {
+            "type": "string"
+          },
+          "counterpartyName": {
+            "type": "string"
+          },
+          "obligation": {
+            "$ref": "#/components/schemas/ContractObligationView"
+          }
+        }
+      },
+      "ContractInput": {
+        "type": "object",
+        "description": "A contract or MoU as written.",
+        "required": [
+          "title",
+          "kind"
+        ],
+        "properties": {
+          "autoRenew": {
+            "type": "boolean"
+          },
+          "billing": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contactEmail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contactName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contactPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "counterpartyName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "counterpartyScope": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`national` (default) or `international`."
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO code, default `INR`."
+          },
+          "endOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "noticeDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Days of notice to cancel before a term end (default from settings)."
+          },
+          "purposes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Default `active`."
+          },
+          "supplierId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "A registered supplier (its legal name is the counterparty unless one is given)."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "termMonths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Renewal term (1…120 months; default 12)."
+          },
+          "title": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Money as a string (`\"120000.00\"`)."
+          },
+          "version": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Required on update."
+          }
+        }
+      },
+      "ContractObligationInput": {
+        "type": "object",
+        "description": "An obligation as written.",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "dueOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`us` (default), `them` or `mutual`."
+          },
+          "repeat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RepeatInput",
+                "description": "Monthly / quarterly / annually, ending at a date, after a count, or with the contract."
+              }
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "version": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Required on update."
+          }
+        }
+      },
+      "ContractObligationView": {
+        "type": "object",
+        "description": "An obligation: who owes what, when.",
+        "required": [
+          "id",
+          "contractId",
+          "text",
+          "owner",
+          "done",
+          "completed",
+          "version"
+        ],
+        "properties": {
+          "completed": {
+            "type": "integer",
+            "description": "Occurrences completed so far.",
+            "minimum": 0
+          },
+          "contractId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "daysLeft": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Days until due (negative = overdue; null = undated)."
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "dueOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "The live occurrence (the last one completed once a series is finished)."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "owner": {
+            "type": "string",
+            "description": "`us`, `them` or `mutual`."
+          },
+          "repeat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Repeat"
+              }
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ContractReconcileResult": {
+        "type": "object",
+        "description": "What a term reconciliation did.",
+        "required": [
+          "contractsUpdated",
+          "termsRecorded",
+          "terminated",
+          "decisionsCleared"
+        ],
+        "properties": {
+          "contractsUpdated": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "decisionsCleared": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "terminated": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Closed out on the term end their notice was given for."
+          },
+          "termsRecorded": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ContractSettings": {
+        "type": "object",
+        "description": "Contract settings of an institution.",
+        "required": [
+          "soonDays",
+          "obligationDays",
+          "defaultNoticeDays",
+          "alarmDays"
+        ],
+        "properties": {
+          "alarmDays": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Calendar reminders before each deadline, in days (default 7 and 1)."
+          },
+          "defaultNoticeDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Notice period a new contract starts with (default 30)."
+          },
+          "obligationDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Obligations due within this many days show as due (default 30)."
+          },
+          "soonDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "\"Term ends soon\" horizon (1…365 days; default 60)."
+          }
+        }
+      },
+      "ContractStats": {
+        "type": "object",
+        "description": "Dashboard numbers. Values are never summed across currencies.",
+        "required": [
+          "active",
+          "expiring60",
+          "openObligations",
+          "expired",
+          "annualByCurrency"
+        ],
+        "properties": {
+          "active": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "annualByCurrency": {
+            "type": "object",
+            "description": "Yearly value by currency.",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "expired": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expiring60": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "openObligations": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ContractTermView": {
+        "type": "object",
+        "description": "A recorded term.",
+        "required": [
+          "endOn",
+          "ended",
+          "currency",
+          "note"
+        ],
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "endOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "ended": {
+            "type": "string",
+            "description": "`renewed`, `notice-given`, `expired`, `terminated`."
+          },
+          "note": {
+            "type": "string"
+          },
+          "startOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ContractView": {
+        "type": "object",
+        "description": "A contract or MoU with its clock.",
+        "required": [
+          "id",
+          "institutionId",
+          "title",
+          "kind",
+          "status",
+          "counterpartyName",
+          "counterpartyScope",
+          "currency",
+          "billing",
+          "annualValue",
+          "autoRenew",
+          "termMonths",
+          "noticeDays",
+          "purposes",
+          "tags",
+          "renewal",
+          "attention",
+          "openObligations",
+          "version"
+        ],
+        "properties": {
+          "agreementEnd": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "When the agreement itself stops (null = no known end)."
+          },
+          "annualValue": {
+            "type": "number",
+            "format": "double",
+            "description": "Value as a yearly figure (0 for one-time or unpriced)."
+          },
+          "attention": {
+            "type": "boolean",
+            "description": "Waiting on a decision: in the notice window or past its end with nothing recorded."
+          },
+          "autoRenew": {
+            "type": "boolean"
+          },
+          "billing": {
+            "type": "string",
+            "description": "`one-time`, `monthly`, `quarterly`, `annual`."
+          },
+          "contactEmail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contactName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contactPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "counterpartyName": {
+            "type": "string"
+          },
+          "counterpartyScope": {
+            "type": "string",
+            "description": "`national` or `international`."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "endOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "End of the first term: every renewal is counted from it."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`vendor`, `service`, `amc`, `lease`, `license`, `nda`, `mou_academic`, `mou_industry`,\n`mou_research`, `other`."
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "noticeDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openObligations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "purposes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What an MoU is for (internship, research…)."
+          },
+          "renewal": {
+            "$ref": "#/components/schemas/RenewalInfo"
+          },
+          "startOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "description": "`active`, `draft`, `terminated`."
+          },
+          "supplierId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "termMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "120000.00"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "CorrectAlumniTransition": {
         "type": "object",
         "required": [
@@ -173639,6 +175445,178 @@
           }
         }
       },
+      "MouEvidence": {
+        "type": "object",
+        "description": "MoU evidence for one AQAR year.",
+        "required": [
+          "year",
+          "from",
+          "to",
+          "totals",
+          "mous"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "mous": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MouEvidenceRow"
+            },
+            "description": "MoUs in force during the year."
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/MouTotals"
+          },
+          "year": {
+            "type": "string"
+          }
+        }
+      },
+      "MouEvidenceRow": {
+        "type": "object",
+        "description": "One MoU in the evidence.",
+        "required": [
+          "contractId",
+          "title",
+          "partner",
+          "kind",
+          "scope",
+          "status",
+          "purposes",
+          "functional",
+          "activities"
+        ],
+        "properties": {
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractActivityView"
+            },
+            "description": "Activities in the year, newest first."
+          },
+          "contractId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "endsOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "When the agreement stops or stopped (null = still running)."
+          },
+          "functional": {
+            "type": "boolean",
+            "description": "In force for some of the year and with an activity in it."
+          },
+          "kind": {
+            "type": "string"
+          },
+          "partner": {
+            "type": "string"
+          },
+          "purposes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "string"
+          },
+          "startOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "MouTotals": {
+        "type": "object",
+        "required": [
+          "inForce",
+          "functional",
+          "activities",
+          "students",
+          "staff",
+          "functionalByKind",
+          "functionalByScope",
+          "activitiesByKind"
+        ],
+        "properties": {
+          "activities": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "activitiesByKind": {
+            "type": "object",
+            "description": "Activities in the year by kind.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "functional": {
+            "type": "integer",
+            "format": "int64",
+            "description": "… of which had an activity in the year."
+          },
+          "functionalByKind": {
+            "type": "object",
+            "description": "Functional MoUs by kind (`mou_academic`…).",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "functionalByScope": {
+            "type": "object",
+            "description": "Functional MoUs by scope (`national`, `international`).",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "inForce": {
+            "type": "integer",
+            "format": "int64",
+            "description": "MoUs in force during the year."
+          },
+          "staff": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "students": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "MyAssignment": {
         "type": "object",
         "description": "One coursework item as the student sees it (contract §5.3).",
@@ -181313,6 +183291,18 @@
           "staff"
         ]
       },
+      "Phase": {
+        "type": "string",
+        "description": "Where a contract's clock stands.",
+        "enum": [
+          "none",
+          "evergreen",
+          "expired",
+          "notice",
+          "soon",
+          "ok"
+        ]
+      },
       "PickupAuthorisation": {
         "type": "object",
         "required": [
@@ -187692,6 +189682,63 @@
           }
         }
       },
+      "RenewalInfo": {
+        "type": "object",
+        "required": [
+          "phase",
+          "handled"
+        ],
+        "properties": {
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Next term end (renewal or expiry)."
+          },
+          "daysLeft": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "decision": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Decision",
+                "description": "The decision recorded for this term end."
+              }
+            ]
+          },
+          "handled": {
+            "type": "boolean",
+            "description": "The decision answers the deadline."
+          },
+          "noticeDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Cancellation-notice deadline."
+          },
+          "noticeDaysLeft": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase"
+          }
+        }
+      },
       "ReopenCase": {
         "type": "object",
         "required": [
@@ -187706,6 +189753,74 @@
           },
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "Repeat": {
+        "type": "object",
+        "description": "A repeating schedule: one live occurrence, completed ones kept as history. Exactly one end\ncondition: a date, a count, or the contract's own end (or none).",
+        "required": [
+          "every",
+          "anchor"
+        ],
+        "properties": {
+          "anchor": {
+            "type": "string",
+            "format": "date"
+          },
+          "contractEnd": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "every": {
+            "type": "string"
+          },
+          "until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "RepeatInput": {
+        "type": "object",
+        "description": "Repeat input as a client sends it.",
+        "properties": {
+          "anchor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contractEnd": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "every": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "until": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },

@@ -21621,6 +21621,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resources/contract-activities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove an activity (`resources.procurement.manage`). */
+        delete: operations["resources_contract_activity_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/contract-obligations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change an obligation (`resources.procurement.manage`; `version` required). A repeating one
+         *     keeps its anchor whenever it still puts the due date where it is.
+         */
+        put: operations["resources_contract_obligation_update"];
+        post?: never;
+        /** Remove an obligation (`resources.procurement.manage`). */
+        delete: operations["resources_contract_obligation_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/contract-obligations/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tick off the live occurrence (`resources.procurement.manage`): a repeating obligation moves
+         *     to its next occurrence, or finishes when the series is over.
+         */
+        post: operations["resources_contract_obligation_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/contract-obligations/{id}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo the last completion (`resources.procurement.manage`). */
+        post: operations["resources_contract_obligation_undo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/contracts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contract with its obligations, terms and activities (`resources.read`). */
+        get: operations["resources_contract_get"];
+        /**
+         * Change a contract (`resources.procurement.manage`; `version` required). A recorded decision
+         *     stays with the term end it answered; a finished series the change gives room again resumes.
+         */
+        put: operations["resources_contract_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/contracts/{id}/activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record an activity (`resources.procurement.manage`; Idempotency-Key). It cannot be dated in
+         *     the future, nor before the agreement started.
+         */
+        post: operations["resources_contract_activity_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/contracts/{id}/calendar.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One contract's deadlines as an iCalendar file (`resources.read`). */
+        get: operations["resources_contract_calendar_one"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/contracts/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Record (or clear) the decision about the contract's next term end
+         *     (`resources.procurement.manage`). It answers that term end only; once the term is over it
+         *     stops applying.
+         */
+        put: operations["resources_contract_decision"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/contracts/{id}/obligations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add an obligation (`resources.procurement.manage`; Idempotency-Key). */
+        post: operations["resources_contract_obligation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/goods-receipts/{id}": {
         parameters: {
             query?: never;
@@ -21714,6 +21885,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resources/institutions/{id}/contract-dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard (`resources.read`). Values are totalled per currency, never across currencies. */
+        get: operations["resources_contract_dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/contract-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contract settings (`resources.read`; defaults until saved). */
+        get: operations["resources_contract_settings_get"];
+        /** Save contract settings (`resources.procurement.manage`; audited). */
+        put: operations["resources_contract_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contracts and MoUs of an institution, soonest term end first (`resources.read`). */
+        get: operations["resources_contract_list"];
+        put?: never;
+        /** Add a contract or MoU (`resources.procurement.manage`; Idempotency-Key). */
+        post: operations["resources_contract_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/contracts/calendar.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every deadline of the contract book as an iCalendar file (`resources.read`): notice
+         *     deadlines, term ends and the next renewals, and dated obligations, with reminders.
+         */
+        get: operations["resources_contract_calendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/contracts/reconcile-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bring the book up to date (`resources.procurement.manage`): finished terms are recorded once
+         *     each, a contract whose notice was given closes on that term end instead of rolling forward,
+         *     and a decision about a term the contract has moved past is cleared. Safe to repeat.
+         */
+        post: operations["resources_contract_reconcile_terms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/institutions/{id}/goods-receipts": {
         parameters: {
             query?: never;
@@ -21746,6 +22011,27 @@ export interface paths {
          *     `draft`; duplicate code → 409.
          */
         post: operations["resources_item_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/mou-evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Functional MoUs and their activities for an AQAR year (`resources.read`): the evidence NAAC
+         *     criterion 3.7 asks for (MoUs with institutions and industries, in India and abroad, for
+         *     internships, on-the-job training, project work, exchanges and collaborative research).
+         */
+        get: operations["resources_contract_mou_evidence"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -32397,6 +32683,286 @@ export interface components {
          * @enum {string}
          */
         ConsentType: "data_sharing" | "medical_treatment" | "field_trip" | "photography" | "extracurricular" | "research" | "other";
+        /** @description An activity under an MoU or contract. */
+        ContractActivityInput: {
+            /** @description Where the evidence is kept (a document reference or link). */
+            evidenceRef?: string | null;
+            /** Format: date */
+            heldOn: string;
+            /**
+             * @description `internship`, `on_job_training`, `project_work`, `student_exchange`, `faculty_exchange`,
+             *     `collaborative_research`, `workshop`, `training`, `consultancy`, `placement`,
+             *     `publication`, `other`.
+             */
+            kind: string;
+            outcome?: string | null;
+            /** Format: int32 */
+            staff?: number;
+            /** Format: int32 */
+            students?: number;
+            title: string;
+        };
+        /** @description Something that happened under a contract or MoU. */
+        ContractActivityView: {
+            /** Format: uuid */
+            contractId: string;
+            evidenceRef?: string | null;
+            /** Format: date */
+            heldOn: string;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            outcome?: string | null;
+            /** Format: int32 */
+            staff: number;
+            /** Format: int32 */
+            students: number;
+            title: string;
+        };
+        /** @description The contract book at a glance. */
+        ContractDashboard: {
+            /** @description Waiting on a decision (notice window open or past the end), soonest first. */
+            attention: components["schemas"]["ContractView"][];
+            /** @description Open obligations overdue or due within the obligation horizon, most urgent first. */
+            dueObligations: components["schemas"]["ContractDueObligation"][];
+            stats: components["schemas"]["ContractStats"];
+            /** Format: date */
+            today: string;
+            /** @description Term ends within the "soon" horizon. */
+            upcoming: components["schemas"]["ContractView"][];
+        };
+        /** @description A renewal decision. */
+        ContractDecisionInput: {
+            /** @description `notice-given`, `renewing`, `not-renewing`, `snoozed`; null clears the decision. */
+            kind?: string | null;
+            note?: string | null;
+            /**
+             * Format: date
+             * @description Required for `snoozed`: the day the snooze stops holding.
+             */
+            until?: string | null;
+        };
+        /** @description A contract with its obligations, term history and activities. */
+        ContractDetail: {
+            activities: components["schemas"]["ContractActivityView"][];
+            contract: components["schemas"]["ContractView"];
+            obligations: components["schemas"]["ContractObligationView"][];
+            terms: components["schemas"]["ContractTermView"][];
+        };
+        /** @description An obligation due soon, with its contract. */
+        ContractDueObligation: {
+            contractTitle: string;
+            counterpartyName: string;
+            obligation: components["schemas"]["ContractObligationView"];
+        };
+        /** @description A contract or MoU as written. */
+        ContractInput: {
+            autoRenew?: boolean;
+            billing?: string | null;
+            contactEmail?: string | null;
+            contactName?: string | null;
+            contactPhone?: string | null;
+            counterpartyName?: string | null;
+            /** @description `national` (default) or `international`. */
+            counterpartyScope?: string | null;
+            /** @description ISO code, default `INR`. */
+            currency?: string | null;
+            /** Format: date */
+            endOn?: string | null;
+            kind: string;
+            notes?: string | null;
+            /**
+             * Format: int32
+             * @description Days of notice to cancel before a term end (default from settings).
+             */
+            noticeDays?: number | null;
+            purposes?: string[];
+            /** Format: date */
+            startOn?: string | null;
+            /** @description Default `active`. */
+            status?: string | null;
+            /**
+             * Format: uuid
+             * @description A registered supplier (its legal name is the counterparty unless one is given).
+             */
+            supplierId?: string | null;
+            tags?: string[];
+            /**
+             * Format: int32
+             * @description Renewal term (1…120 months; default 12).
+             */
+            termMonths?: number | null;
+            title: string;
+            /** @description Money as a string (`"120000.00"`). */
+            value?: string | null;
+            /**
+             * Format: int64
+             * @description Required on update.
+             */
+            version?: number | null;
+        };
+        /** @description An obligation as written. */
+        ContractObligationInput: {
+            /** Format: date */
+            dueOn?: string | null;
+            /** @description `us` (default), `them` or `mutual`. */
+            owner?: string | null;
+            repeat?: null | components["schemas"]["RepeatInput"];
+            text: string;
+            /**
+             * Format: int64
+             * @description Required on update.
+             */
+            version?: number | null;
+        };
+        /** @description An obligation: who owes what, when. */
+        ContractObligationView: {
+            /** @description Occurrences completed so far. */
+            completed: number;
+            /** Format: uuid */
+            contractId: string;
+            /**
+             * Format: int64
+             * @description Days until due (negative = overdue; null = undated).
+             */
+            daysLeft?: number | null;
+            done: boolean;
+            /**
+             * Format: date
+             * @description The live occurrence (the last one completed once a series is finished).
+             */
+            dueOn?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `us`, `them` or `mutual`. */
+            owner: string;
+            repeat?: null | components["schemas"]["Repeat"];
+            text: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description What a term reconciliation did. */
+        ContractReconcileResult: {
+            /** Format: int64 */
+            contractsUpdated: number;
+            /** Format: int64 */
+            decisionsCleared: number;
+            /**
+             * Format: int64
+             * @description Closed out on the term end their notice was given for.
+             */
+            terminated: number;
+            /** Format: int64 */
+            termsRecorded: number;
+        };
+        /** @description Contract settings of an institution. */
+        ContractSettings: {
+            /** @description Calendar reminders before each deadline, in days (default 7 and 1). */
+            alarmDays: number[];
+            /**
+             * Format: int32
+             * @description Notice period a new contract starts with (default 30).
+             */
+            defaultNoticeDays: number;
+            /**
+             * Format: int32
+             * @description Obligations due within this many days show as due (default 30).
+             */
+            obligationDays: number;
+            /**
+             * Format: int32
+             * @description "Term ends soon" horizon (1…365 days; default 60).
+             */
+            soonDays: number;
+        };
+        /** @description Dashboard numbers. Values are never summed across currencies. */
+        ContractStats: {
+            /** Format: int64 */
+            active: number;
+            /** @description Yearly value by currency. */
+            annualByCurrency: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            expired: number;
+            /** Format: int64 */
+            expiring60: number;
+            /** Format: int64 */
+            openObligations: number;
+        };
+        /** @description A recorded term. */
+        ContractTermView: {
+            currency: string;
+            /** Format: date */
+            endOn: string;
+            /** @description `renewed`, `notice-given`, `expired`, `terminated`. */
+            ended: string;
+            note: string;
+            /** Format: date */
+            startOn?: string | null;
+            value?: string | null;
+        };
+        /** @description A contract or MoU with its clock. */
+        ContractView: {
+            /**
+             * Format: date
+             * @description When the agreement itself stops (null = no known end).
+             */
+            agreementEnd?: string | null;
+            /**
+             * Format: double
+             * @description Value as a yearly figure (0 for one-time or unpriced).
+             */
+            annualValue: number;
+            /** @description Waiting on a decision: in the notice window or past its end with nothing recorded. */
+            attention: boolean;
+            autoRenew: boolean;
+            /** @description `one-time`, `monthly`, `quarterly`, `annual`. */
+            billing: string;
+            contactEmail?: string | null;
+            contactName?: string | null;
+            contactPhone?: string | null;
+            counterpartyName: string;
+            /** @description `national` or `international`. */
+            counterpartyScope: string;
+            currency: string;
+            /**
+             * Format: date
+             * @description End of the first term: every renewal is counted from it.
+             */
+            endOn?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /**
+             * @description `vendor`, `service`, `amc`, `lease`, `license`, `nda`, `mou_academic`, `mou_industry`,
+             *     `mou_research`, `other`.
+             */
+            kind: string;
+            notes?: string | null;
+            /** Format: int32 */
+            noticeDays: number;
+            /** Format: int64 */
+            openObligations: number;
+            /** @description What an MoU is for (internship, research…). */
+            purposes: string[];
+            renewal: components["schemas"]["RenewalInfo"];
+            /** Format: date */
+            startOn?: string | null;
+            /** @description `active`, `draft`, `terminated`. */
+            status: string;
+            /** Format: uuid */
+            supplierId?: string | null;
+            tags: string[];
+            /** Format: int32 */
+            termMonths: number;
+            title: string;
+            /** @example 120000.00 */
+            value?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         CorrectAlumniTransition: {
             alumniEmail?: string | null;
             directoryConsent?: boolean | null;
@@ -40183,6 +40749,69 @@ export interface components {
             resolutionNotes?: string | null;
             resolutionPlan?: string | null;
         };
+        /** @description MoU evidence for one AQAR year. */
+        MouEvidence: {
+            /** Format: date */
+            from: string;
+            /** @description MoUs in force during the year. */
+            mous: components["schemas"]["MouEvidenceRow"][];
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["MouTotals"];
+            year: string;
+        };
+        /** @description One MoU in the evidence. */
+        MouEvidenceRow: {
+            /** @description Activities in the year, newest first. */
+            activities: components["schemas"]["ContractActivityView"][];
+            /** Format: uuid */
+            contractId: string;
+            /**
+             * Format: date
+             * @description When the agreement stops or stopped (null = still running).
+             */
+            endsOn?: string | null;
+            /** @description In force for some of the year and with an activity in it. */
+            functional: boolean;
+            kind: string;
+            partner: string;
+            purposes: string[];
+            scope: string;
+            /** Format: date */
+            startOn?: string | null;
+            status: string;
+            title: string;
+        };
+        MouTotals: {
+            /** Format: int64 */
+            activities: number;
+            /** @description Activities in the year by kind. */
+            activitiesByKind: {
+                [key: string]: number;
+            };
+            /**
+             * Format: int64
+             * @description … of which had an activity in the year.
+             */
+            functional: number;
+            /** @description Functional MoUs by kind (`mou_academic`…). */
+            functionalByKind: {
+                [key: string]: number;
+            };
+            /** @description Functional MoUs by scope (`national`, `international`). */
+            functionalByScope: {
+                [key: string]: number;
+            };
+            /**
+             * Format: int64
+             * @description MoUs in force during the year.
+             */
+            inForce: number;
+            /** Format: int64 */
+            staff: number;
+            /** Format: int64 */
+            students: number;
+        };
         /** @description One coursework item as the student sees it (contract §5.3). */
         MyAssignment: {
             courseTitle: string;
@@ -42507,6 +43136,11 @@ export interface components {
          * @enum {string}
          */
         PersonKind: "student" | "staff";
+        /**
+         * @description Where a contract's clock stands.
+         * @enum {string}
+         */
+        Phase: "none" | "evergreen" | "expired" | "notice" | "soon" | "ok";
         PickupAuthorisation: {
             /** Format: date-time */
             createdAt: string;
@@ -44565,9 +45199,52 @@ export interface components {
              */
             nextDue?: string | null;
         };
+        RenewalInfo: {
+            /**
+             * Format: date
+             * @description Next term end (renewal or expiry).
+             */
+            date?: string | null;
+            /** Format: int64 */
+            daysLeft?: number | null;
+            decision?: null | components["schemas"]["Decision"];
+            /** @description The decision answers the deadline. */
+            handled: boolean;
+            /**
+             * Format: date
+             * @description Cancellation-notice deadline.
+             */
+            noticeDate?: string | null;
+            /** Format: int64 */
+            noticeDaysLeft?: number | null;
+            phase: components["schemas"]["Phase"];
+        };
         ReopenCase: {
             evidence?: string | null;
             reason: string;
+        };
+        /**
+         * @description A repeating schedule: one live occurrence, completed ones kept as history. Exactly one end
+         *     condition: a date, a count, or the contract's own end (or none).
+         */
+        Repeat: {
+            /** Format: date */
+            anchor: string;
+            contractEnd?: boolean;
+            /** Format: int32 */
+            count?: number | null;
+            every: string;
+            /** Format: date */
+            until?: string | null;
+        };
+        /** @description Repeat input as a client sends it. */
+        RepeatInput: {
+            anchor?: string | null;
+            contractEnd?: boolean;
+            /** Format: double */
+            count?: number | null;
+            every?: string | null;
+            until?: string | null;
         };
         ReplaceTopics: {
             summary?: string | null;
@@ -103992,6 +104669,347 @@ export interface operations {
             };
         };
     };
+    resources_contract_activity_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_obligation_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractObligationInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractObligationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_obligation_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_obligation_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractObligationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_obligation_undo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractObligationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_activity_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractActivityInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractActivityView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_calendar_one: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractDecisionInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_obligation_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractObligationInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractObligationView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     resources_receipt_get: {
         parameters: {
             query?: never;
@@ -104200,6 +105218,228 @@ export interface operations {
             };
         };
     };
+    resources_contract_dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractDashboard"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_list: {
+        parameters: {
+            query?: {
+                /** @description A kind, or `mou` for every MoU. */
+                kind?: string;
+                status?: string;
+                /** @description Only the contracts waiting on a decision. */
+                attention?: boolean;
+                /** @description Matches title, counterparty, tags and notes. */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractView"][];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_calendar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_reconcile_terms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractReconcileResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     resources_receipt_list_all: {
         parameters: {
             query?: {
@@ -104286,6 +105526,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InventoryItemView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_contract_mou_evidence: {
+        parameters: {
+            query?: {
+                /** @description AQAR year, e.g. `2025-26` (1 July – 30 June); default the year containing today. */
+                year?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MouEvidence"];
                 };
             };
             "4XX": {
