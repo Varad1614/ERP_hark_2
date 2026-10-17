@@ -82,11 +82,7 @@ async fn journal(pool: &sqlx::PgPool, entry: uuid::Uuid) -> Vec<(String, String,
 }
 
 /// The `(id, entry_number)` of the entry `source_type` posted for `source`.
-async fn entry_of(
-    pool: &sqlx::PgPool,
-    source_type: &str,
-    source: &str,
-) -> (uuid::Uuid, String) {
+async fn entry_of(pool: &sqlx::PgPool, source_type: &str, source: &str) -> (uuid::Uuid, String) {
     sqlx::query_as(
         "SELECT id, entry_number FROM finance.journal_entry WHERE tenant_id = $1::uuid \
          AND source_type = $2 AND source_id = $3::uuid",
@@ -132,9 +128,7 @@ async fn expense_claims_receipts_policy_approval_reimbursement() {
     assert!(mine["claims"].as_array().unwrap().is_empty());
 
     // Receipts: stored once per file, read by no OCR engine here.
-    let up = |data: &str, name: &str, ctype: &str| {
-        json!({"fileName": name, "contentType": ctype, "dataBase64": data})
-    };
+    let up = |data: &str, name: &str, ctype: &str| json!({"fileName": name, "contentType": ctype, "dataBase64": data});
     let receipt = ok(
         &app,
         &meera,
@@ -275,7 +269,10 @@ async fn expense_claims_receipts_policy_approval_reimbursement() {
         .iter()
         .any(|f| f == "receipt_missing"));
     assert_eq!(claim["staffId"], staff.staff_id.as_uuid().to_string());
-    assert!(claim["number"].as_str().unwrap().starts_with("EXP"), "{claim}");
+    assert!(
+        claim["number"].as_str().unwrap().starts_with("EXP"),
+        "{claim}"
+    );
     let cid = s(&claim["id"]);
     let me_claim = format!("{R}/me/expense-claims/{cid}");
     let office = format!("{R}/expense-claims/{cid}");
@@ -432,8 +429,7 @@ async fn expense_claims_receipts_policy_approval_reimbursement() {
     assert_eq!(returned["returnedReason"], "Attach the hotel's GST invoice");
     let mine = fetch(&app, &meera, &format!("{R}/me/expenses")).await;
     assert_eq!(
-        mine["claims"][0]["returnedReason"],
-        "Attach the hotel's GST invoice",
+        mine["claims"][0]["returnedReason"], "Attach the hotel's GST invoice",
         "{mine}"
     );
     let resubmitted = ok(
@@ -650,7 +646,10 @@ async fn expense_claims_receipts_policy_approval_reimbursement() {
         StatusCode::OK,
     )
     .await;
-    assert_eq!(saved["categories"][0]["name"], "Travel (TA)", "trimmed: {saved}");
+    assert_eq!(
+        saved["categories"][0]["name"], "Travel (TA)",
+        "trimmed: {saved}"
+    );
     let read = fetch(&app, &admin, &settings).await;
     assert_eq!(num(&read["receiptRequiredAbove"]), 200.0, "{read}");
     assert_eq!(read["maxAgeDays"], 60);

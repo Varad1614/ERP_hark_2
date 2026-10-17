@@ -106,7 +106,10 @@ impl ReceiptOcrPort for PaddleOcrHttp {
             .await
             .map_err(|e| OcrError::Unavailable(e.without_url().to_string()))?;
         if !res.status().is_success() {
-            return Err(OcrError::Unavailable(format!("status {}", res.status().as_u16())));
+            return Err(OcrError::Unavailable(format!(
+                "status {}",
+                res.status().as_u16()
+            )));
         }
         let mut text: OcrText = res
             .json()

@@ -247,7 +247,10 @@ pub async fn settings_put(
 fn validate_settings(mut b: ExpenseSettings) -> Result<ExpenseSettings, KernelError> {
     let money_ok = |d: Decimal| d >= Decimal::ZERO && d.normalize().scale() <= 2;
     if !money_ok(b.receipt_required_above) {
-        return Err(bad("receiptRequiredAbove", "not negative, at most two decimals"));
+        return Err(bad(
+            "receiptRequiredAbove",
+            "not negative, at most two decimals",
+        ));
     }
     if !(0..=730).contains(&b.max_age_days) {
         return Err(invalid("maxAgeDays", "out_of_range", "between 0 and 730"));
@@ -261,17 +264,28 @@ fn validate_settings(mut b: ExpenseSettings) -> Result<ExpenseSettings, KernelEr
         c.name = c.name.trim().to_owned();
         let id_ok = !c.id.is_empty()
             && c.id.len() <= 60
-            && c.id.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_');
+            && c.id
+                .chars()
+                .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_');
         if !id_ok || !seen.insert(c.id.clone()) {
-            return Err(bad("categories", "unique ids of lowercase letters, digits and _"));
+            return Err(bad(
+                "categories",
+                "unique ids of lowercase letters, digits and _",
+            ));
         }
         if c.name.is_empty() || c.name.chars().count() > 80 {
-            return Err(bad("categories", "every category needs a name of up to 80 characters"));
+            return Err(bad(
+                "categories",
+                "every category needs a name of up to 80 characters",
+            ));
         }
         if c.limit.is_some_and(|d| !money_ok(d) || d.is_zero())
             || c.receipt_above.is_some_and(|d| !money_ok(d))
         {
-            return Err(bad("categories", "limits are positive amounts with two decimals"));
+            return Err(bad(
+                "categories",
+                "limits are positive amounts with two decimals",
+            ));
         }
     }
     Ok(b)
@@ -353,7 +367,13 @@ pub struct ExpenseReceiptView {
     pub created_at: DateTime<Utc>,
 }
 
-fn reading_of(status: &str, engine: &str, error: Option<String>, fields: Option<Value>, lines: usize) -> ReceiptReading {
+fn reading_of(
+    status: &str,
+    engine: &str,
+    error: Option<String>,
+    fields: Option<Value>,
+    lines: usize,
+) -> ReceiptReading {
     let gstin = fields
         .as_ref()
         .and_then(|v| v.get("gstin"))
@@ -424,9 +444,13 @@ pub async fn receipt_upload(
             }
             ("read", text.engine, None, text.lines, Some(norm))
         }
-        Err(super::ocr::OcrError::Disabled) => {
-            ("disabled", st.ocr.engine().to_owned(), None, Vec::new(), None)
-        }
+        Err(super::ocr::OcrError::Disabled) => (
+            "disabled",
+            st.ocr.engine().to_owned(),
+            None,
+            Vec::new(),
+            None,
+        ),
         Err(e) => (
             "failed",
             st.ocr.engine().to_owned(),
@@ -492,13 +516,25 @@ pub async fn receipt_upload(
     Ok((StatusCode::CREATED, Json(view)).into_response())
 }
 
-type ReceiptMeta = (Uuid, String, String, i32, String, String, Option<String>, Value, Option<Value>, DateTime<Utc>);
+type ReceiptMeta = (
+    Uuid,
+    String,
+    String,
+    i32,
+    String,
+    String,
+    Option<String>,
+    Value,
+    Option<Value>,
+    DateTime<Utc>,
+);
 
 const RECEIPT_META: &str = "id, file_name, content_type, byte_size, ocr_status, ocr_engine, \
     ocr_error, ocr_lines, ocr_fields, created_at";
 
 fn receipt_view(m: ReceiptMeta, duplicate: bool) -> ExpenseReceiptView {
-    let (id, file_name, content_type, byte_size, status, engine, error, lines, fields, created_at) = m;
+    let (id, file_name, content_type, byte_size, status, engine, error, lines, fields, created_at) =
+        m;
     let n = lines.as_array().map_or(0, Vec::len);
     ExpenseReceiptView {
         id,
@@ -551,7 +587,8 @@ pub async fn receipt_file(
     .await
     .map_err(map_db_error)?;
     drop(conn);
-    let (staff, inst, name, ctype, data) = row.ok_or(KernelError::NotFound { entity: "receipt" })?;
+    let (staff, inst, name, ctype, data) =
+        row.ok_or(KernelError::NotFound { entity: "receipt" })?;
     may_see(&st, &auth, staff).await?;
     if auth.0.has_permission(Permission::ResourcesRead) {
         let i = InstitutionId(inst);
@@ -559,13 +596,22 @@ pub async fn receipt_file(
     }
     let safe: String = name
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     Ok((
         StatusCode::OK,
         [
             (header::CONTENT_TYPE, ctype),
-            (header::CONTENT_DISPOSITION, format!("inline; filename=\"{safe}\"")),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("inline; filename=\"{safe}\""),
+            ),
             (header::CACHE_CONTROL, "private, max-age=300".to_owned()),
             (header::X_CONTENT_TYPE_OPTIONS, "nosniff".to_owned()),
         ],
@@ -708,7 +754,11 @@ fn expense_view(e: &ExpenseRow, s: &ExpenseSettings, today: &str) -> ExpenseView
     }
 }
 
-async fn expense_row(conn: &mut PgConnection, t: TenantId, id: Uuid) -> Result<ExpenseRow, KernelError> {
+async fn expense_row(
+    conn: &mut PgConnection,
+    t: TenantId,
+    id: Uuid,
+) -> Result<ExpenseRow, KernelError> {
     sqlx::query_as::<_, ExpenseRow>(&format!(
         "SELECT {EXPENSE_COLUMNS} FROM resources.expense WHERE id = $1 AND tenant_id = $2"
     ))
@@ -749,7 +799,8 @@ async fn clean_expense(
     if amount <= Decimal::ZERO || amount > Decimal::from(10_000_000) {
         return Err(bad("amount", "more than 0 and at most 1,00,00,000"));
     }
-    let currency = clean(b.currency).map_or_else(|| CLAIM_CURRENCY.to_owned(), |c| c.to_uppercase());
+    let currency =
+        clean(b.currency).map_or_else(|| CLAIM_CURRENCY.to_owned(), |c| c.to_uppercase());
     if !r::is_currency(&currency) {
         return Err(bad("currency", "an ISO currency code such as INR"));
     }
@@ -762,7 +813,10 @@ async fn clean_expense(
     let payment_method = clean(b.payment_method);
     if let Some(m) = &payment_method {
         if !PAYMENT_METHODS.contains(&m.as_str()) {
-            return Err(bad("paymentMethod", "Card, Cash, Bank transfer, Mobile payment or Other"));
+            return Err(bad(
+                "paymentMethod",
+                "Card, Cash, Bank transfer, Mobile payment or Other",
+            ));
         }
     }
     let tax = match clean(b.tax) {
@@ -778,7 +832,10 @@ async fn clean_expense(
     let gstin = clean(b.gstin).map(|g| g.to_uppercase());
     if let Some(g) = &gstin {
         if !super::receipt_text::gstin_valid(g) {
-            return Err(bad("gstin", "a 15-character GSTIN with a valid check digit"));
+            return Err(bad(
+                "gstin",
+                "a 15-character GSTIN with a valid check digit",
+            ));
         }
     }
     let notes = clean(b.notes);
@@ -816,7 +873,11 @@ async fn clean_expense(
     })
 }
 
-async fn ocr_snapshot(conn: &mut PgConnection, t: TenantId, receipt: Option<Uuid>) -> Result<Option<Value>, KernelError> {
+async fn ocr_snapshot(
+    conn: &mut PgConnection,
+    t: TenantId,
+    receipt: Option<Uuid>,
+) -> Result<Option<Value>, KernelError> {
     let Some(rid) = receipt else { return Ok(None) };
     let v: Option<Option<Value>> = sqlx::query_scalar(
         "SELECT ocr_fields FROM resources.expense_receipt WHERE id = $1 AND tenant_id = $2",
@@ -1126,7 +1187,12 @@ fn next_step(status: &str) -> Option<String> {
     }
 }
 
-async fn claim_row(conn: &mut PgConnection, t: TenantId, id: Uuid, lock: bool) -> Result<ClaimRow, KernelError> {
+async fn claim_row(
+    conn: &mut PgConnection,
+    t: TenantId,
+    id: Uuid,
+    lock: bool,
+) -> Result<ClaimRow, KernelError> {
     sqlx::query_as::<_, ClaimRow>(&format!(
         "SELECT {CLAIM_COLUMNS} FROM resources.expense_claim c WHERE c.id = $1 AND c.tenant_id = \
          $2{}",
@@ -1142,7 +1208,11 @@ async fn claim_row(conn: &mut PgConnection, t: TenantId, id: Uuid, lock: bool) -
     })
 }
 
-async fn claim_lines(conn: &mut PgConnection, t: TenantId, claim: Uuid) -> Result<Vec<ExpenseRow>, KernelError> {
+async fn claim_lines(
+    conn: &mut PgConnection,
+    t: TenantId,
+    claim: Uuid,
+) -> Result<Vec<ExpenseRow>, KernelError> {
     sqlx::query_as::<_, ExpenseRow>(&format!(
         "SELECT {EXPENSE_COLUMNS} FROM resources.expense WHERE tenant_id = $1 AND claim_id = $2 \
          ORDER BY spent_on, created_at, id"
@@ -1195,7 +1265,10 @@ async fn claim_view(
     let tax_total = rows.iter().filter_map(|e| e.tax).sum();
     let staff = st
         .workforce
-        .staff(scope, sutra_contracts::people::ids::StaffMemberId(c.staff_id))
+        .staff(
+            scope,
+            sutra_contracts::people::ids::StaffMemberId(c.staff_id),
+        )
         .await?
         .map_or_else(|| "Unknown staff".to_owned(), |s| staff_label(&s));
     let total = if c.status == "draft" {
@@ -1291,8 +1364,18 @@ pub struct ClaimReimburse {
 
 fn month_title(d: NaiveDate) -> String {
     const M: [&str; 12] = [
-        "January", "February", "March", "April", "May", "June", "July", "August", "September",
-        "October", "November", "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ];
     format!("{} {} expenses", M[d.month0() as usize], d.year())
 }
@@ -1321,7 +1404,10 @@ async fn set_lines(
     .map_err(map_db_error)?;
     let distinct: std::collections::HashSet<_> = ids.iter().collect();
     if ok != distinct.len() as i64 {
-        return Err(bad("expenseIds", "your own expenses that are not on another claim"));
+        return Err(bad(
+            "expenseIds",
+            "your own expenses that are not on another claim",
+        ));
     }
     sqlx::query(
         "UPDATE resources.expense SET claim_id = NULL, version = version + 1, updated_at = now() \
@@ -1598,12 +1684,19 @@ pub async fn claim_submit(
     }
     let view = claim_view(&st, &mut tx, &scope, t, c.clone()).await?;
     if view.lines.is_empty() {
-        return Err(KernelError::Conflict("add at least one expense before submitting".into()).into());
+        return Err(
+            KernelError::Conflict("add at least one expense before submitting".into()).into(),
+        );
     }
     let blocking: Vec<String> = view
         .lines
         .iter()
-        .flat_map(|l| l.flags.iter().filter(|f| blocks(f)).map(move |f| format!("{} ({})", l.merchant, f)))
+        .flat_map(|l| {
+            l.flags
+                .iter()
+                .filter(|f| blocks(f))
+                .map(move |f| format!("{} ({})", l.merchant, f))
+        })
         .collect();
     if !blocking.is_empty() {
         return Err(KernelError::Conflict(format!(
@@ -1613,7 +1706,12 @@ pub async fn claim_submit(
         .into());
     }
     refresh_total(&mut tx, id).await?;
-    bump(&mut tx, id, "status = 'submitted', submitted_at = now(), returned_reason = NULL").await?;
+    bump(
+        &mut tx,
+        id,
+        "status = 'submitted', submitted_at = now(), returned_reason = NULL",
+    )
+    .await?;
     audit_only(
         &mut tx,
         &scope,
@@ -1681,9 +1779,16 @@ async fn office_claim(
     Ok((c, scope))
 }
 
-async fn claimant(st: &ResourcesState, scope: &ExecutionScope, c: &ClaimRow) -> Result<StaffSummary, KernelError> {
+async fn claimant(
+    st: &ResourcesState,
+    scope: &ExecutionScope,
+    c: &ClaimRow,
+) -> Result<StaffSummary, KernelError> {
     st.workforce
-        .staff(scope, sutra_contracts::people::ids::StaffMemberId(c.staff_id))
+        .staff(
+            scope,
+            sutra_contracts::people::ids::StaffMemberId(c.staff_id),
+        )
         .await?
         .ok_or(KernelError::NotFound {
             entity: "staff record",
@@ -1839,7 +1944,10 @@ pub async fn claim_reimburse(
                 description: format!(
                     "Reimbursement of expense claim {}{}",
                     c.number,
-                    reference.as_ref().map(|r| format!(" ({r})")).unwrap_or_default()
+                    reference
+                        .as_ref()
+                        .map(|r| format!(" ({r})"))
+                        .unwrap_or_default()
                 ),
                 supplier_label: staff_label(&person),
                 inventory_amount: Decimal::ZERO,
@@ -1904,25 +2012,49 @@ async fn summaries(
     bind: Uuid,
     status: Option<&str>,
 ) -> Result<Vec<ExpenseClaimSummary>, KernelError> {
-    let rows: Vec<(Uuid, String, String, String, Uuid, Decimal, i64, Option<DateTime<Utc>>, Option<String>, i64, DateTime<Utc>)> =
-        sqlx::query_as(&format!(
-            "SELECT c.id, c.number, c.title, c.status, c.staff_id, CASE WHEN c.status = 'draft' \
+    let rows: Vec<(
+        Uuid,
+        String,
+        String,
+        String,
+        Uuid,
+        Decimal,
+        i64,
+        Option<DateTime<Utc>>,
+        Option<String>,
+        i64,
+        DateTime<Utc>,
+    )> = sqlx::query_as(&format!(
+        "SELECT c.id, c.number, c.title, c.status, c.staff_id, CASE WHEN c.status = 'draft' \
              THEN COALESCE((SELECT sum(e.amount) FROM resources.expense e WHERE e.claim_id = c.id \
              AND e.currency = c.currency), 0) ELSE c.total END, (SELECT count(*) FROM \
              resources.expense e WHERE e.claim_id = c.id), c.submitted_at, c.returned_reason, \
              c.version, c.updated_at FROM resources.expense_claim c WHERE c.tenant_id = $1 AND \
              c.{filter} = $2 AND ($3::text IS NULL OR c.status = $3) ORDER BY c.updated_at DESC, \
              c.id LIMIT 500"
-        ))
-        .bind(t.as_uuid())
-        .bind(bind)
-        .bind(status)
-        .fetch_all(&mut *conn)
-        .await
-        .map_err(map_db_error)?;
+    ))
+    .bind(t.as_uuid())
+    .bind(bind)
+    .bind(status)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
     let mut labels: std::collections::HashMap<Uuid, String> = std::collections::HashMap::new();
     let mut out = Vec::with_capacity(rows.len());
-    for (id, number, title, status, staff_id, total, n, submitted_at, returned_reason, version, updated_at) in rows {
+    for (
+        id,
+        number,
+        title,
+        status,
+        staff_id,
+        total,
+        n,
+        submitted_at,
+        returned_reason,
+        version,
+        updated_at,
+    ) in rows
+    {
         if !labels.contains_key(&staff_id) {
             let l = st
                 .workforce
@@ -1975,13 +2107,25 @@ pub async fn me_expenses(
     .fetch_all(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    let unclaimed: Vec<ExpenseView> = rows.iter().map(|e| expense_view(e, &settings, &today)).collect();
+    let unclaimed: Vec<ExpenseView> = rows
+        .iter()
+        .map(|e| expense_view(e, &settings, &today))
+        .collect();
     let unclaimed_total = rows
         .iter()
         .filter(|e| e.currency == CLAIM_CURRENCY)
         .map(|e| e.amount)
         .sum();
-    let claims = summaries(&st, &mut conn, &scope, t, "staff_id", mine.id.as_uuid(), None).await?;
+    let claims = summaries(
+        &st,
+        &mut conn,
+        &scope,
+        t,
+        "staff_id",
+        mine.id.as_uuid(),
+        None,
+    )
+    .await?;
     let engine = st.ocr.engine();
     Ok(Json(MyExpenses {
         staff_label: staff_label(&mine),
@@ -2024,7 +2168,16 @@ pub async fn claim_list(
         }
     }
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
-    let list = summaries(&st, &mut conn, &scope, ctx.scope.tenant_id, "institution_id", id, status.as_deref()).await?;
+    let list = summaries(
+        &st,
+        &mut conn,
+        &scope,
+        ctx.scope.tenant_id,
+        "institution_id",
+        id,
+        status.as_deref(),
+    )
+    .await?;
     Ok(Json(list))
 }
 

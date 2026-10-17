@@ -86,19 +86,36 @@ fn has_any(line: &str, words: &[&str]) -> bool {
 }
 
 const HEADINGS: [&str; 14] = [
-    "tax invoice", "invoice", "receipt", "bill", "cash memo", "gstin", "gst no", "phone", "ph:",
-    "mob", "tel", "date", "welcome", "estimate",
+    "tax invoice",
+    "invoice",
+    "receipt",
+    "bill",
+    "cash memo",
+    "gstin",
+    "gst no",
+    "phone",
+    "ph:",
+    "mob",
+    "tel",
+    "date",
+    "welcome",
+    "estimate",
 ];
 
 fn merchant(lines: &[OcrLine]) -> Option<String> {
-    lines.iter().take(6).map(|l| l.text.trim()).find(|t| {
-        let lower = t.to_lowercase();
-        let letters = t.chars().filter(|c| c.is_alphabetic()).count();
-        letters >= 3
-            && letters * 2 >= t.chars().filter(|c| !c.is_whitespace()).count()
-            && !HEADINGS.iter().any(|h| lower.starts_with(h))
-            && pats().gstin.find(&t.to_uppercase()).is_none()
-    }).map(str::to_owned)
+    lines
+        .iter()
+        .take(6)
+        .map(|l| l.text.trim())
+        .find(|t| {
+            let lower = t.to_lowercase();
+            let letters = t.chars().filter(|c| c.is_alphabetic()).count();
+            letters >= 3
+                && letters * 2 >= t.chars().filter(|c| !c.is_whitespace()).count()
+                && !HEADINGS.iter().any(|h| lower.starts_with(h))
+                && pats().gstin.find(&t.to_uppercase()).is_none()
+        })
+        .map(str::to_owned)
 }
 
 fn bill_date(text: &str, now_year: i32) -> Option<String> {
@@ -112,15 +129,26 @@ fn bill_date(text: &str, now_year: i32) -> Option<String> {
     }
     if let Some(c) = p.date_mon.captures(text) {
         let y = &c[3];
-        let y = if y.len() == 2 { format!("20{y}") } else { y.to_owned() };
+        let y = if y.len() == 2 {
+            format!("20{y}")
+        } else {
+            y.to_owned()
+        };
         return parse_loose_date(&format!("{} {} {y}", &c[1], &c[2]), true, now_year);
     }
     None
 }
 
 const TOTAL_KEYS: [&str; 9] = [
-    "grand total", "net amount", "net payable", "amount payable", "total payable", "bill amount",
-    "total amount", "net total", "total",
+    "grand total",
+    "net amount",
+    "net payable",
+    "amount payable",
+    "total payable",
+    "bill amount",
+    "total amount",
+    "net total",
+    "total",
 ];
 
 fn total(lines: &[OcrLine]) -> Option<f64> {
@@ -128,7 +156,21 @@ fn total(lines: &[OcrLine]) -> Option<f64> {
     for key in TOTAL_KEYS {
         for (i, l) in lowered.iter().enumerate().rev() {
             if !l.contains(key)
-                || has_any(l, &["sub total", "subtotal", "sub-total", "total qty", "total items", "total quantity", "total tax", "total gst", "total discount", "total savings"])
+                || has_any(
+                    l,
+                    &[
+                        "sub total",
+                        "subtotal",
+                        "sub-total",
+                        "total qty",
+                        "total items",
+                        "total quantity",
+                        "total tax",
+                        "total gst",
+                        "total discount",
+                        "total savings",
+                    ],
+                )
             {
                 continue;
             }
@@ -167,7 +209,10 @@ fn gst(lines: &[OcrLine]) -> Option<f64> {
 
 fn payment_method(text: &str) -> Option<&'static str> {
     let t = text.to_lowercase();
-    if has_any(&t, &["upi", "gpay", "google pay", "phonepe", "paytm", "bhim"]) {
+    if has_any(
+        &t,
+        &["upi", "gpay", "google pay", "phonepe", "paytm", "bhim"],
+    ) {
         Some("Mobile payment")
     } else if has_any(&t, &["neft", "rtgs", "imps", "bank transfer"]) {
         Some("Bank transfer")
@@ -183,20 +228,78 @@ fn payment_method(text: &str) -> Option<&'static str> {
 fn category_hint(text: &str) -> Option<&'static str> {
     let t = text.to_lowercase();
     let rules: [(&[&str], &str); 6] = [
-        (&["petrol", "diesel", "fuel", "hpcl", "bpcl", "indian oil", "iocl"], "Fuel"),
-        (&["uber", "ola ", "rapido", "taxi", "cab", "auto rickshaw", "metro"], "Ground transport"),
-        (&["irctc", "railway", "airline", "indigo", "air india", "flight", "boarding"], "Travel"),
-        (&["hotel", "lodge", "guest house", "room tariff", "check-in"], "Lodging"),
-        (&["restaurant", "cafe", "café", "food", "dhaba", "canteen", "meals", "thali"], "Meals"),
-        (&["stationery", "xerox", "printing", "photocopy", "books"], "Office supplies"),
+        (
+            &[
+                "petrol",
+                "diesel",
+                "fuel",
+                "hpcl",
+                "bpcl",
+                "indian oil",
+                "iocl",
+            ],
+            "Fuel",
+        ),
+        (
+            &[
+                "uber",
+                "ola ",
+                "rapido",
+                "taxi",
+                "cab",
+                "auto rickshaw",
+                "metro",
+            ],
+            "Ground transport",
+        ),
+        (
+            &[
+                "irctc",
+                "railway",
+                "airline",
+                "indigo",
+                "air india",
+                "flight",
+                "boarding",
+            ],
+            "Travel",
+        ),
+        (
+            &["hotel", "lodge", "guest house", "room tariff", "check-in"],
+            "Lodging",
+        ),
+        (
+            &[
+                "restaurant",
+                "cafe",
+                "café",
+                "food",
+                "dhaba",
+                "canteen",
+                "meals",
+                "thali",
+            ],
+            "Meals",
+        ),
+        (
+            &["stationery", "xerox", "printing", "photocopy", "books"],
+            "Office supplies",
+        ),
     ];
-    rules.iter().find(|(words, _)| has_any(&t, words)).map(|(_, c)| *c)
+    rules
+        .iter()
+        .find(|(words, _)| has_any(&t, words))
+        .map(|(_, c)| *c)
 }
 
 /// What the lines say, in the loose JSON shape `normalize_ocr_result` reads, plus `gstin`.
 pub fn fields_from_lines(lines: &[OcrLine], today: &str) -> Value {
     let now_year: i32 = today.get(0..4).and_then(|y| y.parse().ok()).unwrap_or(2026);
-    let text = lines.iter().map(|l| l.text.as_str()).collect::<Vec<_>>().join("\n");
+    let text = lines
+        .iter()
+        .map(|l| l.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
     let upper = text.to_uppercase();
     let gstin = pats()
         .gstin
@@ -208,7 +311,11 @@ pub fn fields_from_lines(lines: &[OcrLine], today: &str) -> Value {
     let mean = if lines.is_empty() {
         0.0
     } else {
-        lines.iter().map(|l| l.confidence.clamp(0.0, 1.0)).sum::<f64>() / lines.len() as f64
+        lines
+            .iter()
+            .map(|l| l.confidence.clamp(0.0, 1.0))
+            .sum::<f64>()
+            / lines.len() as f64
     };
     let found = [total.is_some(), date.is_some(), merchant(lines).is_some()]
         .iter()
@@ -216,9 +323,9 @@ pub fn fields_from_lines(lines: &[OcrLine], today: &str) -> Value {
         .count();
     let confidence = super::rules::round2(mean * (0.4 + 0.2 * found as f64));
     let lower = text.to_lowercase();
-    let currency = (text.contains('₹') || lower.contains("rs.") || lower.contains("inr")
-        || gstin.is_some())
-    .then_some("INR");
+    let currency =
+        (text.contains('₹') || lower.contains("rs.") || lower.contains("inr") || gstin.is_some())
+            .then_some("INR");
     json!({
         "merchant": merchant(lines),
         "date": date,
@@ -239,7 +346,10 @@ mod tests {
 
     fn lines(text: &str) -> Vec<OcrLine> {
         text.lines()
-            .map(|t| OcrLine { text: t.to_owned(), confidence: 0.95 })
+            .map(|t| OcrLine {
+                text: t.to_owned(),
+                confidence: 0.95,
+            })
             .collect()
     }
 

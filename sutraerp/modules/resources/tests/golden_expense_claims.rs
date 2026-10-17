@@ -12,8 +12,8 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use sutra_resources::expenses::rules::{
     can_transition, claim_totals, extract_json, is_editable, match_category, next_status,
-    normalize_ocr_result, normalize_text, parse_amount, parse_loose_date, resolve_currency,
-    tokens, totals_by_currency, Category, LineFacts,
+    normalize_ocr_result, normalize_text, parse_amount, parse_loose_date, resolve_currency, tokens,
+    totals_by_currency, Category, LineFacts,
 };
 
 #[derive(Deserialize)]

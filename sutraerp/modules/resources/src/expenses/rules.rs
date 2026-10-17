@@ -98,9 +98,7 @@ pub fn tokens(s: &str) -> Vec<String> {
     normalize_text(s)
         .split(' ')
         .filter(|t| {
-            t.chars().count() > 1
-                && !STOP.contains(t)
-                && !t.chars().all(|c| c.is_ascii_digit())
+            t.chars().count() > 1 && !STOP.contains(t) && !t.chars().all(|c| c.is_ascii_digit())
         })
         .map(str::to_owned)
         .collect()
@@ -168,7 +166,8 @@ pub fn parse_amount_str(input: &str) -> Option<f64> {
         }
         (None, None) => {}
     }
-    let n: f64 = s.parse().ok()?;
+    // JS `Number("")` is 0: only commas ("," or "₹ ,") leave nothing behind.
+    let n: f64 = if s.is_empty() { 0.0 } else { s.parse().ok()? };
     if !n.is_finite() {
         return None;
     }
@@ -185,7 +184,9 @@ pub fn parse_amount(input: &Value) -> Option<f64> {
 }
 
 /// `totalsByCurrency`: currency → total, in first-seen order.
-pub fn totals_by_currency<'a>(items: impl IntoIterator<Item = (&'a str, f64)>) -> Vec<(String, f64)> {
+pub fn totals_by_currency<'a>(
+    items: impl IntoIterator<Item = (&'a str, f64)>,
+) -> Vec<(String, f64)> {
     let mut out: Vec<(String, f64)> = Vec::new();
     for (cur, amount) in items {
         let amount = if amount.is_nan() { 0.0 } else { amount };
@@ -272,14 +273,18 @@ pub fn parse_loose_date(input: &str, day_first: bool, now_year: i32) -> Option<S
     if let Some(c) = res[2].captures(s) {
         let month = month_index(&g(&c, 2)?);
         if month > 0 {
-            let y = g(&c, 3).and_then(|y| digits(&y)).unwrap_or(i64::from(now_year));
+            let y = g(&c, 3)
+                .and_then(|y| digits(&y))
+                .unwrap_or(i64::from(now_year));
             return build_date(y, i64::from(month), digits(&g(&c, 1)?)?);
         }
     }
     if let Some(c) = res[3].captures(s) {
         let month = month_index(&g(&c, 1)?);
         if month > 0 {
-            let y = g(&c, 3).and_then(|y| digits(&y)).unwrap_or(i64::from(now_year));
+            let y = g(&c, 3)
+                .and_then(|y| digits(&y))
+                .unwrap_or(i64::from(now_year));
             return build_date(y, i64::from(month), digits(&g(&c, 2)?)?);
         }
     }
@@ -484,7 +489,10 @@ fn js_number(v: Option<&Value>) -> f64 {
             let t = s.trim();
             if t.is_empty() {
                 0.0
-            } else if t.chars().all(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '+' | 'e' | 'E')) {
+            } else if t
+                .chars()
+                .all(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '+' | 'e' | 'E'))
+            {
                 t.parse().unwrap_or(f64::NAN)
             } else {
                 f64::NAN
@@ -559,7 +567,11 @@ pub fn normalize_ocr_result(
         });
     let mut confidence = js_number(data.get("confidence"));
     if !confidence.is_finite() {
-        confidence = if total.is_some() && date.is_some() { 0.6 } else { 0.3 };
+        confidence = if total.is_some() && date.is_some() {
+            0.6
+        } else {
+            0.3
+        };
     }
     let confidence = confidence.clamp(0.0, 1.0);
     let text_field = |k: &str, n: usize| {
@@ -579,7 +591,10 @@ pub fn normalize_ocr_result(
             let v = get("cardLast4");
             if truthy(v) {
                 let d: String = js_string(v).chars().filter(char::is_ascii_digit).collect();
-                let tail: String = d.chars().skip(d.chars().count().saturating_sub(4)).collect();
+                let tail: String = d
+                    .chars()
+                    .skip(d.chars().count().saturating_sub(4))
+                    .collect();
                 (!tail.is_empty()).then_some(tail)
             } else {
                 None
@@ -690,7 +705,12 @@ pub struct PolicyInput<'a> {
 
 /// Policy findings shown beside an expense and on the approver's screen. They never block a
 /// submission by themselves except `receipt_missing` and `too_old` (see [`blocking`]).
-pub fn policy_flags(e: &PolicyInput<'_>, receipt_above: f64, max_age_days: i64, today: &str) -> Vec<&'static str> {
+pub fn policy_flags(
+    e: &PolicyInput<'_>,
+    receipt_above: f64,
+    max_age_days: i64,
+    today: &str,
+) -> Vec<&'static str> {
     let mut out = Vec::new();
     if !e.category_known {
         out.push("uncategorised");
@@ -700,7 +720,10 @@ pub fn policy_flags(e: &PolicyInput<'_>, receipt_above: f64, max_age_days: i64, 
             out.push("over_limit");
         }
     }
-    let threshold = e.category.and_then(|c| c.receipt_above).unwrap_or(receipt_above);
+    let threshold = e
+        .category
+        .and_then(|c| c.receipt_above)
+        .unwrap_or(receipt_above);
     if !e.has_receipt && e.amount > threshold + 1e-9 {
         out.push("receipt_missing");
     }
@@ -728,10 +751,17 @@ mod tests {
     use serde_json::json;
 
     fn cats() -> Vec<Category> {
-        [("meals", "Meals"), ("transport", "Ground transport"), ("office", "Office supplies")]
-            .iter()
-            .map(|(i, n)| Category { id: (*i).into(), name: (*n).into() })
-            .collect()
+        [
+            ("meals", "Meals"),
+            ("transport", "Ground transport"),
+            ("office", "Office supplies"),
+        ]
+        .iter()
+        .map(|(i, n)| Category {
+            id: (*i).into(),
+            name: (*n).into(),
+        })
+        .collect()
     }
 
     #[test]
@@ -772,7 +802,10 @@ mod tests {
         );
         assert_eq!((r.total, r.date, r.currency.as_str()), (None, None, "INR"));
         assert!((r.confidence - 0.3).abs() < 1e-9);
-        assert_eq!(extract_json_str("Here: {\"a\":{\"b\":\"}\"}} ok"), Some(json!({"a": {"b": "}"}})));
+        assert_eq!(
+            extract_json_str("Here: {\"a\":{\"b\":\"}\"}} ok"),
+            Some(json!({"a": {"b": "}"}}))
+        );
     }
 
     #[test]
@@ -782,9 +815,18 @@ mod tests {
         assert!(!can_transition("approved", "draft"));
         assert_eq!(next_status("approved"), Some("reimbursed"));
         assert_eq!(next_status("reimbursed"), None);
-        let pol = CategoryPolicy { limit: Some(500.0), receipt_above: None };
+        let pol = CategoryPolicy {
+            limit: Some(500.0),
+            receipt_above: None,
+        };
         let flags = policy_flags(
-            &PolicyInput { amount: 800.0, date: "2026-06-01", has_receipt: false, category: Some(&pol), category_known: true },
+            &PolicyInput {
+                amount: 800.0,
+                date: "2026-06-01",
+                has_receipt: false,
+                category: Some(&pol),
+                category_known: true,
+            },
             250.0,
             90,
             "2026-10-17",
