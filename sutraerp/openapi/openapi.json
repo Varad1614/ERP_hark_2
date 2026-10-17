@@ -100311,6 +100311,212 @@
         ]
       }
     },
+    "/api/v1/resources/expense-claims/{id}": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "One claim with its lines (its claimant, or `resources.read`).",
+        "operationId": "resources_expense_claim_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseClaimView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/expense-claims/{id}/decision": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Approve a submitted claim or send it back (`resources.approve`). The claimant never decides\ntheir own claim. Approval books the claim payable to the staff member.",
+        "operationId": "resources_expense_claim_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseClaimView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/expense-claims/{id}/reimburse": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Record that an approved claim was paid to the staff member (`resources.procurement.manage`;\nbooks the payment).",
+        "operationId": "resources_expense_claim_reimburse",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimReimburse"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseClaimView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/expense-receipts/{id}/file": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "The receipt file (its owner, or `resources.read`).",
+        "operationId": "resources_expense_receipt_file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The receipt file",
+            "content": {
+              "application/octet-stream": {}
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/resources/goods-receipts/{id}": {
       "get": {
         "tags": [
@@ -101085,6 +101291,215 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ContractReconcileResult"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/expense-claims": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Claims of an institution (`resources.read`), newest first.",
+        "operationId": "resources_expense_claim_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`draft`, `submitted`, `approved`, `reimbursed`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExpenseClaimSummary"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/expense-dashboard": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Expense dashboard (`resources.read`).",
+        "operationId": "resources_expense_dashboard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseDashboard"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/institutions/{id}/expense-settings": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Expense-claim settings (`resources.read`; defaults until saved).",
+        "operationId": "resources_expense_settings_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Save expense-claim settings (`resources.procurement.manage`; audited).",
+        "operationId": "resources_expense_settings_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseSettings"
                 }
               }
             }
@@ -103509,6 +103924,530 @@
                 }
               }
             }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/me/expense-claims": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Start a claim (`people.self`; Idempotency-Key).",
+        "operationId": "resources_expense_claim_create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseClaimView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/me/expense-claims/{id}": {
+      "put": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Change a draft claim's title, purpose and lines (`people.self`).",
+        "operationId": "resources_expense_claim_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimLines"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseClaimView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Delete a draft claim (`people.self`); its expenses become unclaimed again.",
+        "operationId": "resources_expense_claim_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/me/expense-claims/{id}/submit": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Submit a draft claim (`people.self`). Every line must be in rupees, carry a receipt where\nthe policy needs one and be recent enough; the total is frozen.",
+        "operationId": "resources_expense_claim_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimStep"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseClaimView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/me/expense-claims/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Withdraw a submitted claim back to draft (`people.self`).",
+        "operationId": "resources_expense_claim_withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimStep"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseClaimView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/me/expense-receipts": {
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Upload and read a receipt (`people.self`). The file is kept with the caller's staff record;\nwhen a reader is configured its text pre-fills the expense form.",
+        "operationId": "resources_expense_receipt_upload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "This file had been uploaded before",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseReceiptView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseReceiptView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/me/expenses": {
+      "get": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "My expenses and claims (`people.self`).",
+        "operationId": "resources_expense_me",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyExpenses"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Record an expense (`people.self`; Idempotency-Key). Attach the receipt it came from.",
+        "operationId": "resources_expense_create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/me/expenses/{id}": {
+      "put": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Change an expense (`people.self`; only while unclaimed or on a draft claim).",
+        "operationId": "resources_expense_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "resources-procurement"
+        ],
+        "summary": "Delete an expense (`people.self`; only while unclaimed or on a draft claim).",
+        "operationId": "resources_expense_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
           },
           "4XX": {
             "description": "",
@@ -148208,6 +149147,28 @@
           }
         }
       },
+      "CategorySpend": {
+        "type": "object",
+        "description": "Spend in one category.",
+        "required": [
+          "name",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "CertificateChecks": {
         "type": "object",
         "description": "Verification checks (absent = not yet established).",
@@ -149322,6 +150283,130 @@
           },
           "ok": {
             "type": "boolean"
+          }
+        }
+      },
+      "ClaimCreate": {
+        "type": "object",
+        "description": "Create a claim from unclaimed expenses.",
+        "properties": {
+          "expenseIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "purpose": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Default \"<Month YYYY> expenses\"."
+          }
+        }
+      },
+      "ClaimDecision": {
+        "type": "object",
+        "description": "An approver's decision.",
+        "required": [
+          "decision",
+          "version"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "`approve`, or `return` to send the claim back to the claimant (reason required)."
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ClaimLines": {
+        "type": "object",
+        "description": "Replace the lines of a draft claim.",
+        "required": [
+          "expenseIds",
+          "version"
+        ],
+        "properties": {
+          "expenseIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "purpose": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ClaimReimburse": {
+        "type": "object",
+        "description": "Recording the reimbursement.",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "paidOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Payment date (default today)."
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "UTR, cheque or payroll reference."
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ClaimStep": {
+        "type": "object",
+        "description": "A step of the claim's lifecycle (optimistic concurrency by `version`).",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -160202,6 +161287,569 @@
           "waived",
           "blocked"
         ]
+      },
+      "ExpenseCategory": {
+        "type": "object",
+        "description": "An expense category with its policy.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable key (`travel`, `local_conveyance`…; lowercase letters, digits, `_`)."
+          },
+          "limit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Most one expense of this category may claim (₹; none when absent).",
+            "example": "1500.00"
+          },
+          "name": {
+            "type": "string"
+          },
+          "receiptAbove": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A receipt is required above this amount (₹; the institution's threshold when absent).",
+            "example": "0.00"
+          }
+        }
+      },
+      "ExpenseClaimSummary": {
+        "type": "object",
+        "description": "A claim in a list (no lines).",
+        "required": [
+          "id",
+          "number",
+          "title",
+          "status",
+          "staffId",
+          "staffLabel",
+          "total",
+          "lineCount",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lineCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "number": {
+            "type": "string"
+          },
+          "returnedReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "staffId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "staffLabel": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "title": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ExpenseClaimView": {
+        "type": "object",
+        "description": "A claim with its lines.",
+        "required": [
+          "id",
+          "institutionId",
+          "number",
+          "title",
+          "status",
+          "staffId",
+          "staffLabel",
+          "currency",
+          "total",
+          "taxTotal",
+          "lineCount",
+          "withReceipt",
+          "flags",
+          "canSubmit",
+          "lines",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "approvalEntry": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "approvedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "canSubmit": {
+            "type": "boolean"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decisionNote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Flags on any line; blocking ones must be fixed before submitting."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lineCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpenseView"
+            }
+          },
+          "nextStep": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Label of the next step (`Submit claim`, `Approve`, `Mark reimbursed`), none at the end."
+          },
+          "number": {
+            "type": "string"
+          },
+          "paymentEntry": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paymentReference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "purpose": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reimbursedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "returnedReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why an approver sent the claim back (until it is submitted again)."
+          },
+          "staffId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "staffLabel": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "`draft`, `submitted`, `approved`, `reimbursed`."
+          },
+          "submittedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "taxTotal": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string",
+            "example": "1250.00"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "withReceipt": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ExpenseDashboard": {
+        "type": "object",
+        "description": "The expense dashboard of an institution.",
+        "required": [
+          "awaitingApproval",
+          "awaitingApprovalAmount",
+          "awaitingReimbursement",
+          "awaitingReimbursementAmount",
+          "byCategory",
+          "trend",
+          "ocrMismatches"
+        ],
+        "properties": {
+          "awaitingApproval": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "awaitingApprovalAmount": {
+            "type": "string"
+          },
+          "awaitingReimbursement": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "awaitingReimbursementAmount": {
+            "type": "string"
+          },
+          "byCategory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategorySpend"
+            },
+            "description": "Approved or reimbursed this financial year (April–March), by category."
+          },
+          "ocrMismatches": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Lines of claims awaiting approval whose amount differs from what OCR read off the receipt."
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthSpend"
+            },
+            "description": "Approved spend of the last six months, by approval month."
+          }
+        }
+      },
+      "ExpenseInput": {
+        "type": "object",
+        "description": "Record or change an expense (amounts as decimal strings).",
+        "required": [
+          "spentOn",
+          "merchant",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "378.00"
+          },
+          "categoryId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO code (default `INR`). Only rupee expenses can be claimed."
+          },
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OcrItem"
+            }
+          },
+          "merchant": {
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paymentMethod": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`Card`, `Cash`, `Bank transfer`, `Mobile payment`, `Other`."
+          },
+          "receiptId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "spentOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "tax": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "GST paid (`CGST + SGST` or `IGST`), ₹."
+          },
+          "version": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Required on update (optimistic concurrency)."
+          }
+        }
+      },
+      "ExpenseReceiptView": {
+        "type": "object",
+        "description": "A stored receipt.",
+        "required": [
+          "id",
+          "fileName",
+          "contentType",
+          "byteSize",
+          "duplicate",
+          "reading",
+          "createdAt"
+        ],
+        "properties": {
+          "byteSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "description": "`true` when this exact file had been uploaded before (the stored copy is returned)."
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reading": {
+            "$ref": "#/components/schemas/ReceiptReading"
+          }
+        }
+      },
+      "ExpenseSettings": {
+        "type": "object",
+        "description": "Expense-claim settings of an institution.",
+        "required": [
+          "receiptRequiredAbove",
+          "maxAgeDays",
+          "categories"
+        ],
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpenseCategory"
+            }
+          },
+          "maxAgeDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Expenses older than this many days cannot be claimed (0 = no limit; default 90)."
+          },
+          "receiptRequiredAbove": {
+            "type": "string",
+            "description": "A receipt is required for any expense above this amount (₹; default 250).",
+            "example": "250.00"
+          }
+        }
+      },
+      "ExpenseView": {
+        "type": "object",
+        "description": "One expense.",
+        "required": [
+          "id",
+          "spentOn",
+          "merchant",
+          "amount",
+          "currency",
+          "items",
+          "flags",
+          "version"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "378.00"
+          },
+          "categoryId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "categoryName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "claimId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Policy findings: `over_limit`, `receipt_missing`, `too_old`, `future_date`,\n`uncategorised`, `foreign_currency`. `receipt_missing`, `too_old`, `future_date` and\n`foreign_currency` stop a submission."
+          },
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OcrItem"
+            }
+          },
+          "merchant": {
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ocr": {
+            "description": "What OCR read from the receipt when the expense was created from it."
+          },
+          "paymentMethod": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receiptId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "spentOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "tax": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
       },
       "ExtendWindow": {
         "type": "object",
@@ -175445,6 +177093,23 @@
           }
         }
       },
+      "MonthSpend": {
+        "type": "object",
+        "description": "Approved spend of one month.",
+        "required": [
+          "month",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "month": {
+            "type": "string",
+            "description": "`YYYY-MM`."
+          }
+        }
+      },
       "MouEvidence": {
         "type": "object",
         "description": "MoU evidence for one AQAR year.",
@@ -175958,6 +177623,55 @@
             "items": {
               "$ref": "#/components/schemas/OfferingWaitlistEntry"
             }
+          }
+        }
+      },
+      "MyExpenses": {
+        "type": "object",
+        "description": "My expenses and claims, with the policy I claim under.",
+        "required": [
+          "staffLabel",
+          "institutionId",
+          "settings",
+          "ocrEnabled",
+          "ocrEngine",
+          "unclaimed",
+          "unclaimedTotal",
+          "claims"
+        ],
+        "properties": {
+          "claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpenseClaimSummary"
+            }
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ocrEnabled": {
+            "type": "boolean",
+            "description": "Whether uploaded receipts are read (a reader is configured)."
+          },
+          "ocrEngine": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ExpenseSettings"
+          },
+          "staffLabel": {
+            "type": "string"
+          },
+          "unclaimed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpenseView"
+            },
+            "description": "Expenses on no claim yet."
+          },
+          "unclaimedTotal": {
+            "type": "string"
           }
         }
       },
@@ -178982,6 +180696,107 @@
           "unreadCount": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "OcrFields": {
+        "type": "object",
+        "description": "What a receipt read pre-fills (`normalizeOcrResult`); the claimant confirms every field.",
+        "required": [
+          "currency",
+          "items",
+          "confidence"
+        ],
+        "properties": {
+          "cardLast4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "format": "double",
+            "description": "0…1."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OcrItem"
+            }
+          },
+          "merchant": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paymentMethod": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tax": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "tip": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "total": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "OcrItem": {
+        "type": "object",
+        "description": "A receipt line item read by OCR.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "amount": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "name": {
+            "type": "string"
           }
         }
       },
@@ -187581,6 +189396,51 @@
           }
         }
       },
+      "ReceiptReading": {
+        "type": "object",
+        "description": "What reading a receipt pre-filled (every field is a suggestion).",
+        "required": [
+          "status",
+          "engine",
+          "lineCount"
+        ],
+        "properties": {
+          "engine": {
+            "type": "string"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fields": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OcrFields"
+              }
+            ]
+          },
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The merchant's GSTIN when one with a valid checksum was printed."
+          },
+          "lineCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "description": "`read`, `failed` (the reader errored; type the fields) or `disabled` (no reader set up)."
+          }
+        }
+      },
       "ReceiptRef": {
         "type": "object",
         "description": "Receipt reference on a payment.",
@@ -187613,6 +189473,27 @@
           "issued",
           "cancelled"
         ]
+      },
+      "ReceiptUpload": {
+        "type": "object",
+        "description": "Upload a receipt (JPEG, PNG, WebP or PDF; at most 1.5 MB decoded).",
+        "required": [
+          "fileName",
+          "contentType",
+          "dataBase64"
+        ],
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "dataBase64": {
+            "type": "string",
+            "description": "The file, base64."
+          },
+          "fileName": {
+            "type": "string"
+          }
+        }
       },
       "ReceiptView": {
         "type": "object",

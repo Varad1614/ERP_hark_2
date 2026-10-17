@@ -21792,6 +21792,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resources/expense-claims/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One claim with its lines (its claimant, or `resources.read`). */
+        get: operations["resources_expense_claim_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/expense-claims/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a submitted claim or send it back (`resources.approve`). The claimant never decides
+         *     their own claim. Approval books the claim payable to the staff member.
+         */
+        post: operations["resources_expense_claim_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/expense-claims/{id}/reimburse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record that an approved claim was paid to the staff member (`resources.procurement.manage`;
+         *     books the payment).
+         */
+        post: operations["resources_expense_claim_reimburse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/expense-receipts/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The receipt file (its owner, or `resources.read`). */
+        get: operations["resources_expense_receipt_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/goods-receipts/{id}": {
         parameters: {
             query?: never;
@@ -21973,6 +22047,58 @@ export interface paths {
          *     and a decision about a term the contract has moved past is cleared. Safe to repeat.
          */
         post: operations["resources_contract_reconcile_terms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/expense-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Claims of an institution (`resources.read`), newest first. */
+        get: operations["resources_expense_claim_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/expense-dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Expense dashboard (`resources.read`). */
+        get: operations["resources_expense_dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/institutions/{id}/expense-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Expense-claim settings (`resources.read`; defaults until saved). */
+        get: operations["resources_expense_settings_get"];
+        /** Save expense-claim settings (`resources.procurement.manage`; audited). */
+        put: operations["resources_expense_settings_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -22463,6 +22589,134 @@ export interface paths {
         put: operations["resources_item_planning_update"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/me/expense-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a claim (`people.self`; Idempotency-Key). */
+        post: operations["resources_expense_claim_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/me/expense-claims/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a draft claim's title, purpose and lines (`people.self`). */
+        put: operations["resources_expense_claim_update"];
+        post?: never;
+        /** Delete a draft claim (`people.self`); its expenses become unclaimed again. */
+        delete: operations["resources_expense_claim_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/me/expense-claims/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft claim (`people.self`). Every line must be in rupees, carry a receipt where
+         *     the policy needs one and be recent enough; the total is frozen.
+         */
+        post: operations["resources_expense_claim_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/me/expense-claims/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a submitted claim back to draft (`people.self`). */
+        post: operations["resources_expense_claim_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/me/expense-receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload and read a receipt (`people.self`). The file is kept with the caller's staff record;
+         *     when a reader is configured its text pre-fills the expense form.
+         */
+        post: operations["resources_expense_receipt_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/me/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My expenses and claims (`people.self`). */
+        get: operations["resources_expense_me"];
+        put?: never;
+        /** Record an expense (`people.self`; Idempotency-Key). Attach the receipt it came from. */
+        post: operations["resources_expense_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/me/expenses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change an expense (`people.self`; only while unclaimed or on a draft claim). */
+        put: operations["resources_expense_update"];
+        post?: never;
+        /** Delete an expense (`people.self`; only while unclaimed or on a draft claim). */
+        delete: operations["resources_expense_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -31947,6 +32201,12 @@ export interface components {
             /** @description Show in the in-app inbox (security notifications cannot be muted). */
             inApp: boolean;
         };
+        /** @description Spend in one category. */
+        CategorySpend: {
+            amount: string;
+            categoryId?: string | null;
+            name: string;
+        };
         /** @description Verification checks (absent = not yet established). */
         CertificateChecks: {
             authenticityConfirmed?: boolean | null;
@@ -32293,6 +32553,46 @@ export interface components {
             detail?: string | null;
             name: string;
             ok: boolean;
+        };
+        /** @description Create a claim from unclaimed expenses. */
+        ClaimCreate: {
+            expenseIds?: string[];
+            purpose?: string | null;
+            /** @description Default "<Month YYYY> expenses". */
+            title?: string | null;
+        };
+        /** @description An approver's decision. */
+        ClaimDecision: {
+            /** @description `approve`, or `return` to send the claim back to the claimant (reason required). */
+            decision: string;
+            reason?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Replace the lines of a draft claim. */
+        ClaimLines: {
+            expenseIds: string[];
+            purpose?: string | null;
+            title?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Recording the reimbursement. */
+        ClaimReimburse: {
+            /**
+             * Format: date
+             * @description Payment date (default today).
+             */
+            paidOn?: string | null;
+            /** @description UTR, cheque or payroll reference. */
+            reference?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A step of the claim's lifecycle (optimistic concurrency by `version`). */
+        ClaimStep: {
+            /** Format: int64 */
+            version: number;
         };
         ClearanceBody: {
             items: components["schemas"]["SeparationClearanceItem"][];
@@ -35804,6 +36104,190 @@ export interface components {
          * @enum {string}
          */
         ExitClearanceStatus: "pending" | "cleared" | "waived" | "blocked";
+        /** @description An expense category with its policy. */
+        ExpenseCategory: {
+            /** @description Stable key (`travel`, `local_conveyance`…; lowercase letters, digits, `_`). */
+            id: string;
+            /**
+             * @description Most one expense of this category may claim (₹; none when absent).
+             * @example 1500.00
+             */
+            limit?: string | null;
+            name: string;
+            /**
+             * @description A receipt is required above this amount (₹; the institution's threshold when absent).
+             * @example 0.00
+             */
+            receiptAbove?: string | null;
+        };
+        /** @description A claim in a list (no lines). */
+        ExpenseClaimSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int64 */
+            lineCount: number;
+            number: string;
+            returnedReason?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            staffLabel: string;
+            status: string;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            title: string;
+            total: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A claim with its lines. */
+        ExpenseClaimView: {
+            approvalEntry?: string | null;
+            /** Format: date-time */
+            approvedAt?: string | null;
+            canSubmit: boolean;
+            currency: string;
+            decidedBy?: string | null;
+            decisionNote?: string | null;
+            /** @description Flags on any line; blocking ones must be fixed before submitting. */
+            flags: string[];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            lineCount: number;
+            lines: components["schemas"]["ExpenseView"][];
+            /** @description Label of the next step (`Submit claim`, `Approve`, `Mark reimbursed`), none at the end. */
+            nextStep?: string | null;
+            number: string;
+            paymentEntry?: string | null;
+            paymentReference?: string | null;
+            purpose?: string | null;
+            /** Format: date-time */
+            reimbursedAt?: string | null;
+            /** @description Why an approver sent the claim back (until it is submitted again). */
+            returnedReason?: string | null;
+            /** Format: uuid */
+            staffId: string;
+            staffLabel: string;
+            /** @description `draft`, `submitted`, `approved`, `reimbursed`. */
+            status: string;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            taxTotal: string;
+            title: string;
+            /** @example 1250.00 */
+            total: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+            withReceipt: number;
+        };
+        /** @description The expense dashboard of an institution. */
+        ExpenseDashboard: {
+            /** Format: int64 */
+            awaitingApproval: number;
+            awaitingApprovalAmount: string;
+            /** Format: int64 */
+            awaitingReimbursement: number;
+            awaitingReimbursementAmount: string;
+            /** @description Approved or reimbursed this financial year (April–March), by category. */
+            byCategory: components["schemas"]["CategorySpend"][];
+            /**
+             * Format: int64
+             * @description Lines of claims awaiting approval whose amount differs from what OCR read off the receipt.
+             */
+            ocrMismatches: number;
+            /** @description Approved spend of the last six months, by approval month. */
+            trend: components["schemas"]["MonthSpend"][];
+        };
+        /** @description Record or change an expense (amounts as decimal strings). */
+        ExpenseInput: {
+            /** @example 378.00 */
+            amount: string;
+            categoryId?: string | null;
+            /** @description ISO code (default `INR`). Only rupee expenses can be claimed. */
+            currency?: string | null;
+            gstin?: string | null;
+            items?: components["schemas"]["OcrItem"][];
+            merchant: string;
+            notes?: string | null;
+            /** @description `Card`, `Cash`, `Bank transfer`, `Mobile payment`, `Other`. */
+            paymentMethod?: string | null;
+            /** Format: uuid */
+            receiptId?: string | null;
+            /** Format: date */
+            spentOn: string;
+            /** @description GST paid (`CGST + SGST` or `IGST`), ₹. */
+            tax?: string | null;
+            /**
+             * Format: int64
+             * @description Required on update (optimistic concurrency).
+             */
+            version?: number | null;
+        };
+        /** @description A stored receipt. */
+        ExpenseReceiptView: {
+            /** Format: int32 */
+            byteSize: number;
+            contentType: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description `true` when this exact file had been uploaded before (the stored copy is returned). */
+            duplicate: boolean;
+            fileName: string;
+            /** Format: uuid */
+            id: string;
+            reading: components["schemas"]["ReceiptReading"];
+        };
+        /** @description Expense-claim settings of an institution. */
+        ExpenseSettings: {
+            categories: components["schemas"]["ExpenseCategory"][];
+            /**
+             * Format: int32
+             * @description Expenses older than this many days cannot be claimed (0 = no limit; default 90).
+             */
+            maxAgeDays: number;
+            /**
+             * @description A receipt is required for any expense above this amount (₹; default 250).
+             * @example 250.00
+             */
+            receiptRequiredAbove: string;
+        };
+        /** @description One expense. */
+        ExpenseView: {
+            /** @example 378.00 */
+            amount: string;
+            categoryId?: string | null;
+            categoryName?: string | null;
+            /** Format: uuid */
+            claimId?: string | null;
+            currency: string;
+            /**
+             * @description Policy findings: `over_limit`, `receipt_missing`, `too_old`, `future_date`,
+             *     `uncategorised`, `foreign_currency`. `receipt_missing`, `too_old`, `future_date` and
+             *     `foreign_currency` stop a submission.
+             */
+            flags: string[];
+            gstin?: string | null;
+            /** Format: uuid */
+            id: string;
+            items: components["schemas"]["OcrItem"][];
+            merchant: string;
+            notes?: string | null;
+            /** @description What OCR read from the receipt when the expense was created from it. */
+            ocr?: unknown;
+            paymentMethod?: string | null;
+            /** Format: uuid */
+            receiptId?: string | null;
+            /** Format: date */
+            spentOn: string;
+            tax?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         ExtendWindow: {
             /** Format: date-time */
             dueAt: string;
@@ -40749,6 +41233,12 @@ export interface components {
             resolutionNotes?: string | null;
             resolutionPlan?: string | null;
         };
+        /** @description Approved spend of one month. */
+        MonthSpend: {
+            amount: string;
+            /** @description `YYYY-MM`. */
+            month: string;
+        };
         /** @description MoU evidence for one AQAR year. */
         MouEvidence: {
             /** Format: date */
@@ -40911,6 +41401,20 @@ export interface components {
         MyEnrolments: {
             items: components["schemas"]["SectionEnrolment"][];
             waitlist: components["schemas"]["OfferingWaitlistEntry"][];
+        };
+        /** @description My expenses and claims, with the policy I claim under. */
+        MyExpenses: {
+            claims: components["schemas"]["ExpenseClaimSummary"][];
+            /** Format: uuid */
+            institutionId: string;
+            /** @description Whether uploaded receipts are read (a reader is configured). */
+            ocrEnabled: boolean;
+            ocrEngine: string;
+            settings: components["schemas"]["ExpenseSettings"];
+            staffLabel: string;
+            /** @description Expenses on no claim yet. */
+            unclaimed: components["schemas"]["ExpenseView"][];
+            unclaimedTotal: string;
         };
         /** @description The caller's flexible-learning view: open opportunities of their institutions and their own enrolments. */
         MyFlexibleLearning: {
@@ -41790,6 +42294,34 @@ export interface components {
             nextCursor?: string | null;
             /** Format: int64 */
             unreadCount: number;
+        };
+        /** @description What a receipt read pre-fills (`normalizeOcrResult`); the claimant confirms every field. */
+        OcrFields: {
+            cardLast4?: string | null;
+            categoryId?: string | null;
+            /**
+             * Format: double
+             * @description 0…1.
+             */
+            confidence: number;
+            currency: string;
+            date?: string | null;
+            items: components["schemas"]["OcrItem"][];
+            merchant?: string | null;
+            notes?: string | null;
+            paymentMethod?: string | null;
+            /** Format: double */
+            tax?: number | null;
+            /** Format: double */
+            tip?: number | null;
+            /** Format: double */
+            total?: number | null;
+        };
+        /** @description A receipt line item read by OCR. */
+        OcrItem: {
+            /** Format: double */
+            amount?: number | null;
+            name: string;
         };
         /** @description Offer terms. */
         OfferBody: {
@@ -44508,6 +45040,17 @@ export interface components {
         ReceiptList: {
             items: components["schemas"]["ReceiptView"][];
         };
+        /** @description What reading a receipt pre-filled (every field is a suggestion). */
+        ReceiptReading: {
+            engine: string;
+            error?: string | null;
+            fields?: null | components["schemas"]["OcrFields"];
+            /** @description The merchant's GSTIN when one with a valid checksum was printed. */
+            gstin?: string | null;
+            lineCount: number;
+            /** @description `read`, `failed` (the reader errored; type the fields) or `disabled` (no reader set up). */
+            status: string;
+        };
         /** @description Receipt reference on a payment. */
         ReceiptRef: {
             id: components["schemas"]["ReceiptId"];
@@ -44521,6 +45064,13 @@ export interface components {
          * @enum {string}
          */
         ReceiptStatus: "issued" | "cancelled";
+        /** @description Upload a receipt (JPEG, PNG, WebP or PDF; at most 1.5 MB decoded). */
+        ReceiptUpload: {
+            contentType: string;
+            /** @description The file, base64. */
+            dataBase64: string;
+            fileName: string;
+        };
         /** @description One receipt with its allocations (printable). */
         ReceiptView: {
             accountName?: string | null;
@@ -105010,6 +105560,131 @@ export interface operations {
             };
         };
     };
+    resources_expense_claim_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_claim_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_claim_reimburse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimReimburse"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_receipt_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The receipt file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     resources_receipt_get: {
         parameters: {
             query?: never;
@@ -105428,6 +106103,129 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContractReconcileResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_claim_list: {
+        parameters: {
+            query?: {
+                /** @description `draft`, `submitted`, `approved`, `reimbursed`. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimSummary"][];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseDashboard"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseSettings"];
                 };
             };
             "4XX": {
@@ -106725,6 +107523,327 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ItemPlanning"];
                 };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_claim_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_claim_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimLines"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_claim_delete: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_claim_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_claim_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimStep"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_receipt_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptUpload"];
+            };
+        };
+        responses: {
+            /** @description This file had been uploaded before */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseReceiptView"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyExpenses"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resources_expense_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             "4XX": {
                 headers: {
