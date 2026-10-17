@@ -534,7 +534,7 @@ fn check_reminder(b: &ServiceReminderInput) -> Result<String, KernelError> {
             ));
         }
     }
-    if b.meter_interval.is_some_and(|x| !(x > 0.0)) {
+    if b.meter_interval.is_some_and(|x| x.is_nan() || x <= 0.0) {
         return Err(invalid("meterInterval", "invalid", "> 0"));
     }
     if b.due_soon_days.is_some_and(|d| !(0..=365).contains(&d)) {

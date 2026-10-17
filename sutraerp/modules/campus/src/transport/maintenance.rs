@@ -464,7 +464,7 @@ pub fn economy_value(
     meter_unit: &str,
     volume_unit: &str,
 ) -> Option<f64> {
-    if !(distance > 0.0) || !(volume > 0.0) {
+    if distance.is_nan() || distance <= 0.0 || volume.is_nan() || volume <= 0.0 {
         return None;
     }
     if meter_unit == "hr" {
@@ -492,7 +492,7 @@ pub fn round_cents(v: f64) -> f64 {
 
 /// Total in paise from volume and unit price (rupees).
 pub fn fuel_total(volume: f64, price: f64) -> f64 {
-    if !(volume > 0.0) || !(price >= 0.0) {
+    if volume.is_nan() || volume <= 0.0 || price.is_nan() || price < 0.0 {
         return 0.0;
     }
     round_cents(volume * price * 100.0)
@@ -500,7 +500,7 @@ pub fn fuel_total(volume: f64, price: f64) -> f64 {
 
 /// Unit price (rupees per unit) from a total in paise.
 pub fn unit_price(total: f64, volume: f64) -> Option<f64> {
-    if !(volume > 0.0) {
+    if volume.is_nan() || volume <= 0.0 {
         return None;
     }
     Some(js_round(total / 100.0 / volume * 1000.0) / 1000.0)
