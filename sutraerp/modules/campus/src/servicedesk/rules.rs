@@ -165,7 +165,7 @@ pub struct Condition {
     pub field: String,
     pub op: String,
     #[serde(default)]
-    #[schema(value_type = Object)]
+    #[schema(value_type = serde_json::Value)]
     pub value: Value,
 }
 
@@ -186,7 +186,7 @@ pub struct Conditions {
 pub struct Action {
     pub field: String,
     #[serde(default)]
-    #[schema(value_type = Object)]
+    #[schema(value_type = serde_json::Value)]
     pub value: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub to: Option<String>,

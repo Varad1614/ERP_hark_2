@@ -938,7 +938,7 @@ pub struct ServiceDeskRulePreviewHit {
     pub ticket_id: Uuid,
     pub number: String,
     pub title: String,
-    #[schema(value_type = Object)]
+    #[schema(value_type = serde_json::Value)]
     pub changes: serde_json::Value,
 }
 
@@ -1286,7 +1286,7 @@ pub struct ServiceDeskRuleRun {
     pub rule_id: Option<Uuid>,
     pub rule_title: String,
     pub event: String,
-    #[schema(value_type = Object)]
+    #[schema(value_type = serde_json::Value)]
     pub changes: serde_json::Value,
     pub created_at: DateTime<Utc>,
 }

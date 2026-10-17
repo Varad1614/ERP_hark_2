@@ -42,7 +42,8 @@ function ConditionRow({ c, onChange, onRemove }: { c: CondDraft; onChange: (c: C
   const choices = valueChoices(c.field);
   const noValue = c.op === "changed" || c.op === "present" || c.op === "absent";
   return (
-    <FormGrid columns={4}>
+    <div className="flex items-end gap-2">
+    <FormGrid columns={3}>
       <FormSelect label="When" value={c.field} onChange={(e) => {
         const nf = FIELDS.find((x) => x.value === e.target.value)!;
         onChange({ field: nf.value, op: nf.ops[0]!, value: valueChoices(nf.value)?.[0] ?? "" });
@@ -53,8 +54,9 @@ function ConditionRow({ c, onChange, onRemove }: { c: CondDraft; onChange: (c: C
       ) : (
         <TextField label="Value" value={c.value} onChange={(e) => onChange({ ...c, value: e.target.value })} />
       )}
-      {onRemove ? <Button size="sm" variant="ghost" onClick={onRemove}>Remove</Button> : <span />}
     </FormGrid>
+      {onRemove && <Button size="sm" variant="ghost" onClick={onRemove}>Remove</Button>}
+    </div>
   );
 }
 
