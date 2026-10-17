@@ -333,17 +333,6 @@ type PlannedLine = (
     params(("id" = String, Path, format = Uuid), ("Idempotency-Key" = String, Header)),
     request_body = GoodsReceiptCreate, security(("session_cookie" = [], "csrf_token" = [])),
     responses((status = 201, body = GoodsReceiptDetail, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
-/// Order line no, order line id, item, line kind, quantity, unit cost, lot expiry.
-type PlannedLine = (
-    i32,
-    Uuid,
-    Option<Uuid>,
-    String,
-    Decimal,
-    Decimal,
-    Option<NaiveDate>,
-);
-
 pub async fn create(
     State(st): State<ResourcesState>,
     auth: Authenticated,
