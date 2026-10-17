@@ -6,6 +6,7 @@
 pub mod bankfile;
 pub mod domain;
 pub mod reconcile;
+pub mod reconcile_http;
 pub mod http;
 
 use crate::shared::FinanceState;
@@ -28,5 +29,13 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
         .routes(routes!(http::statement_get))
         .routes(routes!(http::statement_reconcile))
         .routes(routes!(http::cash_position))
+        // ERP_EXTENSIONS 1B
+        .routes(routes!(reconcile_http::bank_recon_workspace))
+        .routes(routes!(reconcile_http::bank_recon_preview))
+        .routes(routes!(reconcile_http::bank_recon_list, reconcile_http::bank_recon_finish))
+        .routes(routes!(reconcile_http::bank_recon_undo))
+        .routes(routes!(reconcile_http::bank_recon_brs))
+        .routes(routes!(reconcile_http::bank_recon_discrepancies))
+        .routes(routes!(reconcile_http::statement_line_suggestions))
         .with_state(state)
 }
