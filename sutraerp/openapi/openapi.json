@@ -87945,6 +87945,366 @@
         ]
       }
     },
+    "/api/v1/people/institutions/{id}/roster": {
+      "get": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "The roster (`people.read`): shifts in the range with their checks, coverage gaps against\nthe requirements, and each rosterable staff member's hours for the week of `from`.",
+        "operationId": "people_roster_board",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Default: Monday of this week.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Default: six days after `from`; at most 62 days.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterBoard"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/institutions/{id}/roster/fill": {
+      "post": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Propose staff for every open shift in a range (`staff.manage`): each proposal counts against\nthe next, so nobody is double-booked or pushed past their weekly max in one pass. With\n`apply`, the proposals are written.",
+        "operationId": "people_roster_fill",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RosterFillBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterFillPlan"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/institutions/{id}/roster/publish": {
+      "post": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Publish the draft shifts in a range (`staff.manage`): staff see published shifts only.",
+        "operationId": "people_roster_publish",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RosterRange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterPublished"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/institutions/{id}/roster/settings": {
+      "get": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Roster settings (`people.read`).",
+        "operationId": "people_roster_settings_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Save roster settings (`staff.manage`): the limits, and the requirements replaced whole.",
+        "operationId": "people_roster_settings_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RosterSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/institutions/{id}/roster/shifts": {
+      "post": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Plan a shift (`staff.manage`; Idempotency-Key). An overlap on the staff member is 409.",
+        "operationId": "people_roster_shift_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DutyShiftInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DutyShiftResult"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/people/institutions/{id}/salary-structures": {
       "get": {
         "tags": [
@@ -90273,6 +90633,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MyProfileView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/me/roster": {
+      "get": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "My duties (`people.self_service`): published shifts I hold in the range (default this week).",
+        "operationId": "people_roster_me",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Default: Monday of this week.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Default: six days after `from`; at most 62 days.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyRoster"
                 }
               }
             }
@@ -94579,6 +94997,183 @@
         ]
       }
     },
+    "/api/v1/people/roster/shifts/{id}": {
+      "put": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Change, move or (re)assign a shift (`staff.manage`; If-Match). An overlap is 409.",
+        "operationId": "people_roster_shift_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DutyShiftInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DutyShiftResult"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Remove a shift (`staff.manage`; If-Match).",
+        "operationId": "people_roster_shift_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/roster/shifts/{id}/suggestions": {
+      "get": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Who could take a shift (`people.read`): blockers excluded (time off, overlap, unavailable,\npast the weekly max); the rest ranked clean of the limits first, then fully available,\nthen furthest below target, then role match.",
+        "operationId": "people_roster_shift_suggestions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1–20, default 5.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterSuggestions"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/people/salary-assignments/{id}": {
       "get": {
         "tags": [
@@ -97047,6 +97642,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StaffRecordView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/people/staff/{id}/roster-profile": {
+      "put": {
+        "tags": [
+          "people-roster"
+        ],
+        "summary": "Set a staff member's roster profile (`staff.manage`).",
+        "operationId": "people_roster_profile_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RosterProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterProfile"
                 }
               }
             }
@@ -152068,6 +152721,182 @@
         },
         "additionalProperties": false
       },
+      "DutyShiftInput": {
+        "type": "object",
+        "description": "Plan or change a shift.",
+        "required": [
+          "date",
+          "start",
+          "end",
+          "role"
+        ],
+        "properties": {
+          "breakMinutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "description": "`HH:MM`; before `start` runs past midnight.",
+            "example": "06:00"
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "example": "Hostel night warden"
+          },
+          "staffId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The staff member; null leaves it open."
+          },
+          "start": {
+            "type": "string",
+            "description": "`HH:MM`.",
+            "example": "22:00"
+          }
+        }
+      },
+      "DutyShiftResult": {
+        "type": "object",
+        "description": "A saved shift and the warnings to show.",
+        "required": [
+          "shift",
+          "warnings"
+        ],
+        "properties": {
+          "shift": {
+            "$ref": "#/components/schemas/DutyShiftView"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "DutyShiftView": {
+        "type": "object",
+        "description": "A duty shift with its checks.",
+        "required": [
+          "id",
+          "date",
+          "start",
+          "end",
+          "breakMinutes",
+          "netMinutes",
+          "overnight",
+          "role",
+          "status",
+          "conflicts",
+          "availability",
+          "ruleWarnings",
+          "version"
+        ],
+        "properties": {
+          "availability": {
+            "type": "string",
+            "description": "`available | partial | unavailable` against the holder's week and time off."
+          },
+          "breakMinutes": {
+            "type": "number",
+            "format": "double"
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Other shifts of the same person that overlap (should be none)."
+          },
+          "date": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "netMinutes": {
+            "type": "number",
+            "format": "double",
+            "description": "Paid minutes."
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "overnight": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string"
+          },
+          "ruleWarnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterRuleWarning"
+            }
+          },
+          "staffId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "staffName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "`draft | published`."
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "EligibilityAction": {
         "type": "string",
         "description": "Eligibility commands (L3-E-029).",
@@ -172376,6 +173205,36 @@
           }
         }
       },
+      "MyRoster": {
+        "type": "object",
+        "description": "The caller's published duties.",
+        "required": [
+          "from",
+          "to",
+          "items",
+          "minutes"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DutyShiftView"
+            }
+          },
+          "minutes": {
+            "type": "number",
+            "format": "double"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
       "MyStudent": {
         "type": "object",
         "description": "A student seated in one of the faculty member's sections.",
@@ -188505,6 +189364,539 @@
           }
         }
       },
+      "RosterBoard": {
+        "type": "object",
+        "description": "The roster for a range.",
+        "required": [
+          "from",
+          "to",
+          "weekStart",
+          "openShifts",
+          "shifts",
+          "gaps",
+          "staff"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterCoverageGap"
+            }
+          },
+          "openShifts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "shifts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DutyShiftView"
+            }
+          },
+          "staff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterStaffRow"
+            }
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "weekStart": {
+            "type": "string",
+            "format": "date",
+            "description": "Monday of the week the staff hours are counted for."
+          }
+        }
+      },
+      "RosterCandidate": {
+        "type": "object",
+        "description": "A ranked candidate for a shift.",
+        "required": [
+          "employeeId",
+          "name",
+          "status",
+          "deficitMinutes",
+          "roleMatch",
+          "projectedMinutes",
+          "ruleWarnings",
+          "reasons"
+        ],
+        "properties": {
+          "deficitMinutes": {
+            "type": "number",
+            "format": "double"
+          },
+          "employeeId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "projectedMinutes": {
+            "type": "number",
+            "format": "double"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roleMatch": {
+            "type": "boolean"
+          },
+          "ruleWarnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterRuleWarning"
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "`available | partial`."
+          }
+        }
+      },
+      "RosterCoverageGap": {
+        "type": "object",
+        "description": "A staffing gap.",
+        "required": [
+          "date",
+          "requirementId",
+          "role",
+          "scheduled",
+          "missing"
+        ],
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "requirementId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "scheduled": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "RosterDayWindow": {
+        "type": "object",
+        "description": "One weekday's available window.",
+        "properties": {
+          "end": {
+            "type": "string"
+          },
+          "off": {
+            "type": "boolean"
+          },
+          "start": {
+            "type": "string"
+          }
+        }
+      },
+      "RosterFillBody": {
+        "type": "object",
+        "description": "Fill open shifts in a range.",
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "apply": {
+            "type": "boolean",
+            "description": "Write the proposals (default false: preview)."
+          },
+          "choices": {
+            "type": "object",
+            "description": "Pin a shift to a staff member, or to null to leave it open.",
+            "additionalProperties": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "RosterFillPlan": {
+        "type": "object",
+        "description": "A fill plan.",
+        "required": [
+          "rows",
+          "total",
+          "filling",
+          "skipped",
+          "nobody",
+          "applied"
+        ],
+        "properties": {
+          "applied": {
+            "type": "integer",
+            "description": "Shifts assigned (apply only).",
+            "minimum": 0
+          },
+          "filling": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "nobody": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterFillRow"
+            }
+          },
+          "skipped": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "RosterFillRow": {
+        "type": "object",
+        "description": "One row of a fill plan.",
+        "required": [
+          "shiftId",
+          "candidates",
+          "skipped",
+          "stale",
+          "pinned"
+        ],
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterCandidate"
+            }
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "proposal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The employee to assign, or null when nobody is a clean fit (or the row is skipped)."
+          },
+          "shiftId": {
+            "type": "string"
+          },
+          "skipped": {
+            "type": "boolean"
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "A pinned pick an earlier row made impossible."
+          }
+        }
+      },
+      "RosterProfile": {
+        "type": "object",
+        "description": "A staff member's roster profile.",
+        "properties": {
+          "days": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/RosterDayWindow"
+                }
+              ]
+            },
+            "description": "Seven windows, Sunday first; null = available any time."
+          },
+          "maxHours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Their usual duty (matched against shift roles when suggesting)."
+          },
+          "rosterable": {
+            "type": "boolean",
+            "description": "False keeps them off the roster."
+          },
+          "targetHours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "RosterPublished": {
+        "type": "object",
+        "description": "How many shifts were published.",
+        "required": [
+          "published"
+        ],
+        "properties": {
+          "published": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "RosterRange": {
+        "type": "object",
+        "description": "A date range (inclusive).",
+        "properties": {
+          "from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Default: Monday of this week."
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Default: six days after `from`; at most 62 days."
+          }
+        }
+      },
+      "RosterRequirementInput": {
+        "type": "object",
+        "description": "A coverage requirement.",
+        "required": [
+          "role",
+          "days",
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            },
+            "description": "Weekdays, 0 = Sunday."
+          },
+          "end": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "example": "Security"
+          },
+          "start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional window (`HH:MM`); the whole day without one."
+          }
+        }
+      },
+      "RosterRuleWarning": {
+        "type": "object",
+        "description": "A broken working-time limit.",
+        "required": [
+          "rule",
+          "short",
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "string",
+            "description": "`rest | daily | consecutive`."
+          },
+          "short": {
+            "type": "string"
+          }
+        }
+      },
+      "RosterRules": {
+        "type": "object",
+        "description": "Optional working-time limits (all off by default; warnings, never blockers).",
+        "properties": {
+          "maxConsecutiveDays": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "default": null
+          },
+          "maxDailyHours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "default": null
+          },
+          "minRestHours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "default": null
+          }
+        }
+      },
+      "RosterSettings": {
+        "type": "object",
+        "description": "Roster settings: working-time limits and coverage requirements.",
+        "required": [
+          "rules",
+          "requirements"
+        ],
+        "properties": {
+          "requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterRequirementInput"
+            }
+          },
+          "rules": {
+            "$ref": "#/components/schemas/RosterRules"
+          }
+        }
+      },
+      "RosterStaffRow": {
+        "type": "object",
+        "description": "A staff member's week on the roster.",
+        "required": [
+          "staffId",
+          "name",
+          "role",
+          "rosterable",
+          "weekMinutes",
+          "hoursStatus",
+          "ruleWarnings"
+        ],
+        "properties": {
+          "hoursStatus": {
+            "type": "string",
+            "description": "`over | under | ok`."
+          },
+          "maxHours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "rosterable": {
+            "type": "boolean"
+          },
+          "ruleWarnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterRuleWarning"
+            },
+            "description": "One per broken working-time limit in the range."
+          },
+          "staffId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetHours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "weekMinutes": {
+            "type": "number",
+            "format": "double",
+            "description": "Paid minutes in the week starting `weekStart`."
+          }
+        }
+      },
+      "RosterSuggestions": {
+        "type": "object",
+        "description": "Ranked staff for a shift.",
+        "required": [
+          "shiftId",
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RosterCandidate"
+            }
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "RouteStopInput": {
         "type": "object",
         "description": "One stop in a draft version.",
@@ -202470,6 +203862,10 @@
     {
       "name": "people-attendance",
       "description": "E People & workforce: staff attendance days and faculty availability / workload plans"
+    },
+    {
+      "name": "people-roster",
+      "description": "E People & workforce: duty rosters (ERP_EXTENSIONS 3A): shifts, conflicts and working-time limits, suggestions, fill, coverage, publish, my duties"
     },
     {
       "name": "people-payroll",

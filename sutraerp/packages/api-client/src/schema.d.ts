@@ -18708,6 +18708,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/institutions/{id}/roster": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The roster (`people.read`): shifts in the range with their checks, coverage gaps against
+         *     the requirements, and each rosterable staff member's hours for the week of `from`.
+         */
+        get: operations["people_roster_board"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/fill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propose staff for every open shift in a range (`staff.manage`): each proposal counts against
+         *     the next, so nobody is double-booked or pushed past their weekly max in one pass. With
+         *     `apply`, the proposals are written.
+         */
+        post: operations["people_roster_fill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the draft shifts in a range (`staff.manage`): staff see published shifts only. */
+        post: operations["people_roster_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roster settings (`people.read`). */
+        get: operations["people_roster_settings_get"];
+        /** Save roster settings (`staff.manage`): the limits, and the requirements replaced whole. */
+        put: operations["people_roster_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan a shift (`staff.manage`; Idempotency-Key). An overlap on the staff member is 409. */
+        post: operations["people_roster_shift_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/institutions/{id}/salary-structures": {
         parameters: {
             query?: never;
@@ -19290,6 +19383,23 @@ export interface paths {
          *     empty lists (200, so My HR renders without an error).
          */
         get: operations["people_profile_self_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/roster": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My duties (`people.self_service`): published shifts I hold in the range (default this week). */
+        get: operations["people_roster_me"];
         put?: never;
         post?: never;
         delete?: never;
@@ -20370,6 +20480,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/roster/shifts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change, move or (re)assign a shift (`staff.manage`; If-Match). An overlap is 409. */
+        put: operations["people_roster_shift_update"];
+        post?: never;
+        /** Remove a shift (`staff.manage`; If-Match). */
+        delete: operations["people_roster_shift_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/roster/shifts/{id}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who could take a shift (`people.read`): blockers excluded (time off, overlap, unavailable,
+         *     past the weekly max); the rest ranked clean of the limits first, then fully available,
+         *     then furthest below target, then role match.
+         */
+        get: operations["people_roster_shift_suggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/salary-assignments/{id}": {
         parameters: {
             query?: never;
@@ -20899,6 +21048,23 @@ export interface paths {
         put?: never;
         /** Restore a suspended profile (`people.staff.manage`). */
         post: operations["people_staff_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/staff/{id}/roster-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a staff member's roster profile (`staff.manage`). */
+        put: operations["people_roster_profile_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -33261,6 +33427,68 @@ export interface components {
             candidateId: string;
             reason: string;
         };
+        /** @description Plan or change a shift. */
+        DutyShiftInput: {
+            /** Format: int32 */
+            breakMinutes?: number | null;
+            /** Format: date */
+            date: string;
+            /**
+             * @description `HH:MM`; before `start` runs past midnight.
+             * @example 06:00
+             */
+            end: string;
+            location?: string | null;
+            note?: string | null;
+            /** @example Hostel night warden */
+            role: string;
+            /**
+             * Format: uuid
+             * @description The staff member; null leaves it open.
+             */
+            staffId?: string | null;
+            /**
+             * @description `HH:MM`.
+             * @example 22:00
+             */
+            start: string;
+        };
+        /** @description A saved shift and the warnings to show. */
+        DutyShiftResult: {
+            shift: components["schemas"]["DutyShiftView"];
+            warnings: string[];
+        };
+        /** @description A duty shift with its checks. */
+        DutyShiftView: {
+            /** @description `available | partial | unavailable` against the holder's week and time off. */
+            availability: string;
+            /** Format: double */
+            breakMinutes: number;
+            /** @description Other shifts of the same person that overlap (should be none). */
+            conflicts: string[];
+            date: string;
+            end: string;
+            /** Format: uuid */
+            id: string;
+            location?: string | null;
+            /**
+             * Format: double
+             * @description Paid minutes.
+             */
+            netMinutes: number;
+            note?: string | null;
+            overnight: boolean;
+            role: string;
+            ruleWarnings: components["schemas"]["RosterRuleWarning"][];
+            /** Format: uuid */
+            staffId?: string | null;
+            staffName?: string | null;
+            start: string;
+            /** @description `draft | published`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * @description Eligibility commands (L3-E-029).
          * @enum {string}
@@ -39798,6 +40026,16 @@ export interface components {
             items: components["schemas"]["CourseResource"][];
             sections: components["schemas"]["ResourceSection"][];
         };
+        /** @description The caller's published duties. */
+        MyRoster: {
+            /** Format: date */
+            from: string;
+            items: components["schemas"]["DutyShiftView"][];
+            /** Format: double */
+            minutes: number;
+            /** Format: date */
+            to: string;
+        };
         /** @description A student seated in one of the faculty member's sections. */
         MyStudent: {
             displayName: string;
@@ -44876,6 +45114,186 @@ export interface components {
             toRoomCode: string;
             /** Format: int64 */
             version: number;
+        };
+        /** @description The roster for a range. */
+        RosterBoard: {
+            /** Format: date */
+            from: string;
+            gaps: components["schemas"]["RosterCoverageGap"][];
+            openShifts: number;
+            shifts: components["schemas"]["DutyShiftView"][];
+            staff: components["schemas"]["RosterStaffRow"][];
+            /** Format: date */
+            to: string;
+            /**
+             * Format: date
+             * @description Monday of the week the staff hours are counted for.
+             */
+            weekStart: string;
+        };
+        /** @description A ranked candidate for a shift. */
+        RosterCandidate: {
+            /** Format: double */
+            deficitMinutes: number;
+            employeeId: string;
+            name: string;
+            /** Format: double */
+            projectedMinutes: number;
+            reasons: string[];
+            roleMatch: boolean;
+            ruleWarnings: components["schemas"]["RosterRuleWarning"][];
+            /** @description `available | partial`. */
+            status: string;
+        };
+        /** @description A staffing gap. */
+        RosterCoverageGap: {
+            date: string;
+            /** Format: int64 */
+            missing: number;
+            requirementId: string;
+            role: string;
+            /** Format: int64 */
+            scheduled: number;
+        };
+        /** @description One weekday's available window. */
+        RosterDayWindow: {
+            end?: string;
+            off?: boolean;
+            start?: string;
+        };
+        /** @description Fill open shifts in a range. */
+        RosterFillBody: {
+            /** @description Write the proposals (default false: preview). */
+            apply?: boolean;
+            /** @description Pin a shift to a staff member, or to null to leave it open. */
+            choices?: {
+                [key: string]: string | null;
+            };
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+        };
+        /** @description A fill plan. */
+        RosterFillPlan: {
+            /** @description Shifts assigned (apply only). */
+            applied: number;
+            filling: number;
+            nobody: number;
+            rows: components["schemas"]["RosterFillRow"][];
+            skipped: number;
+            total: number;
+        };
+        /** @description One row of a fill plan. */
+        RosterFillRow: {
+            candidates: components["schemas"]["RosterCandidate"][];
+            pinned: boolean;
+            /** @description The employee to assign, or null when nobody is a clean fit (or the row is skipped). */
+            proposal?: string | null;
+            shiftId: string;
+            skipped: boolean;
+            /** @description A pinned pick an earlier row made impossible. */
+            stale: boolean;
+        };
+        /** @description A staff member's roster profile. */
+        RosterProfile: {
+            /** @description Seven windows, Sunday first; null = available any time. */
+            days?: (null | components["schemas"]["RosterDayWindow"])[] | null;
+            /** Format: double */
+            maxHours?: number | null;
+            /** @description Their usual duty (matched against shift roles when suggesting). */
+            role?: string | null;
+            /** @description False keeps them off the roster. */
+            rosterable?: boolean;
+            /** Format: double */
+            targetHours?: number | null;
+        };
+        /** @description How many shifts were published. */
+        RosterPublished: {
+            /** Format: int64 */
+            published: number;
+        };
+        /** @description A date range (inclusive). */
+        RosterRange: {
+            /**
+             * Format: date
+             * @description Default: Monday of this week.
+             */
+            from?: string | null;
+            /**
+             * Format: date
+             * @description Default: six days after `from`; at most 62 days.
+             */
+            to?: string | null;
+        };
+        /** @description A coverage requirement. */
+        RosterRequirementInput: {
+            /** Format: int64 */
+            count: number;
+            /** @description Weekdays, 0 = Sunday. */
+            days: number[];
+            end?: string | null;
+            /** @example Security */
+            role: string;
+            /** @description Optional window (`HH:MM`); the whole day without one. */
+            start?: string | null;
+        };
+        /** @description A broken working-time limit. */
+        RosterRuleWarning: {
+            message: string;
+            /** @description `rest | daily | consecutive`. */
+            rule: string;
+            short: string;
+        };
+        /** @description Optional working-time limits (all off by default; warnings, never blockers). */
+        RosterRules: {
+            /**
+             * Format: double
+             * @default null
+             */
+            maxConsecutiveDays: number | null;
+            /**
+             * Format: double
+             * @default null
+             */
+            maxDailyHours: number | null;
+            /**
+             * Format: double
+             * @default null
+             */
+            minRestHours: number | null;
+        };
+        /** @description Roster settings: working-time limits and coverage requirements. */
+        RosterSettings: {
+            requirements: components["schemas"]["RosterRequirementInput"][];
+            rules: components["schemas"]["RosterRules"];
+        };
+        /** @description A staff member's week on the roster. */
+        RosterStaffRow: {
+            /** @description `over | under | ok`. */
+            hoursStatus: string;
+            /** Format: double */
+            maxHours?: number | null;
+            name: string;
+            role: string;
+            rosterable: boolean;
+            /** @description One per broken working-time limit in the range. */
+            ruleWarnings: components["schemas"]["RosterRuleWarning"][];
+            /** Format: uuid */
+            staffId: string;
+            /** Format: double */
+            targetHours?: number | null;
+            /**
+             * Format: double
+             * @description Paid minutes in the week starting `weekStart`.
+             */
+            weekMinutes: number;
+        };
+        /** @description Ranked staff for a shift. */
+        RosterSuggestions: {
+            items: components["schemas"]["RosterCandidate"][];
+            /** Format: uuid */
+            shiftId: string;
         };
         /** @description One stop in a draft version. */
         RouteStopInput: {
@@ -96837,6 +97255,205 @@ export interface operations {
             };
         };
     };
+    people_roster_board: {
+        parameters: {
+            query?: {
+                /** @description Default: Monday of this week. */
+                from?: string;
+                /** @description Default: six days after `from`; at most 62 days. */
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterBoard"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_fill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterFillBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterFillPlan"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterRange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterPublished"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_shift_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DutyShiftInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DutyShiftResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_salary_structure_list: {
         parameters: {
             query?: never;
@@ -98080,6 +98697,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MyProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_me: {
+        parameters: {
+            query?: {
+                /** @description Default: Monday of this week. */
+                from?: string;
+                /** @description Default: six days after `from`; at most 62 days. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyRoster"];
                 };
             };
             "4XX": {
@@ -100340,6 +100989,103 @@ export interface operations {
             };
         };
     };
+    people_roster_shift_update: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DutyShiftInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DutyShiftResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_shift_delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_shift_suggestions: {
+        parameters: {
+            query?: {
+                /** @description 1–20, default 5. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSuggestions"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_salary_assignment_get: {
         parameters: {
             query?: never;
@@ -101666,6 +102412,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_profile_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterProfile"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterProfile"];
                 };
             };
             "4XX": {
