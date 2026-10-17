@@ -391,11 +391,75 @@ pub async fn seed_stock(
             posting_key,
             reverses_entry_id: None,
             reason: Some("seeded"),
+            expiry_on: None,
         },
         &resources_actor(),
     )
     .await
     .expect("seed stock");
+    tx.commit().await.expect("commit");
+    r
+}
+
+/// One movement of `kind` through the ledger writer, optionally dated (ERP_EXTENSIONS 2C).
+#[allow(clippy::too_many_arguments, dead_code)]
+pub async fn seed_movement(
+    owner: &PgPool,
+    setup: &CampusSetup,
+    item: ItemId,
+    location: StoreLocationId,
+    kind: StockMovementKind,
+    quantity: &str,
+    effective_on: NaiveDate,
+    posting_key: &str,
+    expiry_on: Option<NaiveDate>,
+) -> MovementReceipt {
+    let mut tx = owner.begin().await.expect("tx");
+    let r = post_movement(
+        &mut tx,
+        NewMovement {
+            tenant: setup.tenant(),
+            institution: setup.institution(),
+            item_id: item,
+            location_id: location,
+            kind,
+            quantity: dec(quantity),
+            unit_cost: Some(dec("100.00")),
+            effective_on,
+            source_type: "test_seed",
+            source_id: item.as_uuid(),
+            posting_key,
+            reverses_entry_id: None,
+            reason: Some("seeded"),
+            expiry_on,
+        },
+        &resources_actor(),
+    )
+    .await
+    .expect("seed movement");
+    tx.commit().await.expect("commit");
+    r
+}
+
+/// Reverses one ledger entry through the ledger writer (ERP_EXTENSIONS 2C).
+#[allow(dead_code)]
+pub async fn reverse_entry(
+    owner: &PgPool,
+    setup: &CampusSetup,
+    entry: sutra_contracts::resources::ids::StockLedgerEntryId,
+    effective_on: NaiveDate,
+) -> MovementReceipt {
+    let mut tx = owner.begin().await.expect("tx");
+    let r = sutra_resources::shared::stock::reverse_movement(
+        &mut tx,
+        setup.tenant(),
+        entry,
+        effective_on,
+        Some("test reversal"),
+        &resources_actor(),
+    )
+    .await
+    .expect("reverse");
     tx.commit().await.expect("commit");
     r
 }

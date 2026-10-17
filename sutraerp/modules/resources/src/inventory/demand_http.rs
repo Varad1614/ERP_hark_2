@@ -357,6 +357,15 @@ async fn demand_report(
             reorder_qty: reorder_qty.map(f),
         };
         let cover = demand::cover_days(p.quantity, per_day);
+        let status = demand::stock_status(&p, 0.0);
+        let short = demand::running_out(p.quantity, per_day, lead_f, f64::from(safety_days));
+        // Only a line that needs attention has something to order (Everything's reorder list
+        // is built from alerts).
+        let order = if status == "ok" && !short {
+            0.0
+        } else {
+            demand::suggested_qty(&p, 0.0, inbound, per_day, f64::from(s.coverage_days))
+        };
         out.push(StockDemandRow {
             item_id: id,
             item_code: code,
@@ -376,15 +385,9 @@ async fn demand_report(
             pack_size: pack,
             reorder_level: level,
             suggested_reorder_level: demand::suggested_threshold(&p, per_day, lead_f, f64::from(safety_days)).map(dec),
-            running_out: demand::running_out(p.quantity, per_day, lead_f, f64::from(safety_days)),
-            status: demand::stock_status(&p, 0.0).to_owned(),
-            suggested_order_quantity: dec(demand::suggested_qty(
-                &p,
-                0.0,
-                inbound,
-                per_day,
-                f64::from(s.coverage_days),
-            )),
+            running_out: short,
+            status: status.to_owned(),
+            suggested_order_quantity: dec(order),
             track_expiry: track,
         });
     }

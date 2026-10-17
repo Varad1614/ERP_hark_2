@@ -529,6 +529,7 @@ async fn resources_foundation_stock_ledger_procurement_postings_and_stock_api() 
         posting_key: key,
         reverses_entry_id: None,
         reason: None,
+        expiry_on: None,
     };
     let mut tx = pool.begin().await.unwrap();
     let issued = post_movement(&mut tx, issue("-4", "line:1"), &resources_actor())
