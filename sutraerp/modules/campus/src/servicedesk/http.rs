@@ -553,6 +553,16 @@ where
     let ticket = lock_ticket(&mut tx, t, ServiceTicketId(id)).await?;
     ensure_version(expected_version, ticket.version)?;
     let out = f(&mut tx, &scope, &ticket, &a).await?;
+    // ERP_EXTENSIONS 2B: the institution's service-desk triggers (updated).
+    let out = super::automation::after_event(
+        &mut tx,
+        &scope,
+        out,
+        Some(&ticket),
+        super::rules::Event::Updated,
+        &a,
+    )
+    .await?;
     audit(&mut tx, &scope, action, "service_ticket", id, details, &a).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(out)
@@ -891,11 +901,19 @@ pub async fn ticket_triage(
                 }
                 let p = priority.unwrap_or(ticket.priority);
                 let c = category.unwrap_or(ticket.category);
-                let hours = i32::try_from(p.default_sla_hours()).unwrap_or(i32::MAX);
+                // ERP_EXTENSIONS 2B: the SLA policy's resolution target when one is set.
+                let minutes = super::automation::resolve_minutes(
+                    conn,
+                    scope.tenant_id,
+                    ticket.institution_id,
+                    p,
+                )
+                .await?;
+                let hours = i32::try_from(minutes).unwrap_or(i32::MAX);
                 sqlx::query(
                     "UPDATE campus.service_ticket SET category = $3, priority = $4, \
-                     sla_due_at = created_at + make_interval(hours => $5), \
-                     sla_breached = sla_breached AND (created_at + make_interval(hours => $5)) < now() \
+                     sla_due_at = created_at + make_interval(mins => $5), \
+                     sla_breached = sla_breached AND (created_at + make_interval(mins => $5)) < now() \
                      WHERE id = $1 AND tenant_id = $2",
                 )
                 .bind(ticket.id.as_uuid())
@@ -1365,13 +1383,37 @@ pub async fn ticket_sla_check(
     require_institution_writable(&st, &scope, institution).await?;
     let t = ctx.scope.tenant_id;
     let system = Actor::system(actor(ctx).correlation_id);
+    // ERP_EXTENSIONS 2B: with an SLA policy, a missed first response breaches too.
+    let first: Vec<Option<i32>> = {
+        let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
+        let policy = super::automation::load_policy(&mut conn, t, institution).await?;
+        ["low", "medium", "high", "critical"]
+            .iter()
+            .map(|p| {
+                policy
+                    .as_ref()
+                    .filter(|x| x.enabled)
+                    .and_then(|x| x.targets.get(*p))
+                    .map(|x| x.first)
+                    .filter(|m| *m > 0)
+                    .and_then(|m| i32::try_from(m).ok())
+            })
+            .collect()
+    };
     let due: Vec<Uuid> = sqlx::query_scalar(
         "SELECT id FROM campus.service_ticket WHERE tenant_id = $1 AND institution_id = $2 \
          AND status IN ('open', 'triaged', 'assigned', 'in_progress', 'reopened') \
-         AND NOT sla_breached AND sla_due_at < now() ORDER BY sla_due_at LIMIT 1000",
+         AND NOT sla_breached AND (sla_due_at < now() OR (first_response_at IS NULL \
+           AND status IN ('open', 'reopened') AND created_at + make_interval(mins => CASE priority \
+             WHEN 'low' THEN $3::int WHEN 'medium' THEN $4::int WHEN 'high' THEN $5::int \
+             ELSE $6::int END) < now())) ORDER BY sla_due_at LIMIT 1000",
     )
     .bind(t.as_uuid())
     .bind(id)
+    .bind(first[0])
+    .bind(first[1])
+    .bind(first[2])
+    .bind(first[3])
     .fetch_all(&st.pool)
     .await
     .map_err(map_db_error)?;

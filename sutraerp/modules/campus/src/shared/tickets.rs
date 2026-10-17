@@ -102,14 +102,23 @@ pub async fn open_ticket(
             )]));
         }
     }
+    // ERP_EXTENSIONS 2B: without an explicit SLA, the institution's policy times the ticket.
+    let minutes = match t.sla_hours {
+        Some(h) => h * 60,
+        None => {
+            crate::servicedesk::automation::resolve_minutes(conn, tenant, t.institution, t.priority)
+                .await?
+        }
+    };
+    debug_assert!(hours > 0);
     let number = numbering::next(conn, tenant, t.institution, kind::SERVICE_TICKET).await?;
     let sql = format!(
         "INSERT INTO campus.service_ticket (tenant_id, institution_id, number, category, source, \
          source_ref_id, is_complaint, node_id, requester_kind, requester_id, requester_subject, \
          title, description, priority, sla_due_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, \
-         $10, $11, $12, $13, $14, now() + make_interval(hours => $15)) RETURNING {TICKET_COLUMNS}"
+         $10, $11, $12, $13, $14, now() + make_interval(mins => $15)) RETURNING {TICKET_COLUMNS}"
     );
-    let hours_i32 = i32::try_from(hours).unwrap_or(i32::MAX);
+    let minutes_i32 = i32::try_from(minutes).unwrap_or(i32::MAX);
     let row = sqlx::query(&sql)
         .bind(tenant.as_uuid())
         .bind(t.institution.as_uuid())
@@ -125,7 +134,7 @@ pub async fn open_ticket(
         .bind(t.title.trim())
         .bind(t.description)
         .bind(t.priority.as_str())
-        .bind(hours_i32)
+        .bind(minutes_i32)
         .fetch_one(&mut *conn)
         .await
         .map_err(map_db_error)?;
@@ -185,7 +194,16 @@ pub async fn open_ticket(
         actor,
     )
     .await?;
-    Ok(ticket)
+    // ERP_EXTENSIONS 2B: the institution's service-desk triggers (created).
+    crate::servicedesk::automation::after_event(
+        conn,
+        scope,
+        ticket,
+        None,
+        crate::servicedesk::rules::Event::Created,
+        actor,
+    )
+    .await
 }
 
 /// Moves a locked ticket to `to` (see the module docs).

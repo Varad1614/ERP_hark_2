@@ -3,6 +3,8 @@
 //! Owned by slice 8A (`docs/batch8-contracts.md` §2.1). The mount point is pre-registered in
 //! `crate::router_with_state`; [`http`] holds the handlers.
 
+pub mod automation;
+pub mod automation_http;
 pub mod http;
 pub mod rules;
 
@@ -11,5 +13,5 @@ use utoipa_axum::router::OpenApiRouter;
 
 /// Routes of this area.
 pub fn router(state: CampusState) -> OpenApiRouter {
-    http::router(state)
+    http::router(state.clone()).merge(automation_http::router(state))
 }
