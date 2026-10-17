@@ -39,6 +39,8 @@ pub struct NewMovement<'a> {
     pub posting_key: &'a str,
     pub reverses_entry_id: Option<StockLedgerEntryId>,
     pub reason: Option<&'a str>,
+    /// Expiry date of an incoming lot (items that track expiry; ERP_EXTENSIONS 2C).
+    pub expiry_on: Option<NaiveDate>,
 }
 
 /// What [`post_movement`] recorded.
@@ -222,6 +224,8 @@ pub async fn post_movement(
     .fetch_one(&mut *conn)
     .await
     .map_err(map_db_error)?;
+    // ERP_EXTENSIONS 2C: dated lots of items that track expiry follow the ledger.
+    crate::inventory::lotstore::follow(conn, &m, id, before).await?;
     Ok(MovementReceipt {
         entry_id: StockLedgerEntryId(id),
         quantity: m.quantity,
@@ -271,6 +275,7 @@ pub async fn reverse_movement(
             posting_key: &key,
             reverses_entry_id: Some(entry_id),
             reason,
+            expiry_on: None,
         },
         actor,
     )
@@ -301,6 +306,7 @@ mod tests {
             posting_key: "line:1",
             reverses_entry_id: None,
             reason: None,
+            expiry_on: None,
         }
     }
 

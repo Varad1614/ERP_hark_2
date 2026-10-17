@@ -11,6 +11,7 @@
 pub mod demand;
 pub mod items;
 pub mod lots;
+pub mod lotstore;
 pub mod stock;
 
 use crate::shared::ResourcesState;

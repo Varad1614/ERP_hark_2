@@ -260,6 +260,7 @@ async fn post_issue(
             posting_key: "issue",
             reverses_entry_id: None,
             reason: Some(&s.purpose),
+            expiry_on: None,
         },
         actor,
     )
@@ -670,6 +671,7 @@ pub async fn return_issue(
             posting_key: "return",
             reverses_entry_id: None,
             reason: reason.as_deref(),
+            expiry_on: None,
         },
         &actor,
     )
@@ -1217,6 +1219,7 @@ async fn apply_adjustment(
             posting_key: "apply",
             reverses_entry_id: None,
             reason: Some(&a.reason),
+            expiry_on: None,
         },
         actor,
     )

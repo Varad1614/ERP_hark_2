@@ -133,6 +133,8 @@ pub struct GoodsReceiptLineView {
     #[schema(value_type = String, example = "240.00")]
     pub unit_cost: Decimal,
     pub ledger_entry_id: Option<Uuid>,
+    /// Expiry date of the delivered lot (items that track expiry; ERP_EXTENSIONS 2C).
+    pub expiry_on: Option<NaiveDate>,
     /// Assets registered from this line (asset lines).
     pub assets_registered: i64,
 }
@@ -189,7 +191,7 @@ pub async fn lines_of(
         "SELECT gl.id, gl.line_no, gl.purchase_order_line_id, pl.line_no AS purchase_order_line_no, \
          gl.item_id, i.code AS item_code, gl.line_kind, pl.description, gl.received_quantity, \
          gl.accepted_quantity, gl.rejected_quantity, gl.rejection_reason, gl.unit_cost, \
-         gl.ledger_entry_id, \
+         gl.ledger_entry_id, gl.expiry_on, \
          (SELECT count(*) FROM resources.asset a WHERE a.goods_receipt_line_id = gl.id) AS assets_registered \
          FROM resources.goods_receipt_line gl \
          JOIN resources.purchase_order_line pl ON pl.id = gl.purchase_order_line_id \
@@ -297,6 +299,9 @@ pub struct GoodsReceiptLineInput {
     pub line_no: i32,
     #[schema(example = "10")]
     pub quantity: String,
+    /// Expiry date of the delivered lot, for items that track expiry (ERP_EXTENSIONS 2C).
+    #[serde(default)]
+    pub expiry_on: Option<NaiveDate>,
 }
 
 /// Record a delivery.
@@ -357,7 +362,8 @@ pub async fn create(
         .ok_or_else(|| invalid("locationId", "required", "the receiving store location"))?;
     active_location(&mut tx, t, institution, "locationId", location).await?;
     let po_lines = orders::lines_of(&mut tx, id).await?;
-    let mut planned: Vec<(i32, Uuid, Option<Uuid>, String, Decimal, Decimal)> = Vec::new();
+    let mut planned: Vec<(i32, Uuid, Option<Uuid>, String, Decimal, Decimal, Option<NaiveDate>)> =
+        Vec::new();
     for (i, l) in b.lines.iter().enumerate() {
         let pl = po_lines
             .iter()
@@ -409,6 +415,7 @@ pub async fn create(
             pl.line_kind.clone(),
             quantity,
             pl.unit_price,
+            l.expiry_on,
         ));
     }
     let number = next(&mut tx, t, institution, kind::GOODS_RECEIPT).await?;
@@ -428,11 +435,11 @@ pub async fn create(
     .fetch_one(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    for (n, (_po_line_no, pl_id, item, line_kind, qty, cost)) in planned.iter().enumerate() {
+    for (n, (_po_line_no, pl_id, item, line_kind, qty, cost, expiry)) in planned.iter().enumerate() {
         sqlx::query(
             "INSERT INTO resources.goods_receipt_line (tenant_id, goods_receipt_id, line_no, \
-             purchase_order_line_id, item_id, line_kind, received_quantity, unit_cost) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+             purchase_order_line_id, item_id, line_kind, received_quantity, unit_cost, expiry_on) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(t.as_uuid())
         .bind(gid)
@@ -442,6 +449,7 @@ pub async fn create(
         .bind(line_kind)
         .bind(*qty)
         .bind(*cost)
+        .bind(*expiry)
         .execute(&mut *tx)
         .await
         .map_err(map_db_error)?;
@@ -725,6 +733,7 @@ pub async fn accept(
                         posting_key: &key,
                         reverses_entry_id: None,
                         reason: Some(&g.number),
+                        expiry_on: l.expiry_on,
                     },
                     &actor,
                 )
