@@ -48,12 +48,21 @@ pub fn router(state: StudentState) -> OpenApiRouter {
         .routes(routes!(flow::expire))
         .routes(routes!(flow::readmit))
         // ERP_EXTENSIONS 2A — admissions funnel.
-        .routes(routes!(funnel_http::list_enquiries, funnel_http::create_enquiry))
-        .routes(routes!(funnel_http::get_enquiry, funnel_http::update_enquiry))
+        .routes(routes!(
+            funnel_http::list_enquiries,
+            funnel_http::create_enquiry
+        ))
+        .routes(routes!(
+            funnel_http::get_enquiry,
+            funnel_http::update_enquiry
+        ))
         .routes(routes!(funnel_http::link_application))
         .routes(routes!(funnel_http::report))
         .routes(routes!(funnel_http::forecast))
         .routes(routes!(funnel_http::duplicates))
-        .routes(routes!(funnel_http::get_settings, funnel_http::put_settings))
+        .routes(routes!(
+            funnel_http::get_settings,
+            funnel_http::put_settings
+        ))
         .with_state(state)
 }

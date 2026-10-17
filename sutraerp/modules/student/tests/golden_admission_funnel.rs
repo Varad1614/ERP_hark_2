@@ -62,7 +62,9 @@ fn map_value(v: &Value) -> Value {
 }
 
 fn close(a: f64, b: &Value, what: &str) {
-    let b = b.as_f64().unwrap_or_else(|| panic!("{what}: {b} is not a number"));
+    let b = b
+        .as_f64()
+        .unwrap_or_else(|| panic!("{what}: {b} is not a number"));
     assert!((a - b).abs() < 1e-9, "{what}: {a} != {b}");
 }
 
@@ -82,14 +84,19 @@ fn n(v: &Value) -> u64 {
 }
 
 fn js_defaults() -> Vec<Stage> {
-    [("new", "New", 0.1), ("qualified", "Qualified", 0.25), ("proposal", "Proposal", 0.5), ("negotiation", "Negotiation", 0.75)]
-        .iter()
-        .map(|(id, label, p)| Stage {
-            id: (*id).into(),
-            label: (*label).into(),
-            probability: *p,
-        })
-        .collect()
+    [
+        ("new", "New", 0.1),
+        ("qualified", "Qualified", 0.25),
+        ("proposal", "Proposal", 0.5),
+        ("negotiation", "Negotiation", 0.75),
+    ]
+    .iter()
+    .map(|(id, label, p)| Stage {
+        id: (*id).into(),
+        label: (*label).into(),
+        probability: *p,
+    })
+    .collect()
 }
 
 #[test]
@@ -106,9 +113,19 @@ fn admission_funnel_matches_everything() {
         let exp_stages = x["stages"].as_array().expect("stages");
         assert_eq!(stages.len(), exp_stages.len(), "{}", w("stages"));
         for (s, e) in stages.iter().zip(exp_stages) {
-            assert_eq!(s.id, st(e["id"].as_str().unwrap_or_default()), "{}", w("stage id"));
+            assert_eq!(
+                s.id,
+                st(e["id"].as_str().unwrap_or_default()),
+                "{}",
+                w("stage id")
+            );
             if !sutra_student::admission::funnel::is_terminal(&s.id) {
-                assert_eq!(s.label, e["label"].as_str().unwrap_or_default(), "{}", w("label"));
+                assert_eq!(
+                    s.label,
+                    e["label"].as_str().unwrap_or_default(),
+                    "{}",
+                    w("label")
+                );
             }
             close(s.probability, &e["probability"], &w("stage probability"));
         }
@@ -126,12 +143,37 @@ fn admission_funnel_matches_everything() {
         let rows = ef["rows"].as_array().expect("rows");
         assert_eq!(f.rows.len(), rows.len(), "{}", w("funnel rows"));
         for (r, e) in f.rows.iter().zip(rows) {
-            assert_eq!(r.stage, e["stage"].as_str().unwrap_or_default(), "{}", w("row stage"));
-            assert_eq!(r.label, e["label"].as_str().unwrap_or_default(), "{}", w("row label"));
-            assert_eq!(r.gone, e["gone"].as_bool().unwrap_or_default(), "{}", w("gone"));
             assert_eq!(
-                (r.entered as u64, r.advanced as u64, r.lost_here as u64, r.open as u64),
-                (n(&e["entered"]), n(&e["advanced"]), n(&e["lostHere"]), n(&e["open"])),
+                r.stage,
+                e["stage"].as_str().unwrap_or_default(),
+                "{}",
+                w("row stage")
+            );
+            assert_eq!(
+                r.label,
+                e["label"].as_str().unwrap_or_default(),
+                "{}",
+                w("row label")
+            );
+            assert_eq!(
+                r.gone,
+                e["gone"].as_bool().unwrap_or_default(),
+                "{}",
+                w("gone")
+            );
+            assert_eq!(
+                (
+                    r.entered as u64,
+                    r.advanced as u64,
+                    r.lost_here as u64,
+                    r.open as u64
+                ),
+                (
+                    n(&e["entered"]),
+                    n(&e["advanced"]),
+                    n(&e["lostHere"]),
+                    n(&e["open"])
+                ),
                 "{} {}",
                 w("row counts"),
                 r.stage
@@ -141,13 +183,30 @@ fn admission_funnel_matches_everything() {
         }
         let t = &ef["totals"];
         assert_eq!(
-            (f.totals.enquiries as u64, f.totals.admitted as u64, f.totals.lost as u64, f.totals.open as u64, f.totals.lost_share_base as u64),
-            (n(&t["deals"]), n(&t["won"]), n(&t["lost"]), n(&t["open"]), n(&t["lostShareBase"])),
+            (
+                f.totals.enquiries as u64,
+                f.totals.admitted as u64,
+                f.totals.lost as u64,
+                f.totals.open as u64,
+                f.totals.lost_share_base as u64
+            ),
+            (
+                n(&t["deals"]),
+                n(&t["won"]),
+                n(&t["lost"]),
+                n(&t["open"]),
+                n(&t["lostShareBase"])
+            ),
             "{}",
             w("totals")
         );
         opt(f.totals.admitted_rate, &t["wonRate"], &w("wonRate"));
-        assert_eq!(f.untracked as u64, n(&ef["untracked"]), "{}", w("untracked"));
+        assert_eq!(
+            f.untracked as u64,
+            n(&ef["untracked"]),
+            "{}",
+            w("untracked")
+        );
 
         // probabilities
         for (d, e) in deals.iter().zip(x["probabilities"].as_array().expect("p")) {
@@ -170,16 +229,30 @@ fn admission_funnel_matches_everything() {
         // stage summary + pipeline
         let ss = stage_summary(&deals, &overrides, &stages);
         for (r, e) in ss.iter().zip(x["summary"].as_array().expect("summary")) {
-            assert_eq!(r.stage, st(e["stage"].as_str().unwrap_or_default()), "{}", w("summary"));
+            assert_eq!(
+                r.stage,
+                st(e["stage"].as_str().unwrap_or_default()),
+                "{}",
+                w("summary")
+            );
             if !sutra_student::admission::funnel::is_terminal(&r.stage) {
-                assert_eq!(r.label, e["label"].as_str().unwrap_or_default(), "{}", w("summary label"));
+                assert_eq!(
+                    r.label,
+                    e["label"].as_str().unwrap_or_default(),
+                    "{}",
+                    w("summary label")
+                );
             }
             assert_eq!(r.count as u64, n(&e["count"]), "{}", w("summary count"));
             close(r.value, &e["value"], &w("summary value"));
             close(r.weighted, &e["weighted"], &w("summary weighted"));
         }
         close(pipeline_value(&deals), &x["pipeline"], &w("pipeline"));
-        close(weighted_pipeline(&deals, &overrides, &stages), &x["weighted"], &w("weightedPipeline"));
+        close(
+            weighted_pipeline(&deals, &overrides, &stages),
+            &x["weighted"],
+            &w("weightedPipeline"),
+        );
 
         // win rates
         let wr = win_rate(&deals);
@@ -194,7 +267,12 @@ fn admission_funnel_matches_everything() {
         let eby = x["bySource"].as_array().expect("bySource");
         assert_eq!(by.len(), eby.len(), "{}", w("bySource len"));
         for (g, e) in by.iter().zip(eby) {
-            assert_eq!(g.key, e["key"].as_str().unwrap_or_default(), "{}", w("bySource key"));
+            assert_eq!(
+                g.key,
+                e["key"].as_str().unwrap_or_default(),
+                "{}",
+                w("bySource key")
+            );
             assert_eq!(
                 (g.admitted as u64, g.lost as u64, g.total as u64),
                 (n(&e["won"]), n(&e["lost"]), n(&e["total"])),
@@ -218,7 +296,12 @@ fn admission_funnel_matches_everything() {
             let er = e["rows"].as_array().expect("rows");
             assert_eq!(b.rows.len(), er.len(), "{}", w(field));
             for (r, e) in b.rows.iter().zip(er) {
-                assert_eq!(r.reason, e["reason"].as_str().unwrap_or_default(), "{}", w(field));
+                assert_eq!(
+                    r.reason,
+                    e["reason"].as_str().unwrap_or_default(),
+                    "{}",
+                    w(field)
+                );
                 assert_eq!(r.count as u64, n(&e["count"]), "{}", w(field));
                 close(r.value, &e["value"], &w(field));
             }
@@ -232,7 +315,12 @@ fn admission_funnel_matches_everything() {
             .iter()
             .zip(x["velocity"].as_array().expect("velocity"))
         {
-            assert_eq!(v.stage, e["stage"].as_str().unwrap_or_default(), "{}", w("velocity"));
+            assert_eq!(
+                v.stage,
+                e["stage"].as_str().unwrap_or_default(),
+                "{}",
+                w("velocity")
+            );
             optu(v.days, &e["days"], &w("velocity days"));
             assert_eq!(v.count as u64, n(&e["count"]), "{}", w("velocity count"));
         }
@@ -255,8 +343,18 @@ fn admission_funnel_matches_everything() {
         let ep = x["dupes"].as_array().expect("dupes");
         assert_eq!(pairs.len(), ep.len(), "{}", w("dupes len"));
         for (p, e) in pairs.iter().zip(ep) {
-            assert_eq!(p.a.id, e["a"].as_str().unwrap_or_default(), "{}", w("dupe a"));
-            assert_eq!(p.b.id, e["b"].as_str().unwrap_or_default(), "{}", w("dupe b"));
+            assert_eq!(
+                p.a.id,
+                e["a"].as_str().unwrap_or_default(),
+                "{}",
+                w("dupe a")
+            );
+            assert_eq!(
+                p.b.id,
+                e["b"].as_str().unwrap_or_default(),
+                "{}",
+                w("dupe b")
+            );
             let reasons: Vec<&str> = e["reasons"]
                 .as_array()
                 .expect("reasons")

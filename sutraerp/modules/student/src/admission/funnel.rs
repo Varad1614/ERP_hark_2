@@ -251,10 +251,11 @@ pub fn lost_from_stage(e: &Enquiry) -> Option<&str> {
 
 /// Has the enquiry any recorded journey through the open funnel at all?
 pub fn has_open_history(e: &Enquiry) -> bool {
-    e.stage_history
-        .iter()
-        .any(|h| h.stage.as_deref().is_some_and(|s| !s.is_empty() && !is_terminal(s)))
-        || (!e.stage.is_empty() && !is_terminal(&e.stage))
+    e.stage_history.iter().any(|h| {
+        h.stage
+            .as_deref()
+            .is_some_and(|s| !s.is_empty() && !is_terminal(s))
+    }) || (!e.stage.is_empty() && !is_terminal(&e.stage))
 }
 
 /// The stages an enquiry has been in (insertion order) and the furthest position it held.
@@ -372,8 +373,8 @@ pub fn funnel_report(enquiries: &[Enquiry], stages: &[Stage]) -> FunnelReport {
             open: b.open,
         })
         .collect();
-    totals.admitted_rate = (totals.enquiries > 0)
-        .then(|| round2(totals.admitted as f64 / totals.enquiries as f64));
+    totals.admitted_rate =
+        (totals.enquiries > 0).then(|| round2(totals.admitted as f64 / totals.enquiries as f64));
     totals.lost_share_base = lost_total;
     FunnelReport {
         rows,
@@ -483,7 +484,11 @@ pub fn month_key_at(ms: f64, offset_minutes: i32) -> String {
 pub fn shift_month_key(key: &str, n: i32) -> String {
     let (y, m) = key.split_once('-').unwrap_or(("1970", "01"));
     let total = y.parse::<i32>().unwrap_or(1970) * 12 + (m.parse::<i32>().unwrap_or(1) - 1) + n;
-    format!("{:04}-{:02}", total.div_euclid(12), total.rem_euclid(12) + 1)
+    format!(
+        "{:04}-{:02}",
+        total.div_euclid(12),
+        total.rem_euclid(12) + 1
+    )
 }
 
 /// One month of the forecast.
@@ -692,9 +697,11 @@ pub fn close_reason_breakdown(enquiries: &[Enquiry], stage: &str) -> ReasonBreak
     }
     let counted: u32 = rows.iter().map(|r| r.count).sum();
     rows.sort_by(|a, b| {
-        b.count
-            .cmp(&a.count)
-            .then(b.value.partial_cmp(&a.value).unwrap_or(std::cmp::Ordering::Equal))
+        b.count.cmp(&a.count).then(
+            b.value
+                .partial_cmp(&a.value)
+                .unwrap_or(std::cmp::Ordering::Equal),
+        )
     });
     ReasonBreakdown {
         rows,
@@ -746,7 +753,7 @@ pub fn is_stalled(e: &Enquiry, stale_days: i64, now_ms: f64) -> bool {
 }
 
 /// Stalled enquiries, longest-stuck first.
-pub fn stalled<'a>(enquiries: &'a [Enquiry], stale_days: i64, now_ms: f64) -> Vec<&'a Enquiry> {
+pub fn stalled(enquiries: &[Enquiry], stale_days: i64, now_ms: f64) -> Vec<&Enquiry> {
     let mut out: Vec<&Enquiry> = enquiries
         .iter()
         .filter(|e| is_stalled(e, stale_days, now_ms))
@@ -905,7 +912,13 @@ pub fn contact_duplicates(contacts: &[Contact]) -> Vec<DuplicatePair<'_>> {
             let oldest = group
                 .iter()
                 .copied()
-                .reduce(|best, r| if r.created_at < best.created_at { r } else { best })
+                .reduce(|best, r| {
+                    if r.created_at < best.created_at {
+                        r
+                    } else {
+                        best
+                    }
+                })
                 .unwrap_or(group[0]);
             for r in group {
                 if std::ptr::eq(r, oldest) {
@@ -988,8 +1001,20 @@ mod tests {
     fn funnel_counts_entered_advanced_and_lost_here() {
         let day = DAY_MS;
         let list = vec![
-            enq("a", "applied", &[("enquiry", 0.0), ("counselling", day), ("applied", 2.0 * day)]),
-            enq("b", LOST, &[("enquiry", 0.0), ("counselling", day), (LOST, 3.0 * day)]),
+            enq(
+                "a",
+                "applied",
+                &[
+                    ("enquiry", 0.0),
+                    ("counselling", day),
+                    ("applied", 2.0 * day),
+                ],
+            ),
+            enq(
+                "b",
+                LOST,
+                &[("enquiry", 0.0), ("counselling", day), (LOST, 3.0 * day)],
+            ),
             enq("c", ADMITTED, &[("applied", 0.0), (ADMITTED, 9.0 * day)]),
             enq("d", LOST, &[(LOST, 0.0)]),
         ];

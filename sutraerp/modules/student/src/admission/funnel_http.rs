@@ -477,7 +477,11 @@ fn validate_intake(field: &str, v: Option<&str>, out: &mut Vec<FieldViolation>) 
                 || (s.as_bytes()[4] == b'-'
                     && s[5..].parse::<u32>().is_ok_and(|m| (1..=12).contains(&m))));
         if !ok {
-            out.push(FieldViolation::new(field, "format", "intake must be YYYY or YYYY-MM"));
+            out.push(FieldViolation::new(
+                field,
+                "format",
+                "intake must be YYYY or YYYY-MM",
+            ));
         }
     }
 }
@@ -515,9 +519,7 @@ fn validate_source(v: Option<&str>, out: &mut Vec<FieldViolation>) {
 }
 
 fn to_decimal(v: f64) -> Decimal {
-    Decimal::from_f64_retain(v)
-        .unwrap_or_default()
-        .round_dp(3)
+    Decimal::from_f64_retain(v).unwrap_or_default().round_dp(3)
 }
 
 // ---------------------------------------------------------------- create / list / get
@@ -652,10 +654,20 @@ pub async fn create_enquiry(
         None | Some("") => open.first().map(|s| s.id.clone()).unwrap_or_default(),
         Some(s) if open.iter().any(|o| o.id == s) => s.to_owned(),
         Some(_) => {
-            return Err(invalid("stage", "unknown", "stage must be one of the open funnel stages").into())
+            return Err(invalid(
+                "stage",
+                "unknown",
+                "stage must be one of the open funnel stages",
+            )
+            .into())
         }
     };
-    let seq = next_number(&mut tx, t, &format!("enquiry:{}:{}", id.as_uuid(), today.year())).await?;
+    let seq = next_number(
+        &mut tx,
+        t,
+        &format!("enquiry:{}:{}", id.as_uuid(), today.year()),
+    )
+    .await?;
     let number = format!("ENQ-{}-{seq:05}", today.year());
     let now = Utc::now();
     let mut history = Vec::new();
@@ -711,25 +723,33 @@ pub async fn create_enquiry(
     let contacts = duplicate_universe(&mut tx, t, id).await?;
     tx.commit().await.map_err(map_db_error)?;
     let me = format!("enquiry:{}", enquiry.id);
-    let possible_duplicates = contact_duplicates(&contacts.iter().map(|c| c.contact.clone()).collect::<Vec<_>>())
-        .into_iter()
-        .filter_map(|p| {
-            let other = if p.a.id == me {
-                &p.b.id
-            } else if p.b.id == me {
-                &p.a.id
-            } else {
-                return None;
-            };
-            contacts.iter().find(|c| &c.contact.id == other).map(|c| DuplicateRef {
+    let possible_duplicates = contact_duplicates(
+        &contacts
+            .iter()
+            .map(|c| c.contact.clone())
+            .collect::<Vec<_>>(),
+    )
+    .into_iter()
+    .filter_map(|p| {
+        let other = if p.a.id == me {
+            &p.b.id
+        } else if p.b.id == me {
+            &p.a.id
+        } else {
+            return None;
+        };
+        contacts
+            .iter()
+            .find(|c| &c.contact.id == other)
+            .map(|c| DuplicateRef {
                 kind: c.kind.clone(),
                 id: c.id,
                 number: c.number.clone(),
                 name: c.contact.name.clone(),
                 reasons: p.reasons.iter().map(|r| (*r).to_owned()).collect(),
             })
-        })
-        .collect();
+    })
+    .collect();
     let version = enquiry.version;
     Ok(with_etag(
         StatusCode::CREATED,
@@ -790,7 +810,10 @@ pub async fn list_enquiries(
     tx.commit().await.map_err(map_db_error)?;
     let stages = settings.stages();
     let now = now_ms();
-    let needle = q.q.as_deref().map(|s| s.trim().to_lowercase()).filter(|s| !s.is_empty());
+    let needle =
+        q.q.as_deref()
+            .map(|s| s.trim().to_lowercase())
+            .filter(|s| !s.is_empty());
     let items = rows
         .into_iter()
         .map(|r| r.finish(&stages, &settings, now))
@@ -842,7 +865,10 @@ pub async fn get_enquiry(
     let r = load(&mut conn, t, id, false).await?;
     let settings = load_settings(&mut conn, t, InstitutionId(r.wire.institution_id)).await?;
     let stages = settings.stages();
-    Ok(respond(StatusCode::OK, &r.finish(&stages, &settings, now_ms())))
+    Ok(respond(
+        StatusCode::OK,
+        &r.finish(&stages, &settings, now_ms()),
+    ))
 }
 
 // ---------------------------------------------------------------- update / link
@@ -1006,9 +1032,19 @@ pub async fn update_enquiry(
     let settings = load_settings(&mut tx, t, inst).await?;
     let stages = settings.stages();
     let mut moved: Option<(String, String)> = None;
-    if let Some(to) = cmd.stage.as_deref().map(str::trim).filter(|s| *s != locked.wire.stage) {
+    if let Some(to) = cmd
+        .stage
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| *s != locked.wire.stage)
+    {
         if !stages.iter().any(|s| s.id == to) {
-            return Err(invalid("stage", "unknown", "stage is not in this institution's funnel").into());
+            return Err(invalid(
+                "stage",
+                "unknown",
+                "stage is not in this institution's funnel",
+            )
+            .into());
         }
         let reason = norm(cmd.close_reason.as_deref());
         if to == LOST && reason.is_none() {
@@ -1064,7 +1100,9 @@ pub async fn update_enquiry(
         .fetch_one(&mut *tx)
         .await
         .map_err(map_db_error)?;
-    let updated = from_row(&row).map_err(map_db_error)?.finish(&stages, &settings, now_ms());
+    let updated = from_row(&row)
+        .map_err(map_db_error)?
+        .finish(&stages, &settings, now_ms());
     publish::audit(
         &mut tx,
         &scope,
@@ -1173,7 +1211,10 @@ pub async fn link_application(
             .enumerate()
             .map(|(i, s)| (s.id.as_str(), i))
             .collect();
-        let behind = match (order.get(cur.wire.stage.as_str()), order.get(applied.as_str())) {
+        let behind = match (
+            order.get(cur.wire.stage.as_str()),
+            order.get(applied.as_str()),
+        ) {
             (Some(c), Some(t)) => c < t,
             (None, Some(_)) => true,
             _ => false,
@@ -1197,7 +1238,9 @@ pub async fn link_application(
         }
     }
     sync_linked(&mut tx, t, inst, &settings).await?;
-    let updated = load(&mut tx, t, id, false).await?.finish(&stages, &settings, now_ms());
+    let updated = load(&mut tx, t, id, false)
+        .await?
+        .finish(&stages, &settings, now_ms());
     publish::audit(
         &mut tx,
         &scope,
@@ -1249,14 +1292,22 @@ fn window_bounds(window: &str, today: NaiveDate) -> Option<(NaiveDate, NaiveDate
         "last_quarter" => Some((shift(q_start, -3)?, q_start)),
         "year" => Some((ymd(today.year(), 1)?, ymd(today.year() + 1, 1)?)),
         "fy" => {
-            let y = if today.month() >= 4 { today.year() } else { today.year() - 1 };
+            let y = if today.month() >= 4 {
+                today.year()
+            } else {
+                today.year() - 1
+            };
             Some((ymd(y, 4)?, ymd(y + 1, 4)?))
         }
         _ => None,
     }
 }
 
-async fn tz_of(st: &StudentState, scope: &sutra_kernel::scope::ExecutionScope, inst: InstitutionId) -> Result<String, KernelError> {
+async fn tz_of(
+    st: &StudentState,
+    scope: &sutra_kernel::scope::ExecutionScope,
+    inst: InstitutionId,
+) -> Result<String, KernelError> {
     Ok(st
         .references
         .institution(scope, inst)
@@ -1299,8 +1350,16 @@ pub async fn report(
     let t = tenant(ctx);
     let scope = institution_scope(ctx, id);
     let window = q.window.clone().unwrap_or_else(|| "all".into());
-    if !matches!(window.as_str(), "all" | "quarter" | "last_quarter" | "year" | "fy") {
-        return Err(invalid("window", "unknown", "window must be all, quarter, last_quarter, year or fy").into());
+    if !matches!(
+        window.as_str(),
+        "all" | "quarter" | "last_quarter" | "year" | "fy"
+    ) {
+        return Err(invalid(
+            "window",
+            "unknown",
+            "window must be all, quarter, last_quarter, year or fy",
+        )
+        .into());
     }
     let today = business_today(&st, &scope, id).await?;
     let tz = tz_of(&st, &scope, id).await?;
@@ -1440,7 +1499,11 @@ pub async fn forecast(
             let mut v = Vec::new();
             validate_intake("from", Some(f), &mut v);
             if f.len() != 7 {
-                v.push(FieldViolation::new("from", "format", "from must be YYYY-MM"));
+                v.push(FieldViolation::new(
+                    "from",
+                    "format",
+                    "from must be YYYY-MM",
+                ));
             }
             finish(v)?;
             f.to_owned()
@@ -1483,12 +1546,19 @@ pub async fn forecast(
                 .iter()
                 .filter(|r| {
                     r.wire.programme_id == Some(programme)
-                        && r.wire.intake.as_deref().is_some_and(|i| i.starts_with(&intake) || intake.starts_with(i))
+                        && r.wire
+                            .intake
+                            .as_deref()
+                            .is_some_and(|i| i.starts_with(&intake) || intake.starts_with(i))
                 })
                 .map(|r| (r, r.enquiry()))
                 .collect();
             let admitted = mine.iter().filter(|(_, e)| e.stage == ADMITTED).count() as u32;
-            let open: Vec<&Enquiry> = mine.iter().map(|(_, e)| e).filter(|e| e.is_open()).collect();
+            let open: Vec<&Enquiry> = mine
+                .iter()
+                .map(|(_, e)| e)
+                .filter(|e| e.is_open())
+                .collect();
             let expected = funnel::round2(
                 open.iter()
                     .fold(0.0, |s, e| s + probability_of(e, &none, &stages)),
@@ -1642,13 +1712,16 @@ pub async fn duplicates(
     let people = duplicate_universe(&mut conn, tenant(ctx), id).await?;
     let contacts: Vec<Contact> = people.iter().map(|p| p.contact.clone()).collect();
     let refer = |c: &Contact, reasons: &[String]| {
-        people.iter().find(|p| p.contact.id == c.id).map(|p| DuplicateRef {
-            kind: p.kind.clone(),
-            id: p.id,
-            number: p.number.clone(),
-            name: p.contact.name.clone(),
-            reasons: reasons.to_vec(),
-        })
+        people
+            .iter()
+            .find(|p| p.contact.id == c.id)
+            .map(|p| DuplicateRef {
+                kind: p.kind.clone(),
+                id: p.id,
+                number: p.number.clone(),
+                name: p.contact.name.clone(),
+                reasons: reasons.to_vec(),
+            })
     };
     let pairs = contact_duplicates(&contacts)
         .into_iter()
@@ -1763,39 +1836,75 @@ pub async fn get_settings(
 fn validate_settings(cmd: &PutFunnelSettings) -> Result<(), KernelError> {
     let mut v = Vec::new();
     if cmd.stages.len() > funnel::MAX_OPEN_STAGES {
-        v.push(FieldViolation::new("stages", "too-many", format!("at most {} open stages", funnel::MAX_OPEN_STAGES)));
+        v.push(FieldViolation::new(
+            "stages",
+            "too-many",
+            format!("at most {} open stages", funnel::MAX_OPEN_STAGES),
+        ));
     }
     let mut seen: Vec<&str> = Vec::new();
     for (i, s) in cmd.stages.iter().enumerate() {
         let f = format!("stages[{i}]");
         let id_ok = (2..=32).contains(&s.id.len())
             && s.id.as_bytes()[0].is_ascii_lowercase()
-            && s.id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
+            && s.id
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
         if !id_ok {
-            v.push(FieldViolation::new(format!("{f}.id"), "format", "stage ids are snake_case, 2-32 characters"));
+            v.push(FieldViolation::new(
+                format!("{f}.id"),
+                "format",
+                "stage ids are snake_case, 2-32 characters",
+            ));
         } else if funnel::is_terminal(&s.id) {
-            v.push(FieldViolation::new(format!("{f}.id"), "reserved", "admitted and lost are always the last stages"));
+            v.push(FieldViolation::new(
+                format!("{f}.id"),
+                "reserved",
+                "admitted and lost are always the last stages",
+            ));
         } else if seen.contains(&s.id.as_str()) {
-            v.push(FieldViolation::new(format!("{f}.id"), "duplicate", "stage ids must be unique"));
+            v.push(FieldViolation::new(
+                format!("{f}.id"),
+                "duplicate",
+                "stage ids must be unique",
+            ));
         }
         seen.push(&s.id);
         validate_text(&format!("{f}.label"), &s.label, 60, &mut v);
         if !(0.0..=1.0).contains(&s.probability) {
-            v.push(FieldViolation::new(format!("{f}.probability"), "range", "probability must be between 0 and 1"));
+            v.push(FieldViolation::new(
+                format!("{f}.probability"),
+                "range",
+                "probability must be between 0 and 1",
+            ));
         }
     }
     if !(0..=365).contains(&cmd.stale_days) {
-        v.push(FieldViolation::new("staleDays", "range", "staleDays must be 0 to 365"));
+        v.push(FieldViolation::new(
+            "staleDays",
+            "range",
+            "staleDays must be 0 to 365",
+        ));
     }
     let open: Vec<String> = if cmd.stages.is_empty() {
-        funnel::default_open_stages().into_iter().map(|s| s.id).collect()
+        funnel::default_open_stages()
+            .into_iter()
+            .map(|s| s.id)
+            .collect()
     } else {
         cmd.stages.iter().map(|s| s.id.clone()).collect()
     };
-    for (field, val) in [("appliedStage", &cmd.applied_stage), ("offeredStage", &cmd.offered_stage)] {
+    for (field, val) in [
+        ("appliedStage", &cmd.applied_stage),
+        ("offeredStage", &cmd.offered_stage),
+    ] {
         if let Some(s) = val {
             if !open.contains(s) {
-                v.push(FieldViolation::new(field, "unknown", "must name one of the open stages"));
+                v.push(FieldViolation::new(
+                    field,
+                    "unknown",
+                    "must name one of the open stages",
+                ));
             }
         }
     }
@@ -1803,10 +1912,18 @@ fn validate_settings(cmd: &PutFunnelSettings) -> Result<(), KernelError> {
     for (i, t) in cmd.targets.iter().enumerate() {
         validate_intake(&format!("targets[{i}].intake"), Some(&t.intake), &mut v);
         if !(0..=100_000).contains(&t.seats) {
-            v.push(FieldViolation::new(format!("targets[{i}].seats"), "range", "seats must be 0 to 100000"));
+            v.push(FieldViolation::new(
+                format!("targets[{i}].seats"),
+                "range",
+                "seats must be 0 to 100000",
+            ));
         }
         if keys.contains(&(t.programme_id, t.intake.as_str())) {
-            v.push(FieldViolation::new(format!("targets[{i}]"), "duplicate", "one target per programme and intake"));
+            v.push(FieldViolation::new(
+                format!("targets[{i}]"),
+                "duplicate",
+                "one target per programme and intake",
+            ));
         }
         keys.push((t.programme_id, &t.intake));
     }
@@ -1835,19 +1952,29 @@ pub async fn put_settings(
     require_institution_writable(&st, &scope, id).await?;
     validate_settings(&cmd)?;
     for (i, tg) in cmd.targets.iter().enumerate() {
-        refs::programme(&st, &scope, id, tg.programme_id, &format!("targets[{i}].programmeId")).await?;
+        refs::programme(
+            &st,
+            &scope,
+            id,
+            tg.programme_id,
+            &format!("targets[{i}].programmeId"),
+        )
+        .await?;
     }
     let t = tenant(ctx);
     let a = actor(ctx);
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1))")
-        .bind(format!("student.admission_funnel_settings:{}", id.as_uuid()))
+        .bind(format!(
+            "student.admission_funnel_settings:{}",
+            id.as_uuid()
+        ))
         .execute(&mut *tx)
         .await
         .map_err(map_db_error)?;
     let cur = load_settings(&mut tx, t, id).await?;
     check_version(Version(cmd.version), cur.version)?;
-    let stages = serde_json::to_value(&cmd.stages).map_err(|e| KernelError::Internal(e.to_string()))?;
+    let stages = serde_json::to_value(&cmd.stages).map_err(|e| KernelError::Internal(e.into()))?;
     sqlx::query(
         "INSERT INTO student.admission_funnel_settings (tenant_id, institution_id, stages, \
          stale_days, applied_stage, offered_stage, updated_by) VALUES ($1,$2,$3,$4,$5,$6,$7) \
@@ -1866,12 +1993,14 @@ pub async fn put_settings(
     .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    sqlx::query("DELETE FROM student.admission_intake_target WHERE tenant_id = $1 AND institution_id = $2")
-        .bind(t.as_uuid())
-        .bind(id.as_uuid())
-        .execute(&mut *tx)
-        .await
-        .map_err(map_db_error)?;
+    sqlx::query(
+        "DELETE FROM student.admission_intake_target WHERE tenant_id = $1 AND institution_id = $2",
+    )
+    .bind(t.as_uuid())
+    .bind(id.as_uuid())
+    .execute(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
     for tg in &cmd.targets {
         sqlx::query(
             "INSERT INTO student.admission_intake_target (tenant_id, institution_id, programme_id, \
@@ -1910,9 +2039,18 @@ mod tests {
     fn windows_follow_calendar_and_fy() {
         let d = NaiveDate::from_ymd_opt(2026, 2, 10).unwrap_or_default();
         let ymd = |y, m, dd| NaiveDate::from_ymd_opt(y, m, dd).unwrap_or_default();
-        assert_eq!(window_bounds("quarter", d), Some((ymd(2026, 1, 1), ymd(2026, 4, 1))));
-        assert_eq!(window_bounds("last_quarter", d), Some((ymd(2025, 10, 1), ymd(2026, 1, 1))));
-        assert_eq!(window_bounds("fy", d), Some((ymd(2025, 4, 1), ymd(2026, 4, 1))));
+        assert_eq!(
+            window_bounds("quarter", d),
+            Some((ymd(2026, 1, 1), ymd(2026, 4, 1)))
+        );
+        assert_eq!(
+            window_bounds("last_quarter", d),
+            Some((ymd(2025, 10, 1), ymd(2026, 1, 1)))
+        );
+        assert_eq!(
+            window_bounds("fy", d),
+            Some((ymd(2025, 4, 1), ymd(2026, 4, 1)))
+        );
         assert_eq!(window_bounds("all", d), None);
         let mut v = Vec::new();
         validate_intake("intake", Some("2026-13"), &mut v);
