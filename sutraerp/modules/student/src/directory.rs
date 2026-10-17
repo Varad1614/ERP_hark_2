@@ -115,4 +115,26 @@ impl StudentDirectory for PgStudentDirectory {
             .map_err(map_db_error)
             .map(|o| o.map(summary))
     }
+
+    async fn by_number(
+        &self,
+        scope: &ExecutionScope,
+        student_number: &str,
+    ) -> Result<Option<StudentSummary>, KernelError> {
+        let sql = format!(
+            "SELECT {STUDENT_COLUMNS} FROM student.student \
+             WHERE student_number = $1 AND tenant_id = $2"
+        );
+        let row = sqlx::query(&sql)
+            .bind(student_number.trim())
+            .bind(scope.tenant_id.as_uuid())
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_db_error)?;
+        row.as_ref()
+            .map(student_from_row)
+            .transpose()
+            .map_err(map_db_error)
+            .map(|o| o.map(summary))
+    }
 }

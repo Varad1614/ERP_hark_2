@@ -1,0 +1,23 @@
+# Compose override for backups + point-in-time recovery (Part 2 · Stage 5):
+#   COMPOSE_FILE=docker-compose.yml:deploy/backup/compose.backup.yml
+# PostgreSQL archives every WAL segment to SUTRA_WAL_ARCHIVE_DIR (host) and writes base backups to
+# SUTRA_PG_STAGING_DIR (host): bind mounts owned by uid 999 (postgres in the image):
+#   sudo install -d -o 999 -g 999 -m 0700 /var/lib/sutraerp/wal-archive /var/backups/sutraerp/staging
+# Settings: deploy/backup/host/postgresql-archive.conf. Shipping: sutra-wal-ship.sh (timer).
+services:
+  postgres:
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=test ! -f /wal-archive/%f && cp %p /wal-archive/%f.tmp && mv /wal-archive/%f.tmp /wal-archive/%f
+      - -c
+      - archive_timeout=${SUTRA_PG_ARCHIVE_TIMEOUT:-60}
+      - -c
+      - max_wal_senders=4
+    volumes:
+      - ${SUTRA_WAL_ARCHIVE_DIR:-/var/lib/sutraerp/wal-archive}:/wal-archive
+      - ${SUTRA_PG_STAGING_DIR:-/var/backups/sutraerp/staging}:/backup-staging

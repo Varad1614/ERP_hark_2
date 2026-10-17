@@ -2,7 +2,13 @@
  * App shell (re-skin v2, prototype header): logo, pill navigation, search (Ctrl K palette),
  * notifications bell and the avatar menu with its collapsible Personalization group (Customize
  * Home, Theme, Layouts, Focus mode, Print) + Install as an app, Take the tour, Institution
- * branding (administrator), Switch role and Sign out. The personal theme applies on every page.
+ * branding (administrator), Data import (holders of `platform.import.manage`; Import approvals for
+ * holders of `platform.import.approve` only — Part 2 · S4-ui-import), Switch role and Sign out. The personal theme applies on every page.
+ *
+ * Part 2 · S7-entitle: pills, the mobile tabs, the palette's screens and workspaces show active
+ * modules only; a route of an inactive module renders a "not active" state instead of the screen;
+ * the licence banner (grace / expired / suspended / renewal due) sits above every page. The API
+ * enforces all of it (`403 entitlement.*`).
  */
 import {
   Bell,
@@ -11,9 +17,11 @@ import {
   Check,
   ChevronDown,
   Contrast,
+  FileSpreadsheet,
   Focus,
   KeyRound,
   LayoutGrid,
+  Lock,
   LayoutTemplate,
   ListTodo,
   LogOut,
@@ -33,13 +41,16 @@ import {
   User,
 } from "lucide-react";
 import type { Notification } from "@sutra/api-client";
-import { Avatar, Drawer, IconButton, IconChip, Popover, ROLE_ACCENTS, RoleTheme, Shell, StepDialog, useToast, type NavLinkLikeProps } from "@sutra/ui";
+import { Avatar, Drawer, EmptyState, IconButton, IconChip, Popover, ROLE_ACCENTS, RoleTheme, Shell, StepDialog, useToast, type NavLinkLikeProps } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { AUTH_MODE, useWorkspaces } from "../lib/api";
 import { useAuth, type SignInResult } from "../lib/auth";
+import { can } from "../lib/permissions";
+import { LicenceBanner } from "../components/LicenceBanner";
 import { NotificationRow } from "../components/NotificationRow";
+import { isModuleActive, licenceBanner, moduleForRoute, moduleName, useEntitlement, visibleNav, visibleWorkspaces } from "../lib/entitlements";
 import { Palette, type PaletteEntry } from "../components/Palette";
 import { groupMeta } from "../lib/icons";
 import { inboxKeys, useInbox, useInboxRefresh, useUnreadCount } from "../lib/inbox";
@@ -109,7 +120,25 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
     staleTime: 60_000,
   });
   const workspaces = useWorkspaces(role);
+  // Part 2 · S7-entitle: active modules + licence state of the institution.
+  const entitlement = useEntitlement();
+  const ent = entitlement.data;
+  const navEntries = useMemo(() => visibleNav(cfg.nav, ent), [cfg.nav, ent]);
+  const banner = licenceBanner(ent);
+  const routeModule = moduleForRoute(pathname);
+  const routeBlocked = !isModuleActive(ent, routeModule);
   const onHome = pathname === "/";
+  // Part 2 · S4-ui-import: the Data import entry follows the session's permissions (the API enforces them).
+  const { session } = useAuth();
+  const importEntry = useMemo(
+    () =>
+      can(session, "platform.import.manage")
+        ? { to: "/data-import", label: "Data import", sub: "CSV / Excel migration" }
+        : can(session, "platform.import.approve")
+          ? { to: "/data-import/approvals", label: "Import approvals", sub: "Imports waiting for you" }
+          : null,
+    [session],
+  );
 
   useEffect(() => setPop(null), [role]);
   useEffect(() => {
@@ -184,7 +213,7 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
     await inbox.markAllRead().catch(() => 0);
     await refreshInbox();
   };
-  const nav = cfg.nav.map((n) => ({ id: n.id, label: n.label, to: routeFor(n.id), match: n.match }));
+  const nav = navEntries.map((n) => ({ id: n.id, label: n.label, to: routeFor(n.id), match: n.match }));
 
   const dark = theme.mode === "dark" || theme.mode === "oled";
   const paletteItems = useMemo<PaletteEntry[]>(() => {
@@ -208,14 +237,15 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
       act("security", "Security", "Sessions, passkeys", KeyRound, "grey", "sessions passkeys password"),
       act("mfa", "Two-step verification", "Authenticator app", ShieldCheck, "grey", "mfa totp 2fa"),
       ...(role === "administrator" ? [act("branding", "Institution branding", "Name, logo and brand colour", Building2, "teal", "logo brand")] : []),
-      ...cfg.nav.map((n) => ({ id: `screen:${n.id}`, title: n.label, subtitle: "Screen", group: "Screens", icon: n.icon, tone: "grey" as const })),
-      ...(workspaces.data?.items ?? []).map((w) => {
+      ...(importEntry ? [act("data-import", importEntry.label, importEntry.sub, FileSpreadsheet, "blue", "import csv excel xlsx migration upload export")] : []),
+      ...navEntries.map((n) => ({ id: `screen:${n.id}`, title: n.label, subtitle: "Screen", group: "Screens", icon: n.icon, tone: "grey" as const })),
+      ...visibleWorkspaces(workspaces.data?.items ?? [], ent).map((w) => {
         const g = groupMeta(w.group);
         return { id: `ws:${w.key}`, title: w.name, subtitle: `${w.key} · Workspace`, group: "Workspaces", icon: g.icon, tone: g.tone };
       }),
     ];
-  }, [cfg.nav, workspaces.data, role, focus, dark, theme.hc, theme.font]);
-  const suggested = useMemo(() => paletteItems.filter((x) => ["cmd:customize", "cmd:todos", `cmd:${dark ? "light" : "dark"}`, "cmd:theme"].includes(x.id) || x.id === `screen:${cfg.nav[1]?.id}`), [paletteItems, dark, cfg.nav]);
+  }, [navEntries, workspaces.data, ent, role, focus, dark, theme.hc, theme.font, importEntry]);
+  const suggested = useMemo(() => paletteItems.filter((x) => ["cmd:customize", "cmd:todos", `cmd:${dark ? "light" : "dark"}`, "cmd:theme"].includes(x.id) || x.id === `screen:${navEntries[1]?.id}`), [paletteItems, dark, navEntries]);
 
   const onPick = useCallback(
     (item: PaletteEntry) => {
@@ -257,6 +287,8 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
             return navigate("/account/mfa");
           case "branding":
             return navigate("/campus/institution");
+          case "data-import":
+            return navigate(importEntry?.to ?? "/data-import");
           default:
             if (id.startsWith("preset:")) {
               const key = id.slice(7);
@@ -270,7 +302,7 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
       }
       navigate(kind === "ws" ? `/workspaces/${id}` : routeFor(id || "home"));
     },
-    [navigate, toast, customize, toggleFocus, openLayouts, print, goHomeThen, role],
+    [navigate, toast, customize, toggleFocus, openLayouts, print, goHomeThen, role, importEntry],
   );
 
   const switchRole = async (next: Role) => {
@@ -419,6 +451,15 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
             </div>
           </button>
         )}
+        {importEntry && (
+          <button type="button" className="sb-pop-item mn" data-import-menu onClick={menuGo(() => navigate(importEntry.to))}>
+            <FileSpreadsheet strokeWidth={1.75} />
+            <div>
+              <b>{importEntry.label}</b>
+              <small>{importEntry.sub}</small>
+            </div>
+          </button>
+        )}
         <div className="sb-pop-sep" />
         <p className="sb-pop-label">Switch role</p>
         {ROLES.map((r) => {
@@ -461,10 +502,19 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
     <>
       <RoleTheme role={role} />
       <Shell nav={nav} linkComponent={RouterLink} actions={actions} footer={AUTH_MODE === "mock" ? <div className="sb-env-tag"><i />Demo · mock data</div> : undefined}>
-        <Outlet />
+        {banner && <LicenceBanner model={banner} />}
+        {routeBlocked && routeModule ? (
+          <div data-module-inactive={routeModule}>
+            <EmptyState icon={Lock} title={`${moduleName(routeModule)} is not active`}>
+              This module is not part of your institution’s SutraERP plan. A platform administrator can activate it.
+            </EmptyState>
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </Shell>
       <nav className="dtab" aria-label="Main (mobile)" data-mobile-tabs>
-        {cfg.nav.slice(0, 4).map((n) => (
+        {navEntries.slice(0, 4).map((n) => (
           <RouterLink key={n.id} to={routeFor(n.id)} end={n.id === "home"} match={n.match} className={({ isActive }) => (isActive ? "on" : "")}>
             <n.icon strokeWidth={1.75} />
             {n.label}
@@ -477,7 +527,7 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
       </nav>
       <Drawer open={moreOpen} onClose={() => setMoreOpen(false)} title="More" eyebrow="Navigation">
         <div className="dh-presets">
-          {cfg.nav.slice(4).map((n) => (
+          {navEntries.slice(4).map((n) => (
             <button
               key={n.id}
               type="button"

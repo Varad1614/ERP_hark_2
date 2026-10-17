@@ -149,6 +149,9 @@ status_enum!(
         ExamFee => "exam_fee",
         /// Campus service charge raised by Domain G through `CampusChargePort` (Batch 8).
         CampusCharge => "campus_charge",
+        /// Part 2 · S4-import: a student balance migrated from the legacy system (one per
+        /// student finance account; Dr receivables / Cr accumulated fund).
+        OpeningBalance => "opening_balance",
     }
 );
 

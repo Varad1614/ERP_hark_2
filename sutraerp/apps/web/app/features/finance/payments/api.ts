@@ -14,7 +14,9 @@ import type {
   Evaluation,
   Items,
   MyAccount,
+  CheckoutCallback,
   Payment,
+  PaymentGatewayInfo,
   Receipt,
   Receivable,
   ReceivableList,
@@ -52,8 +54,15 @@ export interface PaymentsApi {
   // student self-service
   myAccounts(): Promise<MyAccount[]>;
   myPayments(): Promise<Payment[]>;
+  /** Part 2 S4 (DEF-F-007): which checkout to open (disabled / mock / razorpay + public key id). */
+  gatewayInfo(): Promise<PaymentGatewayInfo>;
   initiate(amount: string, chargeIds?: string[]): Promise<Payment>;
-  confirm(id: string, version: number): Promise<Payment>;
+  /**
+   * Return from checkout: the server asks the gateway for the outcome. `callback` = the Razorpay
+   * Checkout handler response, verified server-side (422 when forged); the payment is completed
+   * only when the gateway itself reports the capture.
+   */
+  confirm(id: string, version: number, callback?: CheckoutCallback): Promise<Payment>;
   cancelMine(id: string, version: number): Promise<Payment>;
   myReceipts(): Promise<Receipt[]>;
   myRefunds(): Promise<Refund[]>;
@@ -87,6 +96,7 @@ export const PATHS = {
   reopen: `${B}/receivables/{id}/reopen`,
   meAccounts: `${B}/me/accounts`,
   mePayments: `${B}/me/payments`,
+  meGateway: `${B}/me/payment-gateway`,
   meConfirm: `${B}/me/payments/{id}/confirm`,
   meCancel: `${B}/me/payments/{id}/cancel`,
   meReceipts: `${B}/me/receipts`,
@@ -167,7 +177,8 @@ export function createHttpPaymentsApi(fetchImpl: Fetch = (i, init) => fetch(i, i
     myAccounts: () => items(PATHS.meAccounts),
     myPayments: () => items(PATHS.mePayments),
     initiate: (amount, chargeIds) => request("POST", PATHS.mePayments, { body: { amount, chargeIds }, idempotent: true }),
-    confirm: (id, v) => request("POST", fill(PATHS.meConfirm, { id }), { body: {}, ifMatch: v }),
+    gatewayInfo: () => request("GET", PATHS.meGateway),
+    confirm: (id, v, callback) => request("POST", fill(PATHS.meConfirm, { id }), { body: callback ?? {}, ifMatch: v }),
     cancelMine: (id, v) => request("POST", fill(PATHS.meCancel, { id }), { body: {}, ifMatch: v }),
     myReceipts: () => items(PATHS.meReceipts),
     myRefunds: () => items(PATHS.meRefunds),

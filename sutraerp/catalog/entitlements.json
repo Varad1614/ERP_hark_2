@@ -1,0 +1,75 @@
+{
+  "$comment": "Part 2 · Stage 7 (S7-entitle): the ONE canonical module / package registry. Embedded by the API (crates/kernel/src/entitlement.rs, include_str!) and imported by the web app (apps/web/app/lib/entitlements.ts). Documented in docs/readiness/ENTITLEMENT_IMPLEMENTATION.md. Changing a package here changes what institutions on that package may use: coordinate with docs/readiness/COMMERCIAL_PACKAGING.md.",
+  "version": 1,
+  "modules": [
+    { "key": "students", "name": "Student records", "crate": "sutra-student", "activatable": true, "requires": [], "description": "Student master record, guardians, registration, progression, completion and exit, alumni, document requests, scholarships." },
+    { "key": "admissions", "name": "Admissions", "crate": "sutra-student", "activatable": true, "requires": ["students"], "description": "Admission cycles, applications, offers, duplicate-applicant resolution." },
+    { "key": "academics", "name": "Academics", "crate": "sutra-academic", "activatable": true, "requires": ["students"], "description": "Course offerings, sections, enrolment, faculty assignment, timetable, internal assessment, flexible learning, academic monitoring." },
+    { "key": "attendance", "name": "Attendance", "crate": "sutra-academic", "activatable": true, "requires": ["academics", "students"], "description": "Teaching-session attendance, attendance policies, corrections and summaries." },
+    { "key": "examinations", "name": "Examinations", "crate": "sutra-exams", "activatable": true, "requires": ["academics", "students"], "description": "Exam policy, sessions, scheduling, registration, hall tickets, marks, results, revaluation, completion." },
+    { "key": "fees", "name": "Fees & finance", "crate": "sutra-finance", "activatable": true, "requires": ["students"], "description": "Fee structures, charges, payments and receipts, refunds, adjustments, receivables, ledger, periods, treasury, financial aid." },
+    { "key": "hr", "name": "HR", "crate": "sutra-people", "activatable": true, "requires": [], "description": "Staff records, engagements, positions, recruitment, onboarding, leave, staff attendance, workload, separation." },
+    { "key": "payroll", "name": "Payroll", "crate": "sutra-people", "activatable": true, "requires": ["hr"], "description": "Payroll configuration, salary structures and assignments, payroll runs, payslips, disbursements, final settlements." },
+    { "key": "hostel", "name": "Hostel", "crate": "sutra-campus", "activatable": true, "requires": ["students"], "description": "Hostel policies, rooms and beds, applications, allocations, mess, resident leave, inspections." },
+    { "key": "transport", "name": "Transport", "crate": "sutra-campus", "activatable": true, "requires": ["students"], "description": "Routes, stops, vehicles, drivers, trips, transport passes and allocations." },
+    { "key": "library", "name": "Library", "crate": "sutra-campus", "activatable": true, "requires": ["students"], "description": "Catalogue, copies, memberships, loans, reservations, fines, clearances." },
+    { "key": "procurement", "name": "Procurement", "crate": "sutra-resources", "activatable": true, "requires": [], "description": "Suppliers, requisitions, sourcing, purchase orders, goods receipts, vendor invoices and payments." },
+    { "key": "inventory", "name": "Inventory", "crate": "sutra-resources", "activatable": true, "requires": ["procurement"], "description": "Items, stores, stock on hand, issues, reservations, adjustments, replenishment." },
+    { "key": "assets", "name": "Assets", "crate": "sutra-resources", "activatable": true, "requires": [], "description": "Asset register, lifecycle, verification, disposal." },
+    { "key": "reporting", "name": "Reporting & accreditation", "crate": "sutra-services", "activatable": true, "requires": [], "description": "Enterprise dashboards, statutory / regulatory reporting cycles, accreditation." }
+  ],
+  "core": [
+    { "key": "platform", "name": "Platform", "description": "Sign-in, identities, audit, inbox, notices, to-dos, documents, data import / export, search, workspace catalogue, entitlements. Always available." },
+    { "key": "institution", "name": "Institution set-up", "description": "Institution, organisation units, positions, campuses, curricula, programmes, academic calendar. Always available." },
+    { "key": "campus_facilities", "name": "Campus facilities", "description": "Infrastructure, spaces, room reservations, service desk tickets, maintenance, laboratories, campus governance. Always available." }
+  ],
+  "packages": [
+    { "key": "core_academic", "name": "Core Academic", "description": "Student lifecycle and academic delivery.", "modules": ["students", "admissions", "academics", "attendance", "examinations"] },
+    { "key": "academic_plus", "name": "Academic Plus", "description": "Core Academic plus fees, library and reporting.", "modules": ["students", "admissions", "academics", "attendance", "examinations", "fees", "library", "reporting"] },
+    { "key": "institution_operations", "name": "Institution Operations", "description": "Academic Plus plus HR, payroll, hostel and transport.", "modules": ["students", "admissions", "academics", "attendance", "examinations", "fees", "library", "reporting", "hr", "payroll", "hostel", "transport"] },
+    { "key": "complete_erp", "name": "Complete ERP", "description": "Every module, including procurement, inventory and assets.", "modules": ["students", "admissions", "academics", "attendance", "examinations", "fees", "library", "reporting", "hr", "payroll", "hostel", "transport", "procurement", "inventory", "assets"] }
+  ],
+  "defaultPackage": "complete_erp",
+  "api": {
+    "$comment": "Server-side classification of /api/v1/<area>/... requests. Areas not listed (auth, platform, institution, profile, notifications, notices, todos) are core. A rule [needle, module] matches when a non-id path segment after the area contains `needle`; rules are tried in order, then `default` (null = core).",
+    "student": { "default": "students", "rules": [["admission", "admissions"], ["duplicate-cases", "admissions"]] },
+    "academic": { "default": "academics", "rules": [["attendance", "attendance"], ["library", "library"]] },
+    "exams": { "default": "examinations", "rules": [] },
+    "finance": { "default": "fees", "rules": [] },
+    "people": { "default": "hr", "rules": [["payroll", "payroll"], ["payslip", "payroll"], ["salary", "payroll"], ["final-settlement", "payroll"]] },
+    "campus": { "default": null, "rules": [["hostel", "hostel"], ["mess", "hostel"], ["resident-leave", "hostel"], ["room-inspection", "hostel"], ["room-transfer", "hostel"], ["transport", "transport"], ["trips", "transport"], ["vehicles", "transport"], ["route-versions", "transport"], ["driver-assignments", "transport"], ["library", "library"], ["catalogue", "library"]] },
+    "resources": { "default": "procurement", "rules": [["asset", "assets"], ["requisition", "procurement"], ["sourcing", "procurement"], ["supplier", "procurement"], ["purchase-order", "procurement"], ["goods-receipt", "procurement"], ["vendor-", "procurement"], ["item", "inventory"], ["store", "inventory"], ["stock", "inventory"], ["replenishment", "inventory"]] },
+    "services": { "default": "reporting", "rules": [] }
+  },
+  "imports": {
+    "$comment": "Data-import entity -> module it writes into (server-side, enforced by the import job handlers on upload / mapping / dry-run / commit / decision; the entity list hides the others). Entities not listed (campuses, org_units, programmes, curricula) are institution set-up (core). Export is never gated (no data hostage).",
+    "students": "students",
+    "historical_results": "students",
+    "staff": "hr",
+    "fee_heads": "fees",
+    "opening_balances": "fees"
+  },
+  "web": {
+    "$comment": "UI-only mirrors (never the control; the API gate above is). routes: first path segment -> module; workspaces: catalog workspace key prefix -> module (longest prefix wins).",
+    "routes": {
+      "students": "students", "documents": "students", "registration": "students", "my-students": "students",
+      "academic-delivery": "academics", "courses": "academics", "assignments": "academics", "timetable": "academics", "classes": "academics", "resources": "academics", "assessments": "academics",
+      "attendance": "attendance",
+      "library": "library",
+      "finance": "fees", "fees": "fees",
+      "examinations": "examinations", "results": "examinations",
+      "people": "hr", "leave": "hr",
+      "reports": "reporting"
+    },
+    "workspaces": {
+      "W-C01": "admissions", "W-C0": "students",
+      "W-D04": "attendance", "W-D0": "academics",
+      "W-E06": "payroll", "W-E0": "hr",
+      "W-F": "fees",
+      "W-G03": "hostel", "W-G04": "transport", "W-G05": "library",
+      "W-H07": "reporting", "W-H08": "reporting", "W-H09": "reporting",
+      "W-I": "examinations",
+      "W-J06": "inventory", "W-J07": "inventory", "W-J08": "assets", "W-J09": "assets", "W-J10": "assets", "W-J0": "procurement"
+    }
+  }
+}

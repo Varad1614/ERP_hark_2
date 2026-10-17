@@ -13341,6 +13341,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/gateway-settlements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One settlement reconciliation import with its line results (`finance.read`). */
+        get: operations["finance_gateway_settlement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/gateway/webhook": {
         parameters: {
             query?: never;
@@ -13632,6 +13649,27 @@ export interface paths {
          *     L3-F-051). Years of an institution never overlap.
          */
         post: operations["finance_year_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/gateway-settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Imports a gateway settlement report (CSV) and reconciles every line against captured
+         *     payments and processed refunds of the institution (`treasury.manage`). The same file again
+         *     returns the first import (200, `alreadyImported`); a new one is 201.
+         */
+        post: operations["finance_gateway_settlement_import"];
         delete?: never;
         options?: never;
         head?: never;
@@ -13998,6 +14036,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/me/payment-gateway": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Part 2 S4 (UI fees, DEF-F-007): the configured online gateway and the public checkout key
+         *     (`finance.self`). Nothing tenant-specific is returned.
+         */
+        get: operations["finance_payment_self_gateway"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/me/payments": {
         parameters: {
             query?: never;
@@ -14046,8 +14104,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Return from the (mock) checkout: asks the gateway for the outcome and completes / fails the
-         *     caller's own payment (`finance.self`, `If-Match`). Still pending → unchanged.
+         * Return from checkout: asks the gateway for the outcome and completes / fails the caller's own
+         *     payment (`finance.self`, `If-Match`). Still pending → unchanged. Part 2 S4-pay: the optional
+         *     body carries the Checkout callback (`razorpay_payment_id`, `razorpay_order_id`,
+         *     `razorpay_signature`), verified server-side before the gateway is asked (422 when forged); the
+         *     fee is marked paid only on the gateway's own capture report.
          */
         post: operations["finance_payment_self_confirm"];
         delete?: never;
@@ -20197,6 +20258,627 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Metadata of one document of the session's tenant (records management). */
+        get: operations["platform_document_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/documents/{id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete a document whose retention ended and that is not on legal hold (else 409, audited
+         *     as rejected). The bytes are removed from object storage; the metadata row stays.
+         */
+        post: operations["platform_document_delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/documents/{id}/legal-hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Place or release a legal hold (a held document cannot be deleted, not even after its
+         *     retention ended). Audited.
+         */
+        post: operations["platform_document_legal_hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Active modules and licence state of the caller's institution (drives navigation and the
+         *     renewal / expiry banner).
+         */
+        get: operations["platform_entitlement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Entitlement change requests of the session tenant, newest first. */
+        get: operations["platform_entitlement_request_list"];
+        put?: never;
+        /**
+         * Requests an entitlement change (activation, package change, renewal, suspension,
+         *     reinstatement). Validated against the registry, dependencies included; waits for a second
+         *     administrator's decision.
+         */
+        post: operations["platform_entitlement_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a pending entitlement change. The decider must hold `platform.entitlement.approve`
+         *     and must not be the requester (separation of duties). Approval re-validates the request
+         *     against the registry and the current entitlement version and applies it at once.
+         */
+        post: operations["platform_entitlement_request_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraws one's own pending request. */
+        post: operations["platform_entitlement_request_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The module / package registry (modules, dependencies, packages, always-available core). */
+        get: operations["platform_entitlement_catalogue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Identities of the session tenant (newest first). */
+        get: operations["platform_identity_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a platform administrator identity (no ERP record) and a role request for its roles:
+         *     privileged roles wait for another administrator's decision; until then the identity can sign
+         *     in to nothing (no role → `403` at sign-in).
+         */
+        post: operations["platform_identity_admin_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Provisions (or re-queues) the identity of a student or staff member from the owning record:
+         *     lifecycle state, institution, e-mail and base role come from the record. Existing identities
+         *     are matched first (one identity per subject; username / e-mail unique per IdP), so calling
+         *     it twice never creates a second account.
+         */
+        post: operations["platform_identity_provision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One identity. */
+        get: operations["platform_identity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lifts an administrative suspension. The account is re-enabled only when the ERP record is
+         *     active too (a suspended student stays suspended).
+         */
+        post: operations["platform_identity_reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/required-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Triggers required actions: `verifyEmail` + `updatePassword` (activation), `updatePassword`
+         *     (password recovery), `configureTotp` (MFA enrolment / re-enrolment). Applied by the next sync.
+         */
+        post: operations["platform_identity_required_actions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-queues a `failed` / `conflict` identity after the cause was fixed. */
+        post: operations["platform_identity_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/role-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Requests role changes. Revocations and non-privileged grants apply at once; a grant of a
+         *     privileged role (administrator, approver roles) waits for another administrator's decision.
+         */
+        post: operations["platform_identity_role_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Administrative suspension: the account is disabled and every session (IdP and SutraERP) is
+         *     ended at the next sync, whatever the ERP record says.
+         */
+        post: operations["platform_identity_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ERP-role → IdP mappings of the session tenant. */
+        get: operations["platform_identity_role_mapping_list"];
+        put?: never;
+        /**
+         * Adds an IdP target (realm role, client role or group) to an ERP role, optionally for one
+         *     institution. SutraERP's own role names and tenant groups are refused as targets (they are
+         *     managed 1:1 and carry the tenant scope).
+         */
+        post: operations["platform_identity_role_mapping_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-mappings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retires a mapping (the target is removed from every identity at the next sync). */
+        delete: operations["platform_identity_role_mapping_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Role requests of the session tenant (newest first). */
+        get: operations["platform_identity_role_request_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a pending privileged role request. The decider must hold
+         *     `platform.identity.role.approve`, must not be the requester (separation of duties) and must
+         *     not be the identity concerned. Approval applies the roles (and triggers TOTP enrolment) at the
+         *     next sync.
+         */
+        post: operations["platform_identity_role_request_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import jobs of the tenant (optionally of one institution / entity), newest first. */
+        get: operations["platform_import_job_list"];
+        put?: never;
+        /**
+         * Uploads a CSV / XLSX file: parsed rows are stored and a mapping is suggested. Idempotent on
+         *     the job key (201 new job, 200 the job the key already created; 409 same key, other file).
+         */
+        post: operations["platform_import_job_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Importable entities with their columns, natural keys and the caller's access. */
+        get: operations["platform_import_entity_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities/{entity}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export of an institution's records in the import columns (formula-injection safe; audited). */
+        get: operations["platform_import_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities/{entity}/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Blank import template (canonical headers + one example row). */
+        get: operations["platform_import_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/mapping-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved mapping profiles. */
+        get: operations["platform_import_profile_list"];
+        put?: never;
+        /** Creates or replaces (by name) a mapping profile. */
+        post: operations["platform_import_profile_save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One import job with its counters and reconciliation summary. */
+        get: operations["platform_import_job_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commits a validated job (one transaction per batch), or — for opening balances — requests
+         *     the second person's approval (`pending_approval`).
+         */
+        post: operations["platform_import_job_commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a commit awaiting approval (`platform.import.approve`). The job's maker cannot
+         *     decide it (separation of duties → 403); approval runs the commit, rejection needs a reason.
+         */
+        post: operations["platform_import_job_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dry run: validates every row with the owning module's domain rules (nothing is written). */
+        post: operations["platform_import_job_dry_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/errors.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Row-level error report (CSV: line, column, code, message + the row's source cells). */
+        get: operations["platform_import_job_error_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replaces the column mapping (and on-existing policy); the job returns to `uploaded`. */
+        put: operations["platform_import_job_mapping"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rows of a job with their dry-run / commit outcome. */
+        get: operations["platform_import_job_rows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/modules": {
         parameters: {
             query?: never;
@@ -23136,6 +23818,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/admissions/{id}/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the file of an admission document (`admission.manage` or `admission.decide`). The
+         *     SHA-256 is verified before a byte is sent (a mismatch quarantines the file: 409).
+         */
+        get: operations["admission_document_file_download"];
+        /**
+         * Attach the file of an admission document (`admission.manage`): the raw file is the body.
+         *     Type from the content (PDF / PNG / JPEG), size ≤ `SUTRA_DOCS_MAX_BYTES`, SHA-256 recorded.
+         */
+        put: operations["admission_document_file_upload"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/admissions/{id}/documents/{documentId}/file/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Short-lived presigned download link of an admission document's file (same permissions as
+         *     the download; 403 when `SUTRA_DOCS_PRESIGN_TTL_SECS` is 0). Audited.
+         */
+        post: operations["admission_document_file_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/admissions/{id}/documents/{documentId}/verify": {
         parameters: {
             query?: never;
@@ -24578,6 +25304,46 @@ export interface paths {
         get: operations["student_self_documents"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/me/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the file of a document on the caller's own record (`student.self`; another
+         *     student's document is a 404).
+         */
+        get: operations["student_self_document_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/me/documents/{documentId}/file/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Presigned download link of a document on the caller's own record (`student.self`; 403 when
+         *     presigned links are disabled). Audited.
+         */
+        post: operations["student_self_document_file_link"];
         delete?: never;
         options?: never;
         head?: never;
@@ -26215,6 +26981,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/students/{id}/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the file of a document on a student's record (`student.manage`). */
+        get: operations["student_document_file_download"];
+        /**
+         * Attach the file of a document on the student's record (`student.manage`; the document must
+         *     be `submitted` and have no file yet).
+         */
+        put: operations["student_document_file_upload"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/students/{id}/documents/{documentId}/verify": {
         parameters: {
             query?: never;
@@ -27293,6 +28080,22 @@ export interface components {
          * @enum {string}
          */
         AccrualFrequency: "monthly" | "yearly" | "none";
+        /** @description Predicted (after a dry run) or actual (after a commit) row actions. */
+        ActionCounts: {
+            /** Format: int64 */
+            create: number;
+            /** Format: int64 */
+            error: number;
+            /**
+             * Format: int64
+             * @description Rows not checked yet.
+             */
+            pending: number;
+            /** Format: int64 */
+            skip: number;
+            /** Format: int64 */
+            update: number;
+        };
         /**
          * @description Outcome chosen by the Institution Activation Authority.
          * @enum {string}
@@ -27414,6 +28217,28 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Created administrator identity + its role request. */
+        AdminIdentityCreated: {
+            identity: components["schemas"]["IdentityView"];
+            roleRequest: components["schemas"]["RoleRequestView"];
+        };
+        /**
+         * @description Create a platform administrator identity. The roles are requested, not granted: privileged
+         *     roles wait for a second administrator's decision.
+         */
+        AdminIdentityRequest: {
+            email: string;
+            familyName?: string | null;
+            givenName: string;
+            /**
+             * Format: uuid
+             * @description Pin the identity to one institution (default: tenant-wide).
+             */
+            institutionId?: string | null;
+            reason: string;
+            /** @description Requested SutraERP roles (e.g. `administrator`, `registrar`). */
+            roles: string[];
+        };
         /** @description Admission Record (wire form; contract §5.3 minimum fields included). */
         Admission: {
             /** Format: uuid */
@@ -27527,6 +28352,12 @@ export interface components {
             admissionId: components["schemas"]["AdmissionId"];
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Part 2 · S4-docs: the stored file (platform document service), when one was uploaded
+             *     (`PUT …/documents/{documentId}/file`).
+             */
+            documentObjectId?: string | null;
             documentType: string;
             fileRef?: string | null;
             id: components["schemas"]["AdmissionDocumentId"];
@@ -28349,6 +29180,17 @@ export interface components {
             supersedesId?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        /** @description Result of an upload: the document's new version and the stored file. */
+        AttachedFile: {
+            /** Format: uuid */
+            documentId: string;
+            /**
+             * Format: int64
+             * @description New version (ETag) of the admission / record document.
+             */
+            documentVersion: number;
+            file: components["schemas"]["StoredDocument"];
         };
         /**
          * @description Attempt kind of a registered paper (L2-I12).
@@ -29718,7 +30560,7 @@ export interface components {
          * @description Where a charge came from.
          * @enum {string}
          */
-        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge";
+        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge" | "opening_balance";
         /**
          * @description Student charge lifecycle (L2-F01 §18–19 canonical states and transitions).
          * @enum {string}
@@ -29860,6 +30702,11 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /**
+         * @description Value type of a column (drives template examples, the mapping screen and pre-validation).
+         * @enum {string}
+         */
+        ColumnKind: "text" | "code" | "date" | "decimal" | "integer" | "email" | "phone" | "boolean" | "choice";
         /** @description Optional body of a state command (`{ "reason": "…" }`). */
         CommandBody: {
             /** @description Business reason / decision note. */
@@ -30084,6 +30931,18 @@ export interface components {
          * @enum {string}
          */
         ConfigStatus: "draft" | "effective" | "superseded" | "withdrawn";
+        /**
+         * @description Part 2 S4-pay: what Razorpay Checkout hands the browser after a successful payment
+         *     (`razorpay_payment_id`, `razorpay_order_id`, `razorpay_signature`), forwarded to `confirm`.
+         *     Optional: without it `confirm` only polls the gateway. With it the signature is verified
+         *     server-side first (422 `invalid_signature` otherwise); the payment is still marked paid only
+         *     when the gateway itself reports the capture (never on the browser's word).
+         */
+        ConfirmPaymentRequest: {
+            gatewayOrderId?: string | null;
+            gatewayPaymentId?: string | null;
+            gatewaySignature?: string | null;
+        };
         /** @description One validation finding. */
         Conflict: {
             /**
@@ -30101,6 +30960,12 @@ export interface components {
          * @enum {string}
          */
         ConsentType: "data_sharing" | "medical_treatment" | "field_trip" | "photography" | "extracurricular" | "research" | "other";
+        /** @description An always-available part of the product (never gated). */
+        CoreSpec: {
+            description?: string;
+            key: string;
+            name: string;
+        };
         CorrectAlumniTransition: {
             alumniEmail?: string | null;
             directoryConsent?: boolean | null;
@@ -30984,6 +31849,11 @@ export interface components {
             /** Format: date */
             until?: string | null;
         };
+        /** @description Body of `…/delete`. */
+        DeleteDocumentBody: {
+            /** @description Why the document is deleted; 1–500 characters. */
+            reason: string;
+        };
         /** @description Body of an approval decision endpoint. */
         DeliveryDecision: {
             decision: components["schemas"]["DeliveryDecisionValue"];
@@ -31100,6 +31970,12 @@ export interface components {
             title: string;
             /** Format: date */
             validUntil?: string | null;
+        };
+        /** @description A short-lived presigned download link (issued only after authorisation). */
+        DocumentLink: {
+            /** Format: date-time */
+            expiresAt: string;
+            url: string;
         };
         DocumentList: {
             items: components["schemas"]["DocumentView"][];
@@ -31318,6 +32194,40 @@ export interface components {
              */
             candidateId: string;
             reason: string;
+        };
+        /** @description What a tenant may use right now (served by `GET /api/v1/platform/entitlement`). */
+        EffectiveEntitlement: {
+            addOnModules: string[];
+            /** Format: date-time */
+            asOf: string;
+            /**
+             * Format: int64
+             * @description Whole days until the licence (status `active`) or its grace period (status `grace`) ends.
+             */
+            daysRemaining?: number | null;
+            /** Format: int32 */
+            graceDays: number;
+            /**
+             * Format: date-time
+             * @description End of the grace period (`validUntil + graceDays`), when the licence has an end.
+             */
+            graceEndsAt?: string | null;
+            /** @description Active module keys (sorted). */
+            modules: string[];
+            origin: components["schemas"]["EntitlementOrigin"];
+            package?: string | null;
+            /** @description Writes are refused (`expired` / `suspended`). */
+            readOnly: boolean;
+            /** @description Effective licence status at `asOf`. */
+            status: components["schemas"]["LicenceStatus"];
+            /** @description Status as stored (before the validity window is applied). */
+            storedStatus: components["schemas"]["LicenceStatus"];
+            /** Format: date-time */
+            validFrom: string;
+            /** Format: date-time */
+            validUntil?: string | null;
+            /** Format: int64 */
+            version: number;
         };
         /**
          * @description Eligibility commands (L3-E-029).
@@ -31657,6 +32567,93 @@ export interface components {
          * @enum {string}
          */
         EnrolmentWindowStatus: "scheduled" | "open" | "suspended" | "closed" | "closed_permanently";
+        /** @description The registry: licensable modules (with dependencies), the always-available core, packages. */
+        EntitlementCatalogue: {
+            core: components["schemas"]["CoreSpec"][];
+            defaultPackage: string;
+            modules: components["schemas"]["ModuleSpec"][];
+            packages: components["schemas"]["PackageSpec"][];
+            /** Format: int32 */
+            version: number;
+        };
+        /** @description Request a change of the tenant's entitlement: the full desired state. */
+        EntitlementChangeRequest: {
+            /** @description Modules added on top of the package. */
+            addOnModules?: string[];
+            /**
+             * Format: int32
+             * @description Days of full access after `validUntil` (0–365, default 0).
+             */
+            graceDays?: number | null;
+            /** @description `activate` · `change` · `renew` · `suspend` · `reinstate`. */
+            kind: string;
+            /** @description `active` (default) · `grace` · `expired` · `suspended` (only with kind `suspend`). */
+            licenceStatus?: string | null;
+            /** @description Package key (`core_academic`, `academic_plus`, `institution_operations`, `complete_erp`). */
+            package: string;
+            reason: string;
+            /**
+             * Format: date-time
+             * @description Start of validity (default: now).
+             */
+            validFrom?: string | null;
+            /**
+             * Format: date-time
+             * @description End of validity (`null` = perpetual).
+             */
+            validUntil?: string | null;
+        };
+        /** @description A decided request and the tenant's entitlement after it. */
+        EntitlementDecided: {
+            entitlement: components["schemas"]["EffectiveEntitlement"];
+            request: components["schemas"]["EntitlementRequestView"];
+        };
+        /** @description Decision on a pending request. */
+        EntitlementDecision: {
+            /** @description `approve` or `reject`. */
+            decision: string;
+            reason: string;
+        };
+        /**
+         * @description Where an entitlement came from.
+         * @enum {string}
+         */
+        EntitlementOrigin: "stored" | "default";
+        /** @description Entitlement change requests of the tenant, newest first. */
+        EntitlementRequestPage: {
+            items: components["schemas"]["EntitlementRequestView"][];
+            total: number;
+        };
+        /** @description One entitlement change request. */
+        EntitlementRequestView: {
+            addOnModules: string[];
+            /**
+             * Format: int64
+             * @description Entitlement version the request was made against (0 = none stored yet).
+             */
+            baseVersion: number;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: int32 */
+            graceDays: number;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            licenceStatus: string;
+            package?: string | null;
+            reason: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            /** @description `pending` · `approved` · `rejected` · `withdrawn`. */
+            status: string;
+            /** Format: date-time */
+            validFrom: string;
+            /** Format: date-time */
+            validUntil?: string | null;
+        };
         /**
          * @description Laboratory equipment status (L3-G-060).
          * @enum {string}
@@ -33197,6 +34194,11 @@ export interface components {
             /** @description Human readable explanation. */
             message: string;
         };
+        /**
+         * @description File format of an upload / export.
+         * @enum {string}
+         */
+        FileFormat: "csv" | "xlsx";
         FinalSettlementCreate: {
             notes?: string | null;
             recoveries?: components["schemas"]["SettlementRecovery"][] | null;
@@ -34236,6 +35238,10 @@ export interface components {
             financeEvidence: components["schemas"]["FinanceEvidence"];
             items: components["schemas"]["RegistrationHold"][];
         };
+        /** @description Reason of an administrative suspension / re-enabling. */
+        HoldRequest: {
+            reason: string;
+        };
         /**
          * @description Who placed a hold.
          * @enum {string}
@@ -34494,6 +35500,57 @@ export interface components {
         IdentityCorrectionList: {
             items: components["schemas"]["IdentityCorrection"][];
         };
+        /** @description Page of identities. */
+        IdentityPage: {
+            items: components["schemas"]["IdentityView"][];
+        };
+        /** @description One identity (link between an ERP subject and its IdP account). */
+        IdentityView: {
+            adminHold: boolean;
+            appliedState?: string | null;
+            /** Format: int32 */
+            attempts: number;
+            baseRoles: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description State the IdP account is driven to. */
+            desiredState: string;
+            email?: string | null;
+            /** @description State the ERP record calls for: `active` | `suspended` | `disabled`. */
+            erpState: string;
+            familyName?: string | null;
+            givenName: string;
+            grantedRoles: string[];
+            holdReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `keycloak` | `memory`. */
+            idp: string;
+            /** @description IdP user id (the OIDC `sub`), once provisioned. */
+            idpUserId?: string | null;
+            /** Format: uuid */
+            institutionId?: string | null;
+            lastError?: string | null;
+            /** Format: date-time */
+            nextAttemptAt: string;
+            /** @description Keycloak required actions still to be triggered. */
+            pendingActions: string[];
+            /** @description Effective SutraERP roles (record roles + granted roles). */
+            roles: string[];
+            /** Format: uuid */
+            subjectId: string;
+            /** @description `student` | `staff` | `admin`. */
+            subjectType: string;
+            /** @description `pending` | `synced` | `failed` | `conflict`. */
+            syncStatus: string;
+            /** Format: date-time */
+            syncedAt?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            username: string;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description A statement line explained outside the ledger (e.g. a bank-side reversal pair). */
         IgnoreLine: {
             /** Format: uuid */
@@ -34522,6 +35579,168 @@ export interface components {
         };
         /** @enum {string} */
         ImpactSeverity: "info" | "warning" | "uncertain" | "blocking";
+        /** @description One column of an importable entity. */
+        ImportColumnView: {
+            choices: string[];
+            example: string;
+            help: string;
+            kind: components["schemas"]["ColumnKind"];
+            label: string;
+            name: string;
+            required: boolean;
+        };
+        /** @description Decision on a commit awaiting approval. */
+        ImportDecision: {
+            approve: boolean;
+            /** @description Required for a rejection. */
+            reason?: string | null;
+        };
+        ImportEntityList: {
+            items: components["schemas"]["ImportEntityView"][];
+        };
+        /** @description An importable / exportable entity. */
+        ImportEntityView: {
+            /** @description `true` when the caller holds that permission. */
+            allowed: boolean;
+            amountColumn?: string | null;
+            columns: components["schemas"]["ImportColumnView"][];
+            entity: string;
+            groupBy?: string | null;
+            label: string;
+            naturalKey: string[];
+            owner: string;
+            /** @description The owning domain's manage permission (needed in addition to `platform.import.manage`). */
+            permission: string;
+            /** @description A commit needs a second person's approval. */
+            requiresApproval: boolean;
+            supportsUpdate: boolean;
+        };
+        /** @description An import job. */
+        ImportJob: {
+            actions: components["schemas"]["ActionCounts"];
+            /** Format: int32 */
+            batchSize: number;
+            commitRequestedBy?: string | null;
+            /** Format: date-time */
+            committedAt?: string | null;
+            committedBy?: string | null;
+            /**
+             * Format: int32
+             * @description Duration of the commit.
+             */
+            committedMs?: number | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            entity: string;
+            failureReason?: string | null;
+            /** Format: int32 */
+            fileBytes: number;
+            fileFormat: components["schemas"]["FileFormat"];
+            fileName: string;
+            fileSha256: string;
+            /** @description Header cells of the file, in order. */
+            headers: string[];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            jobKey: string;
+            /** @description Source header → canonical column. */
+            mapping: {
+                [key: string]: string;
+            };
+            /** Format: uuid */
+            mappingProfileId?: string | null;
+            onExisting: components["schemas"]["OnExisting"];
+            processInstanceId?: string | null;
+            requiresApproval: boolean;
+            status: components["schemas"]["JobStatus"];
+            summary: components["schemas"]["Reconciliation"];
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            validatedAt?: string | null;
+            /**
+             * Format: int32
+             * @description Duration of the last dry run.
+             */
+            validatedMs?: number | null;
+            /** Format: int64 */
+            version: number;
+        };
+        ImportJobList: {
+            items: components["schemas"]["ImportJob"][];
+        };
+        /** @description One row of a job. */
+        ImportJobRow: {
+            action?: null | components["schemas"]["RowAction"];
+            amount?: string | null;
+            /** @description Source cells by header. */
+            cells: {
+                [key: string]: string;
+            };
+            committed: boolean;
+            errors: components["schemas"]["FieldViolation"][];
+            /** Format: int32 */
+            line: number;
+            naturalKey?: string | null;
+            /** Format: uuid */
+            recordId?: string | null;
+        };
+        ImportJobRowList: {
+            items: components["schemas"]["ImportJobRow"][];
+        };
+        ImportMappingProfileList: {
+            items: components["schemas"]["MappingProfile"][];
+        };
+        /** @description Saves (creates or replaces by name) a mapping profile. */
+        ImportMappingProfileSave: {
+            entity: string;
+            mapping: {
+                [key: string]: string;
+            };
+            name: string;
+        };
+        /** @description New column mapping of a job. */
+        ImportMappingUpdate: {
+            /** @description Source header → canonical column. */
+            mapping: {
+                [key: string]: string;
+            };
+            onExisting?: null | components["schemas"]["OnExisting"];
+            /** @description Also save the mapping as a reusable profile with this name. */
+            saveAsProfile?: string | null;
+        };
+        /** @description Upload of one CSV / XLSX file. */
+        ImportUpload: {
+            /**
+             * Format: int32
+             * @description Rows per commit transaction (1–5000, default 500).
+             */
+            batchSize?: number | null;
+            /** @description The file, base64 encoded (≤ 8 MiB decoded; the request body limit applies). */
+            contentBase64: string;
+            /** @example students */
+            entity: string;
+            /**
+             * @description `.csv` or `.xlsx`.
+             * @example students-2026.csv
+             */
+            fileName: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description Idempotency of the upload (default `<entity>:<institution>:<sha256 of the file>`). */
+            jobKey?: string | null;
+            /**
+             * Format: uuid
+             * @description Saved mapping to apply (default: headers matched to column names / labels).
+             */
+            mappingProfileId?: string | null;
+            onExisting?: null | components["schemas"]["OnExisting"];
+        };
         /** @description Change the capacity (seats / beds / persons). */
         InfrastructureCapacityBody: {
             /** Format: int32 */
@@ -34896,6 +36115,11 @@ export interface components {
          * @enum {string}
          */
         ItemStatus: "open" | "in_progress" | "done" | "verified" | "cancelled";
+        /**
+         * @description Lifecycle of an import job.
+         * @enum {string}
+         */
+        JobStatus: "uploaded" | "validated" | "invalid" | "pending_approval" | "committing" | "committed" | "failed" | "rejected";
         /**
          * Format: uuid
          * @description Posted, balanced, append-only journal entry of the general ledger (L2-F05).
@@ -35834,6 +37058,13 @@ export interface components {
          * @description Source-to-ledger reconciliation run (L3-F-029).
          */
         LedgerReconciliationId: string;
+        /** @description Body of `…/legal-hold`. */
+        LegalHoldBody: {
+            /** @description `true` places a hold, `false` releases it. */
+            hold: boolean;
+            /** @description Why (court order, investigation, …); 1–500 characters. */
+            reason: string;
+        };
         /**
          * @description Approval state of a governed draft (`LIBRARY_POLICY_APPROVAL`).
          *     9E: approvalState — wire `not_requested` (contract batch9 §6.4); the stored value stays `none`.
@@ -36295,6 +37526,11 @@ export interface components {
             /** @description `true` to restrict borrowing, `false` to resolve the restriction. */
             restricted: boolean;
         };
+        /**
+         * @description Licence status: stored ([`TenantEntitlement::status`]) or effective ([`effective_status`]).
+         * @enum {string}
+         */
+        LicenceStatus: "active" | "grace" | "expired" | "suspended";
         /** @description Body of an approval decision endpoint. */
         LifecycleDecision: {
             decision: components["schemas"]["LifecycleDecisionValue"];
@@ -36711,6 +37947,21 @@ export interface components {
             journalLineId?: string | null;
             /** Format: uuid */
             lineId: string;
+        };
+        /** @description A saved column mapping. */
+        MappingProfile: {
+            createdBy?: string | null;
+            entity: string;
+            /** Format: uuid */
+            id: string;
+            mapping: {
+                [key: string]: string;
+            };
+            name: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
         };
         MarkInput: {
             mark: components["schemas"]["AttendanceMark"];
@@ -37164,6 +38415,19 @@ export interface components {
             /** @description Owned PostgreSQL schema (ADR-L5-0036 §3.1). */
             schema: string;
             status: components["schemas"]["ModuleStatus"];
+        };
+        /** @description One licensable module. */
+        ModuleSpec: {
+            /** @description `false` = defined commercially but not implemented in this build (cannot be activated). */
+            activatable: boolean;
+            /** @description Crate that implements it (`sutra-exams`). */
+            crate: string;
+            description?: string;
+            /** @description Stable module key (`examinations`). */
+            key: string;
+            name: string;
+            /** @description Modules that must be active as well. */
+            requires?: string[];
         };
         /** @enum {string} */
         ModuleStatus: "scaffolded" | "active";
@@ -38046,6 +39310,18 @@ export interface components {
             rationale?: string | null;
             sourceKey?: string | null;
         };
+        /** @description New ERP-role → IdP mapping. */
+        NewRoleMapping: {
+            /** @description Required for `client_role`. */
+            clientId?: string | null;
+            erpRole: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            /** @description Realm role, client role or group path (`/lms/teachers`). */
+            target: string;
+            /** @description `realm_role` | `client_role` | `group`. */
+            targetKind: string;
+        };
         NewSchedulingRequirement: {
             notes?: string | null;
             preferredDays?: number[];
@@ -38712,6 +39988,11 @@ export interface components {
         OfferingWindowList: {
             items: components["schemas"]["OfferingEnrolmentWindow"][];
         };
+        /**
+         * @description What to do with a row whose natural key already exists.
+         * @enum {string}
+         */
+        OnExisting: "skip" | "update";
         /** @description Opens an onboarding case. */
         OnboardingCreate: {
             /** Format: uuid */
@@ -38936,6 +40217,13 @@ export interface components {
          * @enum {string}
          */
         OrgUnitStatus: "draft" | "active" | "suspended" | "decommissioned" | "archived";
+        /** @description A commercial package: a dependency-closed set of modules. */
+        PackageSpec: {
+            description?: string;
+            key: string;
+            modules: string[];
+            name: string;
+        };
         /**
          * Format: uuid
          * @description The candidate's marks for one registered paper (internal + external + grace; L2-I08).
@@ -39003,6 +40291,21 @@ export interface components {
          * @enum {string}
          */
         PaymentChannel: "gateway" | "cash" | "cheque" | "bank_transfer" | "demand_draft" | "sponsor";
+        /** @description Part 2 S4 (UI fees, DEF-F-007): which online checkout the student's browser opens. */
+        PaymentGatewayInfo: {
+            /**
+             * @description Public key id Razorpay Checkout is opened with (`rzp_test_…` / `rzp_live_…`); absent for
+             *     the mock / disabled adapters. Never a secret.
+             */
+            checkoutKeyId?: string | null;
+            /** @description Configured adapter: `disabled | mock | razorpay`. */
+            gateway: string;
+            /**
+             * @description `false` when online payment is switched off (`SUTRA_PAYMENT_GATEWAY=disabled`): the UI
+             *     hides "Pay now" and points to the finance office.
+             */
+            onlinePayments: boolean;
+        };
         /**
          * Format: uuid
          * @description A payment attempt / received payment (L3-F-007…013).
@@ -40414,6 +41717,13 @@ export interface components {
             providerReference?: string | null;
             studentNumber: string;
         };
+        /** @description Provision the identity of a student or staff member. */
+        ProvisionRequest: {
+            /** Format: uuid */
+            subjectId: string;
+            /** @description `student` | `staff`. */
+            subjectType: string;
+        };
         /** @description New publication. */
         PublicationCreate: {
             /**
@@ -41084,6 +42394,36 @@ export interface components {
             autoMatch?: boolean | null;
             ignore?: components["schemas"]["IgnoreLine"][];
             matches?: components["schemas"]["ManualMatch"][];
+        };
+        /** @description Reconciliation summary. */
+        Reconciliation: {
+            /** Format: int32 */
+            batchesCommitted: number;
+            /** @description Σ amounts this job posted. */
+            committedTotal?: string | null;
+            /** Format: int32 */
+            created: number;
+            /** Format: int32 */
+            duplicatesInFile: number;
+            /** Format: int32 */
+            errors: number;
+            /**
+             * Format: int32
+             * @description Rows whose natural key already existed (skipped or updated).
+             */
+            existingInDatabase: number;
+            /** @description Σ amount column of the file (entities with money). */
+            fileTotal?: string | null;
+            /** @description Σ the ledger holds for the job's records. */
+            ledgerTotal?: string | null;
+            /** @description `ledgerTotal == fileTotal` and the job committed (entities with money). */
+            reconciled?: boolean | null;
+            /** Format: int32 */
+            rowsInFile: number;
+            /** Format: int32 */
+            skipped: number;
+            /** Format: int32 */
+            updated: number;
         };
         ReconciliationDiscrepancy: {
             institutional?: string | null;
@@ -41883,6 +43223,18 @@ export interface components {
             orgUnitId: components["schemas"]["OrgUnitId"];
             toParentId: components["schemas"]["OrgUnitId"];
         };
+        /**
+         * @description Keycloak required action triggered for an account (the user performs it at next sign-in, or
+         *     through the "execute actions" e-mail).
+         * @enum {string}
+         */
+        RequiredAction: "verifyEmail" | "updatePassword" | "configureTotp";
+        /** @description Trigger required actions (activation, password recovery, MFA enrolment). */
+        RequiredActionsRequest: {
+            actions: components["schemas"]["RequiredAction"][];
+            /** @description Also e-mail the user an "execute actions" link (needs SMTP in the realm). */
+            sendEmail?: boolean;
+        };
         /** @description A new requisition (`draft`). */
         RequisitionCreate: {
             /** Format: uuid */
@@ -42433,6 +43785,60 @@ export interface components {
          * @enum {string}
          */
         Role: "administrator" | "faculty" | "student" | "finance_approver" | "exam_controller" | "registrar" | "payroll_approver" | "procurement_approver";
+        /** @description Grant and / or revoke SutraERP roles of an identity. */
+        RoleChangeRequest: {
+            grant?: string[];
+            reason: string;
+            revoke?: string[];
+        };
+        /** @description Decision on a pending role request. */
+        RoleDecision: {
+            /** @description `approve` | `reject`. */
+            decision: string;
+            reason: string;
+        };
+        RoleMappingPage: {
+            items: components["schemas"]["RoleMappingView"][];
+        };
+        /** @description Extra IdP target of an ERP role. */
+        RoleMappingView: {
+            clientId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            erpRole: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            target: string;
+            /** @description `realm_role` | `client_role` | `group`. */
+            targetKind: string;
+        };
+        RoleRequestPage: {
+            items: components["schemas"]["RoleRequestView"][];
+        };
+        /** @description One role request. */
+        RoleRequestView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            grantRoles: string[];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            identityId: string;
+            /** @description A privileged role is granted: another administrator must decide. */
+            privileged: boolean;
+            reason: string;
+            requestedBy: string;
+            revokeRoles: string[];
+            /** @description `pending` | `approved` | `rejected` | `applied` (non-privileged, no decision needed). */
+            status: string;
+        };
         /** @description Inspection outcome. */
         RoomInspectionComplete: {
             /**
@@ -42595,6 +44001,11 @@ export interface components {
             /** Format: int32 */
             versionNo: number;
         };
+        /**
+         * @description What happened (or, in a dry run, would happen) to a row.
+         * @enum {string}
+         */
+        RowAction: "create" | "update" | "skip" | "error";
         /**
          * @description A new rule version (`late_fee` {percent, graceDays, cap}, `rounding` {mode},
          *     `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
@@ -43189,6 +44600,34 @@ export interface components {
             lastSeenAt: string;
             mfaLevel: components["schemas"]["MfaLevel"];
         };
+        SettlementImportView: {
+            /** @description `true` when this exact file had been imported before (nothing new recorded). */
+            alreadyImported: boolean;
+            amountUnit: string;
+            feeTotal: string;
+            fileName?: string | null;
+            gateway: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            importedAt: string;
+            importedBy?: string | null;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: int32 */
+            lineCount: number;
+            lines: components["schemas"]["SettlementLineView"][];
+            /** Format: int32 */
+            matchedCount: number;
+            /**
+             * Format: int32
+             * @description Lines that need attention (everything but matches and ignored types).
+             */
+            mismatchCount: number;
+            /** @description Σ credit − Σ debit of the report. */
+            settledTotal: string;
+            taxTotal: string;
+        };
         /** @description A gateway settlement credited to the bank account. */
         SettlementInput: {
             items: components["schemas"]["SettlementItemInput"][];
@@ -43221,6 +44660,29 @@ export interface components {
             paymentId: string;
             /** Format: uuid */
             reversalEntryId?: string | null;
+        };
+        SettlementLineView: {
+            amount: string;
+            detail?: string | null;
+            entityId: string;
+            entityType: string;
+            fee: string;
+            /** Format: int32 */
+            lineNo: number;
+            orderId?: string | null;
+            /** Format: uuid */
+            paymentId?: string | null;
+            /** Format: uuid */
+            refundId?: string | null;
+            /**
+             * @description `matched | amount_mismatch | order_mismatch | unknown_payment | payment_not_completed |
+             *     already_settled | duplicate_line | refund_matched | refund_amount_mismatch |
+             *     unknown_refund | ignored`.
+             */
+            result: string;
+            settlementId?: string | null;
+            settlementUtr?: string | null;
+            tax: string;
         };
         SettlementRecovery: {
             /** @example 5000.00 */
@@ -43890,6 +45352,47 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /**
+         * @description Metadata of a stored document (`platform.document_object`). The storage key never leaves
+         *     the server.
+         */
+        StoredDocument: {
+            /** @description `application/pdf` | `image/png` | `image/jpeg` (detected from the content). */
+            contentType: string;
+            /** Format: date-time */
+            deletedAt?: string | null;
+            /** @description Sanitised file name. */
+            filename: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            legalHold: boolean;
+            legalHoldReason?: string | null;
+            /** Format: uuid */
+            ownerId: string;
+            /** @description `admission_document` | `student_document`. */
+            ownerType: string;
+            /**
+             * Format: date-time
+             * @description Set when a read found the stored bytes changed or missing; downloads are refused.
+             */
+            quarantinedAt?: string | null;
+            /**
+             * Format: date-time
+             * @description The document cannot be deleted before this instant.
+             */
+            retentionUntil: string;
+            /** @description Lower-case hex SHA-256 of the content, verified on every read. */
+            sha256: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description Draft content (create and full replacement on `PATCH`). */
         StructureDraft: {
             /** Format: date */
@@ -44080,6 +45583,12 @@ export interface components {
         StudentDocument: {
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Part 2 · S4-docs: the stored file (platform document service), when one was uploaded or
+             *     moved over from the admission.
+             */
+            documentObjectId?: string | null;
             documentType: string;
             fileRef?: string | null;
             id: components["schemas"]["StudentDocumentId"];
@@ -78103,6 +79612,35 @@ export interface operations {
             };
         };
     };
+    finance_gateway_settlement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_gateway_webhook: {
         parameters: {
             query?: never;
@@ -78960,6 +80498,51 @@ export interface operations {
             };
         };
     };
+    finance_gateway_settlement_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description `rupees` (dashboard export, default) or `paise` (recon API). */
+                amountUnit: string | null;
+                /** @description Original file name (recorded only). */
+                fileName: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_journal_list: {
         parameters: {
             query?: never;
@@ -79799,6 +81382,33 @@ export interface operations {
             };
         };
     };
+    finance_payment_self_gateway: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentGatewayInfo"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_payment_self_list: {
         parameters: {
             query?: never;
@@ -79907,7 +81517,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ConfirmPaymentRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -97197,6 +98811,1744 @@ export interface operations {
             };
         };
     };
+    platform_document_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.audit.verify` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Document storage is not configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_document_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteDocumentBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Under retention or legal hold */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_document_legal_hold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalHoldBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Already in the requested state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffectiveEntitlement"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitlementChangeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A request is already pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unknown package / module, missing dependency, invalid validity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitlementDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementDecided"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, or the requester */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not pending, or the entitlement changed since the request */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not the requester */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_catalogue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementCatalogue"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_list: {
+        parameters: {
+            query?: {
+                /** @description `student` | `staff` | `admin`. */
+                subjectType?: string;
+                /** @description `pending` | `synced` | `failed` | `conflict`. */
+                syncStatus?: string;
+                /** @description 1–500 (default 100), newest first. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.identity.read` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_admin_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIdentityRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminIdentityCreated"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate identity */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_provision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProvisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Identity already existed (re-queued when its facts changed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            /** @description Identity created and queued */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No such student / staff member in the session tenant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate identity (username / e-mail already used) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Provisioning is off */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_reactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_required_actions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequiredActionsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleChangeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A request is already pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMappingPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewRoleMapping"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMappingView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Mapping exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_list: {
+        parameters: {
+            query?: {
+                /** @description `pending` | `approved` | `rejected` | `applied`. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, the requester, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_list: {
+        parameters: {
+            query?: {
+                institutionId?: string;
+                entity?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJobList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_upload: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportUpload"];
+            };
+        };
+        responses: {
+            /** @description Existing job of the job key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_entity_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportEntityList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_export: {
+        parameters: {
+            query: {
+                institutionId: string;
+                /** @description `csv` (default) or `xlsx`. */
+                format?: string;
+            };
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV or XLSX file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_template: {
+        parameters: {
+            query?: {
+                /** @description `csv` (default) or `xlsx`. */
+                format?: string;
+            };
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV or XLSX file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_profile_list: {
+        parameters: {
+            query?: {
+                entity?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportMappingProfileList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_profile_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMappingProfileSave"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MappingProfile"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_commit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_dry_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_error_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_mapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMappingUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_rows: {
+        parameters: {
+            query?: {
+                /** @description Only rows with errors. */
+                errorsOnly?: boolean;
+                /** @description 1–5000 (default 500). */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJobRowList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     list_modules: {
         parameters: {
             query?: never;
@@ -104537,6 +107889,226 @@ export interface operations {
             };
         };
     };
+    admission_document_file_download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Integrity check failed (quarantined) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_document_file_upload: {
+        parameters: {
+            query: {
+                /**
+                 * @description Original file name (sanitised; its extension must match the content: `.pdf`, `.png`,
+                 *     `.jpg` / `.jpeg`).
+                 */
+                filename: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The file (PDF, PNG or JPEG); `Content-Type` its media type */
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachedFile"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not awaiting verification, or a file is already attached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Body above the upload limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Empty, too large, type not allowed or name / type mismatch */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Document storage is not configured or unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_document_file_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLink"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not permitted, or presigned links are disabled */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     admission_document_verify: {
         parameters: {
             query?: never;
@@ -109843,6 +113415,129 @@ export interface operations {
             };
             /** @description Missing, or owned by another tenant. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_self_document_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_self_document_file_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLink"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -115354,6 +119049,158 @@ export interface operations {
             };
             /** @description Validation failed. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_document_file_download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_document_file_upload: {
+        parameters: {
+            query: {
+                /**
+                 * @description Original file name (sanitised; its extension must match the content: `.pdf`, `.png`,
+                 *     `.jpg` / `.jpeg`).
+                 */
+                filename: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The file (PDF, PNG or JPEG); `Content-Type` its media type */
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachedFile"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

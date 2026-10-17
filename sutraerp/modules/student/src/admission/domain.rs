@@ -222,6 +222,9 @@ pub struct AdmissionDocument {
     pub note: Option<String>,
     pub verified_by: Option<String>,
     pub verified_at: Option<DateTime<Utc>>,
+    /// Part 2 · S4-docs: the stored file (platform document service), when one was uploaded
+    /// (`PUT …/documents/{documentId}/file`).
+    pub document_object_id: Option<Uuid>,
     #[schema(value_type = i64)]
     pub version: Version,
     pub created_at: DateTime<Utc>,

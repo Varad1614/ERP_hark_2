@@ -65,6 +65,7 @@ jobs:
       DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
       SUTRA_TEST_NATS_URL: nats://127.0.0.1:4222
       SUTRA_TEST_VALKEY_URL: redis://127.0.0.1:6379
+      MINIO_TAG: RELEASE.2025-10-15T17-29-55Z
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -74,13 +75,70 @@ jobs:
       # Service containers cannot pass server flags, so JetStream runs as a plain container.
       - name: Start NATS (JetStream)
         run: docker run -d --name nats -p 4222:4222 nats:2.11 -js
+      # Part 2 · S4-idp: real Keycloak (compose dev realm import) for the identity provisioning
+      # tests; started early so it boots while the tests compile.
+      - name: Start Keycloak 26 (realm import)
+        run: |
+          docker run -d --name keycloak -p 8180:8180 \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+            -v "$PWD/deploy/keycloak/realm-sutra-dev.json:/opt/keycloak/data/import/realm-sutra-dev.json:ro" \
+            quay.io/keycloak/keycloak:26.7 start-dev --import-realm --http-port=8180
       - run: cargo test -p sutra-persistence -p sutra-platform --features db-tests --locked --no-fail-fast
       # Full api DB suite: every tests/db*.rs file (incl. db_b5_foundation, db_b5a, db_b5b) + api + architecture.
       - run: cargo test -p sutra-api --features db-tests --locked --no-fail-fast -- --test-threads 2
+      # Part 2 S4-import: the 2,000-student CSV import prints its timing (shown in this log).
+      - name: Data import volume (2,000 students, timing)
+        run: cargo test -p sutra-api --features db-tests --locked --test db_p2_import -- --nocapture two_thousand_students_import_timing
       - name: Live NATS / Valkey adapter tests
         run: |
           cargo test -p sutra-infra --features nats-tests,valkey-tests --locked
           cargo test -p sutra-api --features db-tests,nats-tests --test live_relay --locked
+      - name: Live Keycloak identity provisioning (S4-idp)
+        env:
+          SUTRA_TEST_KEYCLOAK_URL: http://localhost:8180
+        run: |
+          for i in $(seq 1 120); do
+            curl -fsS http://localhost:8180/realms/sutra/.well-known/openid-configuration >/dev/null 2>&1 && break
+            [ "$i" = 120 ] && { docker logs --tail 200 keycloak; exit 1; }
+            sleep 2
+          done
+          cargo test -p sutra-api --features db-tests,keycloak-tests --test live_keycloak_idp --locked -- --test-threads 1 --nocapture
+      - name: Keycloak log (on failure)
+        if: failure()
+        run: docker logs --tail 300 keycloak || true
+      # Part 2 · S4-docs: real S3-compatible storage. MinIO publishes no pullable images any more, and
+      # no third-party mirror images are used: the server is built from its archived upstream source
+      # at a pinned release tag (cached per tag) and runs as a host process with a random root
+      # user / secret for this job only.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: MinIO binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sutra-minio
+          key: minio-${{ env.MINIO_TAG }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Build MinIO from source (${{ env.MINIO_TAG }})
+        run: OUT="$HOME/.cache/sutra-minio/minio" bash deploy/minio/build-from-source.sh
+      - name: Start MinIO + create the test buckets
+        run: |
+          set -euo pipefail
+          user="ci$(openssl rand -hex 6)"; secret="$(openssl rand -hex 24)"
+          echo "::add-mask::$secret"
+          { echo "SUTRA_TEST_S3_ACCESS_KEY=$user"; echo "SUTRA_TEST_S3_SECRET_KEY=$secret"; } >> "$GITHUB_ENV"
+          MINIO_BIN="$HOME/.cache/sutra-minio/minio" MINIO_ROOT_USER="$user" MINIO_ROOT_PASSWORD="$secret" \
+            MINIO_DATA="$RUNNER_TEMP/minio-data" MINIO_LOG="$RUNNER_TEMP/minio.log" \
+            MINIO_BUCKETS="sutra-it-docs" bash deploy/minio/start-local.sh
+      - name: Live S3 adapter + document storage DB tests (MinIO)
+        env:
+          SUTRA_TEST_S3_ENDPOINT: http://127.0.0.1:9000
+        run: |
+          cargo test -p sutra-infra --features s3-tests --test live_s3 --locked
+          cargo test -p sutra-api --features db-tests,s3-tests --test db_p2_docs --locked -- --test-threads 2
+      - name: MinIO log
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/minio.log" || true
 
   openapi-drift:
     name: OpenAPI drift
@@ -166,7 +224,7 @@ jobs:
   # chromium + API + preview together). Runs on ui/**, batch*/**, part1/** (dispatch) and erp_merge.
   e2e:
     name: E2E ${{ matrix.suite }} (preview)
-    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || startsWith(github.ref, 'refs/heads/part1/') || github.ref == 'refs/heads/erp_merge'
+    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || startsWith(github.ref, 'refs/heads/part1/') || startsWith(github.ref, 'refs/heads/part2/') || github.ref == 'refs/heads/erp_merge'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -210,6 +268,54 @@ jobs:
         if: always()
         with:
           name: e2e-shots-${{ matrix.suite }}
+          path: ${{ runner.temp }}/shots
+          retention-days: 7
+
+  # Part 2 · S4-ui-import: Admin → Data import click-through (apps/web/e2e/imports.e2e.mjs) — upload,
+  # mapping, dry run with row errors + error report, commit, opening balances awaiting a second
+  # approver (maker ≠ checker), history, export. Also runs on part2/** (workflow_dispatch).
+  e2e-imports:
+    name: E2E imports (preview)
+    if: startsWith(github.ref, 'refs/heads/part2/') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/part1/') || github.ref == 'refs/heads/erp_merge'
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: sutra
+          POSTGRES_PASSWORD: sutra
+          POSTGRES_DB: sutra_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sutra" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: e2e-api
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: sutraerp/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: sutraerp/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: cargo build -p sutra-api --locked
+      - run: SUTRA_ENV=development target/debug/sutra-api migrate
+      - run: pnpm --filter @sutra/web exec playwright install --with-deps chromium
+      - run: VITE_AUTH_MODE=api pnpm --filter @sutra/web build
+      - name: imports e2e
+        run: E2E_WEB=preview VITE_AUTH_MODE=api E2E_SHOTS=$RUNNER_TEMP/shots CARGO_TARGET_DIR=$GITHUB_WORKSPACE/sutraerp/target timeout 1200 pnpm e2e:imports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-shots-imports
           path: ${{ runner.temp }}/shots
           retention-days: 7
 

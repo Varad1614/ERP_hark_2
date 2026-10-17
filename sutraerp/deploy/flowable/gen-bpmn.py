@@ -2,7 +2,7 @@
 """Generate one Flowable BPMN 2.0 process per approval key (Batch 9 · 9C, contract §7).
 
 Keys = every `pub const NAME: &str = "<domain>.<process>"` inside `pub mod process { … }` of
-`modules/*/src/shared/approval.rs`. Outputs (run from `sutraerp/`):
+`modules/*/src/shared/approval.rs` and `modules/platform/src/dataimport/mod.rs`. Outputs (run from `sutraerp/`):
 
 * `deploy/flowable/processes/<key>.bpmn20.xml` — start → exclusive gateway on `${autoApprove}`
   → (true) end `approved` | (default) user task `decide` (candidate group `sutra:approvers`) → end
@@ -53,7 +53,12 @@ KEY_RE = re.compile(r'pub const [A-Z0-9_]+\s*:\s*&str\s*=\s*"([a-z]+\.[a-z0-9_]+
 
 def keys():
     found = []
-    for f in sorted(ROOT.glob("modules/*/src/shared/approval.rs")):
+    # Every module's shared approval keys, plus modules whose process keys live with their
+    # feature (the data import's commit approval, DEF-P2-CAP-004).
+    sources = sorted(ROOT.glob("modules/*/src/shared/approval.rs")) + [
+        ROOT / "modules/platform/src/dataimport/mod.rs",
+    ]
+    for f in sources:
         text = f.read_text(encoding="utf-8")
         m = re.search(r"pub mod process \{(.*?)\n\}", text, re.S)
         if not m:

@@ -56,13 +56,15 @@ async fn main() -> ExitCode {
             Ok(c) => {
                 println!(
                     "configuration ok: env={:?} auth={:?} mfa_step_up={} http_addr={} \
-                     session_cookie_secure={} public_url={}",
+                     session_cookie_secure={} public_url={} documents={:?} tls_extra_roots={}",
                     c.env,
                     c.auth_provider,
                     c.mfa_step_up,
                     c.http_addr,
                     c.session_cookie_secure,
-                    c.public_url
+                    c.public_url,
+                    c.documents.mode,
+                    c.tls.certificates
                 );
                 ExitCode::SUCCESS
             }
@@ -166,6 +168,10 @@ async fn serve(cfg: Config) -> Result<(), String> {
     let mut ctx = app::AppContext::from_config(&cfg).map_err(|e| e.to_string())?;
     let pool = ctx.pool.clone();
     check_runtime_role(&cfg, &pool).await?;
+    // Part 2 · S4-idp: the identity admin client must be least-privilege (fatal in production).
+    if let Some(rt) = &ctx.identity_runtime {
+        sutra_api::idp_wiring::startup_check(&cfg, rt).await?;
+    }
     // Outbox relay + sweepers run beside the server and stop after HTTP draining finished.
     let background = ctx.take_background();
     tracing::info!(workers = ?background.describe(), "background workers");

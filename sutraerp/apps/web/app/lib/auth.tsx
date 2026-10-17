@@ -11,7 +11,7 @@
 import type { LoginResponse, MfaLevel, MfaMethod } from "@sutra/api-client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AUTH_MODE, api, bootstrapLoginCsrf, setCsrfToken, unwrap } from "./api";
-import { isRole, ROLE_CONFIG, type Role, uiRole } from "./roles";
+import { isRole, ROLE_CONFIG, type ApiRole, type Role, uiRole } from "./roles";
 import { getPasskeyAssertion } from "./webauthn";
 
 export interface ClientSession {
@@ -22,6 +22,14 @@ export interface ClientSession {
   mfaLevel: MfaLevel;
   /** The account must enrol an authenticator before admin-sensitive actions. */
   mfaEnrollmentRequired: boolean;
+  /**
+   * Part 2 · S4-ui-import: stable subject reference of the principal (`dev|<loginId>` in dev
+   * auth, the Keycloak `sub` in production) — compared with a record's maker columns so a maker
+   * is never offered the checker's decision (the API enforces the same rule).
+   */
+  subject?: string;
+  /** Every API role of the principal (the UI persona above collapses checker roles). */
+  apiRoles?: ApiRole[];
 }
 
 export type SignInResult =
@@ -49,7 +57,7 @@ const STORAGE_KEY = "sutra.devRole";
 
 function personaSession(role: Role): ClientSession {
   const c = ROLE_CONFIG[role];
-  return { role, displayName: c.name, loginId: c.loginId, mfaLevel: "none", mfaEnrollmentRequired: false };
+  return { role, displayName: c.name, loginId: c.loginId, mfaLevel: "none", mfaEnrollmentRequired: false, subject: `dev|${c.loginId}`, apiRoles: [role] };
 }
 
 /** Maps an authenticated login/MFA response onto the client session (and stores its CSRF token). */
@@ -63,6 +71,8 @@ export function sessionFromLogin(res: LoginResponse, fallbackRole: Role): Client
     loginId: p.loginId,
     mfaLevel: res.mfaLevel ?? "none",
     mfaEnrollmentRequired: res.mfaEnrollmentRequired,
+    subject: p.subject,
+    apiRoles: p.roles,
   };
 }
 
@@ -88,6 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             loginId: p.loginId,
             mfaLevel: res.data.mfaLevel,
             mfaEnrollmentRequired: res.data.mfaEnrollmentRequired,
+            subject: p.subject,
+            apiRoles: p.roles,
           });
         }
       }

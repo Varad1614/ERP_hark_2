@@ -155,6 +155,30 @@ pub trait InstitutionReferencePort: Send + Sync + 'static {
         scope: &ExecutionScope,
         id: Uuid,
     ) -> Result<Option<ProgrammeRef>, KernelError>;
+    /// Part 2 · S4-import: a programme of `institution` by its code (case-insensitive), so
+    /// migration files can name programmes the way the legacy system did. The default (for
+    /// test doubles that only wrap the id lookups) finds nothing; `PgInstitutionReferences`
+    /// implements it.
+    async fn programme_by_code(
+        &self,
+        _scope: &ExecutionScope,
+        _institution_id: InstitutionId,
+        _code: &str,
+    ) -> Result<Option<ProgrammeRef>, KernelError> {
+        Ok(None)
+    }
+
+    /// Part 2 · S4-import: a campus of `institution` by its code (case-insensitive); same
+    /// default as [`Self::programme_by_code`].
+    async fn campus_by_code(
+        &self,
+        _scope: &ExecutionScope,
+        _institution_id: InstitutionId,
+        _code: &str,
+    ) -> Result<Option<CampusRef>, KernelError> {
+        Ok(None)
+    }
+
     async fn curriculum_version(
         &self,
         scope: &ExecutionScope,

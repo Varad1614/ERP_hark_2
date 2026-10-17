@@ -123,10 +123,15 @@ describe("home to-dos card", () => {
 
   it("shows a loading state until the to-dos arrive", async () => {
     // Several tiles read /todos (open, completed, the week): hold every request, then answer them all.
+    // A request issued after the release (a tile that mounts or refetches later) is answered at
+    // once; before, it stayed pending forever and the card could stay loading (flaky on slow runners).
     const releases: ((r: Response) => void)[] = [];
-    await mountApi(() => new Promise<Response>((r) => releases.push(r)));
+    let released = false;
+    const answer = () => Response.json({ items: [todo(1)], openCount: 1 });
+    await mountApi(() => (released ? answer() : new Promise<Response>((r) => releases.push(r))));
     expect(document.querySelector('[data-home-todos="loading"]')).toBeTruthy();
-    releases.forEach((r) => r(Response.json({ items: [todo(1)], openCount: 1 })));
+    released = true;
+    releases.forEach((r) => r(answer()));
     expect(await screen.findByText("Task 1")).toBeTruthy();
   });
 

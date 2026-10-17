@@ -9,7 +9,8 @@
 //!   in-transaction helper `sutra_finance::shared::posting::post` directly; both share the
 //!   validation of [`PostingRequest::validate`]. Implemented by `sutra_finance::PgPostingPort`.
 //! * [`PaymentGatewayPort`] — the payment gateway adapter (Razorpay-shaped). Batch 5 wires the
-//!   deterministic `sutra_finance::payments::gateway::MockPaymentGateway` (5B owns and extends it).
+//!   deterministic `sutra_finance::payments::gateway::MockPaymentGateway` (5B owns and extends it);
+//!   Part 2 S4 adds the real `sutra_infra::razorpay::RazorpayGateway`.
 //!
 //! * Batch 8: [`CampusChargePort`] (Domain G library fines, hostel / transport fees →
 //!   `sutra_finance::PgCampusCharges`) and [`ProcurementPostingPort`] (Domain J vendor invoices /
@@ -544,6 +545,28 @@ pub trait PaymentGatewayPort: Send + Sync + 'static {
         scope: &ExecutionScope,
         request: GatewayRefundRequest,
     ) -> Result<GatewayRefund, KernelError>;
+
+    /// Part 2 S4 (payments): verifies the checkout callback signature server-side (Razorpay:
+    /// lowercase hex HMAC-SHA256 of `order_id|payment_id` keyed with the API key secret,
+    /// constant-time compare). `Ok` only proves the callback came from the gateway; the payment
+    /// is still completed only on a server-side [`PaymentGatewayPort::fetch_outcome`] or a
+    /// verified webhook. Default: the adapter has no checkout signature (`Unauthenticated`).
+    fn verify_checkout(
+        &self,
+        order_ref: &str,
+        payment_ref: &str,
+        signature: &str,
+    ) -> Result<(), KernelError> {
+        let _ = (order_ref, payment_ref, signature);
+        Err(KernelError::Unauthenticated)
+    }
+
+    /// Part 2 S4 (UI fees): the **public** key id the browser opens the gateway's checkout with
+    /// (Razorpay Checkout `key`, `rzp_test_…` / `rzp_live_…`; never the key secret). `None` when
+    /// the adapter has no client-side checkout (mock, disabled).
+    fn checkout_key_id(&self) -> Option<String> {
+        None
+    }
 }
 
 // ---- Batch 6 (Domain I) block: examination fee charges (revaluation / rechecking) ----

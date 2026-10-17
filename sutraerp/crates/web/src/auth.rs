@@ -384,7 +384,11 @@ fn check_scope_headers(headers: &HeaderMap, scope: &ExecutionScope) -> Result<()
                 .and_then(|s| uuid::Uuid::parse_str(s.trim()).ok())
         })
     };
-    let outside = || KernelError::Forbidden("requested scope is outside the session scope".into());
+    let outside = || {
+        // Part 2 S5-monitor: cross-tenant attempts are counted for alerting.
+        sutra_kernel::signal::security(sutra_kernel::signal::SecurityEvent::CrossTenantDenied);
+        KernelError::Forbidden("requested scope is outside the session scope".into())
+    };
     if let Some(t) = header_uuid(TENANT_HEADER) {
         if t != Some(scope.tenant_id.as_uuid()) {
             return Err(outside());

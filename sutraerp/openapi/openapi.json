@@ -60218,6 +60218,53 @@
         ]
       }
     },
+    "/api/v1/finance/gateway-settlements/{id}": {
+      "get": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "One settlement reconciliation import with its line results (`finance.read`).",
+        "operationId": "finance_gateway_settlement_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementImportView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/gateway/webhook": {
       "post": {
         "tags": [
@@ -61811,6 +61858,97 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/YearView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/gateway-settlements": {
+      "post": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "Imports a gateway settlement report (CSV) and reconciles every line against captured\npayments and processed refunds of the institution (`treasury.manage`). The same file again\nreturns the first import (200, `alreadyImported`); a new one is 201.",
+        "operationId": "finance_gateway_settlement_import",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "amountUnit",
+            "in": "path",
+            "description": "`rupees` (dashboard export, default) or `paise` (recon API).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "fileName",
+            "in": "path",
+            "description": "Original file name (recorded only).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementImportView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementImportView"
                 }
               }
             }
@@ -63512,6 +63650,42 @@
         ]
       }
     },
+    "/api/v1/finance/me/payment-gateway": {
+      "get": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "Part 2 S4 (UI fees, DEF-F-007): the configured online gateway and the public checkout key\n(`finance.self`). Nothing tenant-specific is returned.",
+        "operationId": "finance_payment_self_gateway",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentGatewayInfo"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/me/payments": {
       "get": {
         "tags": [
@@ -63686,7 +63860,7 @@
         "tags": [
           "finance-payments"
         ],
-        "summary": "Return from the (mock) checkout: asks the gateway for the outcome and completes / fails the\ncaller's own payment (`finance.self`, `If-Match`). Still pending → unchanged.",
+        "summary": "Return from checkout: asks the gateway for the outcome and completes / fails the caller's own\npayment (`finance.self`, `If-Match`). Still pending → unchanged. Part 2 S4-pay: the optional\nbody carries the Checkout callback (`razorpay_payment_id`, `razorpay_order_id`,\n`razorpay_signature`), verified server-side before the gateway is asked (422 when forged); the\nfee is marked paid only on the gateway's own capture report.",
         "operationId": "finance_payment_self_confirm",
         "parameters": [
           {
@@ -63707,6 +63881,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ConfirmPaymentRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -94388,6 +94578,2591 @@
         ]
       }
     },
+    "/api/v1/platform/documents/{id}": {
+      "get": {
+        "tags": [
+          "platform-documents"
+        ],
+        "summary": "Metadata of one document of the session's tenant (records management).",
+        "operationId": "platform_document_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredDocument"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing `platform.audit.verify`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Document storage is not configured",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/documents/{id}/delete": {
+      "post": {
+        "tags": [
+          "platform-documents"
+        ],
+        "summary": "Delete a document whose retention ended and that is not on legal hold (else 409, audited\nas rejected). The bytes are removed from object storage; the metadata row stays.",
+        "operationId": "platform_document_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteDocumentBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredDocument"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Under retention or legal hold",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/documents/{id}/legal-hold": {
+      "post": {
+        "tags": [
+          "platform-documents"
+        ],
+        "summary": "Place or release a legal hold (a held document cannot be deleted, not even after its\nretention ended). Audited.",
+        "operationId": "platform_document_legal_hold",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalHoldBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredDocument"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already in the requested state",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement": {
+      "get": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Active modules and licence state of the caller's institution (drives navigation and the\nrenewal / expiry banner).",
+        "operationId": "platform_entitlement_get",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveEntitlement"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement-requests": {
+      "get": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Entitlement change requests of the session tenant, newest first.",
+        "operationId": "platform_entitlement_request_list",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementRequestPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Requests an entitlement change (activation, package change, renewal, suspension,\nreinstatement). Validated against the registry, dependencies included; waits for a second\nadministrator's decision.",
+        "operationId": "platform_entitlement_request_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntitlementChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementRequestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request is already pending",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unknown package / module, missing dependency, invalid validity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement-requests/{id}/decision": {
+      "post": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Decides a pending entitlement change. The decider must hold `platform.entitlement.approve`\nand must not be the requester (separation of duties). Approval re-validates the request\nagainst the registry and the current entitlement version and applies it at once.",
+        "operationId": "platform_entitlement_request_decision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntitlementDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementDecided"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission / step-up, or the requester",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not pending, or the entitlement changed since the request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement-requests/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "Withdraws one's own pending request.",
+        "operationId": "platform_entitlement_request_withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementRequestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the requester",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/entitlement/catalogue": {
+      "get": {
+        "tags": [
+          "platform-entitlement"
+        ],
+        "summary": "The module / package registry (modules, dependencies, packages, always-available core).",
+        "operationId": "platform_entitlement_catalogue",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementCatalogue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities": {
+      "get": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Identities of the session tenant (newest first).",
+        "operationId": "platform_identity_list",
+        "parameters": [
+          {
+            "name": "subjectType",
+            "in": "query",
+            "description": "`student` | `staff` | `admin`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "syncStatus",
+            "in": "query",
+            "description": "`pending` | `synced` | `failed` | `conflict`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1–500 (default 100), newest first.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing `platform.identity.read`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/admins": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Creates a platform administrator identity (no ERP record) and a role request for its roles:\nprivileged roles wait for another administrator's decision; until then the identity can sign\nin to nothing (no role → `403` at sign-in).",
+        "operationId": "platform_identity_admin_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminIdentityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminIdentityCreated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/provision": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Provisions (or re-queues) the identity of a student or staff member from the owning record:\nlifecycle state, institution, e-mail and base role come from the record. Existing identities\nare matched first (one identity per subject; username / e-mail unique per IdP), so calling\nit twice never creates a second account.",
+        "operationId": "platform_identity_provision",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Identity already existed (re-queued when its facts changed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Identity created and queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such student / staff member in the session tenant",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate identity (username / e-mail already used)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provisioning is off",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}": {
+      "get": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "One identity.",
+        "operationId": "platform_identity_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/reactivate": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Lifts an administrative suspension. The account is re-enabled only when the ERP record is\nactive too (a suspended student stays suspended).",
+        "operationId": "platform_identity_reactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/required-actions": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Triggers required actions: `verifyEmail` + `updatePassword` (activation), `updatePassword`\n(password recovery), `configureTotp` (MFA enrolment / re-enrolment). Applied by the next sync.",
+        "operationId": "platform_identity_required_actions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequiredActionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission, or your own identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/retry": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Re-queues a `failed` / `conflict` identity after the cause was fixed.",
+        "operationId": "platform_identity_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/role-requests": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Requests role changes. Revocations and non-privileged grants apply at once; a grant of a\nprivileged role (administrator, approver roles) waits for another administrator's decision.",
+        "operationId": "platform_identity_role_request_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleRequestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission, or your own identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request is already pending",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identities/{id}/suspend": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Administrative suspension: the account is disabled and every session (IdP and SutraERP) is\nended at the next sync, whatever the ERP record says.",
+        "operationId": "platform_identity_suspend",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission / step-up, or your own identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identity-role-mappings": {
+      "get": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "ERP-role → IdP mappings of the session tenant.",
+        "operationId": "platform_identity_role_mapping_list",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMappingPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Adds an IdP target (realm role, client role or group) to an ERP role, optionally for one\ninstitution. SutraERP's own role names and tenant groups are refused as targets (they are\nmanaged 1:1 and carry the tenant scope).",
+        "operationId": "platform_identity_role_mapping_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRoleMapping"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMappingView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mapping exists",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identity-role-mappings/{id}": {
+      "delete": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Retires a mapping (the target is removed from every identity at the next sync).",
+        "operationId": "platform_identity_role_mapping_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identity-role-requests": {
+      "get": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Role requests of the session tenant (newest first).",
+        "operationId": "platform_identity_role_request_list",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`pending` | `approved` | `rejected` | `applied`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleRequestPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/identity-role-requests/{id}/decision": {
+      "post": {
+        "tags": [
+          "platform-identity"
+        ],
+        "summary": "Decides a pending privileged role request. The decider must hold\n`platform.identity.role.approve`, must not be the requester (separation of duties) and must\nnot be the identity concerned. Approval applies the roles (and triggers TOTP enrolment) at the\nnext sync.",
+        "operationId": "platform_identity_role_request_decision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleRequestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission / step-up, the requester, or your own identity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not pending",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Import jobs of the tenant (optionally of one institution / entity), newest first.",
+        "operationId": "platform_import_job_list",
+        "parameters": [
+          {
+            "name": "institutionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Uploads a CSV / XLSX file: parsed rows are stored and a mapping is suggested. Idempotent on\nthe job key (201 new job, 200 the job the key already created; 409 same key, other file).",
+        "operationId": "platform_import_job_upload",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Existing job of the job key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/entities": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Importable entities with their columns, natural keys and the caller's access.",
+        "operationId": "platform_import_entity_list",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportEntityList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/entities/{entity}/export": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Export of an institution's records in the import columns (formula-injection safe; audited).",
+        "operationId": "platform_import_export",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "institutionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "`csv` (default) or `xlsx`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV or XLSX file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/entities/{entity}/template": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Blank import template (canonical headers + one example row).",
+        "operationId": "platform_import_template",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "`csv` (default) or `xlsx`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV or XLSX file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/mapping-profiles": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Saved mapping profiles.",
+        "operationId": "platform_import_profile_list",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportMappingProfileList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Creates or replaces (by name) a mapping profile.",
+        "operationId": "platform_import_profile_save",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportMappingProfileSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingProfile"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "One import job with its counters and reconciliation summary.",
+        "operationId": "platform_import_job_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/commit": {
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Commits a validated job (one transaction per batch), or — for opening balances — requests\nthe second person's approval (`pending_approval`).",
+        "operationId": "platform_import_job_commit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/decision": {
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Decides a commit awaiting approval (`platform.import.approve`). The job's maker cannot\ndecide it (separation of duties → 403); approval runs the commit, rejection needs a reason.",
+        "operationId": "platform_import_job_decision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/dry-run": {
+      "post": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Dry run: validates every row with the owning module's domain rules (nothing is written).",
+        "operationId": "platform_import_job_dry_run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/errors.csv": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Row-level error report (CSV: line, column, code, message + the row's source cells).",
+        "operationId": "platform_import_job_error_report",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/mapping": {
+      "put": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Replaces the column mapping (and on-existing policy); the job returns to `uploaded`.",
+        "operationId": "platform_import_job_mapping",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportMappingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/imports/{id}/rows": {
+      "get": {
+        "tags": [
+          "platform-import"
+        ],
+        "summary": "Rows of a job with their dry-run / commit outcome.",
+        "operationId": "platform_import_job_rows",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "errorsOnly",
+            "in": "query",
+            "description": "Only rows with errors.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1–5000 (default 500).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobRowList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/platform/modules": {
       "get": {
         "tags": [
@@ -107780,6 +110555,334 @@
         ]
       }
     },
+    "/api/v1/student/admissions/{id}/documents/{documentId}/file": {
+      "get": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Download the file of an admission document (`admission.manage` or `admission.decide`). The\nSHA-256 is verified before a byte is sent (a mismatch quarantines the file: 409).",
+        "operationId": "admission_document_file_download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file (attachment; `X-Document-SHA256`)",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Integrity check failed (quarantined)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Attach the file of an admission document (`admission.manage`): the raw file is the body.\nType from the content (PDF / PNG / JPEG), size ≤ `SUTRA_DOCS_MAX_BYTES`, SHA-256 recorded.",
+        "operationId": "admission_document_file_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "query",
+            "description": "Original file name (sanitised; its extension must match the content: `.pdf`, `.png`,\n`.jpg` / `.jpeg`).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The file (PDF, PNG or JPEG); `Content-Type` its media type",
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachedFile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not awaiting verification, or a file is already attached",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body above the upload limit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Empty, too large, type not allowed or name / type mismatch",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Document storage is not configured or unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/admissions/{id}/documents/{documentId}/file/link": {
+      "post": {
+        "tags": [
+          "admissions"
+        ],
+        "summary": "Short-lived presigned download link of an admission document's file (same permissions as\nthe download; 403 when `SUTRA_DOCS_PRESIGN_TTL_SECS` is 0). Audited.",
+        "operationId": "admission_document_file_link",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentLink"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted, or presigned links are disabled",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/student/admissions/{id}/documents/{documentId}/verify": {
       "post": {
         "tags": [
@@ -116577,6 +119680,181 @@
         },
         "security": [
           {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/me/documents/{documentId}/file": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Download the file of a document on the caller's own record (`student.self`; another\nstudent's document is a 404).",
+        "operationId": "student_self_document_file",
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file (attachment; `X-Document-SHA256`)",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/student/me/documents/{documentId}/file/link": {
+      "post": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Presigned download link of a document on the caller's own record (`student.self`; 403 when\npresigned links are disabled). Audited.",
+        "operationId": "student_self_document_file_link",
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentLink"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
             "session_cookie": []
           }
         ]
@@ -126346,6 +129624,237 @@
         ]
       }
     },
+    "/api/v1/student/students/{id}/documents/{documentId}/file": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Download the file of a document on a student's record (`student.manage`).",
+        "operationId": "student_document_file_download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file (attachment; `X-Document-SHA256`)",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Attach the file of a document on the student's record (`student.manage`; the document must\nbe `submitted` and have no file yet).",
+        "operationId": "student_document_file_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "query",
+            "description": "Original file name (sanitised; its extension must match the content: `.pdf`, `.png`,\n`.jpg` / `.jpeg`).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The file (PDF, PNG or JPEG); `Content-Type` its media type",
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachedFile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/student/students/{id}/documents/{documentId}/verify": {
       "post": {
         "tags": [
@@ -131944,6 +135453,40 @@
           "none"
         ]
       },
+      "ActionCounts": {
+        "type": "object",
+        "description": "Predicted (after a dry run) or actual (after a commit) row actions.",
+        "required": [
+          "create",
+          "update",
+          "skip",
+          "error",
+          "pending"
+        ],
+        "properties": {
+          "create": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "error": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Rows not checked yet."
+          },
+          "skip": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "update": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "ActivationDecision": {
         "type": "string",
         "description": "Outcome chosen by the Institution Activation Authority.",
@@ -132323,6 +135866,64 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "AdminIdentityCreated": {
+        "type": "object",
+        "description": "Created administrator identity + its role request.",
+        "required": [
+          "identity",
+          "roleRequest"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/IdentityView"
+          },
+          "roleRequest": {
+            "$ref": "#/components/schemas/RoleRequestView"
+          }
+        }
+      },
+      "AdminIdentityRequest": {
+        "type": "object",
+        "description": "Create a platform administrator identity. The roles are requested, not granted: privileged\nroles wait for a second administrator's decision.",
+        "required": [
+          "email",
+          "givenName",
+          "roles",
+          "reason"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "familyName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "givenName": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Pin the identity to one institution (default: tenant-wide)."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Requested SutraERP roles (e.g. `administrator`, `registrar`)."
           }
         }
       },
@@ -132757,6 +136358,14 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "documentObjectId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Part 2 · S4-docs: the stored file (platform document service), when one was uploaded\n(`PUT …/documents/{documentId}/file`)."
           },
           "documentType": {
             "type": "string"
@@ -135396,6 +139005,29 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "AttachedFile": {
+        "type": "object",
+        "description": "Result of an upload: the document's new version and the stored file.",
+        "required": [
+          "documentId",
+          "documentVersion",
+          "file"
+        ],
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentVersion": {
+            "type": "integer",
+            "format": "int64",
+            "description": "New version (ETag) of the admission / record document."
+          },
+          "file": {
+            "$ref": "#/components/schemas/StoredDocument"
           }
         }
       },
@@ -139714,7 +143346,8 @@
           "aid_recovery",
           "fine",
           "exam_fee",
-          "campus_charge"
+          "campus_charge",
+          "opening_balance"
         ]
       },
       "ChargeStatus": {
@@ -140168,6 +143801,21 @@
             "format": "int64"
           }
         }
+      },
+      "ColumnKind": {
+        "type": "string",
+        "description": "Value type of a column (drives template examples, the mapping screen and pre-validation).",
+        "enum": [
+          "text",
+          "code",
+          "date",
+          "decimal",
+          "integer",
+          "email",
+          "phone",
+          "boolean",
+          "choice"
+        ]
       },
       "CommandBody": {
         "type": "object",
@@ -140788,6 +144436,30 @@
           "withdrawn"
         ]
       },
+      "ConfirmPaymentRequest": {
+        "type": "object",
+        "description": "Part 2 S4-pay: what Razorpay Checkout hands the browser after a successful payment\n(`razorpay_payment_id`, `razorpay_order_id`, `razorpay_signature`), forwarded to `confirm`.\nOptional: without it `confirm` only polls the gateway. With it the signature is verified\nserver-side first (422 `invalid_signature` otherwise); the payment is still marked paid only\nwhen the gateway itself reports the capture (never on the browser's word).",
+        "properties": {
+          "gatewayOrderId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gatewayPaymentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gatewaySignature": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "Conflict": {
         "type": "object",
         "description": "One validation finding.",
@@ -140830,6 +144502,25 @@
           "research",
           "other"
         ]
+      },
+      "CoreSpec": {
+        "type": "object",
+        "description": "An always-available part of the product (never gated).",
+        "required": [
+          "key",
+          "name"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       },
       "CorrectAlumniTransition": {
         "type": "object",
@@ -143701,6 +147392,20 @@
           }
         }
       },
+      "DeleteDocumentBody": {
+        "type": "object",
+        "description": "Body of `…/delete`.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the document is deleted; 1–500 characters."
+          }
+        },
+        "additionalProperties": false
+      },
       "DeliveryDecision": {
         "type": "object",
         "description": "Body of an approval decision endpoint.",
@@ -144094,6 +147799,23 @@
               "null"
             ],
             "format": "date"
+          }
+        }
+      },
+      "DocumentLink": {
+        "type": "object",
+        "description": "A short-lived presigned download link (issued only after authorisation).",
+        "required": [
+          "url",
+          "expiresAt"
+        ],
+        "properties": {
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string"
           }
         }
       },
@@ -144737,6 +148459,97 @@
           }
         },
         "additionalProperties": false
+      },
+      "EffectiveEntitlement": {
+        "type": "object",
+        "description": "What a tenant may use right now (served by `GET /api/v1/platform/entitlement`).",
+        "required": [
+          "addOnModules",
+          "modules",
+          "status",
+          "storedStatus",
+          "validFrom",
+          "graceDays",
+          "readOnly",
+          "origin",
+          "version",
+          "asOf"
+        ],
+        "properties": {
+          "addOnModules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "daysRemaining": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Whole days until the licence (status `active`) or its grace period (status `grace`) ends."
+          },
+          "graceDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "graceEndsAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "End of the grace period (`validUntil + graceDays`), when the licence has an end."
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Active module keys (sorted)."
+          },
+          "origin": {
+            "$ref": "#/components/schemas/EntitlementOrigin"
+          },
+          "package": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Writes are refused (`expired` / `suspended`)."
+          },
+          "status": {
+            "$ref": "#/components/schemas/LicenceStatus",
+            "description": "Effective licence status at `asOf`."
+          },
+          "storedStatus": {
+            "$ref": "#/components/schemas/LicenceStatus",
+            "description": "Status as stored (before the validity window is applied)."
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
       },
       "EligibilityAction": {
         "type": "string",
@@ -145827,6 +149640,260 @@
           "closed",
           "closed_permanently"
         ]
+      },
+      "EntitlementCatalogue": {
+        "type": "object",
+        "description": "The registry: licensable modules (with dependencies), the always-available core, packages.",
+        "required": [
+          "version",
+          "modules",
+          "core",
+          "packages",
+          "defaultPackage"
+        ],
+        "properties": {
+          "core": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoreSpec"
+            }
+          },
+          "defaultPackage": {
+            "type": "string"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModuleSpec"
+            }
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageSpec"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "EntitlementChangeRequest": {
+        "type": "object",
+        "description": "Request a change of the tenant's entitlement: the full desired state.",
+        "required": [
+          "kind",
+          "package",
+          "reason"
+        ],
+        "properties": {
+          "addOnModules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Modules added on top of the package."
+          },
+          "graceDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Days of full access after `validUntil` (0–365, default 0)."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`activate` · `change` · `renew` · `suspend` · `reinstate`."
+          },
+          "licenceStatus": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`active` (default) · `grace` · `expired` · `suspended` (only with kind `suspend`)."
+          },
+          "package": {
+            "type": "string",
+            "description": "Package key (`core_academic`, `academic_plus`, `institution_operations`, `complete_erp`)."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "validFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Start of validity (default: now)."
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "End of validity (`null` = perpetual)."
+          }
+        }
+      },
+      "EntitlementDecided": {
+        "type": "object",
+        "description": "A decided request and the tenant's entitlement after it.",
+        "required": [
+          "request",
+          "entitlement"
+        ],
+        "properties": {
+          "entitlement": {
+            "$ref": "#/components/schemas/EffectiveEntitlement"
+          },
+          "request": {
+            "$ref": "#/components/schemas/EntitlementRequestView"
+          }
+        }
+      },
+      "EntitlementDecision": {
+        "type": "object",
+        "description": "Decision on a pending request.",
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "`approve` or `reject`."
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "EntitlementOrigin": {
+        "type": "string",
+        "description": "Where an entitlement came from.",
+        "enum": [
+          "stored",
+          "default"
+        ]
+      },
+      "EntitlementRequestPage": {
+        "type": "object",
+        "description": "Entitlement change requests of the tenant, newest first.",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntitlementRequestView"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "EntitlementRequestView": {
+        "type": "object",
+        "description": "One entitlement change request.",
+        "required": [
+          "id",
+          "kind",
+          "addOnModules",
+          "licenceStatus",
+          "validFrom",
+          "graceDays",
+          "baseVersion",
+          "reason",
+          "status",
+          "requestedBy",
+          "requestedAt"
+        ],
+        "properties": {
+          "addOnModules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "baseVersion": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Entitlement version the request was made against (0 = none stored yet)."
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "graceDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "licenceStatus": {
+            "type": "string"
+          },
+          "package": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestedBy": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "`pending` · `approved` · `rejected` · `withdrawn`."
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
       },
       "EquipmentStatus": {
         "type": "string",
@@ -150663,6 +154730,14 @@
           }
         }
       },
+      "FileFormat": {
+        "type": "string",
+        "description": "File format of an upload / export.",
+        "enum": [
+          "csv",
+          "xlsx"
+        ]
+      },
       "FinalSettlementCreate": {
         "type": "object",
         "properties": {
@@ -154007,6 +158082,18 @@
           }
         }
       },
+      "HoldRequest": {
+        "type": "object",
+        "description": "Reason of an administrative suspension / re-enabling.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "HoldSource": {
         "type": "string",
         "description": "Who placed a hold.",
@@ -154759,6 +158846,182 @@
           }
         }
       },
+      "IdentityPage": {
+        "type": "object",
+        "description": "Page of identities.",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdentityView"
+            }
+          }
+        }
+      },
+      "IdentityView": {
+        "type": "object",
+        "description": "One identity (link between an ERP subject and its IdP account).",
+        "required": [
+          "id",
+          "subjectType",
+          "subjectId",
+          "idp",
+          "username",
+          "givenName",
+          "erpState",
+          "adminHold",
+          "desiredState",
+          "roles",
+          "baseRoles",
+          "grantedRoles",
+          "pendingActions",
+          "syncStatus",
+          "attempts",
+          "nextAttemptAt",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "adminHold": {
+            "type": "boolean"
+          },
+          "appliedState": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "baseRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "desiredState": {
+            "type": "string",
+            "description": "State the IdP account is driven to."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "erpState": {
+            "type": "string",
+            "description": "State the ERP record calls for: `active` | `suspended` | `disabled`."
+          },
+          "familyName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "givenName": {
+            "type": "string"
+          },
+          "grantedRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "holdReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idp": {
+            "type": "string",
+            "description": "`keycloak` | `memory`."
+          },
+          "idpUserId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "IdP user id (the OIDC `sub`), once provisioned."
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nextAttemptAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pendingActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keycloak required actions still to be triggered."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Effective SutraERP roles (record roles + granted roles)."
+          },
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subjectType": {
+            "type": "string",
+            "description": "`student` | `staff` | `admin`."
+          },
+          "syncStatus": {
+            "type": "string",
+            "description": "`pending` | `synced` | `failed` | `conflict`."
+          },
+          "syncedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "username": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "IgnoreLine": {
         "type": "object",
         "description": "A statement line explained outside the ledger (e.g. a bank-side reversal pair).",
@@ -154851,6 +159114,559 @@
           "uncertain",
           "blocking"
         ]
+      },
+      "ImportColumnView": {
+        "type": "object",
+        "description": "One column of an importable entity.",
+        "required": [
+          "name",
+          "label",
+          "required",
+          "kind",
+          "choices",
+          "example",
+          "help"
+        ],
+        "properties": {
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "example": {
+            "type": "string"
+          },
+          "help": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ColumnKind"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportDecision": {
+        "type": "object",
+        "description": "Decision on a commit awaiting approval.",
+        "required": [
+          "approve"
+        ],
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Required for a rejection."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImportEntityList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportEntityView"
+            }
+          }
+        }
+      },
+      "ImportEntityView": {
+        "type": "object",
+        "description": "An importable / exportable entity.",
+        "required": [
+          "entity",
+          "label",
+          "owner",
+          "columns",
+          "naturalKey",
+          "supportsUpdate",
+          "requiresApproval",
+          "permission",
+          "allowed"
+        ],
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "description": "`true` when the caller holds that permission."
+          },
+          "amountColumn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportColumnView"
+            }
+          },
+          "entity": {
+            "type": "string"
+          },
+          "groupBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "naturalKey": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "owner": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string",
+            "description": "The owning domain's manage permission (needed in addition to `platform.import.manage`)."
+          },
+          "requiresApproval": {
+            "type": "boolean",
+            "description": "A commit needs a second person's approval."
+          },
+          "supportsUpdate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportJob": {
+        "type": "object",
+        "description": "An import job.",
+        "required": [
+          "id",
+          "institutionId",
+          "entity",
+          "jobKey",
+          "fileName",
+          "fileFormat",
+          "fileSha256",
+          "fileBytes",
+          "headers",
+          "mapping",
+          "onExisting",
+          "batchSize",
+          "status",
+          "requiresApproval",
+          "actions",
+          "summary",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "actions": {
+            "$ref": "#/components/schemas/ActionCounts"
+          },
+          "batchSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commitRequestedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "committedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "committedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "committedMs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Duration of the commit."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entity": {
+            "type": "string"
+          },
+          "failureReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fileBytes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileFormat": {
+            "$ref": "#/components/schemas/FileFormat"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSha256": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Header cells of the file, in order."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobKey": {
+            "type": "string"
+          },
+          "mapping": {
+            "type": "object",
+            "description": "Source header → canonical column.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "mappingProfileId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "onExisting": {
+            "$ref": "#/components/schemas/OnExisting"
+          },
+          "processInstanceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requiresApproval": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Reconciliation"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "validatedMs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Duration of the last dry run."
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ImportJobList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportJob"
+            }
+          }
+        }
+      },
+      "ImportJobRow": {
+        "type": "object",
+        "description": "One row of a job.",
+        "required": [
+          "line",
+          "errors",
+          "committed",
+          "cells"
+        ],
+        "properties": {
+          "action": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RowAction"
+              }
+            ]
+          },
+          "amount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cells": {
+            "type": "object",
+            "description": "Source cells by header.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "committed": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldViolation"
+            }
+          },
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "naturalKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recordId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ImportJobRowList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportJobRow"
+            }
+          }
+        }
+      },
+      "ImportMappingProfileList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MappingProfile"
+            }
+          }
+        }
+      },
+      "ImportMappingProfileSave": {
+        "type": "object",
+        "description": "Saves (creates or replaces by name) a mapping profile.",
+        "required": [
+          "entity",
+          "name",
+          "mapping"
+        ],
+        "properties": {
+          "entity": {
+            "type": "string"
+          },
+          "mapping": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImportMappingUpdate": {
+        "type": "object",
+        "description": "New column mapping of a job.",
+        "required": [
+          "mapping"
+        ],
+        "properties": {
+          "mapping": {
+            "type": "object",
+            "description": "Source header → canonical column.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "onExisting": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OnExisting"
+              }
+            ]
+          },
+          "saveAsProfile": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Also save the mapping as a reusable profile with this name."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImportUpload": {
+        "type": "object",
+        "description": "Upload of one CSV / XLSX file.",
+        "required": [
+          "entity",
+          "institutionId",
+          "fileName",
+          "contentBase64"
+        ],
+        "properties": {
+          "batchSize": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Rows per commit transaction (1–5000, default 500)."
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "The file, base64 encoded (≤ 8 MiB decoded; the request body limit applies)."
+          },
+          "entity": {
+            "type": "string",
+            "example": "students"
+          },
+          "fileName": {
+            "type": "string",
+            "description": "`.csv` or `.xlsx`.",
+            "example": "students-2026.csv"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobKey": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Idempotency of the upload (default `<entity>:<institution>:<sha256 of the file>`)."
+          },
+          "mappingProfileId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Saved mapping to apply (default: headers matched to column names / labels)."
+          },
+          "onExisting": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OnExisting",
+                "description": "What to do with rows whose natural key exists (default `skip`)."
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
       },
       "InfrastructureCapacityBody": {
         "type": "object",
@@ -156012,6 +160828,20 @@
           "done",
           "verified",
           "cancelled"
+        ]
+      },
+      "JobStatus": {
+        "type": "string",
+        "description": "Lifecycle of an import job.",
+        "enum": [
+          "uploaded",
+          "validated",
+          "invalid",
+          "pending_approval",
+          "committing",
+          "committed",
+          "failed",
+          "rejected"
         ]
       },
       "JournalEntryId": {
@@ -158841,6 +163671,25 @@
         "format": "uuid",
         "description": "Source-to-ledger reconciliation run (L3-F-029)."
       },
+      "LegalHoldBody": {
+        "type": "object",
+        "description": "Body of `…/legal-hold`.",
+        "required": [
+          "hold",
+          "reason"
+        ],
+        "properties": {
+          "hold": {
+            "type": "boolean",
+            "description": "`true` places a hold, `false` releases it."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why (court order, investigation, …); 1–500 characters."
+          }
+        },
+        "additionalProperties": false
+      },
       "LibraryApprovalState": {
         "type": "string",
         "description": "Approval state of a governed draft (`LIBRARY_POLICY_APPROVAL`).\n9E: approvalState — wire `not_requested` (contract batch9 §6.4); the stored value stays `none`.",
@@ -160184,6 +165033,16 @@
             "description": "`true` to restrict borrowing, `false` to resolve the restriction."
           }
         }
+      },
+      "LicenceStatus": {
+        "type": "string",
+        "description": "Licence status: stored ([`TenantEntitlement::status`]) or effective ([`effective_status`]).",
+        "enum": [
+          "active",
+          "grace",
+          "expired",
+          "suspended"
+        ]
       },
       "LifecycleDecision": {
         "type": "object",
@@ -161529,6 +166388,53 @@
           "lineId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "MappingProfile": {
+        "type": "object",
+        "description": "A saved column mapping.",
+        "required": [
+          "id",
+          "entity",
+          "name",
+          "mapping",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entity": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapping": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -162905,6 +167811,43 @@
           },
           "status": {
             "$ref": "#/components/schemas/ModuleStatus"
+          }
+        }
+      },
+      "ModuleSpec": {
+        "type": "object",
+        "description": "One licensable module.",
+        "required": [
+          "key",
+          "name",
+          "crate",
+          "activatable"
+        ],
+        "properties": {
+          "activatable": {
+            "type": "boolean",
+            "description": "`false` = defined commercially but not implemented in this build (cannot be activated)."
+          },
+          "crate": {
+            "type": "string",
+            "description": "Crate that implements it (`sutra-exams`)."
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Stable module key (`examinations`)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Modules that must be active as well."
           }
         }
       },
@@ -166024,6 +170967,42 @@
           }
         }
       },
+      "NewRoleMapping": {
+        "type": "object",
+        "description": "New ERP-role → IdP mapping.",
+        "required": [
+          "erpRole",
+          "targetKind",
+          "target"
+        ],
+        "properties": {
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Required for `client_role`."
+          },
+          "erpRole": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "target": {
+            "type": "string",
+            "description": "Realm role, client role or group path (`/lms/teachers`)."
+          },
+          "targetKind": {
+            "type": "string",
+            "description": "`realm_role` | `client_role` | `group`."
+          }
+        }
+      },
       "NewSchedulingRequirement": {
         "type": "object",
         "required": [
@@ -168193,6 +173172,14 @@
           }
         }
       },
+      "OnExisting": {
+        "type": "string",
+        "description": "What to do with a row whose natural key already exists.",
+        "enum": [
+          "skip",
+          "update"
+        ]
+      },
       "OnboardingCreate": {
         "type": "object",
         "description": "Opens an onboarding case.",
@@ -168920,6 +173907,32 @@
           "archived"
         ]
       },
+      "PackageSpec": {
+        "type": "object",
+        "description": "A commercial package: a dependency-closed set of modules.",
+        "required": [
+          "key",
+          "name",
+          "modules"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "PaperMarkId": {
         "type": "string",
         "format": "uuid",
@@ -169088,6 +174101,31 @@
           "demand_draft",
           "sponsor"
         ]
+      },
+      "PaymentGatewayInfo": {
+        "type": "object",
+        "description": "Part 2 S4 (UI fees, DEF-F-007): which online checkout the student's browser opens.",
+        "required": [
+          "gateway",
+          "onlinePayments"
+        ],
+        "properties": {
+          "checkoutKeyId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Public key id Razorpay Checkout is opened with (`rzp_test_…` / `rzp_live_…`); absent for\nthe mock / disabled adapters. Never a secret."
+          },
+          "gateway": {
+            "type": "string",
+            "description": "Configured adapter: `disabled | mock | razorpay`."
+          },
+          "onlinePayments": {
+            "type": "boolean",
+            "description": "`false` when online payment is switched off (`SUTRA_PAYMENT_GATEWAY=disabled`): the UI\nhides \"Pay now\" and points to the finance office."
+          }
+        }
       },
       "PaymentId": {
         "type": "string",
@@ -173539,6 +178577,24 @@
           }
         }
       },
+      "ProvisionRequest": {
+        "type": "object",
+        "description": "Provision the identity of a student or staff member.",
+        "required": [
+          "subjectType",
+          "subjectId"
+        ],
+        "properties": {
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subjectType": {
+            "type": "string",
+            "description": "`student` | `staff`."
+          }
+        }
+      },
       "PublicationCreate": {
         "type": "object",
         "description": "New publication.",
@@ -175666,6 +180722,83 @@
             "items": {
               "$ref": "#/components/schemas/ManualMatch"
             }
+          }
+        }
+      },
+      "Reconciliation": {
+        "type": "object",
+        "description": "Reconciliation summary.",
+        "required": [
+          "rowsInFile",
+          "created",
+          "updated",
+          "skipped",
+          "errors",
+          "duplicatesInFile",
+          "existingInDatabase",
+          "batchesCommitted"
+        ],
+        "properties": {
+          "batchesCommitted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "committedTotal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Σ amounts this job posted."
+          },
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duplicatesInFile": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "existingInDatabase": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Rows whose natural key already existed (skipped or updated)."
+          },
+          "fileTotal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Σ amount column of the file (entities with money)."
+          },
+          "ledgerTotal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Σ the ledger holds for the job's records."
+          },
+          "reconciled": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "`ledgerTotal == fileTotal` and the job committed (entities with money)."
+          },
+          "rowsInFile": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updated": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -178129,6 +183262,34 @@
           }
         }
       },
+      "RequiredAction": {
+        "type": "string",
+        "description": "Keycloak required action triggered for an account (the user performs it at next sign-in, or\nthrough the \"execute actions\" e-mail).",
+        "enum": [
+          "verifyEmail",
+          "updatePassword",
+          "configureTotp"
+        ]
+      },
+      "RequiredActionsRequest": {
+        "type": "object",
+        "description": "Trigger required actions (activation, password recovery, MFA enrolment).",
+        "required": [
+          "actions"
+        ],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequiredAction"
+            }
+          },
+          "sendEmail": {
+            "type": "boolean",
+            "description": "Also e-mail the user an \"execute actions\" link (needs SMTP in the realm)."
+          }
+        }
+      },
       "RequisitionCreate": {
         "type": "object",
         "description": "A new requisition (`draft`).",
@@ -179871,6 +185032,197 @@
           "procurement_approver"
         ]
       },
+      "RoleChangeRequest": {
+        "type": "object",
+        "description": "Grant and / or revoke SutraERP roles of an identity.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "grant": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          },
+          "revoke": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RoleDecision": {
+        "type": "object",
+        "description": "Decision on a pending role request.",
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "`approve` | `reject`."
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "RoleMappingPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleMappingView"
+            }
+          }
+        }
+      },
+      "RoleMappingView": {
+        "type": "object",
+        "description": "Extra IdP target of an ERP role.",
+        "required": [
+          "id",
+          "erpRole",
+          "targetKind",
+          "target",
+          "createdBy",
+          "createdAt"
+        ],
+        "properties": {
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "erpRole": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "target": {
+            "type": "string"
+          },
+          "targetKind": {
+            "type": "string",
+            "description": "`realm_role` | `client_role` | `group`."
+          }
+        }
+      },
+      "RoleRequestPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleRequestView"
+            }
+          }
+        }
+      },
+      "RoleRequestView": {
+        "type": "object",
+        "description": "One role request.",
+        "required": [
+          "id",
+          "identityId",
+          "grantRoles",
+          "revokeRoles",
+          "privileged",
+          "reason",
+          "status",
+          "requestedBy",
+          "createdAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grantRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "identityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "privileged": {
+            "type": "boolean",
+            "description": "A privileged role is granted: another administrator must decide."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string"
+          },
+          "revokeRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "`pending` | `approved` | `rejected` | `applied` (non-privileged, no decision needed)."
+          }
+        }
+      },
       "RoomInspectionComplete": {
         "type": "object",
         "description": "Inspection outcome.",
@@ -180355,6 +185707,16 @@
             "format": "int32"
           }
         }
+      },
+      "RowAction": {
+        "type": "string",
+        "description": "What happened (or, in a dry run, would happen) to a row.",
+        "enum": [
+          "create",
+          "update",
+          "skip",
+          "error"
+        ]
       },
       "RuleCreate": {
         "type": "object",
@@ -182273,6 +187635,89 @@
           }
         }
       },
+      "SettlementImportView": {
+        "type": "object",
+        "required": [
+          "id",
+          "institutionId",
+          "gateway",
+          "amountUnit",
+          "lineCount",
+          "matchedCount",
+          "mismatchCount",
+          "settledTotal",
+          "feeTotal",
+          "taxTotal",
+          "importedAt",
+          "alreadyImported",
+          "lines"
+        ],
+        "properties": {
+          "alreadyImported": {
+            "type": "boolean",
+            "description": "`true` when this exact file had been imported before (nothing new recorded)."
+          },
+          "amountUnit": {
+            "type": "string"
+          },
+          "feeTotal": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gateway": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "importedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "importedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettlementLineView"
+            }
+          },
+          "matchedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mismatchCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Lines that need attention (everything but matches and ignored types)."
+          },
+          "settledTotal": {
+            "type": "string",
+            "description": "Σ credit − Σ debit of the report."
+          },
+          "taxTotal": {
+            "type": "string"
+          }
+        }
+      },
       "SettlementInput": {
         "type": "object",
         "description": "A gateway settlement credited to the bank account.",
@@ -182354,6 +187799,81 @@
               "null"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "SettlementLineView": {
+        "type": "object",
+        "required": [
+          "lineNo",
+          "entityId",
+          "entityType",
+          "amount",
+          "fee",
+          "tax",
+          "result"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "fee": {
+            "type": "string"
+          },
+          "lineNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orderId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paymentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "refundId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "result": {
+            "type": "string",
+            "description": "`matched | amount_mismatch | order_mismatch | unknown_payment | payment_not_completed |\nalready_settled | duplicate_line | refund_matched | refund_amount_mismatch |\nunknown_refund | ignored`."
+          },
+          "settlementId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "settlementUtr": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tax": {
+            "type": "string"
           }
         }
       },
@@ -184554,6 +190074,103 @@
           }
         }
       },
+      "StoredDocument": {
+        "type": "object",
+        "description": "Metadata of a stored document (`platform.document_object`). The storage key never leaves\nthe server.",
+        "required": [
+          "id",
+          "ownerType",
+          "ownerId",
+          "filename",
+          "contentType",
+          "sizeBytes",
+          "sha256",
+          "uploadedAt",
+          "retentionUntil",
+          "legalHold",
+          "version"
+        ],
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "description": "`application/pdf` | `image/png` | `image/jpeg` (detected from the content)."
+          },
+          "deletedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Sanitised file name."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "legalHold": {
+            "type": "boolean"
+          },
+          "legalHoldReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerType": {
+            "type": "string",
+            "description": "`admission_document` | `student_document`."
+          },
+          "quarantinedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Set when a read found the stored bytes changed or missing; downloads are refused."
+          },
+          "retentionUntil": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The document cannot be deleted before this instant."
+          },
+          "sha256": {
+            "type": "string",
+            "description": "Lower-case hex SHA-256 of the content, verified on every read."
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uploadedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "StructureDraft": {
         "type": "object",
         "description": "Draft content (create and full replacement on `PATCH`).",
@@ -185167,6 +190784,14 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "documentObjectId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Part 2 · S4-docs: the stored file (platform document service), when one was uploaded or\nmoved over from the admission."
           },
           "documentType": {
             "type": "string"

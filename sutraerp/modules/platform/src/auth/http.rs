@@ -31,6 +31,7 @@ use sutra_kernel::audit::{ActorKind, AuditEntry, AuditOutcome, AuditSink};
 use sutra_kernel::auth::AuthContext;
 use sutra_kernel::error::{FieldViolation, KernelError};
 use sutra_kernel::secret;
+use sutra_kernel::signal::{self, SecurityEvent};
 use sutra_web::auth::{read_cookie, CSRF_HEADER};
 use sutra_web::request_id::current_correlation_id;
 use sutra_web::{ApiResult, Authenticated, PreSessionCsrf, Problem};
@@ -369,8 +370,10 @@ pub(crate) fn mfa_service(state: &AuthState) -> Result<&MfaService, KernelError>
 /// and "no enrolment in progress" do not count).
 pub(crate) fn record_factor_failure(state: &AuthState, key: &str, e: &KernelError) {
     let counts = matches!(e, KernelError::Unauthenticated | KernelError::Validation(_));
+    signal::security(SecurityEvent::MfaFailed);
     if counts && state.throttle.failure(key).is_some() {
         tracing::warn!("second factor locked after repeated failed codes");
+        signal::security(SecurityEvent::MfaLocked);
     }
 }
 
@@ -487,6 +490,7 @@ pub async fn login(
     let throttle_key = AuthThrottle::login_key(&req.login_id);
     if let Err(retry_after) = state.throttle.check(&throttle_key) {
         tracing::warn!(login = %login_hint, "login refused: account temporarily locked");
+        signal::security(SecurityEvent::LoginThrottled);
         return Ok(too_many_attempts(retry_after));
     }
     let principal = match state
@@ -501,10 +505,12 @@ pub async fn login(
         Err(e) => {
             // Attributable internal evidence without leaking which factor failed.
             tracing::warn!(login = %login_hint, code = e.code(), "login rejected");
+            signal::security(SecurityEvent::LoginFailed);
             if matches!(e, KernelError::Unauthenticated)
                 && state.throttle.failure(&throttle_key).is_some()
             {
                 tracing::warn!(login = %login_hint, "account locked after repeated failed sign-ins");
+                signal::security(SecurityEvent::AccountLocked);
             }
             return Err(e.into());
         }

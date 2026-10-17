@@ -1,0 +1,10 @@
+[Unit]
+Description=SutraERP nightly backup at 02:00 (server local time; set the server to Asia/Kolkata)
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

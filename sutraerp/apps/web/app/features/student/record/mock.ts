@@ -4,6 +4,7 @@
  * mock student `dev|aarav.desai@sutra.dev` for self-service), not every detail.
  */
 import { ApiProblem } from "@sutra/api-client";
+import { checkDocumentFile, contentTypeOf, type AttachedFile, type DownloadedFile } from "./files";
 import type {
   Admission,
   AdmissionApplication,
@@ -31,6 +32,16 @@ const plusDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOStrin
 function problem(status: number, detail: string): never {
   const errorCode = status === 409 ? "conflict" : status === 412 ? "precondition-failed" : status === 404 ? "not-found" : "validation-failed";
   throw new ApiProblem({ type: "about:blank", title: detail, status, detail, errorCode });
+}
+
+/** The upload answer of the mock (same shape as the API's `AttachedFile`). */
+function mockAttached(documentId: string, version: number, f: { id: string; filename: string; contentType: string; sizeBytes: number }): AttachedFile {
+  const at = now();
+  return {
+    documentId,
+    documentVersion: version,
+    file: { id: f.id, ownerType: "admission_document", ownerId: documentId, filename: f.filename, contentType: f.contentType, sizeBytes: f.sizeBytes, sha256: "", uploadedAt: at, retentionUntil: at, legalHold: false, version: 1 },
+  };
 }
 
 function check<T extends { version: number }>(row: T | undefined, version: number, what: string): T {
@@ -64,6 +75,21 @@ export function createMockRecordApi(): RecordApi {
   const suspensions: Array<Suspension & { studentId: string }> = [];
   const transfers = new Map<string, StudentTransfer>();
   const corrections = new Map<string, IdentityCorrection>();
+  // Part 2 · S4-docs: stored files by object id (mirrors the server rules of files.rs / validate.rs).
+  const files = new Map<string, { blob: Blob; filename: string; contentType: string }>();
+  const store = async (file: File) => {
+    const hint = await checkDocumentFile(file);
+    if (hint) throw new ApiProblem({ type: "about:blank", title: "Validation failed", status: 422, errorCode: "validation-failed", validationErrors: [{ field: "file", code: "type_not_allowed", message: hint }] });
+    const id = uid();
+    const contentType = contentTypeOf(file.name)!;
+    files.set(id, { blob: file, filename: file.name.split(/[\\/]/).pop() ?? file.name, contentType });
+    return { id, filename: file.name, contentType, sizeBytes: file.size };
+  };
+  const fetchFile = (objectId: string | null | undefined): DownloadedFile => {
+    const f = objectId ? files.get(objectId) : undefined;
+    if (!f) problem(404, "document file not found");
+    return { blob: f.blob, filename: f.filename, contentType: f.contentType, sha256: null };
+  };
 
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
   const view = (s: Student): Student => {
@@ -255,7 +281,7 @@ export function createMockRecordApi(): RecordApi {
         a.studentContextId = ctx.id;
         for (const d of admissionDocs.values())
           if (d.admissionId === a.id && (d.status === "verified" || d.status === "waived"))
-            docs.set(uid(), { id: uid(), studentId: s.id, institutionId: a.institutionId, documentType: d.documentType, title: d.title, status: d.status, source: "admission", version: 1, createdAt: now() });
+            docs.set(uid(), { id: uid(), studentId: s.id, institutionId: a.institutionId, documentType: d.documentType, title: d.title, status: d.status, source: "admission", version: 1, createdAt: now(), documentObjectId: d.documentObjectId ?? null });
       }
       admMove(a, to, reason);
       return strip(a);
@@ -474,6 +500,39 @@ export function createMockRecordApi(): RecordApi {
     },
     async raiseMyRequest(input) {
       return raise(me(), input.documentType, "self_service", input.purpose);
+    },
+    async uploadAdmissionFile(id, documentId, file) {
+      const a = admissions.get(id) ?? problem(404, "admission not found");
+      const d = admissionDocs.get(documentId);
+      if (!d || d.admissionId !== id) problem(404, "admission document not found");
+      if (a.status !== "initiated" && a.status !== "documents_submitted") problem(409, `admission is ${a.status}; files can no longer be attached`);
+      if (d.status !== "submitted") problem(409, `document is ${d.status}; a file is attached while the document awaits verification`);
+      if (d.documentObjectId) problem(409, "a file is already attached; hand in a new document to replace it");
+      const f = await store(file);
+      Object.assign(d, { documentObjectId: f.id, version: d.version + 1 });
+      return mockAttached(d.id, d.version, f);
+    },
+    async downloadAdmissionFile(id, documentId) {
+      const d = admissionDocs.get(documentId);
+      if (!d || d.admissionId !== id) problem(404, "admission document not found");
+      return fetchFile(d.documentObjectId);
+    },
+    async uploadDocumentFile(studentId, documentId, file) {
+      const d = [...docs.values()].find((x) => x.id === documentId && x.studentId === studentId) ?? problem(404, "student document not found");
+      if (d.status !== "submitted") problem(409, `document is ${d.status}; a file is attached while the document awaits verification`);
+      if (d.documentObjectId) problem(409, "a file is already attached; file a new document to replace it");
+      const f = await store(file);
+      Object.assign(d, { documentObjectId: f.id, version: d.version + 1 });
+      return mockAttached(d.id, d.version, f);
+    },
+    async downloadDocumentFile(studentId, documentId) {
+      const d = [...docs.values()].find((x) => x.id === documentId && x.studentId === studentId) ?? problem(404, "student document not found");
+      return fetchFile(d.documentObjectId);
+    },
+    async downloadMyDocumentFile(documentId) {
+      const s = me();
+      const d = [...docs.values()].find((x) => x.id === documentId && x.studentId === s.id) ?? problem(404, "student document not found");
+      return fetchFile(d.documentObjectId);
     },
     async cancelMyRequest(id, v) {
       const s = me();

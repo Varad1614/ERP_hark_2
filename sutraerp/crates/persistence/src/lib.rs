@@ -18,6 +18,7 @@ pub mod approval; // Part 1: DEF-X-002
 pub mod audit;
 pub mod audit_chain; // 9A
 pub mod backoff;
+pub mod batch; // Part 2 · S4-import
 pub mod idempotency;
 pub mod jobs;
 pub mod migrate;

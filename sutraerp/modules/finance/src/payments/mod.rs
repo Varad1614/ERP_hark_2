@@ -9,13 +9,17 @@
 //! * [`unidentified`] — unidentified / unallocated receipts (F-009).
 //! * [`collections`] — bulk collection (F-013).
 //! * [`common`] — helpers shared with `refunds` and `receivables`.
+//! * [`recovery`] — Part 2 S4-pay: the pending / failed gateway payment recovery job.
+//! * [`settlements`] — Part 2 S4-pay: gateway settlement reconciliation import.
 
 pub mod collections;
 pub mod common;
 pub mod domain;
 pub mod gateway;
 pub mod http;
+pub mod recovery; // Part 2 S4-pay
 pub mod service;
+pub mod settlements; // Part 2 S4-pay
 pub mod unidentified;
 pub mod views;
 
@@ -27,5 +31,6 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
     OpenApiRouter::new()
         .merge(http::router(state.clone()))
         .merge(unidentified::router(state.clone()))
-        .merge(collections::router(state))
+        .merge(collections::router(state.clone()))
+        .merge(settlements::router(state)) // Part 2 S4-pay
 }

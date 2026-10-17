@@ -381,10 +381,32 @@ pub enum Permission {
     GovernanceManage,
     /// 9E (Domain H09): accreditation — frameworks, cycles, criteria, evidence, self-study, peer visits, outcomes.
     AccreditationManage,
+    // ---- Part 2 · Stage 4.3 (S4-idp): identity provisioning (`docs/readiness/part2/s4-idp.md`). ----
+    /// Read identity links, their sync state, role requests and role mappings.
+    IdentityRead,
+    /// Provision identities, trigger required actions (activation, password recovery, MFA
+    /// enrolment), request role changes, retry a sync.
+    IdentityManage,
+    /// Administrative suspension / re-enabling of an identity (step-up).
+    IdentityLifecycle,
+    /// Decide privileged role requests and change ERP-role → IdP mappings (step-up; never the
+    /// requester).
+    IdentityRoleApprove,
+    // ---- Part 2 · S4-import (docs/readiness/part2/s4-import.md). ----
+    /// Data migration: upload import files, map columns, dry-run, commit imports and export records (administrators). The entity's own manage permission is required as well.
+    DataImport,
+    /// Data migration: decide an import commit that needs a second person (opening fee balances) — the checker, never the job's maker (step-up).
+    DataImportApprove,
+    // ---- Part 2 · S7-entitle (docs/readiness/ENTITLEMENT_IMPLEMENTATION.md). ----
+    /// Request a change of the tenant's module entitlement / licence (package, add-ons, validity,
+    /// suspension, renewal) and keep the platform administration area during a suspension.
+    EntitlementManage,
+    /// Decide an entitlement / licence change request — never its requester (step-up).
+    EntitlementApprove,
 }
 
 impl Permission {
-    pub const ALL: [Permission; 113] = [
+    pub const ALL: [Permission; 121] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -498,6 +520,14 @@ impl Permission {
         Permission::AuditVerify,
         Permission::GovernanceManage,
         Permission::AccreditationManage,
+        Permission::IdentityRead,
+        Permission::IdentityManage,
+        Permission::IdentityLifecycle,
+        Permission::IdentityRoleApprove,
+        Permission::DataImport,
+        Permission::DataImportApprove,
+        Permission::EntitlementManage,
+        Permission::EntitlementApprove,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -615,6 +645,14 @@ impl Permission {
             Permission::AuditVerify => "platform.audit.verify",
             Permission::GovernanceManage => "campus.governance.manage",
             Permission::AccreditationManage => "services.accreditation.manage",
+            Permission::IdentityRead => "platform.identity.read",
+            Permission::IdentityManage => "platform.identity.manage",
+            Permission::IdentityLifecycle => "platform.identity.lifecycle",
+            Permission::IdentityRoleApprove => "platform.identity.role.approve",
+            Permission::DataImport => "platform.import.manage",
+            Permission::DataImportApprove => "platform.import.approve",
+            Permission::EntitlementManage => "platform.entitlement.manage",
+            Permission::EntitlementApprove => "platform.entitlement.approve",
         }
     }
 
@@ -648,6 +686,10 @@ impl Permission {
                 | Permission::LibraryFineWaiveApprove
                 | Permission::ReportApprove
                 | Permission::ResourcesApprove
+                | Permission::IdentityLifecycle
+                | Permission::IdentityRoleApprove
+                | Permission::DataImportApprove
+                | Permission::EntitlementApprove
         )
     }
 }
@@ -787,6 +829,20 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             AuditVerify,
             GovernanceManage,
             AccreditationManage,
+            // Part 2 · S4-idp: identity provisioning (role decisions are maker-checker between
+            // two administrators, enforced in `sutra_platform::identity::http`).
+            IdentityRead,
+            IdentityManage,
+            IdentityLifecycle,
+            IdentityRoleApprove,
+            // Part 2 · S4-import: data migration; an administrator may approve an import someone
+            // else prepared (separation of duties is enforced on the decision path).
+            DataImport,
+            DataImportApprove,
+            // Part 2 · S7-entitle: entitlement changes are maker-checker between two
+            // administrators (enforced in `sutra_platform::entitlement`).
+            EntitlementManage,
+            EntitlementApprove,
         ],
         Role::Faculty => &[
             InstitutionRead,
@@ -839,6 +895,8 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             FinanceApprove,
             // Part 1 (DEF-G-002): library fine waivers are decided by a finance checker.
             LibraryFineWaiveApprove,
+            // Part 2 · S4-import: opening fee balances need a finance checker's approval.
+            DataImportApprove,
         ],
         Role::ExamController => &[
             InstitutionRead,
@@ -1441,6 +1499,74 @@ mod tests {
             assert!(!p.requires_step_up(), "{p:?}");
         }
         assert_eq!(Permission::AuditVerify.as_str(), "platform.audit.verify");
+    }
+
+    #[test]
+    fn part2_identity_grants_are_administrator_only() {
+        for p in [
+            Permission::IdentityRead,
+            Permission::IdentityManage,
+            Permission::IdentityLifecycle,
+            Permission::IdentityRoleApprove,
+        ] {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            for r in Role::ALL.into_iter().filter(|r| *r != Role::Administrator) {
+                assert!(!is_granted(&[r], p), "{r:?} must not hold {p:?}");
+            }
+        }
+        assert!(Permission::IdentityLifecycle.requires_step_up());
+        assert!(Permission::IdentityRoleApprove.requires_step_up());
+        assert!(!Permission::IdentityManage.requires_step_up());
+        assert_eq!(Permission::IdentityRead.as_str(), "platform.identity.read");
+    }
+
+    #[test]
+    fn part2_entitlement_grants_are_administrator_only() {
+        for p in [
+            Permission::EntitlementManage,
+            Permission::EntitlementApprove,
+        ] {
+            assert!(is_granted(&[Role::Administrator], p), "{p:?}");
+            for r in Role::ALL.into_iter().filter(|r| *r != Role::Administrator) {
+                assert!(!is_granted(&[r], p), "{r:?} must not hold {p:?}");
+            }
+        }
+        assert!(Permission::EntitlementApprove.requires_step_up());
+        assert!(!Permission::EntitlementManage.requires_step_up());
+        assert_eq!(
+            Permission::EntitlementManage.as_str(),
+            "platform.entitlement.manage"
+        );
+    }
+
+    #[test]
+    fn part2_data_import_grants() {
+        assert!(is_granted(&[Role::Administrator], Permission::DataImport));
+        assert!(is_granted(
+            &[Role::Administrator],
+            Permission::DataImportApprove
+        ));
+        assert!(is_granted(
+            &[Role::FinanceApprover],
+            Permission::DataImportApprove
+        ));
+        // The checker never holds the maker permission.
+        assert!(!is_granted(
+            &[Role::FinanceApprover],
+            Permission::DataImport
+        ));
+        for r in [
+            Role::Faculty,
+            Role::Student,
+            Role::Registrar,
+            Role::ExamController,
+        ] {
+            assert!(!is_granted(&[r], Permission::DataImport), "{r:?}");
+            assert!(!is_granted(&[r], Permission::DataImportApprove), "{r:?}");
+        }
+        assert!(Permission::DataImportApprove.requires_step_up());
+        assert!(!Permission::DataImport.requires_step_up());
+        assert_eq!(Permission::DataImport.as_str(), "platform.import.manage");
     }
 
     #[test]

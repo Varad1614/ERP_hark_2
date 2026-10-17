@@ -32,6 +32,9 @@ use sqlx::postgres::PgRow;
 use sqlx::{PgConnection, Row};
 use std::collections::BTreeMap;
 use sutra_contracts::finance::AdmissionFinanceQuery;
+use sutra_contracts::platform::documents::{
+    DocumentActor, DocumentOwner, OWNER_ADMISSION_DOCUMENT,
+};
 use sutra_contracts::student::events::admission::*;
 use sutra_contracts::student::ids::{
     AdmissionApplicationId, AdmissionDocumentId, AdmissionId, StudentContextId, StudentId,
@@ -104,7 +107,7 @@ pub(crate) fn from_row(r: &PgRow) -> Result<Admission, sqlx::Error> {
 }
 
 const DOC_COLUMNS: &str = "id, admission_id, document_type, title, file_ref, status, note, \
-    verified_by, verified_at, version, created_at";
+    verified_by, verified_at, document_object_id, version, created_at";
 
 fn doc_from_row(r: &PgRow) -> Result<AdmissionDocument, sqlx::Error> {
     let status: String = r.try_get("status")?;
@@ -119,6 +122,7 @@ fn doc_from_row(r: &PgRow) -> Result<AdmissionDocument, sqlx::Error> {
         note: r.try_get("note")?,
         verified_by: r.try_get("verified_by")?,
         verified_at: r.try_get("verified_at")?,
+        document_object_id: r.try_get("document_object_id")?,
         version: Version(r.try_get("version")?),
         created_at: r.try_get("created_at")?,
     })
@@ -868,6 +872,24 @@ pub async fn verify_document(
         VerificationOutcome::Rejected => DocumentStatus::Rejected,
         VerificationOutcome::Waived => DocumentStatus::Waived,
     };
+    // Part 2 · S4-docs: a document with a stored file is verified against the bytes that were
+    // uploaded — the SHA-256 is re-checked (a changed or missing object is quarantined, 409).
+    if let (DocumentStatus::Verified, Some(object)) = (to, doc.document_object_id) {
+        st.documents
+            .verify_integrity(
+                &scope,
+                object,
+                &[DocumentOwner::new(
+                    OWNER_ADMISSION_DOCUMENT,
+                    doc.id.as_uuid(),
+                )],
+                &DocumentActor {
+                    id: a.id.clone(),
+                    correlation_id: a.correlation_id.clone(),
+                },
+            )
+            .await?;
+    }
     let sql = format!(
         "UPDATE student.admission_document SET status = $2, note = COALESCE($3, note), \
          verified_by = $4, verified_at = now(), version = version + 1, updated_at = now() \

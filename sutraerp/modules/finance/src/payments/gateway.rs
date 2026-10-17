@@ -94,6 +94,12 @@ impl MockPaymentGateway {
         hex(&mac.finalize().into_bytes())
     }
 
+    /// Part 2 S4-pay: the checkout callback signature (Razorpay construction: hex HMAC-SHA256 of
+    /// `order_ref|payment_ref` keyed with the adapter secret).
+    pub fn sign_checkout(&self, order_ref: &str, payment_ref: &str) -> String {
+        self.sign(format!("{order_ref}|{payment_ref}").as_bytes())
+    }
+
     /// The deterministic outcome of an order of `amount`.
     pub fn outcome_for(order_ref: &str, amount: Decimal) -> GatewayPaymentOutcome {
         match paise(amount) {
@@ -208,6 +214,30 @@ impl PaymentGatewayPort for MockPaymentGateway {
             Some(b) if expected.len() == 64 && mac.verify_slice(&b).is_ok() => {
                 Self::parse_webhook(body)
             }
+            _ => Err(KernelError::Unauthenticated),
+        }
+    }
+
+    /// Part 2 S4-pay: constant-time check of [`MockPaymentGateway::sign_checkout`].
+    fn verify_checkout(
+        &self,
+        order_ref: &str,
+        payment_ref: &str,
+        signature: &str,
+    ) -> Result<(), KernelError> {
+        let mut mac = Hmac::<Sha256>::new_from_slice(self.secret.as_bytes())
+            .map_err(|_| KernelError::Unauthenticated)?;
+        mac.update(format!("{order_ref}|{payment_ref}").as_bytes());
+        let sig = signature.trim();
+        let bytes: Option<Vec<u8>> = (0..sig.len())
+            .step_by(2)
+            .map(|i| {
+                sig.get(i..i + 2)
+                    .and_then(|h| u8::from_str_radix(h, 16).ok())
+            })
+            .collect();
+        match bytes {
+            Some(b) if sig.len() == 64 && mac.verify_slice(&b).is_ok() => Ok(()),
             _ => Err(KernelError::Unauthenticated),
         }
     }
@@ -355,6 +385,28 @@ mod tests {
             w.map(|w| w.outcome),
             Some(GatewayPaymentOutcome::Failed { .. })
         ));
+    }
+
+    // Part 2 S4-pay: checkout callback signatures (order|payment, constant time).
+    #[test]
+    fn checkout_signatures_are_verified() {
+        let g = MockPaymentGateway::default();
+        let sig = g.sign_checkout("order_mock_a", "pay_mock_b");
+        assert!(g
+            .verify_checkout("order_mock_a", "pay_mock_b", &sig)
+            .is_ok());
+        assert!(g
+            .verify_checkout("order_mock_a", "pay_mock_c", &sig)
+            .is_err());
+        assert!(g
+            .verify_checkout("order_mock_a", "pay_mock_b", &sig[..62])
+            .is_err());
+        assert!(MockPaymentGateway::new("other")
+            .verify_checkout("order_mock_a", "pay_mock_b", &sig)
+            .is_err());
+        assert!(DisabledPaymentGateway
+            .verify_checkout("order_mock_a", "pay_mock_b", &sig)
+            .is_err());
     }
 
     // INT: SEC-9D-003.

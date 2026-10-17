@@ -18,7 +18,8 @@ import type { ChargeDetail } from "./charges/types";
 import { pkeys, usePaymentsApi } from "./payments/hooks";
 import { ReceiptModal } from "./payments";
 import { fromPaise, toPaise } from "./payments/mock";
-import type { Payment, Receipt } from "./payments/types";
+import type { CheckoutCallback, Payment, PaymentGatewayInfo, Receipt } from "./payments/types";
+import { canPayOnline, gatewayLabel, loadRazorpay, openRazorpayCheckout, payStage, type RazorpayCtor } from "./checkout";
 import { INVOICE_BADGE, invoiceState, money, sumPaise, useFinanceAsk } from "./ui";
 
 const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
@@ -29,24 +30,71 @@ const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
 
 const isOpen = (c: ChargeDetail) => ["published", "active", "disputed"].includes(c.status) && toPaise(c.outstandingAmount || "0") > 0n;
 
-/** Pay dialog: amount + method → checkout (test gateway) → receipt. */
-function PayDialog({ charge, onClose, onReceipt }: { charge: ChargeDetail; onClose: () => void; onReceipt: (r: Receipt) => void }) {
+/** Pay dialog: amount + method → gateway order → checkout (Razorpay / test gateway) → server confirmation → receipt. */
+export function PayDialog({ charge, gateway, payer, onClose, onReceipt }: { charge: ChargeDetail; gateway: PaymentGatewayInfo; payer?: string; onClose: () => void; onReceipt: (r: Receipt) => void }) {
   const api = usePaymentsApi();
   const { run, busy, dialog } = useCommand();
   const [method, setMethod] = useState("upi");
   const [amount, setAmount] = useState(fromPaise(toPaise(charge.outstandingAmount)));
   const [payment, setPayment] = useState<Payment | null>(null);
   const [partial, setPartial] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [callbackReceived, setCallbackReceived] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const receipts = useQuery({ queryKey: pkeys.scoped("me", "receipts"), queryFn: () => api.myReceipts() });
   const valid = /^\d+(\.\d{1,2})?$/.test(amount.trim()) && toPaise(amount.trim()) > 0n;
   const eyebrow = `${charge.chargeNumber}${charge.dueDate ? ` · Due ${formatDate(charge.dueDate)}` : ""}`;
   const title = `Pay ${charge.description.charAt(0).toLowerCase()}${charge.description.slice(1)}`;
-  const done = payment?.status === "completed";
-  const receipt = done ? (receipts.data ?? []).find((r) => r.paymentId === payment?.id) : undefined;
+  const razorpay = (payment?.gateway ?? gateway.gateway) === "razorpay";
+  // Paid ONLY on the server's word (payment.status from the API); a checkout callback is "processing".
+  const stage = payStage(payment, { verifying, callbackReceived });
+  const receipt = stage === "paid" ? (receipts.data ?? []).find((r) => r.paymentId === payment?.id) : undefined;
+
+  /** Server-side confirmation (verifies the Razorpay signature, asks the gateway for the capture). */
+  const confirm = async (p: Payment, callback?: CheckoutCallback) => {
+    setVerifying(true);
+    try {
+      const r = await run(() => api.confirm(p.id, p.version, callback), (x) => (x.status === "completed" ? `Paid · receipt ${x.receipt?.receiptNumber ?? ""}` : x.status === "failed" ? "Payment failed — no money was taken" : "Payment processing — the bank has not confirmed yet"));
+      if (r) setPayment(r);
+      else if (callback) setNotice("We could not confirm this payment yet. If money left your account it is matched automatically — check again in a few minutes.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  /** Opens Razorpay Checkout for the server-created order; the callback goes to `confirm`. */
+  const checkout = async (p: Payment) => {
+    setNotice(null);
+    if (!gateway.checkoutKeyId || !p.gatewayOrderRef) {
+      setNotice("Online payment is not configured. Pay at the finance office.");
+      return;
+    }
+    let Ctor: RazorpayCtor;
+    try {
+      Ctor = await loadRazorpay();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Razorpay Checkout could not be loaded");
+      return;
+    }
+    const r = await openRazorpayCheckout(Ctor, gateway.checkoutKeyId, p, { name: "Fee payment", description: `${charge.chargeNumber} · ${charge.description}`, payer });
+    if (r.kind === "callback") {
+      setCallbackReceived(true);
+      await confirm(p, r.callback);
+    } else if (r.kind === "failed") setNotice(`Payment did not go through${r.failure.description ? ` — ${r.failure.description}` : ""}. No money was taken; try again.`);
+    else setNotice("Checkout closed before paying. You can open it again or cancel this payment.");
+  };
+
+  const start = () =>
+    void run(() => api.initiate(amount.trim(), [charge.id])).then((p) => {
+      if (!p) return;
+      setPayment(p);
+      setCallbackReceived(false);
+      if ((p.gateway ?? gateway.gateway) === "razorpay") void checkout(p);
+    });
 
   let body: ReactNode;
   let footer: ReactNode;
-  if (!payment) {
+  if (stage === "form") {
     body = (
       <form
         id="fees-pay"
@@ -54,48 +102,52 @@ function PayDialog({ charge, onClose, onReceipt }: { charge: ChargeDetail; onClo
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          if (!valid) return;
-          void run(() => api.initiate(amount.trim(), [charge.id])).then((p) => p && setPayment(p));
+          if (valid) start();
         }}
       >
         <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em", margin: "4px 0 18px" }} data-pay-amount>
           {money(amount.trim() || "0")}
         </div>
-        <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--sb-mute)", marginBottom: 8 }}>Payment method</span>
-        <div role="radiogroup" aria-label="Payment method" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
-          {METHODS.map((m) => {
-            const on = m.id === method;
-            const Icon = m.icon;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                data-method={m.id}
-                onClick={() => setMethod(m.id)}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "16px 10px",
-                  minHeight: 44,
-                  borderRadius: 18,
-                  border: `2px solid ${on ? "var(--ac)" : "var(--sb-line)"}`,
-                  background: on ? "var(--acs)" : "var(--sb-surface, #fff)",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "var(--sb-ink)",
-                  cursor: "pointer",
-                }}
-              >
-                <Icon strokeWidth={1.75} size={18} aria-hidden="true" />
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
+        {!razorpay && (
+          <>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--sb-mute)", marginBottom: 8 }}>Payment method</span>
+            <div role="radiogroup" aria-label="Payment method" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
+              {METHODS.map((m) => {
+                const on = m.id === method;
+                const Icon = m.icon;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    data-method={m.id}
+                    onClick={() => setMethod(m.id)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "16px 10px",
+                      minHeight: 44,
+                      borderRadius: 18,
+                      border: `2px solid ${on ? "var(--ac)" : "var(--sb-line)"}`,
+                      background: on ? "var(--acs)" : "var(--sb-surface, #fff)",
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: "var(--sb-ink)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Icon strokeWidth={1.75} size={18} aria-hidden="true" />
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {razorpay && <p style={{ color: "var(--sb-mute)", fontSize: 14, margin: "0 0 16px" }}>You choose UPI, card or net banking in Razorpay’s secure checkout.</p>}
         {partial ? (
           <TextField label="Amount (₹)" name="amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} hint={`Up to ${money(charge.outstandingAmount)} due on this invoice`} />
         ) : (
@@ -116,44 +168,81 @@ function PayDialog({ charge, onClose, onReceipt }: { charge: ChargeDetail; onClo
         </button>
       </div>
     );
-  } else if (!done) {
-    const failed = payment.status === "failed" || payment.status === "cancelled";
+  } else if (payment && (stage === "checkout" || stage === "processing" || stage === "failed")) {
+    const failed = stage === "failed";
+    const processing = stage === "processing";
+    const line = failed
+      ? { icon: TriangleAlert, tone: "rose" as const, title: payment.status === "expired" ? "Payment expired — no money was taken" : payment.status === "cancelled" ? "Payment cancelled — no money was taken" : "Payment not completed — no money was taken" }
+      : processing
+        ? { icon: Hourglass, tone: "amber" as const, title: "Payment processing — waiting for the bank to confirm" }
+        : { icon: Lock, tone: "green" as const, title: `Secure checkout · ${gatewayLabel(payment.gateway ?? gateway.gateway)}` };
     body = (
-      <div data-checkout={payment.gatewayOrderRef ?? ""}>
+      <div data-checkout={payment.gatewayOrderRef ?? ""} data-pay-stage={stage}>
         <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em", margin: "4px 0 12px" }}>{money(payment.amount)}</div>
-        <ListRow icon={failed ? TriangleAlert : Lock} tone={failed ? "rose" : "green"} title={failed ? "Payment not completed — no money was taken" : "Secure checkout · test gateway"} meta={`${METHODS.find((m) => m.id === method)?.label ?? ""} · order ${payment.gatewayOrderRef ?? "—"}`} badge={{ label: statusLabel(payment.status), kind: failed ? "attention" : "review" }} />
+        <ListRow icon={line.icon} tone={line.tone} title={line.title} meta={`${razorpay ? "Razorpay" : (METHODS.find((m) => m.id === method)?.label ?? "")} · order ${payment.gatewayOrderRef ?? "—"}`} badge={{ label: processing ? "Processing" : statusLabel(payment.status), kind: failed ? "attention" : "review" }} />
+        {processing && (
+          <p data-processing style={{ color: "var(--sb-mute)", fontSize: 14, marginTop: 12 }} role="status">
+            {verifying ? "Confirming your payment with the bank…" : "The bank has not confirmed this payment yet. You will get a receipt as soon as it does — nothing more to pay."}
+          </p>
+        )}
+        {notice && (
+          <p data-pay-notice role="alert" style={{ color: "var(--sb-mute)", fontSize: 14, marginTop: 12 }}>
+            {notice}
+          </p>
+        )}
       </div>
     );
     footer = (
       <div className="sb-dialog-foot">
-        {!failed && (
-          <button
-            type="button"
-            className="sb-btn"
-            disabled={busy}
-            data-action="checkout-pay"
-            onClick={() => void run(() => api.confirm(payment.id, payment.version), (p) => (p.status === "completed" ? `Paid · receipt ${p.receipt?.receiptNumber ?? ""}` : p.status === "failed" ? "Payment failed — no money was taken" : "Still waiting for the bank")).then((p) => p && setPayment(p))}
-          >
+        {stage === "checkout" && !razorpay && (
+          <button type="button" className="sb-btn" disabled={busy} data-action="checkout-pay" onClick={() => void confirm(payment)}>
             <Lock strokeWidth={1.75} aria-hidden="true" />
             Complete payment
           </button>
         )}
-        {!failed && (
+        {stage === "checkout" && razorpay && (
+          <button type="button" className="sb-btn" disabled={busy} data-action="checkout-open" onClick={() => void checkout(payment)}>
+            <Lock strokeWidth={1.75} aria-hidden="true" />
+            {notice ? "Try again" : "Open secure checkout"}
+          </button>
+        )}
+        {processing && (
+          <button type="button" className="sb-btn" disabled={busy || verifying} data-action="checkout-recheck" onClick={() => void confirm(payment)}>
+            <RotateCcw strokeWidth={1.75} aria-hidden="true" />
+            Check again
+          </button>
+        )}
+        {stage === "checkout" && (
           <button type="button" className="sb-btn sb-btn--ghost" disabled={busy} data-action="checkout-cancel" onClick={() => void run(() => api.cancelMine(payment.id, payment.version), "Payment cancelled").then(() => onClose())}>
             Cancel payment
           </button>
         )}
         {failed && (
+          <button
+            type="button"
+            className="sb-btn"
+            data-action="pay-retry"
+            onClick={() => {
+              setPayment(null);
+              setCallbackReceived(false);
+              setNotice(null);
+            }}
+          >
+            <RotateCcw strokeWidth={1.75} aria-hidden="true" />
+            Try again
+          </button>
+        )}
+        {(failed || processing) && (
           <button type="button" className="sb-btn sb-btn--ghost" onClick={onClose}>
             Close
           </button>
         )}
       </div>
     );
-  } else {
+  } else if (payment) {
     const number = payment.receipt?.receiptNumber ?? receipt?.receiptNumber ?? "";
     body = (
-      <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "8px 0" }} data-paid>
+      <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "8px 0" }} data-paid data-pay-stage="paid">
         <span style={{ width: 56, height: 56, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--tint-green-bg, #E1F4EA)", color: "var(--tint-green-fg, #1D6A40)" }}>
           <CircleCheck strokeWidth={1.75} size={28} aria-hidden="true" />
         </span>
@@ -178,7 +267,7 @@ function PayDialog({ charge, onClose, onReceipt }: { charge: ChargeDetail; onClo
     );
   }
   return (
-    <StepDialog open onClose={onClose} eyebrow={eyebrow} title={done ? "Payment received" : title} footer={footer} data-pay-dialog={charge.chargeNumber}>
+    <StepDialog open onClose={onClose} eyebrow={eyebrow} title={stage === "paid" ? "Payment received" : stage === "processing" ? "Payment processing" : title} footer={footer} data-pay-dialog={charge.chargeNumber}>
       {body}
       {dialog}
     </StepDialog>
@@ -199,6 +288,9 @@ export function StudentFees() {
   const payments = useQuery({ queryKey: pkeys.scoped("me", "payments"), queryFn: () => payApi.myPayments() });
   const receipts = useQuery({ queryKey: pkeys.scoped("me", "receipts"), queryFn: () => payApi.myReceipts() });
   const refunds = useQuery({ queryKey: pkeys.scoped("me", "refunds"), queryFn: () => payApi.myRefunds() });
+  // Part 2 S4 (DEF-F-007): which checkout to open; "Pay now" only when a gateway is configured.
+  const gateway = useQuery({ queryKey: pkeys.scoped("me", "gateway"), queryFn: () => payApi.gatewayInfo(), staleTime: 300_000 });
+  const online = canPayOnline(gateway.data);
 
   const today = todayIso();
   const items: ChargeDetail[] = mine.data ?? [];
@@ -273,11 +365,22 @@ export function StudentFees() {
               icon={Lock}
               tone="amber"
               title={`Payment in progress · ${money(open.amount)}`}
-              meta={`Secure checkout (test gateway) · order ${open.gatewayOrderRef ?? "—"}`}
-              primary={{ label: "Complete payment", disabled: busy, "data-action": "checkout-pay", onClick: () => void run(() => payApi.confirm(open.id, open.version), (p) => (p.status === "completed" ? `Paid · receipt ${p.receipt?.receiptNumber ?? ""}` : p.status === "failed" ? "Payment failed — no money was taken" : "Still waiting for the bank")) }}
+              meta={`Secure checkout (${gatewayLabel(open.gateway ?? gateway.data?.gateway)}) · order ${open.gatewayOrderRef ?? "—"}`}
+              primary={{
+                // Mock: the server completes the order on confirm. Razorpay: confirm only re-asks the gateway (never paid on the browser's word).
+                label: (open.gateway ?? gateway.data?.gateway) === "razorpay" ? "Check status" : "Complete payment",
+                disabled: busy,
+                "data-action": (open.gateway ?? gateway.data?.gateway) === "razorpay" ? "checkout-recheck" : "checkout-pay",
+                onClick: () => void run(() => payApi.confirm(open.id, open.version), (p) => (p.status === "completed" ? `Paid · receipt ${p.receipt?.receiptNumber ?? ""}` : p.status === "failed" ? "Payment failed — no money was taken" : "Payment processing — the bank has not confirmed yet")),
+              }}
               menu={[{ id: "checkout-cancel", label: "Cancel payment", danger: true, disabled: busy, onSelect: () => void run(() => payApi.cancelMine(open.id, open.version), "Payment cancelled") }]}
             />
           </div>
+        )}
+        {gateway.data && !online && outstanding > 0n && (
+          <p data-online-payments="off" style={{ color: "var(--sb-mute)", fontSize: 14, margin: "0 0 12px" }}>
+            Online payment is not available. Pay at the finance office (cash, cheque, demand draft or bank transfer) and you will get a receipt there.
+          </p>
         )}
         <DataTable
           caption="Invoices"
@@ -327,7 +430,7 @@ export function StudentFees() {
                 return (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <Badge kind={badge.kind}>{badge.label}</Badge>
-                    {isOpen(c) && !open && (
+                    {isOpen(c) && !open && online && (
                       <button type="button" className="sb-btn" data-action="pay-invoice" data-pay={c.chargeNumber} onClick={() => setPaying(c)}>
                         <CreditCard strokeWidth={1.75} aria-hidden="true" />
                         Pay now
@@ -435,7 +538,7 @@ export function StudentFees() {
         actions={
           detail && isOpen(detail) ? (
             <>
-              {!open && (
+              {!open && online && (
                 <button type="button" className="sb-btn" data-action="pay-invoice" onClick={() => { setPaying(detail); setDetailId(null); }}>
                   <CreditCard strokeWidth={1.75} aria-hidden="true" />
                   Pay now
@@ -468,9 +571,11 @@ export function StudentFees() {
         )}
       </SidePanel>
 
-      {paying && (
+      {paying && gateway.data && (
         <PayDialog
           charge={paying}
+          gateway={gateway.data}
+          payer={account?.displayName ?? undefined}
           onClose={() => setPaying(null)}
           onReceipt={(r) => {
             setPaying(null);

@@ -21,6 +21,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use sqlx::postgres::PgRow;
 use sqlx::{PgConnection, Row};
 use sutra_contracts::finance::StudentFinanceQuery;
+use sutra_contracts::platform::documents::{DocumentActor, DocumentOwner, OWNER_STUDENT_DOCUMENT};
 use sutra_contracts::student::events::record::{
     DOCUMENT_REQUEST_ISSUED, DOCUMENT_REQUEST_ISSUED_SCHEMA, DOCUMENT_REQUEST_REJECTED,
     DOCUMENT_REQUEST_REJECTED_SCHEMA, DOCUMENT_REQUEST_SUBMITTED,
@@ -55,6 +56,9 @@ pub struct StudentDocument {
     /// `admission` | `staff` | `request` | `transfer`.
     pub source: String,
     pub note: Option<String>,
+    /// Part 2 · S4-docs: the stored file (platform document service), when one was uploaded or
+    /// moved over from the admission.
+    pub document_object_id: Option<Uuid>,
     #[schema(value_type = i64)]
     pub version: Version,
     pub created_at: DateTime<Utc>,
@@ -67,7 +71,7 @@ pub struct StudentDocumentList {
 }
 
 const DOC_COLUMNS: &str = "id, student_id, institution_id, document_type, title, file_ref, \
-    status, source, note, version, created_at";
+    status, source, note, document_object_id, version, created_at";
 
 fn doc_from_row(r: &PgRow) -> Result<StudentDocument, sqlx::Error> {
     let status: String = r.try_get("status")?;
@@ -82,6 +86,7 @@ fn doc_from_row(r: &PgRow) -> Result<StudentDocument, sqlx::Error> {
             .ok_or_else(|| sqlx::Error::Decode(format!("document status {status}").into()))?,
         source: r.try_get("source")?,
         note: r.try_get("note")?,
+        document_object_id: r.try_get("document_object_id")?,
         version: Version(r.try_get("version")?),
         created_at: r.try_get("created_at")?,
     })
@@ -287,6 +292,20 @@ pub async fn verify_document(
             cur.status
         ))
         .into());
+    }
+    // Part 2 · S4-docs: verifying a document with a stored file re-checks its SHA-256.
+    if let (DocumentStatus::Verified, Some(object)) = (b.outcome, cur.document_object_id) {
+        st.documents
+            .verify_integrity(
+                &scope,
+                object,
+                &[DocumentOwner::new(OWNER_STUDENT_DOCUMENT, cur.id.as_uuid())],
+                &DocumentActor {
+                    id: a.id.clone(),
+                    correlation_id: a.correlation_id.clone(),
+                },
+            )
+            .await?;
     }
     let sql = format!(
         "UPDATE student.student_document SET status = $2, note = COALESCE($3, note), \

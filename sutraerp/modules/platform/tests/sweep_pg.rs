@@ -27,6 +27,14 @@ async fn db() -> PgPool {
     p
 }
 
+/// The session-purge tests share `platform.session` and the purge is global (every tenant): run
+/// concurrently, the batch-limit test (grace 0) could purge the other test's "expired 1 hour ago,
+/// inside the grace period" row (seen on part2/int, CI 38965147082). They take this lock in turn.
+fn session_purge_lock() -> &'static tokio::sync::Mutex<()> {
+    static LOCK: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+    LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
+}
+
 /// Runs the job, waiting out a concurrent holder of its lock.
 async fn run(p: &PgPool, job: &dyn SweepJob) -> u64 {
     for _ in 0..100 {
@@ -72,6 +80,7 @@ async fn session(
 
 #[tokio::test]
 async fn session_purge_removes_only_sessions_dead_past_the_grace_period() {
+    let _serial = session_purge_lock().lock().await;
     let p = db().await;
     let tenant = Uuid::now_v7();
     const H: i64 = 3600;
@@ -112,6 +121,7 @@ async fn session_purge_removes_only_sessions_dead_past_the_grace_period() {
 
 #[tokio::test]
 async fn session_purge_respects_the_batch_limit() {
+    let _serial = session_purge_lock().lock().await;
     let p = db().await;
     let tenant = Uuid::now_v7();
     for _ in 0..3 {
