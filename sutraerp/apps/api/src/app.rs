@@ -239,8 +239,12 @@ impl AppContext {
         // each enabled schedule runs once per period from its run day).
         let scheduler = scheduler.map(|s| {
             s.with(Arc::new(sutra_finance::BillingScheduleJob {
-                state: finance_deps_with(pool.clone(), workflow.clone(), cfg.hardening.workflow.approvals)
-                    .into_state(),
+                state: finance_deps_with(
+                    pool.clone(),
+                    workflow.clone(),
+                    cfg.hardening.workflow.approvals,
+                )
+                .into_state(),
                 interval: Duration::from_secs(3600),
             }))
         });

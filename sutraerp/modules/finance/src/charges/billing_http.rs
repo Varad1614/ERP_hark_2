@@ -51,7 +51,14 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 /// An enrolment row: (id or student, student or plan, amount, start, end, on hold).
-type EnrolRow = (Uuid, Uuid, Option<Decimal>, Option<NaiveDate>, Option<NaiveDate>, bool);
+type EnrolRow = (
+    Uuid,
+    Uuid,
+    Option<Decimal>,
+    Option<NaiveDate>,
+    Option<NaiveDate>,
+    bool,
+);
 /// An enabled schedule: (tenant, institution, frequency, run day, due days, last period key).
 type DueSchedule = (Uuid, Uuid, String, i32, i32, Option<String>);
 
@@ -330,7 +337,11 @@ fn valid_code(code: &str) -> bool {
 fn clean_name(raw: &str) -> Result<String, KernelError> {
     let n = raw.trim();
     if n.is_empty() || n.chars().count() > 120 {
-        return Err(invalid("name", "invalid_length", "must be 1–120 characters"));
+        return Err(invalid(
+            "name",
+            "invalid_length",
+            "must be 1–120 characters",
+        ));
     }
     Ok(n.to_string())
 }
@@ -388,15 +399,17 @@ async fn load_plan(
     t: TenantId,
     id: Uuid,
 ) -> Result<BillingPlanView, KernelError> {
-    let r = sqlx::query(&format!("{PLAN_SELECT} WHERE p.tenant_id = $1 AND p.id = $2"))
-        .bind(t.as_uuid())
-        .bind(id)
-        .fetch_optional(&mut *conn)
-        .await
-        .map_err(map_db_error)?
-        .ok_or(KernelError::NotFound {
-            entity: "billing_plan",
-        })?;
+    let r = sqlx::query(&format!(
+        "{PLAN_SELECT} WHERE p.tenant_id = $1 AND p.id = $2"
+    ))
+    .bind(t.as_uuid())
+    .bind(id)
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(map_db_error)?
+    .ok_or(KernelError::NotFound {
+        entity: "billing_plan",
+    })?;
     plan_view(&r)
 }
 
@@ -480,7 +493,12 @@ pub async fn billing_plan_create(
     let a = actor(ctx);
     let code = b.code.trim().to_string();
     if !valid_code(&code) {
-        return Err(invalid("code", "invalid_code", "must match ^[A-Z0-9][A-Z0-9_-]{1,31}$").into());
+        return Err(invalid(
+            "code",
+            "invalid_code",
+            "must match ^[A-Z0-9][A-Z0-9_-]{1,31}$",
+        )
+        .into());
     }
     let name = clean_name(&b.name)?;
     let amount = parse_amount("amount", &b.amount)?;
@@ -497,10 +515,22 @@ pub async fn billing_plan_create(
     .await
     .map_err(map_db_error)?;
     match head.as_deref() {
-        None => return Err(invalid("feeHeadId", "not_found", "no such fee head in this institution").into()),
+        None => {
+            return Err(invalid(
+                "feeHeadId",
+                "not_found",
+                "no such fee head in this institution",
+            )
+            .into())
+        }
         Some("active") => {}
         Some(s) => {
-            return Err(invalid("feeHeadId", "fee_head_not_active", &format!("the fee head is {s}")).into())
+            return Err(invalid(
+                "feeHeadId",
+                "fee_head_not_active",
+                &format!("the fee head is {s}"),
+            )
+            .into())
         }
     }
     let exists: bool = sqlx::query_scalar(
@@ -594,7 +624,9 @@ pub async fn billing_plan_update(
     };
     let status: String = match b.status.as_deref() {
         Some(s @ ("active" | "retired")) => s.to_string(),
-        Some(_) => return Err(invalid("status", "invalid_status", "must be active or retired").into()),
+        Some(_) => {
+            return Err(invalid("status", "invalid_status", "must be active or retired").into())
+        }
         None => current.try_get("status").map_err(map_db_error)?,
     };
     sqlx::query(
@@ -669,7 +701,11 @@ async fn enrolment_views(
     Ok(out)
 }
 
-async fn plan_institution(st: &FinanceState, t: TenantId, plan: Uuid) -> Result<InstitutionId, KernelError> {
+async fn plan_institution(
+    st: &FinanceState,
+    t: TenantId,
+    plan: Uuid,
+) -> Result<InstitutionId, KernelError> {
     let inst: Option<Uuid> = sqlx::query_scalar(
         "SELECT institution_id FROM finance.billing_plan WHERE tenant_id = $1 AND id = $2",
     )
@@ -722,7 +758,12 @@ pub async fn billing_enrolment_upsert(
         Some(raw) => {
             let d = parse_decimal("amount", raw)?;
             if d < Decimal::ZERO || d.scale() > 2 {
-                return Err(invalid("amount", "invalid_amount", "must be zero or more, to the paisa").into());
+                return Err(invalid(
+                    "amount",
+                    "invalid_amount",
+                    "must be zero or more, to the paisa",
+                )
+                .into());
             }
             Some(d)
         }
@@ -733,7 +774,12 @@ pub async fn billing_enrolment_upsert(
             return Err(invalid("endDate", "before_start", "must be on or after startDate").into());
         }
     }
-    if st.students.student(&scope, StudentId(b.student_id)).await?.is_none() {
+    if st
+        .students
+        .student(&scope, StudentId(b.student_id))
+        .await?
+        .is_none()
+    {
         return Err(invalid("studentId", "not_found", "no such student in this tenant").into());
     }
     if st
@@ -966,7 +1012,11 @@ impl RunInput {
         }
         let week_start = b.week_start.unwrap_or(1);
         if week_start > 6 {
-            return Err(invalid("weekStart", "out_of_range", "must be 0 (Sunday) to 6 (Saturday)"));
+            return Err(invalid(
+                "weekStart",
+                "out_of_range",
+                "must be 0 (Sunday) to 6 (Saturday)",
+            ));
         }
         Ok(RunInput {
             frequency: frequency("frequency", &b.frequency)?,
@@ -992,7 +1042,11 @@ pub async fn execute(
     let today = business_today(st, scope, inst).await?;
     let day = input.day.unwrap_or(today);
     if day > today + Duration::days(62) {
-        return Err(invalid("day", "too_far_ahead", "may be at most 62 days ahead"));
+        return Err(invalid(
+            "day",
+            "too_far_ahead",
+            "may be at most 62 days ahead",
+        ));
     }
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let fy = fy_start_month(&mut conn, t, inst, day).await?;
@@ -1266,13 +1320,15 @@ async fn bill_one(
     .await?;
     let validated = validate_locked(&mut tx, &draft, a).await?;
     let (published, _) = publish_locked(&mut tx, &validated, today, None, a).await?;
-    sqlx::query("UPDATE finance.billing_run_item SET charge_id = $3 WHERE tenant_id = $1 AND id = $2")
-        .bind(t.as_uuid())
-        .bind(item)
-        .bind(published.id.as_uuid())
-        .execute(&mut *tx)
-        .await
-        .map_err(map_db_error)?;
+    sqlx::query(
+        "UPDATE finance.billing_run_item SET charge_id = $3 WHERE tenant_id = $1 AND id = $2",
+    )
+    .bind(t.as_uuid())
+    .bind(item)
+    .bind(published.id.as_uuid())
+    .execute(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(Some((published.id.as_uuid(), published.charge_number)))
 }
@@ -1323,7 +1379,8 @@ pub async fn billing_run_create(
     Ok(Json(run(&st, &auth, id, &b, false).await?))
 }
 
-const RUN_SELECT: &str = "SELECT id, frequency, period_key, period_label, run_date, trigger, billed_count, \
+const RUN_SELECT: &str =
+    "SELECT id, frequency, period_key, period_label, run_date, trigger, billed_count, \
      skipped_count, failed_count, total, created_by, created_at FROM finance.billing_run";
 
 fn run_summary(r: &sqlx::postgres::PgRow) -> Result<BillingRunSummary, KernelError> {
@@ -1414,8 +1471,8 @@ pub async fn billing_run_get(
     for r in rows {
         let sid: Uuid = r.try_get("student_id").map_err(map_db_error)?;
         let (student_name, student_number) = names.get(&sid).cloned().unwrap_or_default();
-        let lines: Vec<serde_json::Value> = serde_json::from_value(r.try_get("lines").map_err(map_db_error)?)
-            .unwrap_or_default();
+        let lines: Vec<serde_json::Value> =
+            serde_json::from_value(r.try_get("lines").map_err(map_db_error)?).unwrap_or_default();
         let lines = lines
             .into_iter()
             .filter_map(|l| {
@@ -1443,7 +1500,10 @@ pub async fn billing_run_get(
             error: None,
         });
     }
-    Ok(Json(BillingRunDetail { run: summary, items }))
+    Ok(Json(BillingRunDetail {
+        run: summary,
+        items,
+    }))
 }
 
 // ----------------------------------------------------------------------------- schedules
@@ -1583,13 +1643,21 @@ impl BillingScheduleJob {
     async fn run_due(&self, rows: Vec<DueSchedule>) -> u64 {
         let mut ran = 0;
         for (tenant_id, inst_id, freq, run_day, due_days, last) in rows {
-            let Some(f) = Frequency::parse(&freq) else { continue };
+            let Some(f) = Frequency::parse(&freq) else {
+                continue;
+            };
             let scope = ExecutionScope::institution(TenantId(tenant_id), InstitutionId(inst_id));
             let st = self.state.clone();
             let outcome = sutra_kernel::db_context::scoped(scope, async move {
                 let today = business_today(&st, &scope, InstitutionId(inst_id)).await?;
                 let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
-                let fy = fy_start_month(&mut conn, TenantId(tenant_id), InstitutionId(inst_id), today).await?;
+                let fy = fy_start_month(
+                    &mut conn,
+                    TenantId(tenant_id),
+                    InstitutionId(inst_id),
+                    today,
+                )
+                .await?;
                 drop(conn);
                 let run_day = u32::try_from(run_day).unwrap_or(1);
                 if scheduled_period(f, today, run_day, last.as_deref(), 1, fy).is_none() {
@@ -1614,8 +1682,10 @@ impl BillingScheduleJob {
             match outcome {
                 Ok(true) => ran += 1,
                 Ok(false) => {}
-                Err(e) => tracing::warn!(error = %e, tenant = %tenant_id, institution = %inst_id, frequency = %freq,
-                    "scheduled billing run failed"),
+                Err(e) => {
+                    tracing::warn!(error = %e, tenant = %tenant_id, institution = %inst_id, frequency = %freq,
+                    "scheduled billing run failed")
+                }
             }
         }
         ran

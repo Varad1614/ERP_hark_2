@@ -106,7 +106,8 @@ fn first_of_month(d: NaiveDate) -> NaiveDate {
 }
 
 fn add_months(d: NaiveDate, n: u32) -> NaiveDate {
-    d.checked_add_months(Months::new(n)).unwrap_or(NaiveDate::MAX)
+    d.checked_add_months(Months::new(n))
+        .unwrap_or(NaiveDate::MAX)
 }
 
 /// `weekday` 0 = Sunday … 6 = Saturday, as in Everything's `dates.js`.
@@ -121,7 +122,12 @@ fn fy_label(start_year: i32) -> String {
 /// The billing period containing `day`. Weekly periods start on `week_start` (0 = Sunday,
 /// 1 = Monday); quarters, halves and years are counted from the financial year's first month
 /// (`fy_start_month`, 1–12). Port of `periodFor`, extended past weekly / monthly.
-pub fn period_for(frequency: Frequency, day: NaiveDate, week_start: u32, fy_start_month: u32) -> Period {
+pub fn period_for(
+    frequency: Frequency,
+    day: NaiveDate,
+    week_start: u32,
+    fy_start_month: u32,
+) -> Period {
     match frequency {
         Frequency::Weekly => {
             let back = (weekday0(day) - i64::from(week_start) + 7).rem_euclid(7);
@@ -149,7 +155,11 @@ pub fn period_for(frequency: Frequency, day: NaiveDate, week_start: u32, fy_star
             let fy_month = fy_start_month.clamp(1, 12);
             // Months since the financial year began (0..12).
             let since = (day.month() + 12 - fy_month) % 12;
-            let fy_year = if day.month() >= fy_month { day.year() } else { day.year() - 1 };
+            let fy_year = if day.month() >= fy_month {
+                day.year()
+            } else {
+                day.year() - 1
+            };
             let index = since / span;
             let fy_start = NaiveDate::from_ymd_opt(fy_year, fy_month, 1).unwrap_or(day);
             let start = add_months(fy_start, index * span);
@@ -295,14 +305,21 @@ pub fn plan_billing_run(
     excluded: &HashSet<Uuid>,
     opts: &RunOptions,
 ) -> RunPlan {
-    let period = period_for(opts.frequency, opts.day, opts.week_start, opts.fy_start_month);
+    let period = period_for(
+        opts.frequency,
+        opts.day,
+        opts.week_start,
+        opts.fy_start_month,
+    );
     let by_id: HashMap<Uuid, &Plan> = plans.iter().map(|p| (p.id, p)).collect();
     let mut drafts = Vec::new();
     let mut skipped = Vec::new();
     let has_plans = |s: &Student| {
-        s.plans
-            .iter()
-            .any(|e| by_id.get(&e.plan_id).is_some_and(|p| p.frequency == opts.frequency))
+        s.plans.iter().any(|e| {
+            by_id
+                .get(&e.plan_id)
+                .is_some_and(|p| p.frequency == opts.frequency)
+        })
     };
     for s in students {
         let skip = if !s.active {
@@ -318,14 +335,19 @@ pub fn plan_billing_run(
         };
         if let Some(reason) = skip {
             if has_plans(s) {
-                skipped.push(Skip { student_id: s.id, reason });
+                skipped.push(Skip {
+                    student_id: s.id,
+                    reason,
+                });
             }
             continue;
         }
         let mut lines = Vec::new();
         let mut why_none = None;
         for e in &s.plans {
-            let Some(plan) = by_id.get(&e.plan_id) else { continue };
+            let Some(plan) = by_id.get(&e.plan_id) else {
+                continue;
+            };
             if plan.frequency != opts.frequency {
                 continue;
             }
@@ -345,14 +367,15 @@ pub fn plan_billing_run(
             let from = e.start.map_or(period.start, |d| d.max(period.start));
             let to = e.end.map_or(period.end, |d| d.min(period.end));
             let covered = (to - from).num_days() + 1;
-            let (amount, prorated) = if plan.proration == Proration::Daily && covered < period.days() {
-                (
-                    round2(full * Decimal::from(covered) / Decimal::from(period.days())),
-                    Some((covered, period.days())),
-                )
-            } else {
-                (full, None)
-            };
+            let (amount, prorated) =
+                if plan.proration == Proration::Daily && covered < period.days() {
+                    (
+                        round2(full * Decimal::from(covered) / Decimal::from(period.days())),
+                        Some((covered, period.days())),
+                    )
+                } else {
+                    (full, None)
+                };
             lines.push(DraftLine {
                 plan_id: plan.id,
                 description: format!("{}, {}", plan.name, period.label),
@@ -362,11 +385,18 @@ pub fn plan_billing_run(
         }
         if lines.is_empty() {
             if let Some(reason) = why_none {
-                skipped.push(Skip { student_id: s.id, reason });
+                skipped.push(Skip {
+                    student_id: s.id,
+                    reason,
+                });
             }
             continue;
         }
-        let from = if period.start > opts.day { period.start } else { opts.day };
+        let from = if period.start > opts.day {
+            period.start
+        } else {
+            opts.day
+        };
         drafts.push(Draft {
             student_id: s.id,
             issue_date: opts.day,
@@ -375,7 +405,11 @@ pub fn plan_billing_run(
             lines,
         });
     }
-    RunPlan { period, drafts, skipped }
+    RunPlan {
+        period,
+        drafts,
+        skipped,
+    }
 }
 
 /// What a student's plans add up to per frequency (Everything's `planTotals`).
@@ -425,28 +459,46 @@ mod tests {
     }
 
     fn enrolled(id: u128) -> Enrolled {
-        Enrolled { plan_id: Uuid::from_u128(id), amount: None, start: None, end: None, on_hold: false }
+        Enrolled {
+            plan_id: Uuid::from_u128(id),
+            amount: None,
+            start: None,
+            end: None,
+            on_hold: false,
+        }
     }
 
     #[test]
     fn periods_follow_the_financial_year() {
         let q = period_for(Frequency::Quarterly, d("2027-02-10"), 1, 4);
-        assert_eq!((q.start, q.end, q.key.as_str()), (d("2027-01-01"), d("2027-03-31"), "quarterly:2027-01"));
+        assert_eq!(
+            (q.start, q.end, q.key.as_str()),
+            (d("2027-01-01"), d("2027-03-31"), "quarterly:2027-01")
+        );
         assert_eq!(q.label, "Q4 2026-27 (Jan–Mar)");
         let h = period_for(Frequency::HalfYearly, d("2026-10-17"), 1, 4);
         assert_eq!((h.start, h.end), (d("2026-10-01"), d("2027-03-31")));
         assert_eq!(h.label, "H2 2026-27 (Oct–Mar)");
         let y = period_for(Frequency::Annual, d("2026-03-31"), 1, 4);
-        assert_eq!((y.start, y.end, y.label.as_str()), (d("2025-04-01"), d("2026-03-31"), "FY 2025-26"));
+        assert_eq!(
+            (y.start, y.end, y.label.as_str()),
+            (d("2025-04-01"), d("2026-03-31"), "FY 2025-26")
+        );
         let w = period_for(Frequency::Weekly, d("2026-10-17"), 1, 4);
         assert_eq!((w.start, w.end), (d("2026-10-12"), d("2026-10-18")));
         let m = period_for(Frequency::Monthly, d("2028-02-17"), 1, 4);
-        assert_eq!((m.end, m.label.as_str()), (d("2028-02-29"), "February 2028"));
+        assert_eq!(
+            (m.end, m.label.as_str()),
+            (d("2028-02-29"), "February 2028")
+        );
     }
 
     #[test]
     fn enrolment_dates_holds_and_daily_proration() {
-        let plans = [plan(1, Frequency::Monthly, 300000, Proration::Daily), plan(2, Frequency::Monthly, 100000, Proration::None)];
+        let plans = [
+            plan(1, Frequency::Monthly, 300000, Proration::Daily),
+            plan(2, Frequency::Monthly, 100000, Proration::None),
+        ];
         let mut late = enrolled(1);
         late.start = Some(d("2026-11-21")); // 10 of 30 days
         let mut held = enrolled(2);
@@ -454,12 +506,38 @@ mod tests {
         let mut gone = enrolled(1);
         gone.end = Some(d("2026-10-31"));
         let students = vec![
-            Student { id: Uuid::from_u128(10), active: true, start: None, plans: vec![late, held.clone()] },
-            Student { id: Uuid::from_u128(11), active: true, start: None, plans: vec![held] },
-            Student { id: Uuid::from_u128(12), active: true, start: None, plans: vec![gone] },
-            Student { id: Uuid::from_u128(13), active: true, start: None, plans: vec![enrolled(2)] },
+            Student {
+                id: Uuid::from_u128(10),
+                active: true,
+                start: None,
+                plans: vec![late, held.clone()],
+            },
+            Student {
+                id: Uuid::from_u128(11),
+                active: true,
+                start: None,
+                plans: vec![held],
+            },
+            Student {
+                id: Uuid::from_u128(12),
+                active: true,
+                start: None,
+                plans: vec![gone],
+            },
+            Student {
+                id: Uuid::from_u128(13),
+                active: true,
+                start: None,
+                plans: vec![enrolled(2)],
+            },
         ];
-        let opts = RunOptions { frequency: Frequency::Monthly, day: d("2026-11-05"), due_days: 10, week_start: 1, fy_start_month: 4 };
+        let opts = RunOptions {
+            frequency: Frequency::Monthly,
+            day: d("2026-11-05"),
+            due_days: 10,
+            week_start: 1,
+            fy_start_month: 4,
+        };
         let excluded = HashSet::from([Uuid::from_u128(13)]);
         let run = plan_billing_run(&students, &plans, &HashSet::new(), &excluded, &opts);
         assert_eq!(run.drafts.len(), 1);
@@ -467,7 +545,10 @@ mod tests {
         assert_eq!(run.drafts[0].lines[0].prorated, Some((10, 30)));
         assert_eq!(run.drafts[0].due_date, d("2026-11-15"));
         let reasons: Vec<_> = run.skipped.iter().map(|s| s.reason).collect();
-        assert_eq!(reasons, vec![SkipReason::OnHold, SkipReason::Ended, SkipReason::Excluded]);
+        assert_eq!(
+            reasons,
+            vec![SkipReason::OnHold, SkipReason::Ended, SkipReason::Excluded]
+        );
     }
 
     #[test]
