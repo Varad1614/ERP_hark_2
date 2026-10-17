@@ -9,6 +9,7 @@
 //!   hand is the foundation API `GET /institutions/{id}/stock-on-hand`.
 
 pub mod demand;
+pub mod demand_http;
 pub mod items;
 pub mod lots;
 pub mod lotstore;
@@ -21,5 +22,6 @@ use utoipa_axum::router::OpenApiRouter;
 pub fn router(state: ResourcesState) -> OpenApiRouter {
     OpenApiRouter::new()
         .merge(items::router(state.clone()))
-        .merge(stock::router(state))
+        .merge(stock::router(state.clone()))
+        .merge(demand_http::router(state))
 }

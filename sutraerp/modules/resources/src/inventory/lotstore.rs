@@ -183,7 +183,7 @@ pub async fn follow(
     let location = m.location_id.as_uuid();
     let current = load(conn, m.tenant, item, location).await?;
     // A reversal moves the same dated quantities back.
-    let given: Vec<Lot> = match (m.kind, m.reverses_entry_id) {
+    let given: Vec<Lot> = match (&m.kind, m.reverses_entry_id.as_ref()) {
         (StockMovementKind::Reversal, Some(rev)) => moved_by(conn, m.tenant, rev.as_uuid())
             .await?
             .into_iter()
