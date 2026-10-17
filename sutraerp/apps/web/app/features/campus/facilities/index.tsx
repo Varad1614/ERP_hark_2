@@ -24,6 +24,7 @@ import { StatusBadge, useCommand, useInstitutionApi } from "../../institution/ho
 import type { Institution } from "../../institution/types";
 import { fkeys, useFacilitiesApi } from "./hooks";
 import type { Equipment, InfraNode, Lab, Plan, Reservation, Session, Ticket, WorkOrder } from "./types";
+import { ServiceDeskRulesTile } from "../servicedesk/ServiceDeskRulesTile";
 
 export { FacilitiesApiProvider } from "./hooks";
 
@@ -573,7 +574,12 @@ function FacilitiesScreen({ institutionId }: { institutionId: string }) {
 /** Admin → Campus → Service desk & maintenance. */
 export function FacilitiesAdminTab({ institution }: { institution: Institution | null }) {
   if (!institution) return <NoInstitutionTile title="Service desk & maintenance" />;
-  return <FacilitiesScreen institutionId={institution.id} />;
+  return (
+    <>
+      <ServiceDeskRulesTile institutionId={institution.id} />
+      <FacilitiesScreen institutionId={institution.id} />
+    </>
+  );
 }
 
 // ================================================================== Laboratories
