@@ -530,14 +530,14 @@ mod tests {
         // Book 1,00,000; cheque issued 20,000 not presented; deposit 5,000 not credited;
         // bank interest 300 and charges 118 not booked.
         let b = brs(
-            100_000_00,
-            &[-20_000_00, 5_000_00],
-            &[300_00, -118_00],
-            Some(115_182_00),
+            10_000_000,
+            &[-2_000_000, 500_000],
+            &[30_000, -11_800],
+            Some(11_518_200),
         );
         assert_eq!(
             b.bank_balance,
-            100_000_00 + 20_000_00 - 5_000_00 + 300_00 - 118_00
+            10_000_000 + 2_000_000 - 500_000 + 30_000 - 11_800
         );
         assert_eq!(b.difference, Some(0));
         assert_eq!(brs(0, &[], &[], None).difference, None);
