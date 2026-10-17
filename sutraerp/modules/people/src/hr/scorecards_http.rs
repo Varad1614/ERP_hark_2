@@ -235,7 +235,8 @@ pub struct HiringFormInput {
     pub screening_questions: Option<Vec<ScreeningQuestion>>,
 }
 
-/// Set a requisition's rubric and screening questions (`staff.manage`).
+/// Set a requisition's rubric and screening questions (`staff.manage`). A key left out keeps
+/// what is stored; null clears it.
 #[utoipa::path(put, path = "/api/v1/people/requisitions/{id}/hiring-form", operation_id = "people_recruitment_requisition_hiring_form", tag = "people-hr",
     params(("id" = String, Path, format = Uuid)), request_body = HiringFormInput, security(("session_cookie" = [], "csrf_token" = [])),
     responses((status = 200, body = HiringForm), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
@@ -252,9 +253,10 @@ pub async fn hiring_form(
     let inst = InstitutionId(req.institution_id);
     let scope = institution_scope(ctx, inst);
     require_institution_writable(&st, &scope, inst).await?;
-    let fields = sc::normalize_rating_fields(b.get("ratingFields").unwrap_or(&Value::Null));
+    // A key left out keeps what is stored; null clears it.
+    let fields = sc::normalize_rating_fields(b.get("ratingFields").unwrap_or(&req.fields));
     let questions =
-        sc::normalize_screening_questions(b.get("screeningQuestions").unwrap_or(&Value::Null));
+        sc::normalize_screening_questions(b.get("screeningQuestions").unwrap_or(&req.questions));
     sqlx::query(
         "UPDATE people.requisition SET rating_fields = $3, screening_questions = $4, updated_at = now() \
          WHERE id = $1 AND tenant_id = $2",
