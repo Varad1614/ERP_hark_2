@@ -27802,6 +27802,232 @@
         ]
       }
     },
+    "/api/v1/campus/institutions/{id}/fleet-costs": {
+      "get": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Fuel, service and other costs per vehicle with usage and ₹ per km (`campus.read`),\ncostliest first.",
+        "operationId": "campus_transport_fleet_costs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Inclusive; default the first of this month a year ago.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Inclusive; default today.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetCosts"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/institutions/{id}/fleet-maintenance": {
+      "get": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Service reminders and renewals of every vehicle (`campus.read`): overdue first, then due\nsoon, then snoozed, nearest first.",
+        "operationId": "campus_transport_maintenance_board",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`overdue | due_soon | upcoming | snoozed`; default every status but upcoming.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceBoard"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/institutions/{id}/fleet-settings": {
+      "get": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Fleet settings (`campus.read`; defaults until saved).",
+        "operationId": "campus_transport_fleet_settings_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Save fleet settings (`campus.transport.manage`; audited).",
+        "operationId": "campus_transport_fleet_settings_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/campus/institutions/{id}/governance-cases": {
       "get": {
         "tags": [
@@ -37765,6 +37991,144 @@
         ]
       }
     },
+    "/api/v1/campus/service-reminders/{id}": {
+      "put": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Change a service reminder (`campus.transport.manage`; If-Match).",
+        "operationId": "campus_transport_service_reminder_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceReminderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReminderView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/service-reminders/{id}/snooze": {
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Snooze a service reminder (`campus.transport.manage`): hides a due or overdue reminder\nuntil the date; snoozing never makes the work on time.",
+        "operationId": "campus_transport_service_reminder_snooze",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnoozeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReminderView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/campus/spaces/{id}/availability": {
       "get": {
         "tags": [
@@ -40919,6 +41283,144 @@
         ]
       }
     },
+    "/api/v1/campus/vehicle-renewals/{id}/complete": {
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Complete a renewal (`campus.transport.manage`; If-Match): it rolls forward by its repeat,\ncounted from where the series started; with no repeat and no next date it is done. A cost\nis booked as a vehicle expense.",
+        "operationId": "campus_transport_vehicle_renewal_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewalComplete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleRenewalView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/vehicle-renewals/{id}/snooze": {
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Snooze a renewal (`campus.transport.manage`).",
+        "operationId": "campus_transport_vehicle_renewal_snooze",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnoozeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleRenewalView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/campus/vehicles/{id}/breakdown": {
       "post": {
         "tags": [
@@ -40970,6 +41472,514 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VehicleView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/vehicles/{id}/expenses": {
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Record a vehicle expense (`campus.transport.manage`; Idempotency-Key).",
+        "operationId": "campus_transport_vehicle_expense_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleExpenseCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetCreated"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/vehicles/{id}/fuel-entries": {
+      "get": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "A vehicle's fuel log with economy between full fills (`campus.read`).",
+        "operationId": "campus_transport_fuel_entry_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FuelLog"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Record a fill-up (`campus.transport.manage`; Idempotency-Key): warns when the meter is\nlower than an earlier entry or the volume is more than the tank holds; records the meter.",
+        "operationId": "campus_transport_fuel_entry_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelEntryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FuelLog"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/vehicles/{id}/maintenance": {
+      "get": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "A vehicle's reminders, renewals and service history (`campus.read`).",
+        "operationId": "campus_transport_vehicle_maintenance_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleMaintenance"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/vehicles/{id}/meter-readings": {
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Record a meter reading (`campus.transport.manage`; Idempotency-Key): the vehicle's meter\nrises to it; a reading lower than the meter is kept but changes nothing.",
+        "operationId": "campus_transport_meter_reading_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeterReadingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleMaintenance"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/vehicles/{id}/renewals": {
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Add a renewal to a vehicle (`campus.transport.manage`; Idempotency-Key).",
+        "operationId": "campus_transport_vehicle_renewal_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleRenewalCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleRenewalView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/vehicles/{id}/service-entries": {
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Record a service (`campus.transport.manage`; Idempotency-Key): completes the named\nreminders (graded on time against the meter when the work was done), and records the meter.",
+        "operationId": "campus_transport_service_entry_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceEntryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleMaintenance"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/vehicles/{id}/service-reminders": {
+      "post": {
+        "tags": [
+          "campus-transport"
+        ],
+        "summary": "Add a service reminder to a vehicle (`campus.transport.manage`; Idempotency-Key).",
+        "operationId": "campus_transport_service_reminder_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceReminderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReminderView"
                 }
               }
             }
@@ -157417,6 +158427,343 @@
           "archived"
         ]
       },
+      "FleetCostRow": {
+        "type": "object",
+        "description": "Operating cost of one vehicle.",
+        "required": [
+          "vehicleId",
+          "registrationNo",
+          "fuel",
+          "service",
+          "other",
+          "total",
+          "meterUnit"
+        ],
+        "properties": {
+          "costPerMeter": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "₹ per km (or hour), when usage is known."
+          },
+          "fuel": {
+            "type": "string"
+          },
+          "meterUnit": {
+            "type": "string"
+          },
+          "other": {
+            "type": "string"
+          },
+          "registrationNo": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string"
+          },
+          "usage": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Meter distance (or hours) in the range."
+          },
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "FleetCosts": {
+        "type": "object",
+        "description": "The fleet cost report.",
+        "required": [
+          "from",
+          "to",
+          "total",
+          "items"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetCostRow"
+            }
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "total": {
+            "type": "string"
+          }
+        }
+      },
+      "FleetCreated": {
+        "type": "object",
+        "description": "The id of a created record.",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "FleetFuelDerived": {
+        "type": "object",
+        "description": "Per-entry derived values.",
+        "properties": {
+          "costPerMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Paise per meter unit."
+          },
+          "economy": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "measured": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FleetFuelMeasure"
+              }
+            ]
+          },
+          "usage": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Meter distance since the previous entry."
+          }
+        }
+      },
+      "FleetFuelMeasure": {
+        "type": "object",
+        "description": "A measured stretch between full fill-ups.",
+        "required": [
+          "distance",
+          "volume"
+        ],
+        "properties": {
+          "distance": {
+            "type": "number",
+            "format": "double"
+          },
+          "volume": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "FleetFuelSummary": {
+        "type": "object",
+        "description": "Totals and averages over a set of entries.",
+        "required": [
+          "count",
+          "cost",
+          "volume",
+          "distance"
+        ],
+        "properties": {
+          "avgEconomy": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Total measured distance over total measured volume."
+          },
+          "avgPrice": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Rupees per unit of volume."
+          },
+          "cost": {
+            "type": "number",
+            "format": "double",
+            "description": "Paise."
+          },
+          "costPerMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Paise per meter unit."
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "distance": {
+            "type": "number",
+            "format": "double"
+          },
+          "volume": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "FleetInterval": {
+        "type": "object",
+        "description": "An `{ every, unit }` interval: `days | weeks | months | years` (anything else = months).",
+        "properties": {
+          "every": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      },
+      "FleetReminderCompletion": {
+        "type": "object",
+        "description": "One completion of a service reminder.",
+        "required": [
+          "date",
+          "onTime"
+        ],
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "entryId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "meter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "onTime": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FleetReminderState": {
+        "type": "object",
+        "description": "Where a reminder stands on `today`.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "daysLeft": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "meterLeft": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "nextDate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nextMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "status": {
+            "type": "string",
+            "description": "`overdue | due_soon | upcoming | snoozed`."
+          }
+        }
+      },
+      "FleetRenewalCompletion": {
+        "type": "object",
+        "description": "One completed renewal.",
+        "required": [
+          "date"
+        ],
+        "properties": {
+          "cost": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Paise."
+          },
+          "date": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "FleetSettings": {
+        "type": "object",
+        "description": "Fleet settings of an institution.",
+        "required": [
+          "dueSoonDays",
+          "dueSoonMeter",
+          "volumeUnit"
+        ],
+        "properties": {
+          "dueSoonDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "A reminder or renewal is \"due soon\" this many days ahead (default 14)."
+          },
+          "dueSoonMeter": {
+            "type": "string",
+            "description": "…or this close on the meter (default 500 km).",
+            "example": "500"
+          },
+          "volumeUnit": {
+            "type": "string",
+            "description": "`L | gal` (default litres)."
+          }
+        }
+      },
       "FlexibleDecision": {
         "type": "object",
         "description": "Body of an approval decision endpoint.",
@@ -158010,6 +159357,191 @@
           "active",
           "superseded"
         ]
+      },
+      "FuelEntryCreate": {
+        "type": "object",
+        "description": "A fill-up or charging session.",
+        "required": [
+          "volume"
+        ],
+        "properties": {
+          "filledOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "filledTime": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`HH:MM`."
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`fuel | charge`."
+          },
+          "meter": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "48250"
+          },
+          "partial": {
+            "type": "boolean",
+            "description": "The tank was not filled."
+          },
+          "price": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "₹ per unit; the total is volume × price unless `total` is given.",
+            "example": "94.72"
+          },
+          "reset": {
+            "type": "boolean",
+            "description": "A fill-up was missed before this one: start a new measurement."
+          },
+          "total": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "4025.60"
+          },
+          "vendor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "volume": {
+            "type": "string",
+            "example": "42.5"
+          }
+        }
+      },
+      "FuelEntryView": {
+        "type": "object",
+        "description": "A fuel entry with its derived values.",
+        "required": [
+          "id",
+          "filledOn",
+          "volume",
+          "total",
+          "partial",
+          "reset",
+          "kind",
+          "derived"
+        ],
+        "properties": {
+          "derived": {
+            "$ref": "#/components/schemas/FleetFuelDerived"
+          },
+          "filledOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "filledTime": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "meter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "reset": {
+            "type": "boolean"
+          },
+          "total": {
+            "type": "string",
+            "description": "₹."
+          },
+          "unitPrice": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "vendor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "volume": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "FuelLog": {
+        "type": "object",
+        "description": "A vehicle's fuel log.",
+        "required": [
+          "meterUnit",
+          "volumeUnit",
+          "economyUnit",
+          "fuel",
+          "charge",
+          "items",
+          "warnings"
+        ],
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/FleetFuelSummary"
+          },
+          "economyUnit": {
+            "type": "string",
+            "description": "`L/100 km` for km with litres; distance per volume otherwise."
+          },
+          "fuel": {
+            "$ref": "#/components/schemas/FleetFuelSummary"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FuelEntryView"
+            },
+            "description": "Newest first."
+          },
+          "meterUnit": {
+            "type": "string"
+          },
+          "volumeUnit": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Checks on the entry just recorded (create only)."
+          }
+        }
       },
       "Gender": {
         "type": "string",
@@ -167151,6 +168683,104 @@
           }
         }
       },
+      "MaintenanceBoard": {
+        "type": "object",
+        "description": "The maintenance board.",
+        "required": [
+          "asOf",
+          "overdue",
+          "dueSoon",
+          "items"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueSoon": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaintenanceBoardRow"
+            }
+          },
+          "overdue": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MaintenanceBoardRow": {
+        "type": "object",
+        "description": "One line of the maintenance board.",
+        "required": [
+          "kind",
+          "id",
+          "vehicleId",
+          "registrationNo",
+          "title",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "daysLeft": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`service | renewal`."
+          },
+          "meterLeft": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "nextDate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nextMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "registrationNo": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "The task, or the renewal's label / type."
+          },
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "MaintenanceCycleStatus": {
         "type": "string",
         "description": "One generated cycle of a preventive plan (L3-G-024).",
@@ -169097,6 +170727,37 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "MeterReadingCreate": {
+        "type": "object",
+        "description": "A meter reading.",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "readOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "setup": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VehicleMeterSetup",
+                "description": "Optional meter set-up applied with the reading."
+              }
+            ]
+          },
+          "value": {
+            "type": "string",
+            "example": "48250"
           }
         }
       },
@@ -184066,6 +185727,36 @@
           }
         }
       },
+      "RenewalComplete": {
+        "type": "object",
+        "description": "Mark a renewal done.",
+        "properties": {
+          "cost": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the renewal cost, ₹ (goes to the vehicle's other costs).",
+            "example": "12450.00"
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Default today."
+          },
+          "nextDue": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "The new due date when it is not the repeat (e.g. a 3-year policy this time)."
+          }
+        }
+      },
       "ReopenCase": {
         "type": "object",
         "required": [
@@ -189307,6 +190998,293 @@
           }
         }
       },
+      "ServiceEntryCreate": {
+        "type": "object",
+        "description": "Record a service.",
+        "required": [
+          "description",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "description": "₹.",
+            "example": "3450.00"
+          },
+          "description": {
+            "type": "string",
+            "example": "Oil change, air filter"
+          },
+          "meter": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "48250"
+          },
+          "reminderIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Service reminders of this vehicle the work completes."
+          },
+          "servicedOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Default today."
+          },
+          "vendor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ServiceEntryView": {
+        "type": "object",
+        "description": "One service done.",
+        "required": [
+          "id",
+          "servicedOn",
+          "description",
+          "amount",
+          "reminderIds"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "3450.00"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "meter": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reminderIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "servicedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "vendor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ServiceReminderInput": {
+        "type": "object",
+        "description": "Create or change a service reminder.",
+        "required": [
+          "task"
+        ],
+        "properties": {
+          "active": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Update only (default true)."
+          },
+          "dueSoonDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "dueSoonMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "interval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FleetInterval",
+                "description": "Repeat by time (`every` 1…1000, `unit` days | weeks | months | years)."
+              }
+            ]
+          },
+          "meterInterval": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Repeat by meter (km / mi / hours)."
+          },
+          "nextDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Manual override of the next due date / meter (cleared by a completion)."
+          },
+          "nextMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "startDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Where the schedule starts (default today, and the vehicle's meter)."
+          },
+          "startMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "task": {
+            "type": "string",
+            "example": "Engine oil and filter"
+          }
+        }
+      },
+      "ServiceReminderView": {
+        "type": "object",
+        "description": "A service reminder and where it stands.",
+        "required": [
+          "id",
+          "vehicleId",
+          "registrationNo",
+          "task",
+          "schedule",
+          "state",
+          "history",
+          "active",
+          "version"
+        ],
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "compliance": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Share of completions done on time (null without history)."
+          },
+          "dueSoonDays": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "dueSoonMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetReminderCompletion"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FleetInterval"
+              }
+            ]
+          },
+          "lastDate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastMeter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "meterInterval": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "registrationNo": {
+            "type": "string"
+          },
+          "schedule": {
+            "type": "string",
+            "description": "\"Every 6 months or 10000 km\", \"One time\"."
+          },
+          "snoozedUntil": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/FleetReminderState"
+          },
+          "task": {
+            "type": "string"
+          },
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "ServiceTicketId": {
         "type": "string",
         "format": "uuid",
@@ -189775,6 +191753,19 @@
           "accepted",
           "discarded"
         ]
+      },
+      "SnoozeBody": {
+        "type": "object",
+        "description": "Snooze until a date (null clears).",
+        "properties": {
+          "until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
       },
       "SourcingAward": {
         "type": "object",
@@ -198052,6 +200043,38 @@
           }
         }
       },
+      "VehicleExpenseCreate": {
+        "type": "object",
+        "description": "Another operating cost (tolls, parking, cleaning, fines…).",
+        "required": [
+          "expenseType",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "description": "₹.",
+            "example": "450.00"
+          },
+          "expenseType": {
+            "type": "string",
+            "example": "Tolls"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spentOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      },
       "VehicleList": {
         "type": "object",
         "description": "Vehicles of an institution.",
@@ -198064,6 +200087,209 @@
             "items": {
               "$ref": "#/components/schemas/VehicleView"
             }
+          }
+        }
+      },
+      "VehicleMaintenance": {
+        "type": "object",
+        "description": "A vehicle's maintenance file.",
+        "required": [
+          "vehicleId",
+          "registrationNo",
+          "meterUnit",
+          "reminders",
+          "renewals",
+          "services"
+        ],
+        "properties": {
+          "fuelCapacity": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "meter": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "meterUnit": {
+            "type": "string"
+          },
+          "registrationNo": {
+            "type": "string"
+          },
+          "reminders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceReminderView"
+            }
+          },
+          "renewals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VehicleRenewalView"
+            }
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceEntryView"
+            },
+            "description": "Latest 50 services, newest first."
+          },
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "VehicleMeterSetup": {
+        "type": "object",
+        "description": "Set a vehicle's meter details.",
+        "required": [
+          "meterUnit"
+        ],
+        "properties": {
+          "fuelCapacity": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Tank size in the fleet's volume unit (warns on over-full fills).",
+            "example": "60"
+          },
+          "meterUnit": {
+            "type": "string",
+            "description": "`km | mi | hr`."
+          }
+        }
+      },
+      "VehicleRenewalCreate": {
+        "type": "object",
+        "description": "A new renewal.",
+        "required": [
+          "renewalType",
+          "dueDate"
+        ],
+        "properties": {
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueSoonDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "renewalType": {
+            "type": "string",
+            "description": "`registration | insurance | fitness | pollution | permit | road_tax | other`."
+          },
+          "repeat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FleetInterval",
+                "description": "Rolls forward by this when completed (e.g. `{every: 1, unit: \"years\"}`)."
+              }
+            ]
+          }
+        }
+      },
+      "VehicleRenewalView": {
+        "type": "object",
+        "description": "A renewal and where it stands.",
+        "required": [
+          "id",
+          "vehicleId",
+          "registrationNo",
+          "renewalType",
+          "status",
+          "done",
+          "history",
+          "version"
+        ],
+        "properties": {
+          "daysLeft": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "dueDate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetRenewalCompletion"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registrationNo": {
+            "type": "string"
+          },
+          "renewalType": {
+            "type": "string",
+            "description": "`registration | insurance | fitness | pollution | permit | road_tax | other`."
+          },
+          "repeat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FleetInterval"
+              }
+            ]
+          },
+          "snoozedUntil": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "`overdue | due_soon | upcoming | snoozed` (a renewal with no next date is `upcoming`)."
+          },
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },

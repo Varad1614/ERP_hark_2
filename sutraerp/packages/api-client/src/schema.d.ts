@@ -5692,6 +5692,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campus/institutions/{id}/fleet-costs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fuel, service and other costs per vehicle with usage and ₹ per km (`campus.read`),
+         *     costliest first.
+         */
+        get: operations["campus_transport_fleet_costs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/fleet-maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Service reminders and renewals of every vehicle (`campus.read`): overdue first, then due
+         *     soon, then snoozed, nearest first.
+         */
+        get: operations["campus_transport_maintenance_board"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/fleet-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fleet settings (`campus.read`; defaults until saved). */
+        get: operations["campus_transport_fleet_settings_get"];
+        /** Save fleet settings (`campus.transport.manage`; audited). */
+        put: operations["campus_transport_fleet_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campus/institutions/{id}/governance-cases": {
         parameters: {
             query?: never;
@@ -7955,6 +8013,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campus/service-reminders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a service reminder (`campus.transport.manage`; If-Match). */
+        put: operations["campus_transport_service_reminder_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/service-reminders/{id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Snooze a service reminder (`campus.transport.manage`): hides a due or overdue reminder
+         *     until the date; snoozing never makes the work on time.
+         */
+        post: operations["campus_transport_service_reminder_snooze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campus/spaces/{id}/availability": {
         parameters: {
             query?: never;
@@ -8710,6 +8805,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campus/vehicle-renewals/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete a renewal (`campus.transport.manage`; If-Match): it rolls forward by its repeat,
+         *     counted from where the series started; with no repeat and no next date it is done. A cost
+         *     is booked as a vehicle expense.
+         */
+        post: operations["campus_transport_vehicle_renewal_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicle-renewals/{id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Snooze a renewal (`campus.transport.manage`). */
+        post: operations["campus_transport_vehicle_renewal_snooze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campus/vehicles/{id}/breakdown": {
         parameters: {
             query?: never;
@@ -8724,6 +8857,135 @@ export interface paths {
          *     open trips are flagged as needing a replacement vehicle (`/trips/{id}/replace-vehicle`).
          */
         post: operations["campus_transport_vehicle_breakdown"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a vehicle expense (`campus.transport.manage`; Idempotency-Key). */
+        post: operations["campus_transport_vehicle_expense_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/fuel-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A vehicle's fuel log with economy between full fills (`campus.read`). */
+        get: operations["campus_transport_fuel_entry_list"];
+        put?: never;
+        /**
+         * Record a fill-up (`campus.transport.manage`; Idempotency-Key): warns when the meter is
+         *     lower than an earlier entry or the volume is more than the tank holds; records the meter.
+         */
+        post: operations["campus_transport_fuel_entry_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A vehicle's reminders, renewals and service history (`campus.read`). */
+        get: operations["campus_transport_vehicle_maintenance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/meter-readings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a meter reading (`campus.transport.manage`; Idempotency-Key): the vehicle's meter
+         *     rises to it; a reading lower than the meter is kept but changes nothing.
+         */
+        post: operations["campus_transport_meter_reading_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/renewals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a renewal to a vehicle (`campus.transport.manage`; Idempotency-Key). */
+        post: operations["campus_transport_vehicle_renewal_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/service-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a service (`campus.transport.manage`; Idempotency-Key): completes the named
+         *     reminders (graded on time against the meter when the work was done), and records the meter.
+         */
+        post: operations["campus_transport_service_entry_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/vehicles/{id}/service-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a service reminder to a vehicle (`campus.transport.manage`; Idempotency-Key). */
+        post: operations["campus_transport_service_reminder_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -35011,6 +35273,140 @@ export interface components {
          * @enum {string}
          */
         FinancialYearStatus: "draft" | "open" | "closing" | "closed" | "archived";
+        /** @description Operating cost of one vehicle. */
+        FleetCostRow: {
+            /** @description ₹ per km (or hour), when usage is known. */
+            costPerMeter?: string | null;
+            fuel: string;
+            meterUnit: string;
+            other: string;
+            registrationNo: string;
+            service: string;
+            total: string;
+            /**
+             * Format: double
+             * @description Meter distance (or hours) in the range.
+             */
+            usage?: number | null;
+            /** Format: uuid */
+            vehicleId: string;
+        };
+        /** @description The fleet cost report. */
+        FleetCosts: {
+            /** Format: date */
+            from: string;
+            items: components["schemas"]["FleetCostRow"][];
+            /** Format: date */
+            to: string;
+            total: string;
+        };
+        /** @description The id of a created record. */
+        FleetCreated: {
+            /** Format: uuid */
+            id: string;
+        };
+        /** @description Per-entry derived values. */
+        FleetFuelDerived: {
+            /**
+             * Format: double
+             * @description Paise per meter unit.
+             */
+            costPerMeter?: number | null;
+            /** Format: double */
+            economy?: number | null;
+            measured?: null | components["schemas"]["FleetFuelMeasure"];
+            /**
+             * Format: double
+             * @description Meter distance since the previous entry.
+             */
+            usage?: number | null;
+        };
+        /** @description A measured stretch between full fill-ups. */
+        FleetFuelMeasure: {
+            /** Format: double */
+            distance: number;
+            /** Format: double */
+            volume: number;
+        };
+        /** @description Totals and averages over a set of entries. */
+        FleetFuelSummary: {
+            /**
+             * Format: double
+             * @description Total measured distance over total measured volume.
+             */
+            avgEconomy?: number | null;
+            /**
+             * Format: double
+             * @description Rupees per unit of volume.
+             */
+            avgPrice?: number | null;
+            /**
+             * Format: double
+             * @description Paise.
+             */
+            cost: number;
+            /**
+             * Format: double
+             * @description Paise per meter unit.
+             */
+            costPerMeter?: number | null;
+            count: number;
+            /** Format: double */
+            distance: number;
+            /** Format: double */
+            volume: number;
+        };
+        /** @description An `{ every, unit }` interval: `days | weeks | months | years` (anything else = months). */
+        FleetInterval: {
+            /** Format: double */
+            every?: number;
+            unit?: string;
+        };
+        /** @description One completion of a service reminder. */
+        FleetReminderCompletion: {
+            date: string;
+            entryId?: string | null;
+            /** Format: double */
+            meter?: number | null;
+            onTime: boolean;
+        };
+        /** @description Where a reminder stands on `today`. */
+        FleetReminderState: {
+            /** Format: int64 */
+            daysLeft?: number | null;
+            /** Format: double */
+            meterLeft?: number | null;
+            nextDate?: string | null;
+            /** Format: double */
+            nextMeter?: number | null;
+            /** @description `overdue | due_soon | upcoming | snoozed`. */
+            status: string;
+        };
+        /** @description One completed renewal. */
+        FleetRenewalCompletion: {
+            /**
+             * Format: double
+             * @description Paise.
+             */
+            cost?: number | null;
+            date: string;
+            dueDate?: string | null;
+        };
+        /** @description Fleet settings of an institution. */
+        FleetSettings: {
+            /**
+             * Format: int32
+             * @description A reminder or renewal is "due soon" this many days ahead (default 14).
+             */
+            dueSoonDays: number;
+            /**
+             * @description …or this close on the meter (default 500 km).
+             * @example 500
+             */
+            dueSoonMeter: string;
+            /** @description `L | gal` (default litres). */
+            volumeUnit: string;
+        };
         /** @description Body of an approval decision endpoint. */
         FlexibleDecision: {
             decision: components["schemas"]["FlexibleDecisionValue"];
@@ -35198,6 +35594,65 @@ export interface components {
          * @enum {string}
          */
         FrameworkStatus: "draft" | "active" | "superseded";
+        /** @description A fill-up or charging session. */
+        FuelEntryCreate: {
+            /** Format: date */
+            filledOn?: string | null;
+            /** @description `HH:MM`. */
+            filledTime?: string | null;
+            /** @description `fuel | charge`. */
+            kind?: string | null;
+            /** @example 48250 */
+            meter?: string | null;
+            /** @description The tank was not filled. */
+            partial?: boolean;
+            /**
+             * @description ₹ per unit; the total is volume × price unless `total` is given.
+             * @example 94.72
+             */
+            price?: string | null;
+            /** @description A fill-up was missed before this one: start a new measurement. */
+            reset?: boolean;
+            /** @example 4025.60 */
+            total?: string | null;
+            vendor?: string | null;
+            /** @example 42.5 */
+            volume: string;
+        };
+        /** @description A fuel entry with its derived values. */
+        FuelEntryView: {
+            derived: components["schemas"]["FleetFuelDerived"];
+            /** Format: date */
+            filledOn: string;
+            filledTime?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: double */
+            meter?: number | null;
+            partial: boolean;
+            reset: boolean;
+            /** @description ₹. */
+            total: string;
+            /** Format: double */
+            unitPrice?: number | null;
+            vendor?: string | null;
+            /** Format: double */
+            volume: number;
+        };
+        /** @description A vehicle's fuel log. */
+        FuelLog: {
+            charge: components["schemas"]["FleetFuelSummary"];
+            /** @description `L/100 km` for km with litres; distance per volume otherwise. */
+            economyUnit: string;
+            fuel: components["schemas"]["FleetFuelSummary"];
+            /** @description Newest first. */
+            items: components["schemas"]["FuelEntryView"][];
+            meterUnit: string;
+            volumeUnit: string;
+            /** @description Checks on the entry just recorded (create only). */
+            warnings: string[];
+        };
         /**
          * @description Gender as recorded on the profile (optional).
          * @enum {string}
@@ -38233,6 +38688,36 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description The maintenance board. */
+        MaintenanceBoard: {
+            /** Format: date */
+            asOf: string;
+            dueSoon: number;
+            items: components["schemas"]["MaintenanceBoardRow"][];
+            overdue: number;
+        };
+        /** @description One line of the maintenance board. */
+        MaintenanceBoardRow: {
+            /** Format: int64 */
+            daysLeft?: number | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `service | renewal`. */
+            kind: string;
+            /** Format: double */
+            meterLeft?: number | null;
+            nextDate?: string | null;
+            /** Format: double */
+            nextMeter?: number | null;
+            registrationNo: string;
+            status: string;
+            /** @description The task, or the renewal's label / type. */
+            title: string;
+            /** Format: uuid */
+            vehicleId: string;
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * @description One generated cycle of a preventive plan (L3-G-024).
          * @enum {string}
@@ -38834,6 +39319,14 @@ export interface components {
             status: string;
             /** Format: int64 */
             version: number;
+        };
+        /** @description A meter reading. */
+        MeterReadingCreate: {
+            /** Format: date */
+            readOn?: string | null;
+            setup?: null | components["schemas"]["VehicleMeterSetup"];
+            /** @example 48250 */
+            value: string;
         };
         /** @description One operational figure (decimal string). */
         MetricValueView: {
@@ -43492,6 +43985,24 @@ export interface components {
             /** Format: uuid */
             widgetId: string;
         };
+        /** @description Mark a renewal done. */
+        RenewalComplete: {
+            /**
+             * @description What the renewal cost, ₹ (goes to the vehicle's other costs).
+             * @example 12450.00
+             */
+            cost?: string | null;
+            /**
+             * Format: date
+             * @description Default today.
+             */
+            date?: string | null;
+            /**
+             * Format: date
+             * @description The new due date when it is not the repeat (e.g. a 3-year policy this time).
+             */
+            nextDue?: string | null;
+        };
         ReopenCase: {
             evidence?: string | null;
             reason: string;
@@ -45151,6 +45662,102 @@ export interface components {
         ServiceDeskViewList: {
             items: components["schemas"]["ServiceDeskView"][];
         };
+        /** @description Record a service. */
+        ServiceEntryCreate: {
+            /**
+             * @description ₹.
+             * @example 3450.00
+             */
+            amount: string;
+            /** @example Oil change, air filter */
+            description: string;
+            /** @example 48250 */
+            meter?: string | null;
+            /** @description Service reminders of this vehicle the work completes. */
+            reminderIds?: string[];
+            /**
+             * Format: date
+             * @description Default today.
+             */
+            servicedOn?: string | null;
+            vendor?: string | null;
+        };
+        /** @description One service done. */
+        ServiceEntryView: {
+            /** @example 3450.00 */
+            amount: string;
+            description: string;
+            /** Format: uuid */
+            id: string;
+            meter?: string | null;
+            reminderIds: string[];
+            /** Format: date */
+            servicedOn: string;
+            vendor?: string | null;
+        };
+        /** @description Create or change a service reminder. */
+        ServiceReminderInput: {
+            /** @description Update only (default true). */
+            active?: boolean | null;
+            /** Format: int32 */
+            dueSoonDays?: number | null;
+            /** Format: double */
+            dueSoonMeter?: number | null;
+            interval?: null | components["schemas"]["FleetInterval"];
+            /**
+             * Format: double
+             * @description Repeat by meter (km / mi / hours).
+             */
+            meterInterval?: number | null;
+            /**
+             * Format: date
+             * @description Manual override of the next due date / meter (cleared by a completion).
+             */
+            nextDate?: string | null;
+            /** Format: double */
+            nextMeter?: number | null;
+            /**
+             * Format: date
+             * @description Where the schedule starts (default today, and the vehicle's meter).
+             */
+            startDate?: string | null;
+            /** Format: double */
+            startMeter?: number | null;
+            /** @example Engine oil and filter */
+            task: string;
+        };
+        /** @description A service reminder and where it stands. */
+        ServiceReminderView: {
+            active: boolean;
+            /**
+             * Format: double
+             * @description Share of completions done on time (null without history).
+             */
+            compliance?: number | null;
+            /** Format: double */
+            dueSoonDays?: number | null;
+            /** Format: double */
+            dueSoonMeter?: number | null;
+            history: components["schemas"]["FleetReminderCompletion"][];
+            /** Format: uuid */
+            id: string;
+            interval?: null | components["schemas"]["FleetInterval"];
+            lastDate?: string | null;
+            /** Format: double */
+            lastMeter?: number | null;
+            /** Format: double */
+            meterInterval?: number | null;
+            registrationNo: string;
+            /** @description "Every 6 months or 10000 km", "One time". */
+            schedule: string;
+            snoozedUntil?: string | null;
+            state: components["schemas"]["FleetReminderState"];
+            task: string;
+            /** Format: uuid */
+            vehicleId: string;
+            /** Format: int64 */
+            version: number;
+        };
         /**
          * Format: uuid
          * @description Service desk ticket: service request or complaint from any campus service (L2-G01 / G03 / G04 / G05).
@@ -45308,6 +45915,11 @@ export interface components {
          * @enum {string}
          */
         SimulationStatus: "draft" | "evaluated" | "accepted" | "discarded";
+        /** @description Snooze until a date (null clears). */
+        SnoozeBody: {
+            /** Format: date */
+            until?: string | null;
+        };
         /** @description Award the event to one quotation. */
         SourcingAward: {
             /** Format: uuid */
@@ -47907,9 +48519,80 @@ export interface components {
             label: string;
             registrationNo: string;
         };
+        /** @description Another operating cost (tolls, parking, cleaning, fines…). */
+        VehicleExpenseCreate: {
+            /**
+             * @description ₹.
+             * @example 450.00
+             */
+            amount: string;
+            /** @example Tolls */
+            expenseType: string;
+            note?: string | null;
+            /** Format: date */
+            spentOn?: string | null;
+        };
         /** @description Vehicles of an institution. */
         VehicleList: {
             items: components["schemas"]["VehicleView"][];
+        };
+        /** @description A vehicle's maintenance file. */
+        VehicleMaintenance: {
+            /** Format: double */
+            fuelCapacity?: number | null;
+            /** Format: double */
+            meter?: number | null;
+            meterUnit: string;
+            registrationNo: string;
+            reminders: components["schemas"]["ServiceReminderView"][];
+            renewals: components["schemas"]["VehicleRenewalView"][];
+            /** @description Latest 50 services, newest first. */
+            services: components["schemas"]["ServiceEntryView"][];
+            /** Format: uuid */
+            vehicleId: string;
+        };
+        /** @description Set a vehicle's meter details. */
+        VehicleMeterSetup: {
+            /**
+             * @description Tank size in the fleet's volume unit (warns on over-full fills).
+             * @example 60
+             */
+            fuelCapacity?: string | null;
+            /** @description `km | mi | hr`. */
+            meterUnit: string;
+        };
+        /** @description A new renewal. */
+        VehicleRenewalCreate: {
+            /** Format: date */
+            dueDate: string;
+            /** Format: int32 */
+            dueSoonDays?: number | null;
+            label?: string | null;
+            /** @description `registration | insurance | fitness | pollution | permit | road_tax | other`. */
+            renewalType: string;
+            repeat?: null | components["schemas"]["FleetInterval"];
+        };
+        /** @description A renewal and where it stands. */
+        VehicleRenewalView: {
+            /** Format: int64 */
+            daysLeft?: number | null;
+            done: boolean;
+            dueDate?: string | null;
+            history: components["schemas"]["FleetRenewalCompletion"][];
+            /** Format: uuid */
+            id: string;
+            label?: string | null;
+            registrationNo: string;
+            /** @description `registration | insurance | fitness | pollution | permit | road_tax | other`. */
+            renewalType: string;
+            repeat?: null | components["schemas"]["FleetInterval"];
+            snoozedUntil?: string | null;
+            /** @description `overdue | due_soon | upcoming | snoozed` (a renewal with no next date is `upcoming`). */
+            status: string;
+            /** Format: uuid */
+            vehicleId: string;
+            /** Format: int64 */
+            version: number;
         };
         /** @description A manual vehicle status change (`available | under_maintenance | retired`). */
         VehicleStatusBody: {
@@ -63658,6 +64341,134 @@ export interface operations {
             };
         };
     };
+    campus_transport_fleet_costs: {
+        parameters: {
+            query?: {
+                /** @description Inclusive; default the first of this month a year ago. */
+                from?: string;
+                /** @description Inclusive; default today. */
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetCosts"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_maintenance_board: {
+        parameters: {
+            query?: {
+                /** @description `overdue | due_soon | upcoming | snoozed`; default every status but upcoming. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenanceBoard"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_fleet_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_fleet_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FleetSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     campus_governance_case_list: {
         parameters: {
             query?: {
@@ -68864,6 +69675,76 @@ export interface operations {
             };
         };
     };
+    campus_transport_service_reminder_update: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceReminderInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceReminderView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_service_reminder_snooze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnoozeBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceReminderView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     campus_space_calendar: {
         parameters: {
             query?: {
@@ -70483,6 +71364,76 @@ export interface operations {
             };
         };
     };
+    campus_transport_vehicle_renewal_complete: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenewalComplete"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleRenewalView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_vehicle_renewal_snooze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnoozeBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleRenewalView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     campus_transport_vehicle_breakdown: {
         parameters: {
             query?: never;
@@ -70508,6 +71459,282 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VehicleView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_vehicle_expense_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VehicleExpenseCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetCreated"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_fuel_entry_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuelLog"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_fuel_entry_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FuelEntryCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuelLog"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_vehicle_maintenance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleMaintenance"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_meter_reading_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeterReadingCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleMaintenance"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_vehicle_renewal_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VehicleRenewalCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleRenewalView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_service_entry_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceEntryCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleMaintenance"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_transport_service_reminder_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceReminderInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceReminderView"];
                 };
             };
             "4XX": {

@@ -80,7 +80,7 @@ export function FleetMaintenanceTile({ institutionId, api = defaultFleetApi() }:
               { key: "a", header: "", render: (r) => (r.status !== "snoozed" ? (
                 <Button size="sm" variant="ghost" data-action="snooze" disabled={busy} onClick={() => {
                   const until = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
-                  void run(() => (r.kind === "service" ? api.snoozeReminder(r.id, until) : api.snoozeRenewal(r.id, until)), "Snoozed for a week");
+                  void run(async () => { if (r.kind === "service") await api.snoozeReminder(r.id, until); else await api.snoozeRenewal(r.id, until); }, "Snoozed for a week");
                 }}>Snooze a week</Button>
               ) : null) },
             ]} />
@@ -108,7 +108,7 @@ export function FleetMaintenanceTile({ institutionId, api = defaultFleetApi() }:
                   { key: "c", header: "On time", render: (r) => (r.compliance === null ? "—" : `${Math.round(r.compliance * 100)}%`) },
                   { key: "st", header: "Status", render: (r) => badge(r.state.status) },
                 ]} />
-              <FormGrid columns={4}>
+              <FormGrid columns={2}>
                 <TextField label="Task" value={rem.task} placeholder="Engine oil" onChange={(e) => setRem({ ...rem, task: e.target.value })} />
                 <TextField label="Every (time)" inputMode="numeric" value={rem.every} onChange={(e) => setRem({ ...rem, every: e.target.value })} />
                 <FormSelect label="Unit" value={rem.unit} onChange={(e) => setRem({ ...rem, unit: e.target.value })} options={UNITS.map((u) => ({ value: u, label: u }))} />
@@ -130,7 +130,7 @@ export function FleetMaintenanceTile({ institutionId, api = defaultFleetApi() }:
                     <Button size="sm" variant="ghost" data-action="renew" disabled={busy} onClick={() => void run(() => api.completeRenewal(r.id, r.version, {}), "Renewal recorded")}>Renewed</Button>
                   )) },
                 ]} />
-              <FormGrid columns={4}>
+              <FormGrid columns={2}>
                 <FormSelect label="Document" value={ren.type} onChange={(e) => setRen({ ...ren, type: e.target.value })} options={RENEWAL_TYPES} />
                 <TextField label="Due date" type="date" value={ren.due} onChange={(e) => setRen({ ...ren, due: e.target.value })} />
                 <TextField label="Repeats every" inputMode="numeric" value={ren.every} onChange={(e) => setRen({ ...ren, every: e.target.value })} />
@@ -142,7 +142,7 @@ export function FleetMaintenanceTile({ institutionId, api = defaultFleetApi() }:
                 setRen({ ...ren, due: "" });
               }, "Renewal added")}>Add renewal</Button>
 
-              <FormGrid columns={4}>
+              <FormGrid columns={2}>
                 <TextField label="Service done" value={svc.description} placeholder="Oil and filter" onChange={(e) => setSvc({ ...svc, description: e.target.value })} />
                 <TextField label={`Meter (${unit})`} inputMode="decimal" value={svc.meter} onChange={(e) => setSvc({ ...svc, meter: e.target.value })} />
                 <TextField label="Amount (₹)" inputMode="decimal" value={svc.amount} onChange={(e) => setSvc({ ...svc, amount: e.target.value })} />
@@ -170,7 +170,7 @@ export function FleetMaintenanceTile({ institutionId, api = defaultFleetApi() }:
                     ]} />
                 </>
               )}
-              <FormGrid columns={4}>
+              <FormGrid columns={2}>
                 <TextField label={`Meter (${unit})`} inputMode="decimal" value={fill.meter} onChange={(e) => setFill({ ...fill, meter: e.target.value })} />
                 <TextField label="Litres" inputMode="decimal" value={fill.volume} onChange={(e) => setFill({ ...fill, volume: e.target.value })} />
                 <TextField label="₹ per litre" inputMode="decimal" value={fill.price} onChange={(e) => setFill({ ...fill, price: e.target.value })} />
