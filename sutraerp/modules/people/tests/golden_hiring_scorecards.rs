@@ -64,6 +64,10 @@ fn eq(got: Value, want: &Value, what: &str) {
     assert_eq!(norm(got), norm(want.clone()), "{what}");
 }
 
+fn to<T: serde::Serialize>(v: T) -> Value {
+    serde_json::to_value(v).expect("json")
+}
+
 fn author(v: &Value) -> String {
     v.as_str().map(str::to_owned).unwrap_or_default()
 }
@@ -77,7 +81,6 @@ fn hiring_scorecards_match_everything() {
         let i = &c.input;
         let x = &c.expected;
         let w = |k: &str| format!("case {ci} {k}");
-        let to = |v| serde_json::to_value(v).expect("json");
         eq(to(normalize_rating_fields(&i.fields)), &x["normalizedFields"], &w("normalizedFields"));
         let rubric = fields_or_default(&i.fields);
         eq(to(&rubric), &x["rubric"], &w("rubric"));

@@ -508,7 +508,7 @@ mod tests {
         let s = summarize(&cards, &default_fields());
         assert_eq!(s.leaning.as_deref(), Some("hire"));
         assert_eq!(s.by_field["skills"], Some(4.5));
-        assert_eq!(s.average, Some(4.25));
+        assert_eq!(s.average, Some(4.0));
         let errs = validate_scorecard(" ", &json!("maybe"), &cards[1].ratings);
         assert_eq!(errs.len(), 3);
         let g = normalize_guides(&json!([

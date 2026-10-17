@@ -8,6 +8,7 @@ pub mod onboarding;
 pub mod probation;
 pub mod recruitment;
 pub mod scorecards; // ERP_EXTENSIONS 3B
+pub mod scorecards_http; // ERP_EXTENSIONS 3B
 pub mod separation;
 
 use crate::shared::PeopleState;
@@ -17,6 +18,7 @@ use utoipa_axum::router::OpenApiRouter;
 pub fn router(state: PeopleState) -> OpenApiRouter {
     OpenApiRouter::new()
         .merge(recruitment::router(state.clone()))
+        .merge(scorecards_http::router(state.clone())) // ERP_EXTENSIONS 3B
         .merge(onboarding::router(state.clone()))
         .merge(probation::router(state.clone()))
         .merge(separation::router(state.clone()))
