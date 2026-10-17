@@ -38,6 +38,7 @@ pub mod positions; // 7A
 pub mod profile; // 7A
 pub mod workforce; // 7A
 pub mod workload; // 7B
+pub mod roster; // ERP_EXTENSIONS 3A
 
 use sqlx::PgPool;
 use std::sync::Arc;
