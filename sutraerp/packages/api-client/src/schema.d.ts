@@ -12282,6 +12282,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/bank-accounts/{id}/brs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bank reconciliation statement (`finance.read`): balance as per cash book, plus cheques issued
+         *     not presented, less deposits not credited, plus / less bank credits / debits not yet booked,
+         *     gives the balance as per pass book; compared with an imported statement closing that day.
+         */
+        get: operations["finance_bank_recon_brs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/bank-accounts/{id}/close": {
         parameters: {
             query?: never;
@@ -12313,6 +12334,86 @@ export interface paths {
          *     `active`, reject (reason required) → `closed`.
          */
         post: operations["finance_bank_account_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Unreconciled entries on a bank account up to a statement date, the carried-forward balance
+         *     and the last reconciliation (`finance.read`).
+         */
+        get: operations["finance_bank_recon_workspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/reconciliation/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Figures for ticked entries against an ending balance, without saving (`finance.read`). */
+        post: operations["finance_bank_recon_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reconciliation history of a bank account, newest first (`finance.read`). */
+        get: operations["finance_bank_recon_list"];
+        put?: never;
+        /**
+         * Finishes a reconciliation (`treasury.manage`): the ticked entries become reconciled once the
+         *     cleared balance equals the statement ending balance (difference zero). The statement date
+         *     cannot precede the last reconciliation's or be in the future; the bank account row is locked so
+         *     two finishes serialize.
+         */
+        post: operations["finance_bank_recon_finish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-accounts/{id}/reconciliations/undo-last": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undoes the latest finished reconciliation (`treasury.manage`): its entries become
+         *     unreconciled again and the carried-forward balance steps back. The record stays as `undone`.
+         */
+        post: operations["finance_bank_recon_undo"];
         delete?: never;
         options?: never;
         head?: never;
@@ -12428,6 +12529,28 @@ export interface paths {
         };
         /** One statement with its lines and reconciliation runs (`finance.read`). */
         get: operations["finance_statement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/bank-statements/{id}/lines/{lineId}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Up to 8 match suggestions for one statement line (`finance.read`): entries on the bank account
+         *     with the same amount and direction within the window that no line has taken and no
+         *     reconciliation has cleared (closest first), then open student charges of exactly the amount
+         *     for money in.
+         */
+        get: operations["finance_statement_line_suggestions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13469,6 +13592,23 @@ export interface paths {
          *     `BANK_ACCOUNT_APPROVAL` (auto-approved in Batch 5 → `active`).
          */
         post: operations["finance_bank_account_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/bank-reconciliation-discrepancies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Changes after reconciliation across an institution's bank accounts (`finance.read`). */
+        get: operations["finance_bank_recon_discrepancies"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -28895,6 +29035,120 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description A reconciled entry whose amount on the bank account changed afterwards. */
+        BankReconDiscrepancy: {
+            /** Format: uuid */
+            bankAccountId: string;
+            bankAccountName: string;
+            change: string;
+            currentAmount: string;
+            entryNumber?: string | null;
+            /** Format: uuid */
+            journalEntryId: string;
+            /** Format: date */
+            postingDate?: string | null;
+            reconciledAmount: string;
+            /** Format: uuid */
+            reconciliationId: string;
+            /** Format: date */
+            statementDate: string;
+        };
+        BankReconDiscrepancyList: {
+            items: components["schemas"]["BankReconDiscrepancy"][];
+        };
+        /** @description Ticked entries against a statement ending balance. */
+        BankReconInput: {
+            /** @description Statement ending balance (decimal string; an overdraft is negative). */
+            endingBalance: string;
+            /** @description The ticked journal entries (unreconciled entries on the account up to the date). */
+            journalEntryIds?: string[];
+            note?: string | null;
+            /** @description `YYYY-MM-DD`, the statement's closing date. */
+            statementDate: string;
+        };
+        /** @description An unreconciled entry on the bank account. */
+        BankReconItem: {
+            /**
+             * @description Money into the bank positive, out negative.
+             * @example -2500.00
+             */
+            amount: string;
+            /** @description The bank has shown it on an imported statement (matched line): pre-ticked. */
+            cleared: boolean;
+            description: string;
+            entryNumber: string;
+            /** Format: uuid */
+            journalEntryId: string;
+            /** Format: date */
+            postingDate: string;
+        };
+        BankReconList: {
+            items: components["schemas"]["BankReconView"][];
+        };
+        /** @description The reconcile screen's figures. */
+        BankReconSummary: {
+            balanced: boolean;
+            beginningBalance: string;
+            clearedBalance: string;
+            /** Format: int64 */
+            decreaseCount: number;
+            /** @description Σ ticked money out. */
+            decreases: string;
+            /** @description Ending − cleared; a reconciliation can finish only at zero. */
+            difference: string;
+            endingBalance: string;
+            /** Format: int64 */
+            increaseCount: number;
+            /** @description Σ ticked money in. */
+            increases: string;
+            /** Format: date */
+            statementDate: string;
+        };
+        /** @description Which reconciliation to undo (must be the latest finished one). */
+        BankReconUndo: {
+            /** Format: uuid */
+            reconciliationId: string;
+        };
+        /** @description One reconciliation of a bank account. */
+        BankReconView: {
+            /** Format: uuid */
+            bankAccountId: string;
+            /** @example 97500.00 */
+            beginningBalance: string;
+            /** Format: int32 */
+            clearedCount: number;
+            /** @example 97500.00 */
+            endingBalance: string;
+            /** Format: date-time */
+            finishedAt: string;
+            finishedBy?: string | null;
+            /** Format: uuid */
+            id: string;
+            note?: string | null;
+            /** Format: date */
+            statementDate: string;
+            /** @description `done` or `undone`. */
+            status: string;
+            /** Format: date-time */
+            undoneAt?: string | null;
+            undoneBy?: string | null;
+        };
+        /** @description What reconciling a bank account up to a statement date starts from. */
+        BankReconWorkspace: {
+            /** Format: uuid */
+            bankAccountId: string;
+            /**
+             * @description Balance carried forward from finished reconciliations.
+             * @example 97500.00
+             */
+            beginningBalance: string;
+            items: components["schemas"]["BankReconItem"][];
+            lastReconciliation?: null | components["schemas"]["BankReconView"];
+            /** @description Closing balance of an imported statement ending on the statement date, if any. */
+            statementClosingBalance?: string | null;
+            /** Format: date */
+            statementDate: string;
+        };
         /**
          * Format: uuid
          * @description Bank reconciliation of a statement (L3-F-058).
@@ -29013,6 +29267,41 @@ export interface components {
             allowLateSubmission?: boolean;
             /** @description Every marked submission needs an approved moderation before finalisation. */
             moderationRequired?: boolean;
+        };
+        /** @description One item of the bank reconciliation statement. */
+        BrsItem: {
+            amount: string;
+            /** Format: date */
+            date: string;
+            description?: string | null;
+            /** Format: uuid */
+            journalEntryId?: string | null;
+            /** @description Entry number or statement reference. */
+            reference?: string | null;
+            /** Format: uuid */
+            statementLineId?: string | null;
+        };
+        /** @description Bank reconciliation statement as of a date. */
+        BrsView: {
+            /** Format: date */
+            asOf: string;
+            /** Format: uuid */
+            bankAccountId: string;
+            /** @description Balance as per pass book (bank) the adjustments arrive at. */
+            bankBalance: string;
+            bankCredits: components["schemas"]["BrsItem"][];
+            bankCreditsNotBooked: string;
+            bankDebits: components["schemas"]["BrsItem"][];
+            bankDebitsNotBooked: string;
+            /** @description Balance as per cash book (the bank's ledger account). */
+            bookBalance: string;
+            deposited: components["schemas"]["BrsItem"][];
+            depositedNotCredited: string;
+            difference?: string | null;
+            /** @description The items behind each adjustment (at most 500 per list). */
+            issued: components["schemas"]["BrsItem"][];
+            issuedNotPresented: string;
+            statementBalance?: string | null;
         };
         /**
          * @description 7C: how a component amount is computed.
@@ -43876,6 +44165,29 @@ export interface components {
             periodTo?: string | null;
             /** @description Defaults to the file's own statement reference (MT940 `:20:`) or the period. */
             statementRef?: string | null;
+        };
+        /** @description A match suggestion for a statement line. */
+        StatementLineSuggestion: {
+            amount: string;
+            /** Format: date */
+            date: string;
+            /**
+             * Format: int64
+             * @description Days between the line and the entry date (or the charge's due date).
+             */
+            daysApart: number;
+            description: string;
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description `entry` (a ledger entry on the bank account) or `charge` (an open student charge of
+             *     exactly this amount, probably being paid).
+             */
+            kind: string;
+            number: string;
+        };
+        StatementLineSuggestionList: {
+            items: components["schemas"]["StatementLineSuggestion"][];
         };
         /** @description One imported statement line. */
         StatementLineView: {
@@ -76260,6 +76572,38 @@ export interface operations {
             };
         };
     };
+    finance_bank_recon_brs: {
+        parameters: {
+            query?: {
+                /** @description `YYYY-MM-DD`; defaults to today. */
+                asOf?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrsView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_bank_account_close: {
         parameters: {
             query?: never;
@@ -76320,6 +76664,166 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_recon_workspace: {
+        parameters: {
+            query?: {
+                /** @description `YYYY-MM-DD`; defaults to the period end of the latest imported statement, else today. */
+                statementDate?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconWorkspace"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_recon_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankReconInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconSummary"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_recon_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_recon_finish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankReconInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_recon_undo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankReconUndo"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconView"];
                 };
             };
             "4XX": {
@@ -76556,6 +77060,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatementView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_statement_line_suggestions: {
+        parameters: {
+            query?: {
+                /** @description Days either side of the value date (default 10, at most 60). */
+                window?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementLineSuggestionList"];
                 };
             };
             "4XX": {
@@ -78843,6 +79380,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankAccountView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_bank_recon_discrepancies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconDiscrepancyList"];
                 };
             };
             "4XX": {
