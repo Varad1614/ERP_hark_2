@@ -5,6 +5,7 @@
 
 pub mod bankfile;
 pub mod domain;
+pub mod reconcile;
 pub mod http;
 
 use crate::shared::FinanceState;
