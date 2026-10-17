@@ -1038,7 +1038,7 @@ mod tests {
             min_rest_hours: Some(11.0),
             ..Rules::default()
         };
-        let v = rule_violations(&late, "e1", &[night.clone()], &rules, "Asha");
+        let v = rule_violations(&late, "e1", std::slice::from_ref(&night), &rules, "Asha");
         assert_eq!(
             v[0].message,
             "Asha would get 4h rest around their Mon, Oct 12 shift, under the 11h minimum."
