@@ -17,7 +17,9 @@ use std::collections::{BTreeMap, HashSet};
 
 /// `isSafeId`: `[A-Za-z0-9_-]{1,64}`.
 pub fn is_safe_id(v: &str) -> bool {
-    (1..=64).contains(&v.len()) && v.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+    (1..=64).contains(&v.len())
+        && v.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
 }
 
 /// JS `String(value ?? '')`.
@@ -27,7 +29,17 @@ fn js_str(v: Option<&Value>) -> String {
         Some(Value::String(s)) => s.clone(),
         Some(Value::Bool(b)) => b.to_string(),
         Some(Value::Number(n)) => n.as_f64().map_or_else(|| n.to_string(), js_num),
-        Some(Value::Array(a)) => a.iter().map(|x| if x.is_null() { String::new() } else { js_str(Some(x)) }).collect::<Vec<_>>().join(","),
+        Some(Value::Array(a)) => a
+            .iter()
+            .map(|x| {
+                if x.is_null() {
+                    String::new()
+                } else {
+                    js_str(Some(x))
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(","),
         Some(Value::Object(_)) => "[object Object]".to_owned(),
     }
 }
@@ -71,10 +83,18 @@ pub struct RatingField {
 
 /// The default rubric.
 pub fn default_fields() -> Vec<RatingField> {
-    [("skills", "Role skills"), ("experience", "Experience"), ("communication", "Communication"), ("collaboration", "Collaboration")]
-        .into_iter()
-        .map(|(k, l)| RatingField { key: k.into(), label: l.into() })
-        .collect()
+    [
+        ("skills", "Role skills"),
+        ("experience", "Experience"),
+        ("communication", "Communication"),
+        ("collaboration", "Collaboration"),
+    ]
+    .into_iter()
+    .map(|(k, l)| RatingField {
+        key: k.into(),
+        label: l.into(),
+    })
+    .collect()
 }
 
 /// `normalizeRatingFields`: safe unique keys with labels; `None` = use the default.
@@ -100,8 +120,12 @@ pub fn fields_or_default(v: &Value) -> Vec<RatingField> {
 }
 
 /// The four recommendations and their scores.
-pub const RECOMMENDATIONS: [(&str, &str, i64); 4] =
-    [("strong_yes", "Strong yes", 2), ("yes", "Yes", 1), ("no", "No", -1), ("strong_no", "Strong no", -2)];
+pub const RECOMMENDATIONS: [(&str, &str, i64); 4] = [
+    ("strong_yes", "Strong yes", 2),
+    ("yes", "Yes", 1),
+    ("no", "No", -1),
+    ("strong_no", "Strong no", -2),
+];
 
 /// `recommendationInfo`: the score of a recommendation.
 pub fn recommendation_score(v: &str) -> Option<i64> {
@@ -110,16 +134,25 @@ pub fn recommendation_score(v: &str) -> Option<i64> {
 
 /// `isValidRating`: an integer 1–5.
 pub fn is_valid_rating(v: &Value) -> bool {
-    v.as_f64().is_some_and(|f| f.fract() == 0.0 && (1.0..=5.0).contains(&f))
+    v.as_f64()
+        .is_some_and(|f| f.fract() == 0.0 && (1.0..=5.0).contains(&f))
 }
 
 /// `validateScorecard`.
-pub fn validate_scorecard(author: &str, recommendation: &Value, ratings: &Map<String, Value>) -> Vec<String> {
+pub fn validate_scorecard(
+    author: &str,
+    recommendation: &Value,
+    ratings: &Map<String, Value>,
+) -> Vec<String> {
     let mut errors = Vec::new();
     if author.trim().is_empty() {
         errors.push("Add the reviewer\u{2019}s name.".to_owned());
     }
-    if recommendation.as_str().and_then(recommendation_score).is_none() {
+    if recommendation
+        .as_str()
+        .and_then(recommendation_score)
+        .is_none()
+    {
         errors.push("Pick an overall recommendation.".to_owned());
     }
     for (k, v) in ratings {
@@ -148,7 +181,12 @@ fn mean(v: &[f64]) -> Option<f64> {
 
 /// `averageRating`: mean of the ratings filled in.
 pub fn average_rating(s: &Scorecard) -> Option<f64> {
-    let v: Vec<f64> = s.ratings.values().filter(|x| is_valid_rating(x)).filter_map(Value::as_f64).collect();
+    let v: Vec<f64> = s
+        .ratings
+        .values()
+        .filter(|x| is_valid_rating(x))
+        .filter_map(Value::as_f64)
+        .collect();
     mean(&v)
 }
 
@@ -173,7 +211,10 @@ pub fn summarize(cards: &[Scorecard], fields: &[RatingField]) -> Summary {
         count: cards.len(),
         average: None,
         by_field: BTreeMap::new(),
-        recommendations: RECOMMENDATIONS.iter().map(|r| (r.0.to_owned(), 0)).collect(),
+        recommendations: RECOMMENDATIONS
+            .iter()
+            .map(|r| (r.0.to_owned(), 0))
+            .collect(),
         leaning: None,
     };
     if cards.is_empty() {
@@ -192,19 +233,36 @@ pub fn summarize(cards: &[Scorecard], fields: &[RatingField]) -> Summary {
     s.average = mean(&avgs);
     let mut total = 0;
     for c in cards {
-        let Some(rec) = c.recommendation.as_deref() else { continue };
-        let Some(score) = recommendation_score(rec) else { continue };
+        let Some(rec) = c.recommendation.as_deref() else {
+            continue;
+        };
+        let Some(score) = recommendation_score(rec) else {
+            continue;
+        };
         *s.recommendations.entry(rec.to_owned()).or_default() += 1;
         total += score;
     }
-    s.leaning = Some(if total > 0 { "hire" } else if total < 0 { "no_hire" } else { "split" }.to_owned());
+    s.leaning = Some(
+        if total > 0 {
+            "hire"
+        } else if total < 0 {
+            "no_hire"
+        } else {
+            "split"
+        }
+        .to_owned(),
+    );
     s
 }
 
 // ------------------------------------------------------------------ guides
 
 /// Interview formats.
-pub const INTERVIEW_TYPES: [(&str, &str); 3] = [("phone", "Phone screen"), ("video", "Video call"), ("onsite", "Onsite")];
+pub const INTERVIEW_TYPES: [(&str, &str); 3] = [
+    ("phone", "Phone screen"),
+    ("video", "Video call"),
+    ("onsite", "Onsite"),
+];
 
 /// A guide question.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, utoipa::ToSchema)]
@@ -237,7 +295,9 @@ fn uniq(v: impl Iterator<Item = String>) -> Vec<String> {
 
 /// `normalizeGuides`: up to 12 named guides of up to 20 questions each.
 pub fn normalize_guides(v: &Value) -> Vec<Guide> {
-    let Some(arr) = v.as_array() else { return Vec::new() };
+    let Some(arr) = v.as_array() else {
+        return Vec::new();
+    };
     let mut seen = HashSet::new();
     let mut out = Vec::new();
     for e in arr {
@@ -248,7 +308,12 @@ pub fn normalize_guides(v: &Value) -> Vec<Guide> {
         }
         let mut questions = Vec::new();
         let mut seen_q = HashSet::new();
-        for q in e.get("questions").and_then(Value::as_array).into_iter().flatten() {
+        for q in e
+            .get("questions")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
             let qid = js_str(q.get("id"));
             let text = trim_take(q.get("text"), 300);
             if !is_safe_id(&qid) || text.is_empty() || seen_q.contains(&qid) {
@@ -256,7 +321,11 @@ pub fn normalize_guides(v: &Value) -> Vec<Guide> {
             }
             seen_q.insert(qid.clone());
             let field = js_str(q.get("field"));
-            questions.push(GuideQuestion { id: qid, text, field: is_safe_id(&field).then_some(field) });
+            questions.push(GuideQuestion {
+                id: qid,
+                text,
+                field: is_safe_id(&field).then_some(field),
+            });
             if questions.len() >= 20 {
                 break;
             }
@@ -279,10 +348,22 @@ pub fn normalize_guides(v: &Value) -> Vec<Guide> {
                 .and_then(Value::as_array)
                 .into_iter()
                 .flatten()
-                .map(|s| if s.is_null() { "null".to_owned() } else { js_str(Some(s)) })
+                .map(|s| {
+                    if s.is_null() {
+                        "null".to_owned()
+                    } else {
+                        js_str(Some(s))
+                    }
+                })
                 .filter(|s| is_safe_id(s)),
         );
-        out.push(Guide { id, name, questions, types, stages });
+        out.push(Guide {
+            id,
+            name,
+            questions,
+            types,
+            stages,
+        });
         if out.len() >= 12 {
             break;
         }
@@ -295,8 +376,11 @@ pub fn default_guide_for<'a>(guides: &'a [Guide], kind: &str, stage: &str) -> Op
     let mut best = None;
     let mut best_score = 0;
     for g in guides {
-        let score = if !kind.is_empty() && g.types.iter().any(|t| t == kind) { 2 } else { 0 }
-            + i32::from(!stage.is_empty() && g.stages.iter().any(|s| s == stage));
+        let score = if !kind.is_empty() && g.types.iter().any(|t| t == kind) {
+            2
+        } else {
+            0
+        } + i32::from(!stage.is_empty() && g.stages.iter().any(|s| s == stage));
         if score > best_score {
             best = Some(g);
             best_score = score;
@@ -326,7 +410,11 @@ pub fn normalize_guide_answers(v: &Value) -> Option<Vec<GuideAnswer>> {
             continue;
         }
         let field = js_str(e.get("field"));
-        out.push(GuideAnswer { question, answer, field: is_safe_id(&field).then_some(field) });
+        out.push(GuideAnswer {
+            question,
+            answer,
+            field: is_safe_id(&field).then_some(field),
+        });
         if out.len() >= 20 {
             break;
         }
@@ -371,10 +459,22 @@ pub fn normalize_screening_questions(v: &Value) -> Option<Vec<ScreeningQuestion>
             .unwrap_or("short")
             .to_owned();
         let options: Vec<String> = if kind == "choice" {
-            let raw = e.get("options").and_then(Value::as_array).cloned().unwrap_or_default();
+            let raw = e
+                .get("options")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
             let mut o = uniq(
                 raw.iter()
-                    .map(|x| if x.is_null() { "null".to_owned() } else { js_str(Some(x)) }.trim().to_owned())
+                    .map(|x| {
+                        if x.is_null() {
+                            "null".to_owned()
+                        } else {
+                            js_str(Some(x))
+                        }
+                        .trim()
+                        .to_owned()
+                    })
                     .filter(|x| !x.is_empty()),
             );
             o.truncate(6);
@@ -435,13 +535,23 @@ pub fn is_yes_answer(a: &str) -> bool {
 /// `answerFor`: matched by label, case-insensitively.
 pub fn answer_for<'a>(answers: &'a [Answer], q: &ScreeningQuestion) -> Option<&'a str> {
     let key = q.label.trim().to_lowercase();
-    answers.iter().find(|a| a.label.trim().to_lowercase() == key).map(|a| a.answer.as_str())
+    answers
+        .iter()
+        .find(|a| a.label.trim().to_lowercase() == key)
+        .map(|a| a.answer.as_str())
 }
 
 /// `screeningMismatches`: must-have questions answered with something other than yes
 /// (unanswered is not a mismatch).
-pub fn screening_mismatches<'a>(answers: &[Answer], questions: &'a [ScreeningQuestion]) -> Vec<&'a ScreeningQuestion> {
-    questions.iter().filter(|q| q.must_have).filter(|q| answer_for(answers, q).is_some_and(|a| !is_yes_answer(a))).collect()
+pub fn screening_mismatches<'a>(
+    answers: &[Answer],
+    questions: &'a [ScreeningQuestion],
+) -> Vec<&'a ScreeningQuestion> {
+    questions
+        .iter()
+        .filter(|q| q.must_have)
+        .filter(|q| answer_for(answers, q).is_some_and(|a| !is_yes_answer(a)))
+        .collect()
 }
 
 // ------------------------------------------------------------------ missing feedback
@@ -458,8 +568,10 @@ pub struct Interview {
 }
 
 fn add_days(iso: &str, n: i64) -> String {
-    NaiveDate::parse_from_str(iso, "%Y-%m-%d")
-        .map_or_else(|_| iso.to_owned(), |d| (d + Duration::days(n)).format("%Y-%m-%d").to_string())
+    NaiveDate::parse_from_str(iso, "%Y-%m-%d").map_or_else(
+        |_| iso.to_owned(),
+        |d| (d + Duration::days(n)).format("%Y-%m-%d").to_string(),
+    )
 }
 
 /// `missingScorecards`: interviews held before yesterday and within 14 days, with no linked
@@ -473,11 +585,21 @@ pub fn missing_scorecards<'a>(
 ) -> Vec<&'a Interview> {
     let yesterday = add_days(today, -1);
     let horizon = add_days(today, -14);
-    let covered: HashSet<&str> = cards.iter().filter_map(|s| s.interview_id.as_deref()).filter(|s| !s.is_empty()).collect();
+    let covered: HashSet<&str> = cards
+        .iter()
+        .filter_map(|s| s.interview_id.as_deref())
+        .filter(|s| !s.is_empty())
+        .collect();
     let mut unlinked: BTreeMap<&str, String> = BTreeMap::new();
-    for s in cards.iter().filter(|s| s.interview_id.as_deref().is_none_or(str::is_empty)) {
+    for s in cards
+        .iter()
+        .filter(|s| s.interview_id.as_deref().is_none_or(str::is_empty))
+    {
         let day = s.created_on.clone().unwrap_or_default();
-        let cur = unlinked.get(s.candidate_id.as_str()).cloned().unwrap_or_default();
+        let cur = unlinked
+            .get(s.candidate_id.as_str())
+            .cloned()
+            .unwrap_or_default();
         if day > cur {
             unlinked.insert(s.candidate_id.as_str(), day);
         }
@@ -486,7 +608,13 @@ pub fn missing_scorecards<'a>(
         .iter()
         .filter(|i| i.status != "proposed" && i.status != "cancelled")
         .filter(|i| i.date < yesterday && i.date >= horizon && !covered.contains(i.id.as_str()))
-        .filter(|i| i.date > unlinked.get(i.candidate_id.as_str()).cloned().unwrap_or_default())
+        .filter(|i| {
+            i.date
+                > unlinked
+                    .get(i.candidate_id.as_str())
+                    .cloned()
+                    .unwrap_or_default()
+        })
         .filter(|i| live.contains(&i.candidate_id))
         .collect();
     out.sort_by(|a, b| b.date.cmp(&a.date));
@@ -500,10 +628,27 @@ mod tests {
 
     #[test]
     fn rubric_summary_guides_screening() {
-        assert_eq!(fields_or_default(&json!([{"key": "bad key", "label": "x"}])).len(), 4);
+        assert_eq!(
+            fields_or_default(&json!([{"key": "bad key", "label": "x"}])).len(),
+            4
+        );
         let cards = vec![
-            Scorecard { recommendation: Some("strong_yes".into()), ratings: json!({"skills": 5, "experience": 3}).as_object().cloned().unwrap_or_default(), ..Scorecard::default() },
-            Scorecard { recommendation: Some("no".into()), ratings: json!({"skills": 4, "communication": 7}).as_object().cloned().unwrap_or_default(), ..Scorecard::default() },
+            Scorecard {
+                recommendation: Some("strong_yes".into()),
+                ratings: json!({"skills": 5, "experience": 3})
+                    .as_object()
+                    .cloned()
+                    .unwrap_or_default(),
+                ..Scorecard::default()
+            },
+            Scorecard {
+                recommendation: Some("no".into()),
+                ratings: json!({"skills": 4, "communication": 7})
+                    .as_object()
+                    .cloned()
+                    .unwrap_or_default(),
+                ..Scorecard::default()
+            },
         ];
         let s = summarize(&cards, &default_fields());
         assert_eq!(s.leaning.as_deref(), Some("hire"));
@@ -515,10 +660,18 @@ mod tests {
             {"id": "a", "name": "Screen", "questions": [{"id": "q", "text": "Why?"}], "types": ["phone"]},
             {"id": "b", "name": "Demo", "questions": [{"id": "q", "text": "Teach"}], "types": ["onsite"], "stages": ["interviewed"]}
         ]));
-        assert_eq!(default_guide_for(&g, "onsite", "interviewed").map(|g| g.id.as_str()), Some("b"));
-        let q = normalize_screening_questions(&json!([{"id": "net", "label": "Cleared NET/SET?", "kind": "yesno", "mustHave": true}])).unwrap_or_default();
-        let a = vec![Answer { label: "cleared net/set?".into(), answer: "No".into() }];
+        assert_eq!(
+            default_guide_for(&g, "onsite", "interviewed").map(|g| g.id.as_str()),
+            Some("b")
+        );
+        let q = normalize_screening_questions(
+            &json!([{"id": "net", "label": "Cleared NET/SET?", "kind": "yesno", "mustHave": true}]),
+        )
+        .unwrap_or_default();
+        let a = vec![Answer {
+            label: "cleared net/set?".into(),
+            answer: "No".into(),
+        }];
         assert_eq!(screening_mismatches(&a, &q).len(), 1);
     }
-
 }

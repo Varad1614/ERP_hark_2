@@ -53,7 +53,9 @@ struct Input {
 
 fn norm(v: Value) -> Value {
     match v {
-        Value::Number(n) => n.as_f64().map_or(Value::Number(n), |f| json!((f * 1e9).round() / 1e9)),
+        Value::Number(n) => n
+            .as_f64()
+            .map_or(Value::Number(n), |f| json!((f * 1e9).round() / 1e9)),
         Value::Array(a) => Value::Array(a.into_iter().map(norm).collect()),
         Value::Object(o) => Value::Object(o.into_iter().map(|(k, x)| (k, norm(x))).collect()),
         other => other,
@@ -81,7 +83,11 @@ fn hiring_scorecards_match_everything() {
         let i = &c.input;
         let x = &c.expected;
         let w = |k: &str| format!("case {ci} {k}");
-        eq(to(normalize_rating_fields(&i.fields)), &x["normalizedFields"], &w("normalizedFields"));
+        eq(
+            to(normalize_rating_fields(&i.fields)),
+            &x["normalizedFields"],
+            &w("normalizedFields"),
+        );
         let rubric = fields_or_default(&i.fields);
         eq(to(&rubric), &x["rubric"], &w("rubric"));
         let cards: Vec<Scorecard> = i
@@ -108,7 +114,11 @@ fn hiring_scorecards_match_everything() {
         eq(to(&guides), &x["guides"], &w("guides"));
         let dg = default_guide_for(&guides, &i.kind, &i.stage).map(|g| g.id.clone());
         eq(to(dg), &x["defaultGuide"], &w("defaultGuide"));
-        eq(to(normalize_guide_answers(&i.answers_g)), &x["guideAnswers"], &w("guideAnswers"));
+        eq(
+            to(normalize_guide_answers(&i.answers_g)),
+            &x["guideAnswers"],
+            &w("guideAnswers"),
+        );
         let qs = normalize_screening_questions(&i.questions);
         eq(to(&qs), &x["questions"], &w("questions"));
         let ans = normalize_answers(&i.answers);

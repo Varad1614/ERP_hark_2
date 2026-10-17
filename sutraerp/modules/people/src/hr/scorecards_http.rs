@@ -38,7 +38,11 @@ use uuid::Uuid;
 
 // ------------------------------------------------------------------ loading
 
-async fn settings_row(conn: &mut PgConnection, t: TenantId, inst: Uuid) -> Result<(Value, Value), KernelError> {
+async fn settings_row(
+    conn: &mut PgConnection,
+    t: TenantId,
+    inst: Uuid,
+) -> Result<(Value, Value), KernelError> {
     let row: Option<(Option<Value>, Value)> = sqlx::query_as(
         "SELECT rating_fields, guides FROM people.hiring_settings WHERE tenant_id = $1 AND institution_id = $2",
     )
@@ -47,7 +51,9 @@ async fn settings_row(conn: &mut PgConnection, t: TenantId, inst: Uuid) -> Resul
     .fetch_optional(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    Ok(row.map_or((Value::Null, Value::Array(vec![])), |(f, g)| (f.unwrap_or(Value::Null), g)))
+    Ok(row.map_or((Value::Null, Value::Array(vec![])), |(f, g)| {
+        (f.unwrap_or(Value::Null), g)
+    }))
 }
 
 struct Req {
@@ -67,12 +73,23 @@ async fn requisition(conn: &mut PgConnection, t: TenantId, id: Uuid) -> Result<R
     .fetch_optional(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    let (institution_id, title, f, q) = row.ok_or(KernelError::NotFound { entity: "requisition" })?;
-    Ok(Req { institution_id, title, fields: f.unwrap_or(Value::Null), questions: q.unwrap_or(Value::Null) })
+    let (institution_id, title, f, q) = row.ok_or(KernelError::NotFound {
+        entity: "requisition",
+    })?;
+    Ok(Req {
+        institution_id,
+        title,
+        fields: f.unwrap_or(Value::Null),
+        questions: q.unwrap_or(Value::Null),
+    })
 }
 
 /// The rubric in force for a requisition: its own, the institution's, or the default.
-async fn rubric(conn: &mut PgConnection, t: TenantId, req: &Req) -> Result<Vec<RatingField>, KernelError> {
+async fn rubric(
+    conn: &mut PgConnection,
+    t: TenantId,
+    req: &Req,
+) -> Result<Vec<RatingField>, KernelError> {
     if let Some(f) = sc::normalize_rating_fields(&req.fields) {
         return Ok(f);
     }
@@ -99,9 +116,17 @@ async fn candidate(conn: &mut PgConnection, t: TenantId, id: Uuid) -> Result<Can
     .await
     .map_err(map_db_error)?;
     let (institution_id, requisition_id, given, family, status, answers) =
-        row.ok_or(KernelError::NotFound { entity: "candidate" })?;
+        row.ok_or(KernelError::NotFound {
+            entity: "candidate",
+        })?;
     let name = family.map_or(given.clone(), |f| format!("{given} {f}"));
-    Ok(Cand { institution_id, requisition_id, name, status, answers: answers.unwrap_or(Value::Null) })
+    Ok(Cand {
+        institution_id,
+        requisition_id,
+        name,
+        status,
+        answers: answers.unwrap_or(Value::Null),
+    })
 }
 
 fn json<T: Serialize>(v: &T) -> Value {
@@ -124,13 +149,20 @@ pub struct HiringSettings {
 #[utoipa::path(get, path = "/api/v1/people/institutions/{id}/hiring-settings", operation_id = "people_recruitment_hiring_settings_get", tag = "people-hr",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [])),
     responses((status = 200, body = HiringSettings), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
-pub async fn settings_get(State(st): State<PeopleState>, auth: Authenticated, Path(id): Path<Uuid>) -> ApiResult<Json<HiringSettings>> {
+pub async fn settings_get(
+    State(st): State<PeopleState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<HiringSettings>> {
     let ctx = auth.require(Permission::PeopleRead)?;
     let inst = InstitutionId(id);
     require_institution(&st, &institution_scope(ctx, inst), inst).await?;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let (f, g) = settings_row(&mut conn, ctx.scope.tenant_id, id).await?;
-    Ok(Json(HiringSettings { rating_fields: sc::normalize_rating_fields(&f), guides: sc::normalize_guides(&g) }))
+    Ok(Json(HiringSettings {
+        rating_fields: sc::normalize_rating_fields(&f),
+        guides: sc::normalize_guides(&g),
+    }))
 }
 
 /// Save hiring settings (`staff.manage`). Entries without a safe id or a label / question text
@@ -164,9 +196,21 @@ pub async fn settings_put(
     .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    let out = HiringSettings { rating_fields: fields, guides };
+    let out = HiringSettings {
+        rating_fields: fields,
+        guides,
+    };
     let a = actor(ctx);
-    audit(&mut tx, &scope, "people.hiring_settings.update", "institution", id, json(&out), &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "people.hiring_settings.update",
+        "institution",
+        id,
+        json(&out),
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(Json(out))
 }
@@ -209,7 +253,8 @@ pub async fn hiring_form(
     let scope = institution_scope(ctx, inst);
     require_institution_writable(&st, &scope, inst).await?;
     let fields = sc::normalize_rating_fields(b.get("ratingFields").unwrap_or(&Value::Null));
-    let questions = sc::normalize_screening_questions(b.get("screeningQuestions").unwrap_or(&Value::Null));
+    let questions =
+        sc::normalize_screening_questions(b.get("screeningQuestions").unwrap_or(&Value::Null));
     sqlx::query(
         "UPDATE people.requisition SET rating_fields = $3, screening_questions = $4, updated_at = now() \
          WHERE id = $1 AND tenant_id = $2",
@@ -221,11 +266,23 @@ pub async fn hiring_form(
     .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    let req = Req { fields: fields.as_ref().map_or(Value::Null, json), ..req };
+    let req = Req {
+        fields: fields.as_ref().map_or(Value::Null, json),
+        ..req
+    };
     let rub = rubric(&mut tx, t, &req).await?;
     let a = actor(ctx);
     let details = serde_json::json!({"ratingFields": fields, "screeningQuestions": questions});
-    audit(&mut tx, &scope, "people.requisition.hiring_form", "requisition", rid, details, &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "people.requisition.hiring_form",
+        "requisition",
+        rid,
+        details,
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(Json(HiringForm {
         requisition_id: rid,
@@ -268,7 +325,16 @@ pub async fn screening_answers(
         .map_err(map_db_error)?;
     let a = actor(ctx);
     let details = serde_json::json!({"answers": answers});
-    audit(&mut tx, &scope, "people.candidate.screening_answers", "candidate", cid, details, &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "people.candidate.screening_answers",
+        "candidate",
+        cid,
+        details,
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(StatusCode::NO_CONTENT.into_response())
 }
@@ -318,7 +384,9 @@ fn valid_time(s: &str) -> bool {
     let b = s.as_bytes();
     b.len() == 5
         && b[2] == b':'
-        && b.iter().enumerate().all(|(i, c)| i == 2 || c.is_ascii_digit())
+        && b.iter()
+            .enumerate()
+            .all(|(i, c)| i == 2 || c.is_ascii_digit())
         && s[..2].parse::<u8>().is_ok_and(|h| h < 24)
         && s[3..].parse::<u8>().is_ok_and(|m| m < 60)
 }
@@ -343,13 +411,25 @@ pub async fn interview_schedule(
     if !valid_time(&b.start) || !valid_time(&b.end) || b.end <= b.start {
         return Err(invalid("end", "invalid", "start and end as HH:MM, end after start").into());
     }
-    let interviewers: Vec<String> =
-        b.interviewers.iter().map(|s| s.trim().to_owned()).filter(|s| !s.is_empty()).take(10).collect();
+    let interviewers: Vec<String> = b
+        .interviewers
+        .iter()
+        .map(|s| s.trim().to_owned())
+        .filter(|s| !s.is_empty())
+        .take(10)
+        .collect();
     let t = ctx.scope.tenant_id;
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let c = candidate(&mut tx, t, cid).await?;
-    if matches!(c.status.as_str(), "rejected" | "withdrawn" | "offer_declined") {
-        return Err(KernelError::Conflict(format!("the candidate is {}", c.status.replace('_', " "))).into());
+    if matches!(
+        c.status.as_str(),
+        "rejected" | "withdrawn" | "offer_declined"
+    ) {
+        return Err(KernelError::Conflict(format!(
+            "the candidate is {}",
+            c.status.replace('_', " ")
+        ))
+        .into());
     }
     let inst = InstitutionId(c.institution_id);
     let scope = institution_scope(ctx, inst);
@@ -358,7 +438,11 @@ pub async fn interview_schedule(
     let guides = sc::normalize_guides(&g);
     let guide = match b.guide_id.as_deref().filter(|g| !g.is_empty()) {
         Some(id) => Some(
-            guides.iter().find(|g| g.id == id).ok_or_else(|| invalid("guideId", "unknown", "no such guide"))?.clone(),
+            guides
+                .iter()
+                .find(|g| g.id == id)
+                .ok_or_else(|| invalid("guideId", "unknown", "no such guide"))?
+                .clone(),
         ),
         None => sc::default_guide_for(&guides, &b.kind, &c.status).cloned(),
     };
@@ -391,7 +475,16 @@ pub async fn interview_schedule(
         "interviewId": iid, "type": b.kind, "date": b.date, "start": b.start,
         "guide": guide.as_ref().map(|g| &g.id)
     });
-    audit(&mut tx, &scope, "people.candidate_interview.schedule", "candidate", cid, details, &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "people.candidate_interview.schedule",
+        "candidate",
+        cid,
+        details,
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     let view = CandidateInterviewView {
         id: iid,
@@ -413,7 +506,11 @@ pub async fn interview_schedule(
 #[utoipa::path(post, path = "/api/v1/people/candidate-interviews/{id}/cancel", operation_id = "people_recruitment_candidate_interview_cancel", tag = "people-hr",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [], "csrf_token" = [])),
     responses((status = 204), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
-pub async fn interview_cancel(State(st): State<PeopleState>, auth: Authenticated, Path(iid): Path<Uuid>) -> ApiResult<Response> {
+pub async fn interview_cancel(
+    State(st): State<PeopleState>,
+    auth: Authenticated,
+    Path(iid): Path<Uuid>,
+) -> ApiResult<Response> {
     let ctx = auth.require(Permission::StaffManage)?;
     let t = ctx.scope.tenant_id;
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
@@ -426,7 +523,9 @@ pub async fn interview_cancel(State(st): State<PeopleState>, auth: Authenticated
     .fetch_optional(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    let (inst_id, cid, status) = row.ok_or(KernelError::NotFound { entity: "interview" })?;
+    let (inst_id, cid, status) = row.ok_or(KernelError::NotFound {
+        entity: "interview",
+    })?;
     let inst = InstitutionId(inst_id);
     let scope = institution_scope(ctx, inst);
     require_institution_writable(&st, &scope, inst).await?;
@@ -440,7 +539,16 @@ pub async fn interview_cancel(State(st): State<PeopleState>, auth: Authenticated
         .map_err(map_db_error)?;
     let a = actor(ctx);
     let details = serde_json::json!({"interviewId": iid});
-    audit(&mut tx, &scope, "people.candidate_interview.cancel", "candidate", cid, details, &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "people.candidate_interview.cancel",
+        "candidate",
+        cid,
+        details,
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(StatusCode::NO_CONTENT.into_response())
 }
@@ -500,7 +608,11 @@ pub async fn scorecard_create(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::StaffManage)?;
     require_idempotency_key(&headers)?;
-    let errors = sc::validate_scorecard(&b.author_name, &Value::String(b.recommendation.clone()), &b.ratings);
+    let errors = sc::validate_scorecard(
+        &b.author_name,
+        &Value::String(b.recommendation.clone()),
+        &b.ratings,
+    );
     if let Some(first) = errors.first() {
         return Err(invalid("scorecard", "invalid", first).into());
     }
@@ -514,9 +626,18 @@ pub async fn scorecard_create(
     let fields = rubric(&mut tx, t, &req).await?;
     let keys: HashSet<&str> = fields.iter().map(|f| f.key.as_str()).collect();
     if let Some(k) = b.ratings.keys().find(|k| !keys.contains(k.as_str())) {
-        return Err(invalid("ratings", "unknown_field", &format!("{k} is not on this rubric")).into());
+        return Err(invalid(
+            "ratings",
+            "unknown_field",
+            &format!("{k} is not on this rubric"),
+        )
+        .into());
     }
-    let ratings: Map<String, Value> = b.ratings.into_iter().filter(|(_, v)| !v.is_null()).collect();
+    let ratings: Map<String, Value> = b
+        .ratings
+        .into_iter()
+        .filter(|(_, v)| !v.is_null())
+        .collect();
     if let Some(iid) = b.interview_id {
         let ok: Option<Uuid> = sqlx::query_scalar(
             "SELECT id FROM people.candidate_interview WHERE id = $1 AND candidate_id = $2 AND tenant_id = $3",
@@ -528,7 +649,12 @@ pub async fn scorecard_create(
         .await
         .map_err(map_db_error)?;
         if ok.is_none() {
-            return Err(invalid("interviewId", "unknown", "not an interview of this candidate").into());
+            return Err(invalid(
+                "interviewId",
+                "unknown",
+                "not an interview of this candidate",
+            )
+            .into());
         }
     }
     let answers = sc::normalize_guide_answers(&json(&b.guide_answers));
@@ -564,9 +690,21 @@ pub async fn scorecard_create(
     let details = serde_json::json!({
         "scorecardId": sid, "recommendation": b.recommendation, "interviewId": b.interview_id
     });
-    audit(&mut tx, &scope, "people.candidate_scorecard.create", "candidate", cid, details, &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "people.candidate_scorecard.create",
+        "candidate",
+        cid,
+        details,
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
-    let card = sc::Scorecard { ratings: ratings.clone(), ..sc::Scorecard::default() };
+    let card = sc::Scorecard {
+        ratings: ratings.clone(),
+        ..sc::Scorecard::default()
+    };
     let view = ScorecardView {
         id: sid,
         candidate_id: cid,
@@ -601,23 +739,31 @@ async fn scorecards_of(
         .map_err(map_db_error)?;
     Ok(rows
         .into_iter()
-        .map(|(id, cid, iid, author, rec, ratings, fields, answers, notes, on)| {
-            let ratings = ratings.as_object().cloned().unwrap_or_default();
-            let card = sc::Scorecard { ratings: ratings.clone(), ..sc::Scorecard::default() };
-            ScorecardView {
-                id,
-                candidate_id: cid,
-                interview_id: iid,
-                author_name: author,
-                recommendation: rec,
-                average: sc::average_rating(&card),
-                ratings,
-                fields: sc::fields_or_default(&fields),
-                guide_answers: answers.as_ref().and_then(sc::normalize_guide_answers).unwrap_or_default(),
-                notes,
-                created_on: on,
-            }
-        })
+        .map(
+            |(id, cid, iid, author, rec, ratings, fields, answers, notes, on)| {
+                let ratings = ratings.as_object().cloned().unwrap_or_default();
+                let card = sc::Scorecard {
+                    ratings: ratings.clone(),
+                    ..sc::Scorecard::default()
+                };
+                ScorecardView {
+                    id,
+                    candidate_id: cid,
+                    interview_id: iid,
+                    author_name: author,
+                    recommendation: rec,
+                    average: sc::average_rating(&card),
+                    ratings,
+                    fields: sc::fields_or_default(&fields),
+                    guide_answers: answers
+                        .as_ref()
+                        .and_then(sc::normalize_guide_answers)
+                        .unwrap_or_default(),
+                    notes,
+                    created_on: on,
+                }
+            },
+        )
         .collect())
 }
 
@@ -662,7 +808,11 @@ pub struct CandidateFeedback {
 #[utoipa::path(get, path = "/api/v1/people/candidates/{id}/feedback", operation_id = "people_recruitment_candidate_feedback", tag = "people-hr",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [])),
     responses((status = 200, body = CandidateFeedback), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
-pub async fn feedback(State(st): State<PeopleState>, auth: Authenticated, Path(cid): Path<Uuid>) -> ApiResult<Json<CandidateFeedback>> {
+pub async fn feedback(
+    State(st): State<PeopleState>,
+    auth: Authenticated,
+    Path(cid): Path<Uuid>,
+) -> ApiResult<Json<CandidateFeedback>> {
     let ctx = auth.require(Permission::PeopleRead)?;
     let t = ctx.scope.tenant_id;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
@@ -688,23 +838,30 @@ pub async fn feedback(State(st): State<PeopleState>, auth: Authenticated, Path(c
         .map_err(map_db_error)?;
     let interviews = rows
         .into_iter()
-        .map(|(id, kind, date, start, end, interviewers, location, guide_id, status)| CandidateInterviewView {
-            id,
-            candidate_id: cid,
-            guide: guide_id.and_then(|g| guides.iter().find(|x| x.id == g).cloned()),
-            kind,
-            date,
-            start,
-            end,
-            interviewers,
-            location,
-            status,
-            has_scorecard: linked.contains(&id),
-        })
+        .map(
+            |(id, kind, date, start, end, interviewers, location, guide_id, status)| {
+                CandidateInterviewView {
+                    id,
+                    candidate_id: cid,
+                    guide: guide_id.and_then(|g| guides.iter().find(|x| x.id == g).cloned()),
+                    kind,
+                    date,
+                    start,
+                    end,
+                    interviewers,
+                    location,
+                    status,
+                    has_scorecard: linked.contains(&id),
+                }
+            },
+        )
         .collect();
     let questions = sc::normalize_screening_questions(&req.questions).unwrap_or_default();
     let answers = sc::normalize_answers(&c.answers).unwrap_or_default();
-    let mismatches = sc::screening_mismatches(&answers, &questions).iter().map(|q| q.id.clone()).collect();
+    let mismatches = sc::screening_mismatches(&answers, &questions)
+        .iter()
+        .map(|q| q.id.clone())
+        .collect();
     Ok(Json(CandidateFeedback {
         candidate_id: cid,
         name: c.name,
@@ -714,7 +871,11 @@ pub async fn feedback(State(st): State<PeopleState>, auth: Authenticated, Path(c
         rubric: rub,
         interviews,
         scorecards: cards,
-        screening: CandidateScreening { questions, answers, mismatches },
+        screening: CandidateScreening {
+            questions,
+            answers,
+            mismatches,
+        },
     }))
 }
 
@@ -753,7 +914,11 @@ fn leaning_rank(s: &Summary) -> u8 {
 #[utoipa::path(get, path = "/api/v1/people/requisitions/{id}/scorecards", operation_id = "people_recruitment_requisition_scorecards", tag = "people-hr",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [])),
     responses((status = 200, body = ScorecardCompare), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
-pub async fn compare(State(st): State<PeopleState>, auth: Authenticated, Path(rid): Path<Uuid>) -> ApiResult<Json<ScorecardCompare>> {
+pub async fn compare(
+    State(st): State<PeopleState>,
+    auth: Authenticated,
+    Path(rid): Path<Uuid>,
+) -> ApiResult<Json<ScorecardCompare>> {
     let ctx = auth.require(Permission::PeopleRead)?;
     let t = ctx.scope.tenant_id;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
@@ -781,8 +946,15 @@ pub async fn compare(State(st): State<PeopleState>, auth: Authenticated, Path(ri
     let mut items: Vec<ScorecardCompareRow> = cands
         .into_iter()
         .map(|(id, given, family, status, answers)| {
-            let mine: Vec<ScorecardView> = cards.iter().filter(|s| s.candidate_id == id).cloned().collect();
-            let answers = answers.as_ref().and_then(sc::normalize_answers).unwrap_or_default();
+            let mine: Vec<ScorecardView> = cards
+                .iter()
+                .filter(|s| s.candidate_id == id)
+                .cloned()
+                .collect();
+            let answers = answers
+                .as_ref()
+                .and_then(sc::normalize_answers)
+                .unwrap_or_default();
             ScorecardCompareRow {
                 candidate_id: id,
                 name: family.map_or(given.clone(), |f| format!("{given} {f}")),
@@ -793,12 +965,19 @@ pub async fn compare(State(st): State<PeopleState>, auth: Authenticated, Path(ri
         })
         .collect();
     items.sort_by(|a, b| {
-        let (x, y) = (a.summary.average.unwrap_or(0.0), b.summary.average.unwrap_or(0.0));
+        let (x, y) = (
+            a.summary.average.unwrap_or(0.0),
+            b.summary.average.unwrap_or(0.0),
+        );
         leaning_rank(&a.summary)
             .cmp(&leaning_rank(&b.summary))
             .then_with(|| y.partial_cmp(&x).unwrap_or(std::cmp::Ordering::Equal))
     });
-    Ok(Json(ScorecardCompare { requisition_id: rid, rubric: rub, items }))
+    Ok(Json(ScorecardCompare {
+        requisition_id: rid,
+        rubric: rub,
+        items,
+    }))
 }
 
 /// An interview still owed feedback.
@@ -826,7 +1005,11 @@ pub struct FeedbackDue {
 #[utoipa::path(get, path = "/api/v1/people/institutions/{id}/feedback-due", operation_id = "people_recruitment_feedback_due", tag = "people-hr",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [])),
     responses((status = 200, body = FeedbackDue), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
-pub async fn feedback_due(State(st): State<PeopleState>, auth: Authenticated, Path(id): Path<Uuid>) -> ApiResult<Json<FeedbackDue>> {
+pub async fn feedback_due(
+    State(st): State<PeopleState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<FeedbackDue>> {
     let ctx = auth.require(Permission::PeopleRead)?;
     let inst = InstitutionId(id);
     let scope = institution_scope(ctx, inst);
