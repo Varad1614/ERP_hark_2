@@ -826,7 +826,7 @@ mod tests {
             priority: Some("high".into()),
             subject: "Projector not working in LH-2".into(),
             tags: vec!["av".into()],
-            created_at: Some(0.0),
+            created_at: Some(1.0),
             ..Ticket::default()
         };
         let ctx = Ctx {
@@ -883,7 +883,7 @@ mod tests {
         let sla = Sla { enabled: true, targets };
         let mut t = Ticket {
             status: "open".into(),
-            created_at: Some(0.0),
+            created_at: Some(1.0),
             ..Ticket::default()
         };
         let s = sla_status(&t, &sla, 30.0 * MIN_MS, &v).unwrap();
