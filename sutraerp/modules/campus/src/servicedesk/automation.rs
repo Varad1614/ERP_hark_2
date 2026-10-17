@@ -122,10 +122,16 @@ pub fn to_rules(
     let mut fields = serde_json::Map::new();
     fields.insert("complaint".into(), serde_json::Value::Bool(t.is_complaint));
     if let Some(n) = t.node_id {
-        fields.insert("node".into(), serde_json::Value::String(n.as_uuid().to_string()));
+        fields.insert(
+            "node".into(),
+            serde_json::Value::String(n.as_uuid().to_string()),
+        );
     }
     if let Some(k) = t.requester_kind {
-        fields.insert("requester_kind".into(), serde_json::Value::String(k.as_str().to_owned()));
+        fields.insert(
+            "requester_kind".into(),
+            serde_json::Value::String(k.as_str().to_owned()),
+        );
     }
     Ticket {
         status: t.status.as_str().to_owned(),
@@ -183,7 +189,8 @@ pub async fn load_triggers(
 fn actor_kind(actor: &Actor, t: &ServiceTicket) -> &'static str {
     match actor.id.as_deref() {
         Some(id) if id.starts_with("system:") => "system",
-        _ if t.source.as_str() == "self_service" && t.requester_subject.is_some()
+        _ if t.source.as_str() == "self_service"
+            && t.requester_subject.is_some()
             && t.requester_subject.as_deref() == actor.id.as_deref() =>
         {
             "customer"
@@ -234,20 +241,9 @@ pub async fn after_event(
     actor: &Actor,
 ) -> Result<ServiceTicket, KernelError> {
     let tenant = scope.tenant_id;
-    // First response: the first time the ticket leaves open / reopened.
-    if !matches!(ticket.status, TicketStatus::Open | TicketStatus::Reopened) {
-        sqlx::query(
-            "UPDATE campus.service_ticket SET first_response_at = now() \
-             WHERE id = $1 AND tenant_id = $2 AND first_response_at IS NULL",
-        )
-        .bind(ticket.id.as_uuid())
-        .bind(tenant.as_uuid())
-        .execute(&mut *conn)
-        .await
-        .map_err(map_db_error)?;
-    }
     let triggers = load_triggers(conn, tenant, ticket.institution_id).await?;
     if triggers.is_empty() {
+        stamp_first_response(conn, tenant, &ticket).await?;
         return Ok(ticket);
     }
     let vocab = Vocab::campus();
@@ -272,6 +268,7 @@ pub async fn after_event(
     };
     let (after, fired, _notes) = rules::run_triggers(&triggers, &now_snap, event, &ctx, &vocab);
     if fired.is_empty() {
+        stamp_first_response(conn, tenant, &ticket).await?;
         return Ok(ticket);
     }
     let changes = diff(&now_snap, &after);
@@ -313,7 +310,29 @@ pub async fn after_event(
         actor,
     )
     .await?;
+    stamp_first_response(conn, tenant, &current).await?;
     Ok(current)
+}
+
+/// First response: the first time the ticket stands outside open / reopened.
+async fn stamp_first_response(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    ticket: &ServiceTicket,
+) -> Result<(), KernelError> {
+    if matches!(ticket.status, TicketStatus::Open | TicketStatus::Reopened) {
+        return Ok(());
+    }
+    sqlx::query(
+        "UPDATE campus.service_ticket SET first_response_at = now() \
+         WHERE id = $1 AND tenant_id = $2 AND first_response_at IS NULL",
+    )
+    .bind(ticket.id.as_uuid())
+    .bind(tenant.as_uuid())
+    .execute(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    Ok(())
 }
 
 async fn apply(

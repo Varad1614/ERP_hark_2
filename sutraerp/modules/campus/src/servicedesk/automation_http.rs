@@ -44,7 +44,10 @@ use uuid::Uuid;
 
 /// Condition fields and operators the campus desk understands.
 const FIELDS: &[(&str, &[&str])] = &[
-    ("status", &["is", "is_not", "less_than", "greater_than", "changed_to"]),
+    (
+        "status",
+        &["is", "is_not", "less_than", "greater_than", "changed_to"],
+    ),
     ("priority", &["is", "is_not", "less_than", "greater_than"]),
     ("type", &["is", "is_not"]),
     ("assignee", &["is", "is_not", "changed"]),
@@ -57,12 +60,22 @@ const FIELDS: &[(&str, &[&str])] = &[
     ("solved", &["less_than", "greater_than"]),
     ("actor", &["is"]),
     ("field:complaint", &["is", "is_not"]),
-    ("field:requester_kind", &["is", "is_not", "present", "absent"]),
+    (
+        "field:requester_kind",
+        &["is", "is_not", "present", "absent"],
+    ),
     ("field:node", &["is", "is_not", "present", "absent"]),
 ];
 
 /// Actions a campus trigger may take (status moves only through the lifecycle commands).
-const ACTIONS: &[&str] = &["priority", "type", "assignee", "add_tags", "remove_tags", "set_tags"];
+const ACTIONS: &[&str] = &[
+    "priority",
+    "type",
+    "assignee",
+    "add_tags",
+    "remove_tags",
+    "set_tags",
+];
 
 const CHANNELS: &[&str] = &[
     "self_service",
@@ -78,16 +91,28 @@ fn check_conditions(prefix: &str, c: &Conditions, v: &mut Vec<FieldViolation>) {
     let vocab = Vocab::campus();
     for (group, list) in [("all", &c.all), ("any", &c.any)] {
         if list.len() > 20 {
-            v.push(FieldViolation::new(format!("{prefix}.{group}"), "too_many", "at most 20 conditions"));
+            v.push(FieldViolation::new(
+                format!("{prefix}.{group}"),
+                "too_many",
+                "at most 20 conditions",
+            ));
         }
         for (i, k) in list.iter().enumerate() {
             let f = format!("{prefix}.{group}[{i}]");
             let Some((_, ops)) = FIELDS.iter().find(|(name, _)| *name == k.field) else {
-                v.push(FieldViolation::new(format!("{f}.field"), "unknown", "unknown condition field"));
+                v.push(FieldViolation::new(
+                    format!("{f}.field"),
+                    "unknown",
+                    "unknown condition field",
+                ));
                 continue;
             };
             if !ops.contains(&k.op.as_str()) {
-                v.push(FieldViolation::new(format!("{f}.op"), "unknown", format!("{} supports {}", k.field, ops.join(", "))));
+                v.push(FieldViolation::new(
+                    format!("{f}.op"),
+                    "unknown",
+                    format!("{} supports {}", k.field, ops.join(", ")),
+                ));
                 continue;
             }
             let s = k.value.as_str();
@@ -99,14 +124,25 @@ fn check_conditions(prefix: &str, c: &Conditions, v: &mut Vec<FieldViolation>) {
                 "actor" => matches!(s, Some("agent" | "customer" | "system")),
                 "created" | "updated" | "solved" => {
                     k.value.as_f64().is_some_and(|n| n > 0.0)
-                        || s.and_then(|x| x.trim().parse::<f64>().ok()).is_some_and(|n| n > 0.0)
+                        || s.and_then(|x| x.trim().parse::<f64>().ok())
+                            .is_some_and(|n| n > 0.0)
                 }
                 "tags" => !rules::norm_tags(&k.value).is_empty(),
                 "assignee" if k.op == "changed" => true,
-                _ => k.value.is_string() || k.value.is_boolean() || k.value.is_null() || k.op == "present" || k.op == "absent",
+                _ => {
+                    k.value.is_string()
+                        || k.value.is_boolean()
+                        || k.value.is_null()
+                        || k.op == "present"
+                        || k.op == "absent"
+                }
             };
             if !ok {
-                v.push(FieldViolation::new(format!("{f}.value"), "invalid", format!("not a valid value for {}", k.field)));
+                v.push(FieldViolation::new(
+                    format!("{f}.value"),
+                    "invalid",
+                    format!("not a valid value for {}", k.field),
+                ));
             }
         }
     }
@@ -120,7 +156,11 @@ fn check_actions(actions: &[Action], v: &mut Vec<FieldViolation>) {
     for (i, a) in actions.iter().enumerate() {
         let f = format!("actions[{i}]");
         if !ACTIONS.contains(&a.field.as_str()) {
-            v.push(FieldViolation::new(format!("{f}.field"), "unknown", format!("actions are {}", ACTIONS.join(", "))));
+            v.push(FieldViolation::new(
+                format!("{f}.field"),
+                "unknown",
+                format!("actions are {}", ACTIONS.join(", ")),
+            ));
             continue;
         }
         let s = a.value.as_str();
@@ -131,7 +171,11 @@ fn check_actions(actions: &[Action], v: &mut Vec<FieldViolation>) {
             _ => !rules::norm_tags(&a.value).is_empty(),
         };
         if !ok {
-            v.push(FieldViolation::new(format!("{f}.value"), "invalid", format!("not a valid value for {}", a.field)));
+            v.push(FieldViolation::new(
+                format!("{f}.value"),
+                "invalid",
+                format!("not a valid value for {}", a.field),
+            ));
         }
     }
 }
@@ -182,7 +226,8 @@ pub struct ServiceDeskRuleInput {
     pub actions: Vec<Action>,
 }
 
-const RULE_COLUMNS: &str = "id, title, event, position, active, conditions, actions, version, updated_at";
+const RULE_COLUMNS: &str =
+    "id, title, event, position, active, conditions, actions, version, updated_at";
 
 fn rule_from_row(r: &PgRow) -> Result<ServiceDeskRule, sqlx::Error> {
     let conditions: serde_json::Value = r.try_get("conditions")?;
@@ -208,7 +253,11 @@ fn validate_rule(b: &ServiceDeskRuleInput) -> Result<String, KernelError> {
     }
     let event = b.event.clone().unwrap_or_else(|| "any".into());
     if !matches!(event.as_str(), "created" | "updated" | "any") {
-        v.push(FieldViolation::new("event", "unknown", "created, updated or any"));
+        v.push(FieldViolation::new(
+            "event",
+            "unknown",
+            "created, updated or any",
+        ));
     }
     check_conditions("conditions", &b.conditions, &mut v);
     check_actions(&b.actions, &mut v);
@@ -235,7 +284,11 @@ pub async fn rule_list(
     .fetch_all(&st.pool)
     .await
     .map_err(map_db_error)?;
-    let items = rows.iter().map(rule_from_row).collect::<Result<_, _>>().map_err(map_db_error)?;
+    let items = rows
+        .iter()
+        .map(rule_from_row)
+        .collect::<Result<_, _>>()
+        .map_err(map_db_error)?;
     Ok(Json(ServiceDeskRuleList { items }))
 }
 
@@ -288,12 +341,25 @@ pub async fn rule_create(
     .await
     .map_err(map_db_error)?;
     let rule = rule_from_row(&row).map_err(map_db_error)?;
-    audit(&mut tx, &scope, "campus.ticket_rule.create", "ticket_rule", rule.id, serde_json::json!({"title": rule.title, "event": rule.event}), &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "campus.ticket_rule.create",
+        "ticket_rule",
+        rule.id,
+        serde_json::json!({"title": rule.title, "event": rule.event}),
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(with_etag(StatusCode::CREATED, &rule, Version(rule.version)))
 }
 
-async fn rule_institution(st: &CampusState, tenant: TenantId, id: Uuid) -> Result<(InstitutionId, i64), KernelError> {
+async fn rule_institution(
+    st: &CampusState,
+    tenant: TenantId,
+    id: Uuid,
+) -> Result<(InstitutionId, i64), KernelError> {
     let row: Option<(Uuid, i64)> = sqlx::query_as(
         "SELECT institution_id, version FROM campus.ticket_rule WHERE id = $1 AND tenant_id = $2",
     )
@@ -303,7 +369,9 @@ async fn rule_institution(st: &CampusState, tenant: TenantId, id: Uuid) -> Resul
     .await
     .map_err(map_db_error)?;
     row.map(|(i, v)| (InstitutionId(i), v))
-        .ok_or(KernelError::NotFound { entity: "service desk rule" })
+        .ok_or(KernelError::NotFound {
+            entity: "service desk rule",
+        })
 }
 
 /// Replace a trigger (`campus.facility.manage`, `If-Match`).
@@ -327,12 +395,14 @@ pub async fn rule_update(
     let event = validate_rule(&b)?;
     let a = actor(ctx);
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
-    let cur: i64 = sqlx::query_scalar("SELECT version FROM campus.ticket_rule WHERE id = $1 AND tenant_id = $2 FOR UPDATE")
-        .bind(id)
-        .bind(t.as_uuid())
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(map_db_error)?;
+    let cur: i64 = sqlx::query_scalar(
+        "SELECT version FROM campus.ticket_rule WHERE id = $1 AND tenant_id = $2 FOR UPDATE",
+    )
+    .bind(id)
+    .bind(t.as_uuid())
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
     ensure_version(v, cur)?;
     let row = sqlx::query(&format!(
         "UPDATE campus.ticket_rule SET title = $3, event = $4, position = coalesce($5, position), \
@@ -351,7 +421,16 @@ pub async fn rule_update(
     .await
     .map_err(map_db_error)?;
     let rule = rule_from_row(&row).map_err(map_db_error)?;
-    audit(&mut tx, &scope, "campus.ticket_rule.update", "ticket_rule", id, serde_json::json!({"title": rule.title, "active": rule.active, "version": rule.version}), &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "campus.ticket_rule.update",
+        "ticket_rule",
+        id,
+        serde_json::json!({"title": rule.title, "active": rule.active, "version": rule.version}),
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(with_etag(StatusCode::OK, &rule, Version(rule.version)))
 }
@@ -378,7 +457,16 @@ pub async fn rule_delete(
         .execute(&mut *tx)
         .await
         .map_err(map_db_error)?;
-    audit(&mut tx, &scope, "campus.ticket_rule.delete", "ticket_rule", id, serde_json::json!({}), &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "campus.ticket_rule.delete",
+        "ticket_rule",
+        id,
+        serde_json::json!({}),
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -405,7 +493,11 @@ struct Loaded {
     updated: DateTime<Utc>,
 }
 
-async fn load_open_and_recent(conn: &mut PgConnection, tenant: TenantId, inst: Uuid) -> Result<Vec<Loaded>, KernelError> {
+async fn load_open_and_recent(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    inst: Uuid,
+) -> Result<Vec<Loaded>, KernelError> {
     let rows = sqlx::query(&format!(
         "SELECT {TICKET_COLUMNS}, tags, first_response_at, updated_at FROM campus.service_ticket \
          WHERE tenant_id = $1 AND institution_id = $2 \
@@ -442,8 +534,14 @@ fn row_of(l: &Loaded, sla: &Sla, now: DateTime<Utc>) -> ServiceDeskTicketRow {
     }
 }
 
-async fn effective_policy(conn: &mut PgConnection, tenant: TenantId, inst: Uuid) -> Result<Sla, KernelError> {
-    Ok(load_policy(conn, tenant, InstitutionId(inst)).await?.unwrap_or_else(default_sla))
+async fn effective_policy(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    inst: Uuid,
+) -> Result<Sla, KernelError> {
+    Ok(load_policy(conn, tenant, InstitutionId(inst))
+        .await?
+        .unwrap_or_else(default_sla))
 }
 
 /// The SLA board: unsolved tickets by the target due soonest, breaches first (`campus.read`).
@@ -468,10 +566,19 @@ pub async fn sla_board(
         .collect();
     items.sort_by(|a, b| {
         let due = |r: &ServiceDeskTicketRow| r.sla.as_ref().map_or(f64::MAX, |s| s.due_at);
-        due(a).partial_cmp(&due(b)).unwrap_or(std::cmp::Ordering::Equal)
+        due(a)
+            .partial_cmp(&due(b))
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
-    let breached = items.iter().filter(|r| r.sla.as_ref().is_some_and(|s| s.breached)).count() as u32;
-    Ok(Json(ServiceDeskQueue { title: "SLA board".into(), breached, items }))
+    let breached = items
+        .iter()
+        .filter(|r| r.sla.as_ref().is_some_and(|s| s.breached))
+        .count() as u32;
+    Ok(Json(ServiceDeskQueue {
+        title: "SLA board".into(),
+        breached,
+        items,
+    }))
 }
 
 /// Tickets of a view or the SLA board.
@@ -515,7 +622,11 @@ pub struct ServiceDeskViewInput {
 }
 
 fn c(field: &str, op: &str, value: serde_json::Value) -> Condition {
-    Condition { field: field.into(), op: op.into(), value }
+    Condition {
+        field: field.into(),
+        op: op.into(),
+        value,
+    }
 }
 
 /// Built-in views (Everything's system views in campus words).
@@ -529,13 +640,54 @@ pub fn system_views() -> Vec<ServiceDeskView> {
     };
     let unsolved = || c("status", "less_than", serde_json::json!("resolved"));
     vec![
-        v("sys-mine", "Your unsolved tickets", vec![c("assignee", "is", serde_json::json!("me")), unsolved()], "updated_desc"),
-        v("sys-unassigned", "Unassigned tickets", vec![c("assignee", "is", serde_json::json!("")), unsolved()], "created_asc"),
-        v("sys-unsolved", "All unsolved tickets", vec![unsolved()], "sla_asc"),
-        v("sys-complaints", "Open complaints", vec![c("field:complaint", "is", serde_json::json!(true)), unsolved()], "sla_asc"),
-        v("sys-on-hold", "On hold", vec![c("status", "is", serde_json::json!("on_hold"))], "updated_desc"),
-        v("sys-recent", "Recently updated", vec![c("updated", "less_than", serde_json::json!(168))], "updated_desc"),
-        v("sys-solved", "Recently resolved", vec![c("status", "greater_than", serde_json::json!("on_hold")), c("solved", "less_than", serde_json::json!(168))], "updated_desc"),
+        v(
+            "sys-mine",
+            "Your unsolved tickets",
+            vec![c("assignee", "is", serde_json::json!("me")), unsolved()],
+            "updated_desc",
+        ),
+        v(
+            "sys-unassigned",
+            "Unassigned tickets",
+            vec![c("assignee", "is", serde_json::json!("")), unsolved()],
+            "created_asc",
+        ),
+        v(
+            "sys-unsolved",
+            "All unsolved tickets",
+            vec![unsolved()],
+            "sla_asc",
+        ),
+        v(
+            "sys-complaints",
+            "Open complaints",
+            vec![
+                c("field:complaint", "is", serde_json::json!(true)),
+                unsolved(),
+            ],
+            "sla_asc",
+        ),
+        v(
+            "sys-on-hold",
+            "On hold",
+            vec![c("status", "is", serde_json::json!("on_hold"))],
+            "updated_desc",
+        ),
+        v(
+            "sys-recent",
+            "Recently updated",
+            vec![c("updated", "less_than", serde_json::json!(168))],
+            "updated_desc",
+        ),
+        v(
+            "sys-solved",
+            "Recently resolved",
+            vec![
+                c("status", "greater_than", serde_json::json!("on_hold")),
+                c("solved", "less_than", serde_json::json!(168)),
+            ],
+            "updated_desc",
+        ),
     ]
 }
 
@@ -600,12 +752,23 @@ pub async fn view_create(
         v.push(FieldViolation::new("title", "invalid", "1-120 characters"));
     }
     let sort = b.sort.clone().unwrap_or_else(|| "updated_desc".into());
-    if !matches!(sort.as_str(), "updated_desc" | "created_asc" | "created_desc" | "sla_asc") {
-        v.push(FieldViolation::new("sort", "unknown", "updated_desc, created_asc, created_desc or sla_asc"));
+    if !matches!(
+        sort.as_str(),
+        "updated_desc" | "created_asc" | "created_desc" | "sla_asc"
+    ) {
+        v.push(FieldViolation::new(
+            "sort",
+            "unknown",
+            "updated_desc, created_asc, created_desc or sla_asc",
+        ));
     }
     check_conditions("conditions", &b.conditions, &mut v);
     if b.conditions.all.is_empty() && b.conditions.any.is_empty() {
-        v.push(FieldViolation::new("conditions", "required", "a view needs at least one condition"));
+        v.push(FieldViolation::new(
+            "conditions",
+            "required",
+            "a view needs at least one condition",
+        ));
     }
     finish(v)?;
     let a = actor(ctx);
@@ -625,7 +788,16 @@ pub async fn view_create(
     .map_err(map_db_error)?;
     let view = view_from_row(&row).map_err(map_db_error)?;
     let vid = Uuid::parse_str(&view.id).unwrap_or_default();
-    audit(&mut tx, &scope, "campus.ticket_view.create", "ticket_view", vid, serde_json::json!({"title": view.title}), &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "campus.ticket_view.create",
+        "ticket_view",
+        vid,
+        serde_json::json!({"title": view.title}),
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok((StatusCode::CREATED, Json(view)))
 }
@@ -641,13 +813,17 @@ pub async fn view_delete(
 ) -> ApiResult<StatusCode> {
     let ctx = auth.require(Permission::FacilityManage)?;
     let t = ctx.scope.tenant_id;
-    let inst: Option<Uuid> = sqlx::query_scalar("SELECT institution_id FROM campus.ticket_view WHERE id = $1 AND tenant_id = $2")
-        .bind(id)
-        .bind(t.as_uuid())
-        .fetch_optional(&st.pool)
-        .await
-        .map_err(map_db_error)?;
-    let inst = InstitutionId(inst.ok_or(KernelError::NotFound { entity: "service desk view" })?);
+    let inst: Option<Uuid> = sqlx::query_scalar(
+        "SELECT institution_id FROM campus.ticket_view WHERE id = $1 AND tenant_id = $2",
+    )
+    .bind(id)
+    .bind(t.as_uuid())
+    .fetch_optional(&st.pool)
+    .await
+    .map_err(map_db_error)?;
+    let inst = InstitutionId(inst.ok_or(KernelError::NotFound {
+        entity: "service desk view",
+    })?);
     let scope = institution_scope(ctx, inst);
     require_institution_writable(&st, &scope, inst).await?;
     let a = actor(ctx);
@@ -658,7 +834,16 @@ pub async fn view_delete(
         .execute(&mut *tx)
         .await
         .map_err(map_db_error)?;
-    audit(&mut tx, &scope, "campus.ticket_view.delete", "ticket_view", id, serde_json::json!({}), &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "campus.ticket_view.delete",
+        "ticket_view",
+        id,
+        serde_json::json!({}),
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -677,7 +862,9 @@ pub async fn view_tickets(
     let view = match system_views().into_iter().find(|v| v.id == view_id) {
         Some(v) => v,
         None => {
-            let vid = Uuid::parse_str(&view_id).map_err(|_| KernelError::NotFound { entity: "service desk view" })?;
+            let vid = Uuid::parse_str(&view_id).map_err(|_| KernelError::NotFound {
+                entity: "service desk view",
+            })?;
             let row = sqlx::query(
                 "SELECT id, title, conditions, sort FROM campus.ticket_view WHERE id = $1 \
                  AND tenant_id = $2 AND institution_id = $3",
@@ -688,7 +875,9 @@ pub async fn view_tickets(
             .fetch_optional(&st.pool)
             .await
             .map_err(map_db_error)?
-            .ok_or(KernelError::NotFound { entity: "service desk view" })?;
+            .ok_or(KernelError::NotFound {
+                entity: "service desk view",
+            })?;
             view_from_row(&row).map_err(map_db_error)?
         }
     };
@@ -698,7 +887,11 @@ pub async fn view_tickets(
     let now = Utc::now();
     let vocab = Vocab::campus();
     let me = ctx.subject.clone();
-    let rctx = Ctx { me: Some(&me), now: now.timestamp_millis() as f64, ..Ctx::default() };
+    let rctx = Ctx {
+        me: Some(&me),
+        now: now.timestamp_millis() as f64,
+        ..Ctx::default()
+    };
     let mut picked: Vec<&Loaded> = loaded
         .iter()
         .filter(|l| {
@@ -712,9 +905,20 @@ pub async fn view_tickets(
         "sla_asc" => picked.sort_by_key(|l| l.ticket.sla_due_at),
         _ => picked.sort_by_key(|l| std::cmp::Reverse(l.updated)),
     }
-    let items: Vec<ServiceDeskTicketRow> = picked.into_iter().take(500).map(|l| row_of(l, &sla, now)).collect();
-    let breached = items.iter().filter(|r| r.sla.as_ref().is_some_and(|s| s.breached)).count() as u32;
-    Ok(Json(ServiceDeskQueue { title: view.title, breached, items }))
+    let items: Vec<ServiceDeskTicketRow> = picked
+        .into_iter()
+        .take(500)
+        .map(|l| row_of(l, &sla, now))
+        .collect();
+    let breached = items
+        .iter()
+        .filter(|r| r.sla.as_ref().is_some_and(|s| s.breached))
+        .count() as u32;
+    Ok(Json(ServiceDeskQueue {
+        title: view.title,
+        breached,
+        items,
+    }))
 }
 
 // ------------------------------------------------------------------ rule preview
@@ -765,18 +969,39 @@ pub async fn rule_preview(
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let loaded = load_open_and_recent(&mut conn, t, id).await?;
     let vocab = Vocab::campus();
-    let trig = Trigger { id: "preview".into(), title: "Preview".into(), active: true, event: None, conditions: b.conditions.clone(), actions: b.actions.clone() };
+    let trig = Trigger {
+        id: "preview".into(),
+        title: "Preview".into(),
+        active: true,
+        event: None,
+        conditions: b.conditions.clone(),
+        actions: b.actions.clone(),
+    };
     let me = ctx.subject.clone();
-    let rctx = Ctx { me: Some(&me), now: Utc::now().timestamp_millis() as f64, actor: Some("agent"), ..Ctx::default() };
+    let rctx = Ctx {
+        me: Some(&me),
+        now: Utc::now().timestamp_millis() as f64,
+        actor: Some("agent"),
+        ..Ctx::default()
+    };
     let mut matched = 0;
     let mut hits = Vec::new();
-    for l in loaded.iter().filter(|l| vocab.is_unsolved(l.ticket.status.as_str())) {
+    for l in loaded
+        .iter()
+        .filter(|l| vocab.is_unsolved(l.ticket.status.as_str()))
+    {
         let snap = to_rules(&l.ticket, l.tags.clone(), l.first, l.updated);
         if !matches(&b.conditions, &snap, &rctx, &vocab) {
             continue;
         }
         matched += 1;
-        let (after, _, _) = run_triggers(std::slice::from_ref(&trig), &snap, Event::Updated, &rctx, &vocab);
+        let (after, _, _) = run_triggers(
+            std::slice::from_ref(&trig),
+            &snap,
+            Event::Updated,
+            &rctx,
+            &vocab,
+        );
         if hits.len() < 100 {
             hits.push(ServiceDeskRulePreviewHit {
                 ticket_id: l.ticket.id.as_uuid(),
@@ -812,15 +1037,26 @@ pub struct ServiceDeskSlaPolicyInput {
     pub version: i64,
 }
 
-async fn policy_wire(conn: &mut PgConnection, tenant: TenantId, inst: Uuid) -> Result<ServiceDeskSlaPolicy, KernelError> {
-    let version: Option<i64> = sqlx::query_scalar("SELECT version FROM campus.ticket_sla_policy WHERE tenant_id = $1 AND institution_id = $2")
-        .bind(tenant.as_uuid())
-        .bind(inst)
-        .fetch_optional(&mut *conn)
-        .await
-        .map_err(map_db_error)?;
+async fn policy_wire(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    inst: Uuid,
+) -> Result<ServiceDeskSlaPolicy, KernelError> {
+    let version: Option<i64> = sqlx::query_scalar(
+        "SELECT version FROM campus.ticket_sla_policy WHERE tenant_id = $1 AND institution_id = $2",
+    )
+    .bind(tenant.as_uuid())
+    .bind(inst)
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
     let sla = effective_policy(conn, tenant, inst).await?;
-    Ok(ServiceDeskSlaPolicy { enabled: sla.enabled, targets: sla.targets, customised: version.is_some(), version: version.unwrap_or(0) })
+    Ok(ServiceDeskSlaPolicy {
+        enabled: sla.enabled,
+        targets: sla.targets,
+        customised: version.is_some(),
+        version: version.unwrap_or(0),
+    })
 }
 
 /// The service desk's SLA targets (`campus.read`).
@@ -855,18 +1091,38 @@ pub async fn sla_policy_put(
     let mut v = Vec::new();
     for (p, tg) in &b.targets {
         if !Vocab::campus().priorities.iter().any(|x| x == p) {
-            v.push(FieldViolation::new(format!("targets.{p}"), "unknown", "priorities are low, medium, high, critical"));
+            v.push(FieldViolation::new(
+                format!("targets.{p}"),
+                "unknown",
+                "priorities are low, medium, high, critical",
+            ));
         }
-        for (name, m) in [("first", tg.first), ("next", tg.next), ("resolve", tg.resolve)] {
+        for (name, m) in [
+            ("first", tg.first),
+            ("next", tg.next),
+            ("resolve", tg.resolve),
+        ] {
             if !(0..=525_600).contains(&m) {
-                v.push(FieldViolation::new(format!("targets.{p}.{name}"), "range", "0 to 525600 minutes"));
+                v.push(FieldViolation::new(
+                    format!("targets.{p}.{name}"),
+                    "range",
+                    "0 to 525600 minutes",
+                ));
             }
         }
         if tg.resolve == 0 {
-            v.push(FieldViolation::new(format!("targets.{p}.resolve"), "required", "every priority needs a resolution target"));
+            v.push(FieldViolation::new(
+                format!("targets.{p}.resolve"),
+                "required",
+                "every priority needs a resolution target",
+            ));
         }
         if tg.first > 0 && tg.first > tg.resolve {
-            v.push(FieldViolation::new(format!("targets.{p}.first"), "range", "the first response is due before resolution"));
+            v.push(FieldViolation::new(
+                format!("targets.{p}.first"),
+                "range",
+                "the first response is due before resolution",
+            ));
         }
     }
     finish(v)?;
@@ -897,7 +1153,16 @@ pub async fn sla_policy_put(
     .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
-    audit(&mut tx, &scope, "campus.ticket_sla_policy.update", "ticket_sla_policy", id, serde_json::json!({"enabled": b.enabled, "targets": targets}), &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "campus.ticket_sla_policy.update",
+        "ticket_sla_policy",
+        id,
+        serde_json::json!({"enabled": b.enabled, "targets": targets}),
+        &a,
+    )
+    .await?;
     let out = policy_wire(&mut tx, t, id).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(Json(out))
@@ -930,13 +1195,17 @@ pub async fn ticket_tags(
     let ctx = auth.require(Permission::FacilityManage)?;
     let v = expected!(headers);
     let t = ctx.scope.tenant_id;
-    let inst: Option<Uuid> = sqlx::query_scalar("SELECT institution_id FROM campus.service_ticket WHERE id = $1 AND tenant_id = $2")
-        .bind(id)
-        .bind(t.as_uuid())
-        .fetch_optional(&st.pool)
-        .await
-        .map_err(map_db_error)?;
-    let inst = InstitutionId(inst.ok_or(KernelError::NotFound { entity: "service ticket" })?);
+    let inst: Option<Uuid> = sqlx::query_scalar(
+        "SELECT institution_id FROM campus.service_ticket WHERE id = $1 AND tenant_id = $2",
+    )
+    .bind(id)
+    .bind(t.as_uuid())
+    .fetch_optional(&st.pool)
+    .await
+    .map_err(map_db_error)?;
+    let inst = InstitutionId(inst.ok_or(KernelError::NotFound {
+        entity: "service ticket",
+    })?);
     let scope = institution_scope(ctx, inst);
     require_institution_writable(&st, &scope, inst).await?;
     let add = rules::norm_tags(&serde_json::json!(b.add));
@@ -948,13 +1217,18 @@ pub async fn ticket_tags(
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let before = lock_ticket(&mut tx, t, ServiceTicketId(id)).await?;
     ensure_version(v, before.version)?;
-    let current: Vec<String> = sqlx::query_scalar("SELECT tags FROM campus.service_ticket WHERE id = $1 AND tenant_id = $2")
-        .bind(id)
-        .bind(t.as_uuid())
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(map_db_error)?;
-    let mut tags: Vec<String> = current.into_iter().filter(|x| !remove.contains(x)).collect();
+    let current: Vec<String> = sqlx::query_scalar(
+        "SELECT tags FROM campus.service_ticket WHERE id = $1 AND tenant_id = $2",
+    )
+    .bind(id)
+    .bind(t.as_uuid())
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    let mut tags: Vec<String> = current
+        .into_iter()
+        .filter(|x| !remove.contains(x))
+        .collect();
     for x in add {
         if !tags.contains(&x) {
             tags.push(x);
@@ -971,8 +1245,18 @@ pub async fn ticket_tags(
         .await
         .map_err(map_db_error)?;
     let moved = lock_ticket(&mut tx, t, ServiceTicketId(id)).await?;
-    let out = automation::after_event(&mut tx, &scope, moved, Some(&before), Event::Updated, &a).await?;
-    audit(&mut tx, &scope, "campus.service_ticket.tags", "service_ticket", id, serde_json::json!({"tags": tags}), &a).await?;
+    let out =
+        automation::after_event(&mut tx, &scope, moved, Some(&before), Event::Updated, &a).await?;
+    audit(
+        &mut tx,
+        &scope,
+        "campus.service_ticket.tags",
+        "service_ticket",
+        id,
+        serde_json::json!({"tags": tags}),
+        &a,
+    )
+    .await?;
     let row = sqlx::query(&format!("SELECT {TICKET_COLUMNS}, tags, first_response_at, updated_at FROM campus.service_ticket WHERE id = $1 AND tenant_id = $2"))
         .bind(id)
         .bind(t.as_uuid())
@@ -988,7 +1272,11 @@ pub async fn ticket_tags(
     let sla = effective_policy(&mut tx, t, inst.as_uuid()).await?;
     tx.commit().await.map_err(map_db_error)?;
     let r = row_of(&loaded, &sla, Utc::now());
-    Ok(with_etag(StatusCode::OK, &r, Version(loaded.ticket.version)))
+    Ok(with_etag(
+        StatusCode::OK,
+        &r,
+        Version(loaded.ticket.version),
+    ))
 }
 
 /// One trigger firing on a ticket.
@@ -1066,13 +1354,26 @@ mod tests {
     #[test]
     fn validation_rejects_status_actions_and_unknown_fields() {
         let mut v = Vec::new();
-        check_actions(&[Action { field: "status".into(), value: serde_json::json!("resolved"), to: None, subject: None, body: None }], &mut v);
+        check_actions(
+            &[Action {
+                field: "status".into(),
+                value: serde_json::json!("resolved"),
+                to: None,
+                subject: None,
+                body: None,
+            }],
+            &mut v,
+        );
         assert_eq!(v.len(), 1);
         let mut v = Vec::new();
         check_conditions(
             "c",
             &Conditions {
-                all: vec![c("priority", "greater_than", serde_json::json!("medium")), c("budget", "is", serde_json::json!("x")), c("created", "greater_than", serde_json::json!("abc"))],
+                all: vec![
+                    c("priority", "greater_than", serde_json::json!("medium")),
+                    c("budget", "is", serde_json::json!("x")),
+                    c("created", "greater_than", serde_json::json!("abc")),
+                ],
                 any: vec![],
             },
             &mut v,

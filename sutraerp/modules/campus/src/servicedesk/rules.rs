@@ -68,7 +68,14 @@ impl Vocab {
                 "cancelled",
                 "merged",
             ]),
-            unsolved: words(&["open", "reopened", "triaged", "assigned", "in_progress", "on_hold"]),
+            unsolved: words(&[
+                "open",
+                "reopened",
+                "triaged",
+                "assigned",
+                "in_progress",
+                "on_hold",
+            ]),
             waiting: words(&["on_hold"]),
             unsettable: words(&["closed", "cancelled", "merged"]),
             priorities: words(&["low", "medium", "high", "critical"]),
@@ -163,7 +170,9 @@ pub struct Condition {
 }
 
 /// All of `all`, and at least one of `any` when it is not empty.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(
+    Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize, utoipa::ToSchema,
+)]
 #[serde(default)]
 #[schema(as = ServiceDeskConditions)]
 pub struct Conditions {
@@ -226,7 +235,17 @@ fn js_string(v: &Value) -> String {
         Value::Bool(b) => b.to_string(),
         Value::Number(n) => n.as_f64().map_or_else(|| n.to_string(), js_number_string),
         Value::String(s) => s.clone(),
-        Value::Array(a) => a.iter().map(|x| if x.is_null() { String::new() } else { js_string(x) }).collect::<Vec<_>>().join(","),
+        Value::Array(a) => a
+            .iter()
+            .map(|x| {
+                if x.is_null() {
+                    String::new()
+                } else {
+                    js_string(x)
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(","),
         Value::Object(_) => "[object Object]".into(),
     }
 }
@@ -396,14 +415,19 @@ pub fn test_condition(cond: &Condition, t: &Ticket, ctx: &Ctx<'_>, vocab: &Vocab
             }
         }
         "subject" => {
-            let has = t.subject.to_lowercase().contains(&or_empty(value).to_lowercase());
+            let has = t
+                .subject
+                .to_lowercase()
+                .contains(&or_empty(value).to_lowercase());
             if op == "contains" {
                 has
             } else {
                 !has
             }
         }
-        "followers" => ctx.me.is_some_and(|me| !me.is_empty() && t.followers.iter().any(|f| f == me)),
+        "followers" => ctx
+            .me
+            .is_some_and(|me| !me.is_empty() && t.followers.iter().any(|f| f == me)),
         f @ ("created" | "updated" | "solved") => {
             let ts = match f {
                 "created" => t.created_at,
@@ -441,7 +465,8 @@ pub fn test_condition(cond: &Condition, t: &Ticket, ctx: &Ctx<'_>, vocab: &Vocab
                 return false;
             };
             let v = t.fields.get(id);
-            let blank = matches!(v, None | Some(Value::Null)) || v == Some(&Value::String(String::new()));
+            let blank =
+                matches!(v, None | Some(Value::Null)) || v == Some(&Value::String(String::new()));
             match op {
                 "present" => !blank,
                 "absent" => blank,
@@ -460,12 +485,25 @@ pub fn test_condition(cond: &Condition, t: &Ticket, ctx: &Ctx<'_>, vocab: &Vocab
 
 /// All of `all` must hold and, when `any` is non-empty, at least one of it.
 pub fn matches(conditions: &Conditions, t: &Ticket, ctx: &Ctx<'_>, vocab: &Vocab) -> bool {
-    conditions.all.iter().all(|c| test_condition(c, t, ctx, vocab))
-        && (conditions.any.is_empty() || conditions.any.iter().any(|c| test_condition(c, t, ctx, vocab)))
+    conditions
+        .all
+        .iter()
+        .all(|c| test_condition(c, t, ctx, vocab))
+        && (conditions.any.is_empty()
+            || conditions
+                .any
+                .iter()
+                .any(|c| test_condition(c, t, ctx, vocab)))
 }
 
 /// Whether a ticket belongs in a view; `special` views (`spam`, `deleted`) look at flags only.
-pub fn in_view(special: Option<&str>, conditions: &Conditions, t: &Ticket, ctx: &Ctx<'_>, vocab: &Vocab) -> bool {
+pub fn in_view(
+    special: Option<&str>,
+    conditions: &Conditions,
+    t: &Ticket,
+    ctx: &Ctx<'_>,
+    vocab: &Vocab,
+) -> bool {
     match special {
         Some("spam") => t.spam && !t.deleted,
         Some("deleted") => t.deleted,
@@ -481,7 +519,12 @@ pub fn in_view(special: Option<&str>, conditions: &Conditions, t: &Ticket, ctx: 
 // ------------------------------------------------------------------ actions
 
 /// Applies field actions to a copy of the ticket; returns it and the notifications asked for.
-pub fn apply_actions(ticket: &Ticket, actions: &[Action], me: Option<&str>, vocab: &Vocab) -> (Ticket, Vec<Notification>) {
+pub fn apply_actions(
+    ticket: &Ticket,
+    actions: &[Action],
+    me: Option<&str>,
+    vocab: &Vocab,
+) -> (Ticket, Vec<Notification>) {
     let mut t = ticket.clone();
     let mut notes = Vec::new();
     let me_or_null = || me.filter(|m| !m.is_empty()).map(str::to_owned);
@@ -490,16 +533,22 @@ pub fn apply_actions(ticket: &Ticket, actions: &[Action], me: Option<&str>, voca
         match a.field.as_str() {
             "status" => {
                 if let Some(v) = s {
-                    if vocab.statuses.iter().any(|x| x == v) && !vocab.unsettable.iter().any(|x| x == v) {
+                    if vocab.statuses.iter().any(|x| x == v)
+                        && !vocab.unsettable.iter().any(|x| x == v)
+                    {
                         t.status = v.to_owned();
                     }
                 }
             }
             "priority" => {
-                t.priority = s.filter(|v| vocab.priorities.iter().any(|p| p == v)).map(str::to_owned);
+                t.priority = s
+                    .filter(|v| vocab.priorities.iter().any(|p| p == v))
+                    .map(str::to_owned);
             }
             "type" => {
-                t.kind = s.filter(|v| vocab.types.iter().any(|p| p == v)).map(str::to_owned);
+                t.kind = s
+                    .filter(|v| vocab.types.iter().any(|p| p == v))
+                    .map(str::to_owned);
             }
             "assignee" => {
                 t.assignee = if s == Some("me") {
@@ -647,7 +696,9 @@ pub fn render_placeholders(text: &str, data: &HashMapLike<'_>) -> String {
         let inner = &after[..end];
         let name = inner.trim_matches(|c: char| c.is_whitespace());
         let well_formed = !name.is_empty()
-            && name.bytes().all(|b| b.is_ascii_lowercase() || b == b'_' || b == b'.');
+            && name
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b == b'_' || b == b'.');
         if well_formed {
             match data.get(name) {
                 Some(v) => out.push_str(v.unwrap_or("")),
@@ -671,7 +722,10 @@ pub struct HashMapLike<'a> {
 
 impl HashMapLike<'_> {
     fn get(&self, name: &str) -> Option<Option<&str>> {
-        self.entries.iter().find(|(k, _)| *k == name).map(|(_, v)| *v)
+        self.entries
+            .iter()
+            .find(|(k, _)| *k == name)
+            .map(|(_, v)| *v)
     }
 }
 
@@ -694,7 +748,9 @@ pub const PLACEHOLDER_NAMES: &[&str] = &[
 // ------------------------------------------------------------------ SLA
 
 /// Targets of one priority, in minutes (`0` = none).
-#[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, serde::Serialize, serde::Deserialize, utoipa::ToSchema,
+)]
 #[serde(default)]
 #[schema(as = ServiceDeskSlaTarget)]
 pub struct SlaTarget {
@@ -741,7 +797,7 @@ pub fn sla_status(t: &Ticket, sla: &Sla, now: f64, vocab: &Vocab) -> Option<SlaS
         .filter(|p| !p.is_empty())
         .unwrap_or(&vocab.default_priority);
     let target = sla.targets.get(key)?;
-    let waiting = vocab.waiting.iter().any(|w| *w == t.status);
+    let waiting = vocab.waiting.contains(&t.status);
     let created = t.created_at.unwrap_or(f64::NAN);
     let mut active: Vec<(&str, f64)> = Vec::new();
     if !waiting && pos(t.first_reply_at).is_none() && target.first != 0 {
@@ -833,12 +889,42 @@ mod tests {
             now: 5.0 * HOUR_MS,
             ..Ctx::default()
         };
-        assert!(test_condition(&cond("status", "less_than", json!("resolved")), &t, &ctx, &v));
-        assert!(test_condition(&cond("priority", "greater_than", json!("medium")), &t, &ctx, &v));
-        assert!(test_condition(&cond("subject", "contains", json!("PROJECTOR")), &t, &ctx, &v));
-        assert!(test_condition(&cond("tags", "includes", json!("AV, it")), &t, &ctx, &v));
-        assert!(test_condition(&cond("created", "greater_than", json!(4)), &t, &ctx, &v));
-        assert!(!test_condition(&cond("created", "greater_than", json!("")), &t, &ctx, &v));
+        assert!(test_condition(
+            &cond("status", "less_than", json!("resolved")),
+            &t,
+            &ctx,
+            &v
+        ));
+        assert!(test_condition(
+            &cond("priority", "greater_than", json!("medium")),
+            &t,
+            &ctx,
+            &v
+        ));
+        assert!(test_condition(
+            &cond("subject", "contains", json!("PROJECTOR")),
+            &t,
+            &ctx,
+            &v
+        ));
+        assert!(test_condition(
+            &cond("tags", "includes", json!("AV, it")),
+            &t,
+            &ctx,
+            &v
+        ));
+        assert!(test_condition(
+            &cond("created", "greater_than", json!(4)),
+            &t,
+            &ctx,
+            &v
+        ));
+        assert!(!test_condition(
+            &cond("created", "greater_than", json!("")),
+            &t,
+            &ctx,
+            &v
+        ));
     }
 
     #[test]
@@ -859,12 +945,36 @@ mod tests {
                 any: vec![],
             },
             actions: vec![
-                Action { field: "priority".into(), value: json!("critical"), to: None, subject: None, body: None },
-                Action { field: "add_tags".into(), value: json!("plumbing Urgent"), to: None, subject: None, body: None },
-                Action { field: "assignee".into(), value: json!("team:estate"), to: None, subject: None, body: None },
+                Action {
+                    field: "priority".into(),
+                    value: json!("critical"),
+                    to: None,
+                    subject: None,
+                    body: None,
+                },
+                Action {
+                    field: "add_tags".into(),
+                    value: json!("plumbing Urgent"),
+                    to: None,
+                    subject: None,
+                    body: None,
+                },
+                Action {
+                    field: "assignee".into(),
+                    value: json!("team:estate"),
+                    to: None,
+                    subject: None,
+                    body: None,
+                },
             ],
         };
-        let (out, fired, _) = run_triggers(&[trig.clone()], &t, Event::Created, &Ctx::default(), &v);
+        let (out, fired, _) = run_triggers(
+            std::slice::from_ref(&trig),
+            &t,
+            Event::Created,
+            &Ctx::default(),
+            &v,
+        );
         assert_eq!(fired.len(), 1);
         assert_eq!(out.priority.as_deref(), Some("critical"));
         assert_eq!(out.tags, vec!["plumbing", "urgent"]);
@@ -879,8 +989,18 @@ mod tests {
     fn sla_pauses_replies_on_hold() {
         let v = Vocab::campus();
         let mut targets = std::collections::BTreeMap::new();
-        targets.insert("medium".into(), SlaTarget { first: 60, next: 0, resolve: 600 });
-        let sla = Sla { enabled: true, targets };
+        targets.insert(
+            "medium".into(),
+            SlaTarget {
+                first: 60,
+                next: 0,
+                resolve: 600,
+            },
+        );
+        let sla = Sla {
+            enabled: true,
+            targets,
+        };
         let mut t = Ticket {
             status: "open".into(),
             created_at: Some(1.0),
@@ -898,10 +1018,16 @@ mod tests {
     #[test]
     fn placeholders_keep_unknown_names() {
         let data = HashMapLike {
-            entries: vec![("ticket.id", Some("SR-000007")), ("requester.first_name", None)],
+            entries: vec![
+                ("ticket.id", Some("SR-000007")),
+                ("requester.first_name", None),
+            ],
         };
         assert_eq!(
-            render_placeholders("Hi {{ requester.first_name }}, #{{ticket.id}} {{nope}} {{Bad}}", &data),
+            render_placeholders(
+                "Hi {{ requester.first_name }}, #{{ticket.id}} {{nope}} {{Bad}}",
+                &data
+            ),
             "Hi , #SR-000007 {{nope}} {{Bad}}"
         );
     }

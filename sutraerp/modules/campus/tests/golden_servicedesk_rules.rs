@@ -67,8 +67,7 @@ fn ticket_json(t: &Ticket) -> Value {
     let mut v = serde_json::to_value(t).expect("ticket");
     if let Value::Object(o) = &mut v {
         o.retain(|k, x| {
-            !(x.is_null()
-                || (matches!(k.as_str(), "spam" | "deleted") && *x == Value::Bool(false)))
+            !(x.is_null() || (matches!(k.as_str(), "spam" | "deleted") && *x == Value::Bool(false)))
         });
     }
     nums(v)
@@ -78,14 +77,15 @@ fn norm_expected(v: &Value) -> Value {
     let mut v = v.clone();
     if let Value::Object(o) = &mut v {
         o.retain(|k, x| {
-            !(x.is_null()
-                || (matches!(k.as_str(), "spam" | "deleted") && *x == Value::Bool(false)))
+            !(x.is_null() || (matches!(k.as_str(), "spam" | "deleted") && *x == Value::Bool(false)))
         });
         for k in ["tags", "followers"] {
             o.entry(k).or_insert_with(|| Value::Array(vec![]));
         }
-        o.entry("fields").or_insert_with(|| Value::Object(Default::default()));
-        o.entry("subject").or_insert_with(|| Value::String(String::new()));
+        o.entry("fields")
+            .or_insert_with(|| Value::Object(Default::default()));
+        o.entry("subject")
+            .or_insert_with(|| Value::String(String::new()));
     }
     nums(v)
 }
@@ -130,7 +130,10 @@ fn servicedesk_rules_match_everything() {
         };
 
         let conds: Vec<_> = i.conditions.all.iter().chain(&i.conditions.any).collect();
-        let got: Vec<bool> = conds.iter().map(|k| test_condition(k, &i.ticket, &ctx, &vocab)).collect();
+        let got: Vec<bool> = conds
+            .iter()
+            .map(|k| test_condition(k, &i.ticket, &ctx, &vocab))
+            .collect();
         let want: Vec<bool> = x["tests"]
             .as_array()
             .expect("tests")
@@ -161,15 +164,44 @@ fn servicedesk_rules_match_everything() {
         );
 
         let (t, notes) = apply_actions(&i.ticket, &i.actions, ctx.me, &vocab);
-        assert_eq!(ticket_json(&t), norm_expected(&x["applied"]["ticket"]), "{}", w("applied ticket"));
-        assert_eq!(notes_json(&notes), x["applied"]["notifications"], "{}", w("applied notes"));
+        assert_eq!(
+            ticket_json(&t),
+            norm_expected(&x["applied"]["ticket"]),
+            "{}",
+            w("applied ticket")
+        );
+        assert_eq!(
+            notes_json(&notes),
+            x["applied"]["notifications"],
+            "{}",
+            w("applied notes")
+        );
 
-        let event = if i.event == "created" { Event::Created } else { Event::Updated };
+        let event = if i.event == "created" {
+            Event::Created
+        } else {
+            Event::Updated
+        };
         // runTriggers reads the clock itself; trigger conditions carry no hour fields.
         let (t, fired, notes) = run_triggers(&i.triggers, &i.ticket, event, &ctx, &vocab);
-        assert_eq!(ticket_json(&t), norm_expected(&x["triggered"]["ticket"]), "{}", w("triggered ticket"));
-        assert_eq!(serde_json::to_value(&fired).expect("fired"), x["triggered"]["fired"], "{}", w("fired"));
-        assert_eq!(notes_json(&notes), x["triggered"]["notifications"], "{}", w("trigger notes"));
+        assert_eq!(
+            ticket_json(&t),
+            norm_expected(&x["triggered"]["ticket"]),
+            "{}",
+            w("triggered ticket")
+        );
+        assert_eq!(
+            serde_json::to_value(&fired).expect("fired"),
+            x["triggered"]["fired"],
+            "{}",
+            w("fired")
+        );
+        assert_eq!(
+            notes_json(&notes),
+            x["triggered"]["notifications"],
+            "{}",
+            w("trigger notes")
+        );
 
         let sla = Sla {
             enabled: i.sla.enabled,
@@ -178,15 +210,40 @@ fn servicedesk_rules_match_everything() {
         match sla_status(&i.ticket, &sla, i.ctx.now, &vocab) {
             None => assert!(x["sla"].is_null(), "{} {}", w("sla"), x["sla"]),
             Some(st) => {
-                assert_eq!(Some(st.metric.as_str()), x["sla"]["metric"].as_str(), "{}", w("sla metric"));
-                assert_eq!(Some(st.due_at), x["sla"]["dueAt"].as_f64(), "{}", w("sla due"));
-                assert_eq!(Some(st.remaining), x["sla"]["remaining"].as_f64(), "{}", w("sla remaining"));
-                assert_eq!(Some(st.breached), x["sla"]["breached"].as_bool(), "{}", w("sla breached"));
+                assert_eq!(
+                    Some(st.metric.as_str()),
+                    x["sla"]["metric"].as_str(),
+                    "{}",
+                    w("sla metric")
+                );
+                assert_eq!(
+                    Some(st.due_at),
+                    x["sla"]["dueAt"].as_f64(),
+                    "{}",
+                    w("sla due")
+                );
+                assert_eq!(
+                    Some(st.remaining),
+                    x["sla"]["remaining"].as_f64(),
+                    "{}",
+                    w("sla remaining")
+                );
+                assert_eq!(
+                    Some(st.breached),
+                    x["sla"]["breached"].as_bool(),
+                    "{}",
+                    w("sla breached")
+                );
             }
         }
 
         let durations: Vec<String> = i.durations.iter().map(|d| short_duration(*d)).collect();
-        let want: Vec<&str> = x["durations"].as_array().expect("d").iter().filter_map(Value::as_str).collect();
+        let want: Vec<&str> = x["durations"]
+            .as_array()
+            .expect("d")
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
         assert_eq!(durations, want, "{}", w("durations"));
 
         let d = &i.data;
@@ -200,10 +257,16 @@ fn servicedesk_rules_match_everything() {
             ("ticket.priority", s(d, &["ticket", "priority"])),
             ("ticket.link", s(d, &["link"])),
             ("requester.name", req_name.as_deref()),
-            ("requester.first_name", Some(first_name(req_name.as_deref().unwrap_or("")))),
+            (
+                "requester.first_name",
+                Some(first_name(req_name.as_deref().unwrap_or(""))),
+            ),
             ("requester.email", s(d, &["requester", "email"])),
             ("agent.name", agent_name.as_deref()),
-            ("agent.first_name", Some(first_name(agent_name.as_deref().unwrap_or("")))),
+            (
+                "agent.first_name",
+                Some(first_name(agent_name.as_deref().unwrap_or(""))),
+            ),
             ("desk.name", s(d, &["desk", "name"])),
             ("comment.text", s(d, &["commentText"])),
         ];
@@ -214,7 +277,12 @@ fn servicedesk_rules_match_everything() {
             w("rendered")
         );
         let tags = norm_tags(&i.tag_input);
-        let want: Vec<&str> = x["tags"].as_array().expect("tags").iter().filter_map(Value::as_str).collect();
+        let want: Vec<&str> = x["tags"]
+            .as_array()
+            .expect("tags")
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
         assert_eq!(tags, want, "{}", w("tags"));
     }
 }

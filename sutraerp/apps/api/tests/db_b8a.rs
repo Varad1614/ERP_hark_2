@@ -1571,3 +1571,248 @@ async fn await_decision_reservations_decommissioning_and_plans() {
         (Some("active"), Some("approved"))
     );
 }
+
+const TENANT_RULES: &str = "0192f5a0-7c3e-7000-8000-0000000b8a04";
+
+/// ERP_EXTENSIONS 2B: service-desk triggers on open and change (priority → SLA from the
+/// policy, tags, assignment through the normal path), the firing log, tags, saved and built-in
+/// views, rule preview, the SLA board and the first-response breach in the SLA sweep.
+#[tokio::test]
+async fn service_desk_rules_views_and_sla_policy() {
+    let (app, pool) = app(TENANT_RULES).await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let aarav = login(&app, "aarav.desai@sutra.dev").await;
+    let setup = b8::campus_setup(&app, &admin, &pool, TENANT_RULES, "Rules University").await;
+    let inst = setup.institution().as_uuid();
+    let h = b8::seed_hierarchy(&pool, &setup, "RU", &[("201", SpaceType::Classroom, 40)]).await;
+    let room = h.spaces[0].id.as_uuid();
+    b8::seed_student(&pool, &setup, "Aarav", Some(b4::AARAV)).await;
+    let desk = format!("{C}/institutions/{inst}/service-desk");
+
+    // SLA policy: defaults until saved; a saved target times new tickets.
+    let (s, p) = read(&app, &admin, &format!("{desk}/sla-policy")).await;
+    assert_eq!(s, StatusCode::OK, "{p}");
+    assert_eq!(
+        (
+            p["customised"].as_bool(),
+            p["targets"]["critical"]["resolve"].as_i64()
+        ),
+        (Some(false), Some(240))
+    );
+    let (s, b) = put(
+        &app,
+        &admin,
+        &format!("{desk}/sla-policy"),
+        json!({"enabled": true, "targets": {"urgent": {"resolve": 60}}, "version": 0}),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    let (s, p) = put(&app, &admin, &format!("{desk}/sla-policy"), json!({"enabled": true, "targets": {"critical": {"first": 30, "next": 0, "resolve": 120}}, "version": 0}), None).await;
+    assert_eq!(s, StatusCode::OK, "{p}");
+    assert_eq!(
+        (
+            p["version"].as_i64(),
+            p["targets"]["critical"]["resolve"].as_i64(),
+            p["targets"]["medium"]["resolve"].as_i64()
+        ),
+        (Some(1), Some(120), Some(4320))
+    );
+
+    // Triggers: a status action is refused; leaks become critical, tagged and assigned.
+    let (s, b) = post(
+        &app,
+        &admin,
+        &format!("{desk}/rules"),
+        json!({"title": "Close it", "actions": [{"field": "status", "value": "resolved"}]}),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    let (s, leak) = post(&app, &admin, &format!("{desk}/rules"), json!({
+        "title": "Leaks are urgent", "event": "created",
+        "conditions": {"all": [{"field": "subject", "op": "contains", "value": "leak"}]},
+        "actions": [{"field": "priority", "value": "critical"}, {"field": "add_tags", "value": "plumbing"},
+                    {"field": "assignee", "value": "team.estate"}],
+    }), None).await;
+    assert_eq!(s, StatusCode::CREATED, "{leak}");
+    let (s, _) = post(
+        &app,
+        &admin,
+        &format!("{desk}/rules"),
+        json!({
+            "title": "Tag complaints",
+            "conditions": {"all": [{"field": "field:complaint", "op": "is", "value": true}]},
+            "actions": [{"field": "add_tags", "value": "complaint"}],
+        }),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let (_, rules) = read(&app, &admin, &format!("{desk}/rules")).await;
+    assert_eq!(rules["items"].as_array().unwrap().len(), 2);
+
+    let (s, t) = post(&app, &aarav, &format!("{C}/me/tickets"),
+        json!({"nodeId": room, "category": "facility", "title": "Water leak in the washroom", "isComplaint": true}), None).await;
+    assert_eq!(s, StatusCode::CREATED, "{t}");
+    assert_eq!(
+        (
+            t["priority"].as_str(),
+            t["status"].as_str(),
+            t["assignee"].as_str()
+        ),
+        (Some("critical"), Some("assigned"), Some("team.estate")),
+        "{t}"
+    );
+    let created = chrono::DateTime::parse_from_rfc3339(t["createdAt"].as_str().unwrap()).unwrap();
+    let due = chrono::DateTime::parse_from_rfc3339(t["slaDueAt"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        (due - created).num_minutes(),
+        120,
+        "policy resolution target"
+    );
+    let tid = sid(&t);
+    let (_, runs) = read(&app, &admin, &format!("{C}/tickets/{tid}/automation")).await;
+    let titles: Vec<&str> = runs["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["ruleTitle"].as_str().unwrap())
+        .collect();
+    assert_eq!(titles, ["Leaks are urgent", "Tag complaints"], "{runs}");
+
+    // Tags by hand run the triggers again (no new change → no new firing log beyond "any").
+    let (s, row) = post(
+        &app,
+        &admin,
+        &format!("{C}/tickets/{tid}/tags"),
+        json!({"add": ["VIP"]}),
+        Some(ver(&t)),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{row}");
+    assert_eq!(row["tags"], json!(["plumbing", "complaint", "vip"]));
+    assert!(
+        row["firstResponseAt"].is_string(),
+        "assigned counts as the first response"
+    );
+    assert_eq!(row["sla"]["metric"], "resolve");
+    let (s, _) = post(
+        &app,
+        &admin,
+        &format!("{C}/tickets/{tid}/tags"),
+        json!({"add": ["x"]}),
+        Some(ver(&t)),
+    )
+    .await;
+    assert_eq!(s, StatusCode::PRECONDITION_FAILED);
+
+    // Views: built-in and saved.
+    let (s, v) = post(&app, &admin, &format!("{desk}/views"), json!({"title": "VIP", "conditions": {"all": [{"field": "tags", "op": "includes", "value": "vip"}]}}), None).await;
+    assert_eq!(s, StatusCode::CREATED, "{v}");
+    let (_, q) = read(&app, &admin, &format!("{desk}/views/{}/tickets", sid(&v))).await;
+    assert_eq!(q["items"].as_array().unwrap().len(), 1, "{q}");
+    let (_, q) = read(
+        &app,
+        &admin,
+        &format!("{desk}/views/sys-complaints/tickets"),
+    )
+    .await;
+    assert_eq!(q["items"].as_array().unwrap().len(), 1, "{q}");
+    let (_, views) = read(&app, &admin, &format!("{desk}/views")).await;
+    assert_eq!(views["items"].as_array().unwrap().len(), 8);
+
+    // Preview: what a rule would do now, without saving it.
+    let (s, pv) = post(
+        &app,
+        &admin,
+        &format!("{desk}/rules/preview"),
+        json!({
+        "conditions": {"all": [{"field": "priority", "op": "is", "value": "critical"}]},
+        "actions": [{"field": "add_tags", "value": "hot"}]}),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{pv}");
+    assert_eq!(pv["matched"], 1);
+    assert_eq!(
+        pv["hits"][0]["changes"]["tags"],
+        json!(["plumbing", "complaint", "vip", "hot"])
+    );
+
+    // A critical office ticket nobody has answered breaches its 30-minute first response.
+    let (s, f) = post(
+        &app,
+        &admin,
+        &format!("{C}/institutions/{inst}/tickets"),
+        json!({"category": "it", "title": "Lab network down", "priority": "critical"}),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{f}");
+    assert_eq!(f["status"], "open");
+    sqlx::query(
+        "UPDATE campus.service_ticket SET created_at = now() - interval '45 minutes' WHERE id = $1",
+    )
+    .bind(Uuid::parse_str(&sid(&f)).unwrap())
+    .execute(&pool)
+    .await
+    .unwrap();
+    let (_, board) = read(&app, &admin, &format!("{desk}/sla-board")).await;
+    let first = board["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["ticket"]["id"] == f["id"])
+        .cloned()
+        .unwrap();
+    assert_eq!(
+        (
+            first["sla"]["metric"].as_str(),
+            first["sla"]["breached"].as_bool()
+        ),
+        (Some("first"), Some(true)),
+        "{board}"
+    );
+    assert!(board["breached"].as_i64().unwrap() >= 1);
+    let (s, sum) = post(
+        &app,
+        &admin,
+        &format!("{C}/institutions/{inst}/tickets/sla-check"),
+        json!({}),
+        None,
+    )
+    .await;
+    assert_eq!(
+        (s, sum["processed"].as_i64()),
+        (StatusCode::OK, Some(1)),
+        "{sum}"
+    );
+    let (_, fd) = read(&app, &admin, &format!("{C}/tickets/{}", sid(&f))).await;
+    assert_eq!(fd["ticket"]["slaBreached"], true);
+
+    // Deleting a rule stops it; its past firings stay.
+    let (s, _) = send(
+        &app,
+        write(
+            &admin,
+            "DELETE",
+            &format!("{C}/service-desk/rules/{}", sid(&leak)),
+            json!(null),
+            None,
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    let (_, t2) = post(
+        &app,
+        &aarav,
+        &format!("{C}/me/tickets"),
+        json!({"nodeId": room, "category": "facility", "title": "Another leak"}),
+        None,
+    )
+    .await;
+    assert_eq!(t2["priority"], "medium", "{t2}");
+    let (_, runs) = read(&app, &admin, &format!("{C}/tickets/{tid}/automation")).await;
+    assert!(runs["items"].as_array().unwrap().len() >= 2);
+}
