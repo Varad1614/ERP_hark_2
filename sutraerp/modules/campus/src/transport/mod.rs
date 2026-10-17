@@ -14,6 +14,7 @@
 pub mod domain;
 pub mod fleet;
 pub mod maintenance;
+pub mod maintenance_http;
 pub mod network;
 pub mod passengers;
 pub mod selfservice;
@@ -72,5 +73,6 @@ pub fn router(state: CampusState) -> OpenApiRouter {
         .routes(routes!(selfservice::me_request))
         .routes(routes!(selfservice::me_pass))
         .routes(routes!(selfservice::me_complaint))
-        .with_state(state)
+        .with_state(state.clone())
+        .merge(maintenance_http::router(state))
 }
