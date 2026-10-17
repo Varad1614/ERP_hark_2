@@ -264,10 +264,7 @@ fn category_hint(text: &str) -> Option<&'static str> {
             ],
             "Travel",
         ),
-        (
-            &["hotel", "lodge", "guest house", "room tariff", "check-in"],
-            "Lodging",
-        ),
+        // Meals before lodging: an Indian "Hotel …" bill is usually a restaurant.
         (
             &[
                 "restaurant",
@@ -280,6 +277,10 @@ fn category_hint(text: &str) -> Option<&'static str> {
                 "thali",
             ],
             "Meals",
+        ),
+        (
+            &["hotel", "lodge", "guest house", "room tariff", "check-in"],
+            "Lodging",
         ),
         (
             &["stationery", "xerox", "printing", "photocopy", "books"],
