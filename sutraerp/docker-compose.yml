@@ -2,6 +2,8 @@
 #   docker compose up -d                    # infra only (postgres, keycloak, valkey, nats, mailpit)
 #   docker compose --profile app up --build # + migrate (owner) → api (runtime role) and web
 #   docker compose --profile demo run --rm --build demo-seed   # Batch 3 + 4 demo data (README)
+#   SUTRA_COMPOSE_OCR_URL=http://ocr:8866 docker compose --profile app --profile ocr up -d --build
+#                                           # + receipt OCR sidecar for expense claims (3D)
 # See README "Local Docker verification".
 # Long-running services use `restart: unless-stopped`, so the stack comes back after a Docker
 # Desktop / host restart (until you `docker compose stop|down` it). `migrate` is a one-shot job
@@ -170,6 +172,11 @@ services:
       SUTRA_WEBAUTHN_RP_ID: localhost
       SUTRA_WEBAUTHN_RP_NAME: SutraERP
       SUTRA_WEBAUTHN_ORIGINS: http://localhost:3000,http://localhost:5173
+      # 3D expense claims: receipt OCR sidecar (`--profile ocr`, tools/ocr-sidecar). Empty = off
+      # (uploads still work, nothing is pre-filled). Set SUTRA_COMPOSE_OCR_URL=http://ocr:8866
+      # when the `ocr` profile is up.
+      SUTRA_OCR_URL: ${SUTRA_COMPOSE_OCR_URL:-}
+      SUTRA_OCR_TIMEOUT_SECS: ${SUTRA_COMPOSE_OCR_TIMEOUT_SECS:-30}
     ports: ["8080:8080"]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -186,6 +193,26 @@ services:
       args: { VITE_AUTH_MODE: "${SUTRA_COMPOSE_WEB_AUTH_MODE:-api}" }
     ports: ["3000:8080"]
     depends_on: [api]
+
+  # 3D expense claims: receipt OCR (PaddleOCR, Apache-2.0) as a separate service. Receipts stay on
+  # this host; OCR only pre-fills a draft a person confirms. Internal port only (api reaches
+  # http://ocr:8866). Models are baked in at build time (the first build downloads them).
+  #   SUTRA_COMPOSE_OCR_URL=http://ocr:8866 docker compose --profile app --profile ocr up -d --build
+  ocr:
+    restart: unless-stopped
+    profiles: ["ocr"]
+    build:
+      context: ./tools/ocr-sidecar
+      args: { OCR_LANG: "${SUTRA_COMPOSE_OCR_LANG:-en}" }
+    environment:
+      OCR_LANG: ${SUTRA_COMPOSE_OCR_LANG:-en}
+    expose: ["8866"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8866/healthz', timeout=4).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   # Demo data for the Batch 3 + 4 click-through (README): a new institution DEMO taken to active
   # through the Batch 2 API, students, a course offering with faculty and seats. One-shot, never

@@ -123,6 +123,11 @@ Full account numbers never enter the audit log, the outbox or notifications (tes
 * NATS / Valkey / Flowable / OpenSearch URLs are not forced to TLS: in-cluster or private-subnet
   services behind the default-deny NetworkPolicy (`networkPolicy.externalCidrs`). Revisit when any of
   them leaves the private network.
+* The receipt OCR sidecar (`SUTRA_OCR_URL`, e.g. `http://ocr:8866`; `SUTRA_OCR_TIMEOUT_SECS`
+  1…300, default 30) is not forced to TLS either, for the same reason: it is self-hosted on the
+  private network, receipts never leave the institution's servers, it has no credentials and only
+  pre-fills drafts a person confirms. Unset = receipt reading off. Keep it unreachable from outside
+  the cluster (no ingress, no published port).
 * `style-src 'unsafe-inline'` on the SPA (see above).
 * Rate limits are per process (no shared store); with N replicas the effective limit is N×. The
   ingress `limit_req` and Keycloak brute-force detection are the outer layers.

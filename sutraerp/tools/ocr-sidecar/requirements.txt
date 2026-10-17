@@ -1,0 +1,7 @@
+# Pinned for reproducible images (tools/ocr-sidecar/Dockerfile). CPU-only Paddle.
+paddleocr==3.7.0
+paddlepaddle==3.3.1
+fastapi==0.115.12
+uvicorn==0.34.2
+pillow==11.2.1
+pypdfium2==4.30.1

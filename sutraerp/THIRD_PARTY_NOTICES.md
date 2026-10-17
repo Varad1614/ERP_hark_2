@@ -25,6 +25,7 @@ Ported so far:
 | `modules/people/src/roster/rules.rs` (shift validation, overnight conflicts, weekly availability and time off, weekly hours and limits, move checks, ranked suggestions, coverage gaps, minimum rest / daily hours / consecutive days, bulk fill of open shifts, time helpers) | `src/shifts/src/core/scheduling.js` `validateShift` / `findConflicts` / `availabilityStatus` / `weeklyMinutes` / `hoursStatus` / `evaluateMove` / `suggestAssignees` / `coverageGaps`; `rules.js` `normalizeRules` / `ruleViolations` / `scheduleRuleViolations`; `fill.js` `planFill`; `shift-time.js`; `lib/time.js` `toMinutes` / `durationMinutes` / `startOfWeek` / `formatDate` / `formatHours` |
 | `modules/people/src/hr/scorecards.rs` (rating rubric, scorecard validation, averages, panel summary and leaning, interview guides and the guide picked for an interview, screening questions and answers, must-have mismatches, interviews owed feedback) | `src/hiring/src/core/scorecards.js` `normalizeRatingFields` / `validateScorecard` / `averageRating` / `summarizeScorecards`; `guides.js` `normalizeGuides` / `defaultGuideFor` / `normalizeGuideAnswers`; `screening.js` `normalizeScreeningQuestions` / `normalizeAnswers` / `screeningMismatches`; `reminders.js` `missingScorecards` |
 | `modules/resources/src/contracts/rules.rs`, `contracts/ical.rs` (term ends and auto-renewal roll-forward, agreement end, finished terms, renewal phase and notice deadline, recorded decisions and when they stop applying, term reconciliation, repeating obligations anchored to their first date, obligation lists, dashboard numbers per currency, iCalendar output with 75-octet folding and stable UIDs) | `src/contracts/src/lib/dates.js` `isTermEnd` / `nextTermEnd` / `agreementEnd` / `completedTerms` / `renewalInfo` / `needsAttention` / `decisionFor` / `decisionHandles`; `store.js` `termReconciliation` / `endedOn` / `occurrenceDue` / `repeatAnchor` / `withinSeries` / `advanceOccurrence` / `reopenedSeries` / `rewindOccurrence` / `allObligations` / `dueObligations` / `annualizedValue` / `contractStats` / `upcomingRenewals`; `ical.js` `escapeText` / `foldLine` / `buildCalendar` / `contractEvents` |
+| `modules/resources/src/expenses/rules.rs` (amount parsing, totals per currency, text normalising and tokens, two-place rounding, loose dates, currency resolution, receipt-reading JSON extraction, category matching and normalising a reading, claim lifecycle) | `src/expense/src/lib/money.js` `parseAmount` / `totalsByCurrency`; `util.js` `normalizeText` / `tokens` / `round2`; `dates.js` `parseLooseDate`; `currencies.js` `resolveCurrency`; `ocr.js` `extractJson` / `matchCategory` / `normalizeOcrResult`; `reports.js` lifecycle |
 
 ```
 MIT License
@@ -49,3 +50,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## PaddleOCR (Apache-2.0)
+
+Receipt reading for staff expense claims (`tools/ocr-sidecar`) uses
+[PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) 3.x and its PP-OCRv6 models, with
+[PaddlePaddle](https://github.com/PaddlePaddle/Paddle), both Copyright PaddlePaddle Authors,
+licensed under the Apache License, Version 2.0
+(<https://www.apache.org/licenses/LICENSE-2.0>). PaddleOCR runs as a **separate sidecar service**
+called over HTTP; it is not linked into or distributed with the SutraERP binaries, and SutraERP's
+own code is not derived from it. The sidecar image installs the unmodified packages from PyPI
+(`tools/ocr-sidecar/requirements.txt`), which carry their own license and NOTICE files.
