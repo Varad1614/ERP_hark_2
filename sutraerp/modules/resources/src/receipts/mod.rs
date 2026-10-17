@@ -316,12 +316,34 @@ pub struct GoodsReceiptCreate {
     pub lines: Vec<GoodsReceiptLineInput>,
 }
 
+/// Order line no, order line id, item, line kind, quantity, unit cost, lot expiry.
+type PlannedLine = (
+    i32,
+    Uuid,
+    Option<Uuid>,
+    String,
+    Decimal,
+    Decimal,
+    Option<NaiveDate>,
+);
+
 /// Record a supplier delivery against an order (`resources.procurement.manage`;
 /// Idempotency-Key; L3-J-049): over-receipt → 422.
 #[utoipa::path(post, path = "/api/v1/resources/purchase-orders/{id}/receipts", operation_id = "resources_receipt_create", tag = "resources-procurement",
     params(("id" = String, Path, format = Uuid), ("Idempotency-Key" = String, Header)),
     request_body = GoodsReceiptCreate, security(("session_cookie" = [], "csrf_token" = [])),
     responses((status = 201, body = GoodsReceiptDetail, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
+/// Order line no, order line id, item, line kind, quantity, unit cost, lot expiry.
+type PlannedLine = (
+    i32,
+    Uuid,
+    Option<Uuid>,
+    String,
+    Decimal,
+    Decimal,
+    Option<NaiveDate>,
+);
+
 pub async fn create(
     State(st): State<ResourcesState>,
     auth: Authenticated,
@@ -362,15 +384,7 @@ pub async fn create(
         .ok_or_else(|| invalid("locationId", "required", "the receiving store location"))?;
     active_location(&mut tx, t, institution, "locationId", location).await?;
     let po_lines = orders::lines_of(&mut tx, id).await?;
-    let mut planned: Vec<(
-        i32,
-        Uuid,
-        Option<Uuid>,
-        String,
-        Decimal,
-        Decimal,
-        Option<NaiveDate>,
-    )> = Vec::new();
+    let mut planned: Vec<PlannedLine> = Vec::new();
     for (i, l) in b.lines.iter().enumerate() {
         let pl = po_lines
             .iter()

@@ -97,7 +97,7 @@ pub fn lots_total(lots: &[Lot]) -> f64 {
 
 /// A receipt: one more lot (or more of an existing one).
 pub fn add_lot(lots: &[Lot], date: &str, qty: f64) -> Vec<Lot> {
-    if !(qty > 0.0) {
+    if qty.is_nan() || qty <= 0.0 {
         return normalize_lots(lots);
     }
     let mut all = lots.to_vec();
