@@ -21,4 +21,6 @@ pub struct ResourcesState {
     pub workforce: Arc<dyn WorkforceDirectory>,
     /// Domain F accounts payable: vendor invoices and payments (F-044 / 045 / 081 / 082).
     pub postings: Arc<dyn ProcurementPostingPort>,
+    /// ERP_EXTENSIONS 3D: receipt reader for expense claims.
+    pub ocr: Arc<dyn crate::expenses::ocr::ReceiptOcrPort>,
 }

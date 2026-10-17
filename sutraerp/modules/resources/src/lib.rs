@@ -25,6 +25,7 @@ pub mod directory;
 // ---- slice areas (8D; router mount points are pre-registered in `router_with_state`) ----
 pub mod assets;
 pub mod contracts;
+pub mod expenses;
 pub mod inventory;
 pub mod orders;
 pub mod payables;
@@ -68,6 +69,9 @@ pub struct ResourcesDeps {
     pub workforce: Arc<dyn WorkforceDirectory>,
     /// Domain F procurement postings (`sutra_finance::PgProcurementPostings`).
     pub postings: Arc<dyn ProcurementPostingPort>,
+    /// ERP_EXTENSIONS 3D: receipt reader (`expenses::ocr::reader`; PaddleOCR when `SUTRA_OCR_URL`
+    /// is set, otherwise disabled).
+    pub ocr: Arc<dyn expenses::ocr::ReceiptOcrPort>,
 }
 
 impl ResourcesDeps {
@@ -80,6 +84,7 @@ impl ResourcesDeps {
             references: self.references,
             workforce: self.workforce,
             postings: self.postings,
+            ocr: self.ocr,
         }
     }
 }
@@ -102,6 +107,7 @@ pub fn router_with_state(st: ResourcesState) -> OpenApiRouter {
         .merge(inventory::router(st.clone())) // 8D
         .merge(assets::router(st.clone())) // 8D
         .merge(contracts::router(st.clone())) // ERP_EXTENSIONS 3C
+        .merge(expenses::router(st.clone())) // ERP_EXTENSIONS 3D
         .merge(payables::router(st)) // 8D
 }
 

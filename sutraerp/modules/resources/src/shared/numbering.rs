@@ -19,6 +19,8 @@ pub mod kind {
     pub const ASSET: (&str, &str) = ("asset", "AST");
     pub const VENDOR_INVOICE: (&str, &str) = ("vendor_invoice", "VINV");
     pub const VENDOR_PAYMENT: (&str, &str) = ("vendor_payment", "VPAY");
+    // ERP_EXTENSIONS 3D:
+    pub const EXPENSE_CLAIM: (&str, &str) = ("expense_claim", "EXP");
 
     /// Every kind (unit-tested unique names).
     pub const ALL: &[(&str, &str)] = &[
@@ -31,6 +33,7 @@ pub mod kind {
         ASSET,
         VENDOR_INVOICE,
         VENDOR_PAYMENT,
+        EXPENSE_CLAIM,
     ];
 }
 

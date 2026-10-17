@@ -974,6 +974,13 @@ pub fn resources_deps_with(
         postings: Arc::new(sutra_finance::PgProcurementPostings::new(
             finance_deps_with(pool.clone(), workflow.clone(), approvals).into_state(),
         )),
+        // ERP_EXTENSIONS 3D: PaddleOCR sidecar for expense receipts when `SUTRA_OCR_URL` is set.
+        ocr: sutra_resources::expenses::ocr::reader(
+            std::env::var("SUTRA_OCR_URL").ok().as_deref(),
+            std::env::var("SUTRA_OCR_TIMEOUT_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok()),
+        ),
         workflow,
         approvals,
         pool,
