@@ -19,7 +19,9 @@ fn parse(iso: &str) -> Option<NaiveDate> {
     let shape = b.len() == 10
         && b[4] == b'-'
         && b[7] == b'-'
-        && b.iter().enumerate().all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit());
+        && b.iter()
+            .enumerate()
+            .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit());
     if !shape {
         return None;
     }
@@ -39,7 +41,13 @@ pub fn is_valid_time(t: &str) -> bool {
 /// `toMinutes`.
 pub fn to_minutes(t: &str) -> Option<i64> {
     let b = t.as_bytes();
-    if b.len() != 5 || b[2] != b':' || !b.iter().enumerate().all(|(i, c)| i == 2 || c.is_ascii_digit()) {
+    if b.len() != 5
+        || b[2] != b':'
+        || !b
+            .iter()
+            .enumerate()
+            .all(|(i, c)| i == 2 || c.is_ascii_digit())
+    {
         return None;
     }
     let h = i64::from(b[0] - b'0') * 10 + i64::from(b[1] - b'0');
@@ -66,7 +74,10 @@ pub fn is_overnight(start: &str, end: &str) -> bool {
 
 /// `addDays`.
 pub fn add_days(iso: &str, n: i64) -> String {
-    parse(iso).map_or_else(|| iso.to_owned(), |d| (d + Duration::days(n)).format("%Y-%m-%d").to_string())
+    parse(iso).map_or_else(
+        || iso.to_owned(),
+        |d| (d + Duration::days(n)).format("%Y-%m-%d").to_string(),
+    )
 }
 
 /// `dayOfWeek`: 0 = Sunday.
@@ -92,7 +103,9 @@ pub fn day_number(iso: &str) -> i64 {
 }
 
 const DAY_SHORT: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTH_SHORT: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_SHORT: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 /// `formatDate`: "Mon, Oct 12".
 pub fn format_date(iso: &str) -> String {
@@ -231,7 +244,9 @@ pub fn absolute_range(s: &Shift) -> Option<(i64, i64)> {
 
 /// `shiftBreakMinutes`.
 pub fn break_minutes(s: &Shift) -> f64 {
-    s.break_minutes.filter(|b| b.is_finite() && *b > 0.0).unwrap_or(0.0)
+    s.break_minutes
+        .filter(|b| b.is_finite() && *b > 0.0)
+        .unwrap_or(0.0)
 }
 
 /// `shiftNetMinutes`: paid minutes.
@@ -270,9 +285,17 @@ pub fn validate_shift(s: &Shift) -> Vec<String> {
 }
 
 /// `findConflicts`: ids of the assignee's other shifts that overlap (open shifts never conflict).
-pub fn find_conflicts<'a>(shift: &Shift, all: &'a [Shift], assignee: Option<&str>) -> Vec<&'a Shift> {
-    let Some(who) = assignee.filter(|a| !a.is_empty()) else { return Vec::new() };
-    let Some(range) = absolute_range(shift) else { return Vec::new() };
+pub fn find_conflicts<'a>(
+    shift: &Shift,
+    all: &'a [Shift],
+    assignee: Option<&str>,
+) -> Vec<&'a Shift> {
+    let Some(who) = assignee.filter(|a| !a.is_empty()) else {
+        return Vec::new();
+    };
+    let Some(range) = absolute_range(shift) else {
+        return Vec::new();
+    };
     let before = add_days(&shift.date, -1);
     let after = add_days(&shift.date, 1);
     all.iter()
@@ -290,7 +313,9 @@ pub fn find_conflicts<'a>(shift: &Shift, all: &'a [Shift], assignee: Option<&str
 
 /// `timeOffOn`.
 pub fn time_off_on<'a>(a: Option<&'a Availability>, iso: &str) -> Option<&'a TimeOff> {
-    a?.exceptions.iter().find(|x| x.from.as_str() <= iso && iso <= x.to.as_str())
+    a?.exceptions
+        .iter()
+        .find(|x| x.from.as_str() <= iso && iso <= x.to.as_str())
 }
 
 #[derive(PartialEq)]
@@ -336,7 +361,10 @@ pub fn availability_status(shift: &Shift, a: Option<&Availability>) -> &'static 
     let segments: Vec<(String, u32, i64, i64)> = if e > s {
         vec![(shift.date.clone(), dow, s, e)]
     } else {
-        vec![(shift.date.clone(), dow, s, 1440), (add_days(&shift.date, 1), (dow + 1) % 7, 0, e)]
+        vec![
+            (shift.date.clone(), dow, s, 1440),
+            (add_days(&shift.date, 1), (dow + 1) % 7, 0, e),
+        ]
     };
     let results: Vec<Cover> = segments
         .into_iter()
@@ -345,7 +373,11 @@ pub fn availability_status(shift: &Shift, a: Option<&Availability>) -> &'static 
             if time_off_on(Some(av), &date).is_some() {
                 Cover::None
             } else {
-                let w = av.days.as_ref().and_then(|d| d.get(day as usize)).and_then(Option::as_ref);
+                let w = av
+                    .days
+                    .as_ref()
+                    .and_then(|d| d.get(day as usize))
+                    .and_then(Option::as_ref);
                 segment_coverage(w, a, b)
             }
         })
@@ -412,14 +444,24 @@ pub fn has_rules(r: &Rules) -> bool {
 }
 
 /// `ruleViolations`: which limits putting `shift` on `employee` would break.
-pub fn rule_violations(shift: &Shift, employee: &str, shifts: &[Shift], rules: &Rules, name: &str) -> Vec<Violation> {
+pub fn rule_violations(
+    shift: &Shift,
+    employee: &str,
+    shifts: &[Shift],
+    rules: &Rules,
+    name: &str,
+) -> Vec<Violation> {
     let r = normalize_rules(rules);
     if employee.is_empty() || !has_rules(&r) {
         return Vec::new();
     }
-    let Some(range) = absolute_range(shift) else { return Vec::new() };
-    let others: Vec<&Shift> =
-        shifts.iter().filter(|s| s.assignee_id.as_deref() == Some(employee) && s.id != shift.id).collect();
+    let Some(range) = absolute_range(shift) else {
+        return Vec::new();
+    };
+    let others: Vec<&Shift> = shifts
+        .iter()
+        .filter(|s| s.assignee_id.as_deref() == Some(employee) && s.id != shift.id)
+        .collect();
     let mut out = Vec::new();
     if let Some(min_rest) = r.min_rest_hours {
         let earliest = add_days(&shift.date, -2);
@@ -429,11 +471,17 @@ pub fn rule_violations(shift: &Shift, employee: &str, shifts: &[Shift], rules: &
             if o.date < earliest || o.date > latest {
                 continue;
             }
-            let Some(or) = absolute_range(o) else { continue };
+            let Some(or) = absolute_range(o) else {
+                continue;
+            };
             if or.0 < range.1 && range.0 < or.1 {
                 continue;
             }
-            let gap = if or.0 >= range.1 { or.0 - range.1 } else { range.0 - or.1 };
+            let gap = if or.0 >= range.1 {
+                or.0 - range.1
+            } else {
+                range.0 - or.1
+            };
             if (gap as f64) < min_rest * 60.0 && worst.is_none_or(|(g, _)| gap < g) {
                 worst = Some((gap, o));
             }
@@ -453,12 +501,20 @@ pub fn rule_violations(shift: &Shift, employee: &str, shifts: &[Shift], rules: &
                     num(min_rest)
                 )
             };
-            out.push(Violation { rule: "rest".into(), short: "Short rest".into(), message });
+            out.push(Violation {
+                rule: "rest".into(),
+                short: "Short rest".into(),
+                message,
+            });
         }
     }
     if let Some(max_daily) = r.max_daily_hours {
-        let total: f64 =
-            others.iter().filter(|s| s.date == shift.date).map(|s| net_minutes(s)).sum::<f64>() + net_minutes(shift);
+        let total: f64 = others
+            .iter()
+            .filter(|s| s.date == shift.date)
+            .map(|s| net_minutes(s))
+            .sum::<f64>()
+            + net_minutes(shift);
         if total > max_daily * 60.0 {
             out.push(Violation {
                 rule: "daily".into(),
@@ -506,12 +562,22 @@ pub fn rule_violations(shift: &Shift, employee: &str, shifts: &[Shift], rules: &
 
 /// `scheduleRuleViolations`: limits already broken by what an employee holds on `dates`, one
 /// per rule.
-pub fn schedule_rule_violations(employee: &str, shifts: &[Shift], dates: &[String], rules: &Rules, name: &str) -> Vec<Violation> {
+pub fn schedule_rule_violations(
+    employee: &str,
+    shifts: &[Shift],
+    dates: &[String],
+    rules: &Rules,
+    name: &str,
+) -> Vec<Violation> {
     if !has_rules(rules) {
         return Vec::new();
     }
     let days: HashSet<&str> = dates.iter().map(String::as_str).collect();
-    let mine: Vec<Shift> = shifts.iter().filter(|s| s.assignee_id.as_deref() == Some(employee)).cloned().collect();
+    let mine: Vec<Shift> = shifts
+        .iter()
+        .filter(|s| s.assignee_id.as_deref() == Some(employee))
+        .cloned()
+        .collect();
     let mut by: Vec<Violation> = Vec::new();
     for s in mine.iter().filter(|s| days.contains(s.date.as_str())) {
         for v in rule_violations(s, employee, &mine, rules, name) {
@@ -536,7 +602,7 @@ pub struct MoveCheck {
 }
 
 /// What a move check reads.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Context<'a> {
     pub shifts: &'a [Shift],
     pub employees: &'a [Employee],
@@ -547,7 +613,13 @@ pub struct Context<'a> {
 
 /// `evaluateMove`: moving (or copying) a shift onto a day and/or a person. Overlap is the only
 /// hard blocker; time off, availability, weekly maximum and recorded attendance are warnings.
-pub fn evaluate_move(shift: &Shift, date: &str, assignee: Option<&str>, ctx: &Context<'_>, copy: bool) -> MoveCheck {
+pub fn evaluate_move(
+    shift: &Shift,
+    date: &str,
+    assignee: Option<&str>,
+    ctx: &Context<'_>,
+    copy: bool,
+) -> MoveCheck {
     let to = assignee.filter(|a| !a.is_empty());
     let from = shift.assignee_id.as_deref().filter(|a| !a.is_empty());
     let changed = copy || date != shift.date || to != from;
@@ -555,22 +627,42 @@ pub fn evaluate_move(shift: &Shift, date: &str, assignee: Option<&str>, ctx: &Co
     let target = Shift {
         date: date.to_owned(),
         assignee_id: to.map(str::to_owned),
-        id: if copy { String::new() } else { shift.id.clone() },
+        id: if copy {
+            String::new()
+        } else {
+            shift.id.clone()
+        },
         ..shift.clone()
     };
     let employee = to.and_then(|t| ctx.employees.iter().find(|e| e.id == t));
     if !is_valid_date(date) {
-        return MoveCheck { changed, blocked: Some("That is not a valid date.".into()), warnings };
+        return MoveCheck {
+            changed,
+            blocked: Some("That is not a valid date.".into()),
+            warnings,
+        };
     }
     if !changed {
-        return MoveCheck { changed, blocked: None, warnings };
+        return MoveCheck {
+            changed,
+            blocked: None,
+            warnings,
+        };
     }
     if to.is_some() && employee.is_none() {
-        return MoveCheck { changed, blocked: Some("That person is no longer on the team.".into()), warnings };
+        return MoveCheck {
+            changed,
+            blocked: Some("That person is no longer on the team.".into()),
+            warnings,
+        };
     }
     if let Some(e) = employee {
         if !e.active {
-            return MoveCheck { changed, blocked: Some(format!("{} is archived.", e.name)), warnings };
+            return MoveCheck {
+                changed,
+                blocked: Some(format!("{} is archived.", e.name)),
+                warnings,
+            };
         }
         if !find_conflicts(&target, ctx.shifts, to).is_empty() {
             return MoveCheck {
@@ -588,12 +680,22 @@ pub fn evaluate_move(shift: &Shift, date: &str, assignee: Option<&str>, ctx: &Co
             }
         });
         if let Some(t) = off {
-            let note = t.note.as_deref().filter(|n| !n.is_empty()).map(|n| format!(" ({n})")).unwrap_or_default();
+            let note = t
+                .note
+                .as_deref()
+                .filter(|n| !n.is_empty())
+                .map(|n| format!(" ({n})"))
+                .unwrap_or_default();
             warnings.push(format!("{} has time off then{note}.", e.name));
         } else {
             match availability_status(&target, record) {
-                "unavailable" => warnings.push(format!("{} is marked unavailable at this time.", e.name)),
-                "partial" => warnings.push(format!("This only partially fits {}\u{2019}s availability.", e.name)),
+                "unavailable" => {
+                    warnings.push(format!("{} is marked unavailable at this time.", e.name))
+                }
+                "partial" => warnings.push(format!(
+                    "This only partially fits {}\u{2019}s availability.",
+                    e.name
+                )),
                 _ => {}
             }
         }
@@ -601,9 +703,14 @@ pub fn evaluate_move(shift: &Shift, date: &str, assignee: Option<&str>, ctx: &Co
             let others: Vec<Shift> = if copy {
                 ctx.shifts.to_vec()
             } else {
-                ctx.shifts.iter().filter(|s| s.id != shift.id).cloned().collect()
+                ctx.shifts
+                    .iter()
+                    .filter(|s| s.id != shift.id)
+                    .cloned()
+                    .collect()
             };
-            let projected = weekly_minutes(&others, &e.id, &start_of_week(date)) + net_minutes(&target);
+            let projected =
+                weekly_minutes(&others, &e.id, &start_of_week(date)) + net_minutes(&target);
             if projected > max * 60.0 {
                 warnings.push(format!(
                     "This puts {} at {} that week, over their {}h max.",
@@ -618,12 +725,20 @@ pub fn evaluate_move(shift: &Shift, date: &str, assignee: Option<&str>, ctx: &Co
         warnings.push(if to == from {
             "Attendance was already recorded for this shift.".to_owned()
         } else if let Some(e) = employee {
-            format!("The attendance already recorded for this shift becomes {}\u{2019}s.", e.name)
+            format!(
+                "The attendance already recorded for this shift becomes {}\u{2019}s.",
+                e.name
+            )
         } else {
-            "Unassigning takes the attendance already recorded for this shift off the timesheet.".to_owned()
+            "Unassigning takes the attendance already recorded for this shift off the timesheet."
+                .to_owned()
         });
     }
-    MoveCheck { changed, blocked: None, warnings }
+    MoveCheck {
+        changed,
+        blocked: None,
+        warnings,
+    }
 }
 
 /// A ranked candidate for a shift.
@@ -654,7 +769,11 @@ pub fn suggest_assignees(
     limit: usize,
 ) -> Vec<Candidate> {
     let week = start_of_week(&shift.date);
-    let others: Vec<Shift> = shifts.iter().filter(|s| s.id != shift.id).cloned().collect();
+    let others: Vec<Shift> = shifts
+        .iter()
+        .filter(|s| s.id != shift.id)
+        .cloned()
+        .collect();
     let net = net_minutes(shift);
     let role = shift.role.trim().to_lowercase();
     let mut out = Vec::new();
@@ -666,7 +785,9 @@ pub fn suggest_assignees(
         if time_off_on(record, &shift.date).is_some() {
             continue;
         }
-        if is_overnight(&shift.start, &shift.end) && time_off_on(record, &add_days(&shift.date, 1)).is_some() {
+        if is_overnight(&shift.start, &shift.end)
+            && time_off_on(record, &add_days(&shift.date, 1)).is_some()
+        {
             continue;
         }
         let status = availability_status(shift, record);
@@ -681,10 +802,19 @@ pub fn suggest_assignees(
         if e.max_hours.is_some_and(|m| projected > m * 60.0) {
             continue;
         }
-        let deficit = e.target_hours.map_or(0.0, |t| (t * 60.0 - current).max(0.0));
+        let deficit = e
+            .target_hours
+            .map_or(0.0, |t| (t * 60.0 - current).max(0.0));
         let role_match = !role.is_empty() && e.role.trim().to_lowercase() == role;
-        let warnings = rules.map_or_else(Vec::new, |r| rule_violations(shift, &e.id, &others, r, &e.name));
-        let mut reasons = vec![if status == "available" { "Available" } else { "Partially available" }.to_owned()];
+        let warnings = rules.map_or_else(Vec::new, |r| {
+            rule_violations(shift, &e.id, &others, r, &e.name)
+        });
+        let mut reasons = vec![if status == "available" {
+            "Available"
+        } else {
+            "Partially available"
+        }
+        .to_owned()];
         if deficit > 0.0 {
             reasons.push(format!("{} below target", format_hours(deficit)));
         }
@@ -707,7 +837,11 @@ pub fn suggest_assignees(
         (!a.rule_warnings.is_empty())
             .cmp(&!b.rule_warnings.is_empty())
             .then_with(|| (a.status != "available").cmp(&(b.status != "available")))
-            .then_with(|| b.deficit_minutes.partial_cmp(&a.deficit_minutes).unwrap_or(std::cmp::Ordering::Equal))
+            .then_with(|| {
+                b.deficit_minutes
+                    .partial_cmp(&a.deficit_minutes)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .then_with(|| b.role_match.cmp(&a.role_match))
             .then_with(|| a.name.cmp(&b.name))
     });
@@ -738,8 +872,16 @@ pub fn coverage_gaps(shifts: &[Shift], reqs: &[Requirement], dates: &[String]) -
     let prepared: Vec<(&Requirement, i64, i64, String)> = reqs
         .iter()
         .map(|r| {
-            let mut ws = r.start.as_deref().filter(|s| !s.is_empty()).map_or(0, |s| to_minutes(s).unwrap_or(0));
-            let mut we = r.end.as_deref().filter(|s| !s.is_empty()).map_or(1440, |s| to_minutes(s).unwrap_or(1440));
+            let mut ws = r
+                .start
+                .as_deref()
+                .filter(|s| !s.is_empty())
+                .map_or(0, |s| to_minutes(s).unwrap_or(0));
+            let mut we = r
+                .end
+                .as_deref()
+                .filter(|s| !s.is_empty())
+                .map_or(1440, |s| to_minutes(s).unwrap_or(1440));
             if we == 1439 {
                 we = 1440;
             }
@@ -769,7 +911,10 @@ pub fn coverage_gaps(shifts: &[Shift], reqs: &[Requirement], dates: &[String]) -
                 continue;
             }
             let (lo, hi) = (base + ws, base + we);
-            let scheduled = by_role.get(role).map_or(0, |v| v.iter().filter(|r| r.0 < hi && lo < r.1).count()) as i64;
+            let scheduled = by_role
+                .get(role)
+                .map_or(0, |v| v.iter().filter(|r| r.0 < hi && lo < r.1).count())
+                as i64;
             if scheduled < req.count {
                 gaps.push(Gap {
                     date: date.clone(),
@@ -814,12 +959,20 @@ pub fn plan_fill(
     choices: &BTreeMap<String, Option<String>>,
 ) -> Vec<FillRow> {
     let days: HashSet<&str> = dates.iter().map(String::as_str).collect();
-    let mut open: Vec<&Shift> =
-        shifts.iter().filter(|s| s.assignee_id.as_deref().is_none_or(str::is_empty) && days.contains(s.date.as_str())).collect();
+    let mut open: Vec<&Shift> = shifts
+        .iter()
+        .filter(|s| {
+            s.assignee_id.as_deref().is_none_or(str::is_empty) && days.contains(s.date.as_str())
+        })
+        .collect();
     open.sort_by(|a, b| {
         a.date
             .cmp(&b.date)
-            .then_with(|| to_minutes(&a.start).unwrap_or(0).cmp(&to_minutes(&b.start).unwrap_or(0)))
+            .then_with(|| {
+                to_minutes(&a.start)
+                    .unwrap_or(0)
+                    .cmp(&to_minutes(&b.start).unwrap_or(0))
+            })
             .then_with(|| a.id.cmp(&b.id))
     });
     let mut working: Vec<Shift> = shifts.to_vec();
@@ -831,7 +984,10 @@ pub fn plan_fill(
         match pinned {
             None => proposal = candidates.first().map(|c| c.employee_id.clone()),
             Some(Some(p)) => {
-                proposal = candidates.iter().find(|c| &c.employee_id == p).map(|c| c.employee_id.clone());
+                proposal = candidates
+                    .iter()
+                    .find(|c| &c.employee_id == p)
+                    .map(|c| c.employee_id.clone());
                 stale = proposal.is_none();
             }
             Some(None) => {}
@@ -878,14 +1034,39 @@ mod tests {
         assert_eq!(find_conflicts(&morning, &all, Some("e1")).len(), 1);
         assert_eq!(format_date("2026-10-12"), "Mon, Oct 12");
         assert_eq!(format_hours(450.0), "7.5h");
-        let rules = Rules { min_rest_hours: Some(11.0), ..Rules::default() };
+        let rules = Rules {
+            min_rest_hours: Some(11.0),
+            ..Rules::default()
+        };
         let v = rule_violations(&late, "e1", &[night.clone()], &rules, "Asha");
-        assert_eq!(v[0].message, "Asha would get 4h rest around their Mon, Oct 12 shift, under the 11h minimum.");
+        assert_eq!(
+            v[0].message,
+            "Asha would get 4h rest around their Mon, Oct 12 shift, under the 11h minimum."
+        );
         let emps = vec![
-            Employee { id: "e1".into(), name: "Asha".into(), active: true, ..Employee::default() },
-            Employee { id: "e2".into(), name: "Bilal".into(), active: true, target_hours: Some(10.0), ..Employee::default() },
+            Employee {
+                id: "e1".into(),
+                name: "Asha".into(),
+                active: true,
+                ..Employee::default()
+            },
+            Employee {
+                id: "e2".into(),
+                name: "Bilal".into(),
+                active: true,
+                target_hours: Some(10.0),
+                ..Employee::default()
+            },
         ];
-        let plan = plan_fill(&all, &emps, &BTreeMap::new(), Some(&rules), &["2026-10-13".into()], 3, &BTreeMap::new());
+        let plan = plan_fill(
+            &all,
+            &emps,
+            &BTreeMap::new(),
+            Some(&rules),
+            &["2026-10-13".into()],
+            3,
+            &BTreeMap::new(),
+        );
         assert_eq!(plan[0].proposal.as_deref(), Some("e2"));
         assert_eq!(start_of_week("2026-10-18"), "2026-10-12");
     }
