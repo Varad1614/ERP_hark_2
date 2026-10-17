@@ -10,6 +10,7 @@
 //! * [`http`] — the routes.
 
 pub mod billing;
+pub mod billing_http;
 pub mod domain;
 pub mod fees;
 pub mod http;

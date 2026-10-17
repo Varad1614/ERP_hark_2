@@ -1139,5 +1139,15 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
         .routes(routes!(dispute_get))
         .routes(routes!(dispute_decide))
         .routes(routes!(dispute_withdraw))
+        // ERP_EXTENSIONS 1E — periodic billing runs.
+        .routes(routes!(super::billing_http::billing_plan_list, super::billing_http::billing_plan_create))
+        .routes(routes!(super::billing_http::billing_plan_update))
+        .routes(routes!(super::billing_http::billing_enrolment_list, super::billing_http::billing_enrolment_upsert))
+        .routes(routes!(super::billing_http::billing_enrolment_remove))
+        .routes(routes!(super::billing_http::billing_run_preview))
+        .routes(routes!(super::billing_http::billing_run_list, super::billing_http::billing_run_create))
+        .routes(routes!(super::billing_http::billing_run_get))
+        .routes(routes!(super::billing_http::billing_schedule_list))
+        .routes(routes!(super::billing_http::billing_schedule_set))
         .with_state(state)
 }

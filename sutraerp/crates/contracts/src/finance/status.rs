@@ -149,6 +149,8 @@ status_enum!(
         ExamFee => "exam_fee",
         /// Campus service charge raised by Domain G through `CampusChargePort` (Batch 8).
         CampusCharge => "campus_charge",
+        /// Periodic billing run (ERP_EXTENSIONS 1E); `source_id` = the billing run item.
+        BillingRun => "billing_run",
     }
 );
 
