@@ -19,6 +19,7 @@ import { Actions, CodeName, inr, inr as formatInr } from "../ui";
 import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { rkeys, useResidenceApi } from "./hooks";
+import { FleetMaintenanceTile } from "../fleet/FleetMaintenanceTile";
 import { kindOf, personField, usePeople, type PersonOption } from "../PersonPicker"; // 9E
 import type { HostelAllocation, HostelApplication, HostelBed, HostelPolicy, Mess, ResidentLeave, RoomInspection, RouteVersion, TransportAllocation, TransportPass, TransportRoute, TransportStop, Trip, Vehicle } from "./types";
 
@@ -1215,6 +1216,7 @@ export function TransportAdminTab({ institution }: { institution: Institution | 
       <RoutesTile inst={inst} />
       <StopsTile inst={inst} />
       <VehiclesTile inst={inst} />
+      <FleetMaintenanceTile institutionId={inst} />
       <DriversTile inst={inst} />
       <PassengersTile inst={inst} />
       <PassesTile inst={inst} />
