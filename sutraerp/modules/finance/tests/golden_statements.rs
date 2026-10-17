@@ -124,7 +124,7 @@ fn statements_match_everything() {
             .find(|a| a.role.as_deref() == Some("retainedEarnings"))
             .map(|a| a.id);
         let mut txns: Vec<&Txn> = inp.txns.iter().collect();
-        txns.sort_by(|a, b| (a.date, a.created_at, a.id).cmp(&(b.date, b.created_at, b.id)));
+        txns.sort_by_key(|t| (t.date, t.created_at, t.id));
         let mut postings = Vec::new();
         let mut entries = Vec::new();
         for (e, t) in txns.iter().enumerate() {
