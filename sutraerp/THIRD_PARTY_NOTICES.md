@@ -18,6 +18,7 @@ Ported so far:
 | `modules/finance/src/ledger/statements.rs` (income & expenditure, balance sheet, cash flow, general ledger, account tree, period buckets, comparisons) | `src/accounting/src/lib/reports.js` `profitAndLoss` / `balanceSheet` / `cashFlow` / `generalLedger`, `dates.js` buckets / `previousPeriod` / `yearBefore` / `fiscalYearStart`, `accounts.js` `ACCOUNT_TYPES` / `sortChart` |
 | `modules/finance/src/treasury/reconcile.rs` (unreconciled candidates, reconcile summary, carried-forward balance, last reconciliation, changes after reconciliation, statement-line match suggestions) | `src/accounting/src/lib/reconcile.js` `candidates` / `summarize` / `beginningBalance` / `finishRecord` / `lastReconciliation`, `reports.js` `reconDiscrepancy`, `banking.js` `findMatches` |
 | `modules/finance/src/charges/billing.rs` (billing period of a day, which students a periodic billing run bills with which plan lines, plan totals) | `src/childcare/src/core/billing.js` `periodFor` / `planBillingRun` / `planTotals` |
+| `modules/student/src/admission/funnel.rs` (admissions funnel by stage, joining forecast, win rate by source, stage velocity, idle enquiries, duplicate enquirers) | `src/crm/src/lib/funnel.js` `funnelReport`; `src/crm/src/lib/forecast.js` `resolveStages` / `probabilityOf` / `forecastByMonth` / `stageSummary` / `winRateBy` / `closeReasonBreakdown` / `stageVelocity` / `stalledDeals` / `avgSalesCycle`; `src/crm/src/lib/dupes.js` `contactDuplicates` |
 
 ```
 MIT License
