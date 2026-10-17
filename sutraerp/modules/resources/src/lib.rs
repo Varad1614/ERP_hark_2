@@ -24,6 +24,7 @@ pub mod directory;
 
 // ---- slice areas (8D; router mount points are pre-registered in `router_with_state`) ----
 pub mod assets;
+pub mod contracts;
 pub mod inventory;
 pub mod orders;
 pub mod payables;
@@ -100,6 +101,7 @@ pub fn router_with_state(st: ResourcesState) -> OpenApiRouter {
         .merge(receipts::router(st.clone())) // 8D
         .merge(inventory::router(st.clone())) // 8D
         .merge(assets::router(st.clone())) // 8D
+        .merge(contracts::router(st.clone())) // ERP_EXTENSIONS 3C
         .merge(payables::router(st)) // 8D
 }
 
