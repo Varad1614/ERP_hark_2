@@ -12603,6 +12603,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/billing-plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Changes a billing plan (`charge.manage`). */
+        patch: operations["finance_charge_billing_plan_update"];
+        trace?: never;
+    };
+    "/api/v1/finance/billing-plans/{id}/enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Students on a plan (`finance.read`). */
+        get: operations["finance_charge_billing_enrolment_list"];
+        /**
+         * Enrols a student on a plan or changes their enrolment (`charge.manage`). The student must
+         *     have a live context in the plan's institution.
+         */
+        put: operations["finance_charge_billing_enrolment_upsert"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/billing-plans/{id}/enrolments/{studentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Takes a student off a plan (`charge.manage`); charges already raised stay. */
+        delete: operations["finance_charge_billing_enrolment_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/billing-runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One billing run with the charges it raised (`finance.read`). */
+        get: operations["finance_charge_billing_run_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/charges/{id}": {
         parameters: {
             query?: never;
@@ -13625,6 +13697,96 @@ export interface paths {
         /** Bank transactions of an institution, newest first (`finance.read`). */
         get: operations["finance_bank_transaction_list"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/billing-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Billing plans of an institution (`finance.read`). */
+        get: operations["finance_charge_billing_plan_list"];
+        put?: never;
+        /** Creates a billing plan (`charge.manage`). */
+        post: operations["finance_charge_billing_plan_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/billing-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent billing runs, newest first (`finance.read`). */
+        get: operations["finance_charge_billing_run_list"];
+        put?: never;
+        /**
+         * Runs billing for a period (`charge.manage`): one published charge per student not yet billed
+         *     for it. Safe to repeat.
+         */
+        post: operations["finance_charge_billing_run_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/billing-runs/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a billing run would charge, without charging (`charge.manage`). */
+        post: operations["finance_charge_billing_run_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/billing-schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The automatic run of each frequency (`finance.read`). */
+        get: operations["finance_charge_billing_schedule_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/billing-schedules/{frequency}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turns a frequency's automatic run on or off (`charge.manage`). */
+        put: operations["finance_charge_billing_schedule_set"];
         post?: never;
         delete?: never;
         options?: never;
@@ -29249,6 +29411,260 @@ export interface components {
         };
         /** @enum {string} */
         BenefitType: "fixed_amount" | "fee_percentage" | "fee_waiver" | "stipend";
+        BillingEnrolmentList: {
+            items: components["schemas"]["BillingEnrolmentView"][];
+        };
+        /** @description Enrols a student on the plan, or changes their enrolment. */
+        BillingEnrolmentUpsert: {
+            /** @description The student's own amount (`"0.00"` bills nothing); absent / null uses the plan's. */
+            amount?: string | null;
+            /** Format: date */
+            endDate?: string | null;
+            onHold?: boolean;
+            /** Format: date */
+            startDate?: string | null;
+            /** Format: uuid */
+            studentId: string;
+        };
+        /** @description A student on a plan. */
+        BillingEnrolmentView: {
+            /**
+             * @description The student's own amount (else the plan's).
+             * @example 4000.00
+             */
+            amount?: string | null;
+            /** Format: date */
+            endDate?: string | null;
+            /** Format: uuid */
+            id: string;
+            onHold: boolean;
+            /** Format: uuid */
+            planId: string;
+            /** Format: date */
+            startDate?: string | null;
+            /** Format: uuid */
+            studentId: string;
+            studentName: string;
+            studentNumber?: string | null;
+        };
+        /** @description One plan line billed (or to bill). */
+        BillingLineView: {
+            /** @example 4500.00 */
+            amount: string;
+            description: string;
+            /** Format: int64 */
+            periodDays?: number | null;
+            /** Format: uuid */
+            planId: string;
+            /**
+             * Format: int64
+             * @description Days billed of the period when the line was prorated.
+             */
+            proratedDays?: number | null;
+        };
+        /** @description New billing plan. */
+        BillingPlanCreate: {
+            /** @example 4500.00 */
+            amount: string;
+            /** @description `^[A-Z0-9][A-Z0-9_-]{1,31}$`, unique in the institution. */
+            code: string;
+            description?: string | null;
+            /**
+             * Format: uuid
+             * @description An active fee head of the institution: the plan's income.
+             */
+            feeHeadId: string;
+            frequency: string;
+            name: string;
+            /** @description Defaults to `none`. */
+            proration?: string | null;
+        };
+        BillingPlanList: {
+            items: components["schemas"]["BillingPlanView"][];
+        };
+        /** @description Billing plan changes (absent fields stay). A new amount applies to later runs. */
+        BillingPlanUpdate: {
+            amount?: string | null;
+            description?: string | null;
+            name?: string | null;
+            proration?: string | null;
+            /** @description `active | retired` (a retired plan is not billed). */
+            status?: string | null;
+        };
+        /** @description A billing plan. */
+        BillingPlanView: {
+            /** @example 4500.00 */
+            amount: string;
+            code: string;
+            description?: string | null;
+            /**
+             * Format: int64
+             * @description Students enrolled.
+             */
+            enrolled: number;
+            feeHeadCode: string;
+            /** Format: uuid */
+            feeHeadId: string;
+            /**
+             * @description `weekly | monthly | quarterly | half_yearly | annual` (quarters, halves and years follow
+             *     the institution's financial year).
+             */
+            frequency: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            name: string;
+            /** @description `none | daily` — how a part period is billed. */
+            proration: string;
+            /** @description `active | retired`. */
+            status: string;
+            /** Format: int32 */
+            version: number;
+        };
+        /** @description A past run with its charges. */
+        BillingRunDetail: {
+            items: components["schemas"]["BillingRunItemView"][];
+            run: components["schemas"]["BillingRunSummary"];
+        };
+        /** @description One student's charge in a run. */
+        BillingRunItemView: {
+            /** Format: uuid */
+            chargeId?: string | null;
+            chargeNumber?: string | null;
+            /** Format: date */
+            dueDate: string;
+            /** @description Why the student could not be billed (the run went on). */
+            error?: string | null;
+            lines: components["schemas"]["BillingLineView"][];
+            /** Format: uuid */
+            studentId: string;
+            studentName: string;
+            studentNumber?: string | null;
+            /** @example 4500.00 */
+            total: string;
+        };
+        BillingRunList: {
+            items: components["schemas"]["BillingRunSummary"][];
+        };
+        /** @description A billing run (or its preview). */
+        BillingRunRequest: {
+            /**
+             * Format: date
+             * @description A day in the period to bill (default: today). At most 62 days ahead.
+             */
+            day?: string | null;
+            /**
+             * Format: int64
+             * @description Days from the later of the period's start and the run day to the due date (0–365,
+             *     default 7).
+             */
+            dueDays?: number | null;
+            /** @description Students to leave out of this run. */
+            excludeStudentIds?: string[];
+            frequency: string;
+            /**
+             * Format: int32
+             * @description Weekly periods start on 0 = Sunday … 6 = Saturday (default 1, Monday).
+             */
+            weekStart?: number | null;
+        };
+        /** @description A student with plans of the frequency that the run leaves out. */
+        BillingRunSkipView: {
+            /** @description `inactive | already_billed | not_started | ended | on_hold | excluded | nothing_to_bill`. */
+            reason: string;
+            /** Format: uuid */
+            studentId: string;
+            studentName: string;
+        };
+        /** @description A past run. */
+        BillingRunSummary: {
+            /** Format: int64 */
+            billed: number;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string | null;
+            /** Format: int64 */
+            failed: number;
+            frequency: string;
+            /** Format: uuid */
+            id: string;
+            periodKey: string;
+            periodLabel: string;
+            /** Format: date */
+            runDate: string;
+            /** Format: int64 */
+            skipped: number;
+            /** @example 90000.00 */
+            total: string;
+            trigger: string;
+        };
+        /** @description What a run did (or, as a preview, would do). */
+        BillingRunView: {
+            /** Format: int64 */
+            billed: number;
+            /** Format: int64 */
+            dueDays: number;
+            /** Format: int64 */
+            failed: number;
+            frequency: string;
+            /**
+             * Format: uuid
+             * @description The run (none for a preview).
+             */
+            id?: string | null;
+            items: components["schemas"]["BillingRunItemView"][];
+            /** Format: date */
+            periodEnd: string;
+            periodKey: string;
+            periodLabel: string;
+            /** Format: date */
+            periodStart: string;
+            preview: boolean;
+            /** Format: date */
+            runDate: string;
+            /** Format: int64 */
+            skipped: number;
+            skips: components["schemas"]["BillingRunSkipView"][];
+            /** @example 90000.00 */
+            total: string;
+            /** @description `manual | schedule`. */
+            trigger: string;
+        };
+        BillingScheduleList: {
+            items: components["schemas"]["BillingScheduleView"][];
+        };
+        /** @description Sets a frequency's automatic run. */
+        BillingScheduleUpdate: {
+            /**
+             * Format: int32
+             * @description 0–365.
+             */
+            dueDays: number;
+            enabled: boolean;
+            /**
+             * Format: int32
+             * @description 1–31.
+             */
+            runDay: number;
+        };
+        /** @description The automatic run of one frequency. */
+        BillingScheduleView: {
+            /** @description The period the current one would bill. */
+            currentPeriodLabel: string;
+            /** Format: int32 */
+            dueDays: number;
+            enabled: boolean;
+            frequency: string;
+            lastPeriodKey?: string | null;
+            /** Format: uuid */
+            lastRunId?: string | null;
+            /**
+             * Format: int32
+             * @description The day of each period it runs on (1 = the first; past a short period's end, its last).
+             */
+            runDay: number;
+        };
         /** @description One weighted blueprint component. */
         BlueprintComponent: {
             /** @description Stable key windows refer to (e.g. `assign1`). */
@@ -30158,7 +30574,7 @@ export interface components {
          * @description Where a charge came from.
          * @enum {string}
          */
-        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge";
+        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge" | "billing_run";
         /**
          * @description Student charge lifecycle (L2-F01 §18–19 canonical states and transitions).
          * @enum {string}
@@ -77178,6 +77594,158 @@ export interface operations {
             };
         };
     };
+    finance_charge_billing_plan_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingPlanUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_enrolment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingEnrolmentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_enrolment_upsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingEnrolmentUpsert"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingEnrolmentView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_enrolment_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_run_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingRunDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_charge_get: {
         parameters: {
             query?: never;
@@ -79438,6 +80006,226 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankTransactionList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_plan_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPlanList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_plan_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingPlanCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_run_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingRunList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_run_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingRunRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_run_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingRunRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingRunView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_schedule_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingScheduleList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_charge_billing_schedule_set: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                frequency: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingScheduleUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingScheduleView"];
                 };
             };
             "4XX": {
