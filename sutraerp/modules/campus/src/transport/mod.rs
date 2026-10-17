@@ -13,6 +13,7 @@
 
 pub mod domain;
 pub mod fleet;
+pub mod maintenance;
 pub mod network;
 pub mod passengers;
 pub mod selfservice;
