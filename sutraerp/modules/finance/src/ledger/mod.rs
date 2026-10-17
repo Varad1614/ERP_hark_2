@@ -15,6 +15,7 @@
 pub mod accounts;
 pub mod common;
 pub mod journals;
+pub mod statements;
 pub mod trial;
 
 use crate::shared::FinanceState;
