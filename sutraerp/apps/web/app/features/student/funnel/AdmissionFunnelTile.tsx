@@ -74,7 +74,7 @@ export function AdmissionFunnelTile({ institutionId, programmes = [], api = defa
     <BentoTile span={12} title="Admissions funnel" data-slice="2A" data-admission-funnel action={tabs}>
       {view === "enquiries" && (
         <>
-          <FormGrid columns={4}>
+          <FormGrid columns={3}>
             <TextField label="First name" value={draft.givenName} onChange={(e) => setDraft({ ...draft, givenName: e.target.value })} />
             <TextField label="Last name" value={draft.familyName} onChange={(e) => setDraft({ ...draft, familyName: e.target.value })} />
             <TextField label="Mobile" value={draft.phone} placeholder="+91 98200 12345" onChange={(e) => setDraft({ ...draft, phone: e.target.value })} />
