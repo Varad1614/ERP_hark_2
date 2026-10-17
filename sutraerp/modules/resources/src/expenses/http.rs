@@ -575,6 +575,10 @@ pub async fn receipt_file(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
+    // Permission before any data access: finance reads all, staff their own.
+    if !auth.0.has_permission(Permission::ResourcesRead) {
+        auth.0.require(Permission::PeopleSelfService)?;
+    }
     let t = auth.0.scope.tenant_id;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let row: Option<(Uuid, Uuid, String, String, Vec<u8>)> = sqlx::query_as(
@@ -1503,6 +1507,10 @@ pub async fn claim_get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ExpenseClaimView>> {
+    // Permission before any data access: finance reads all, staff their own.
+    if !auth.0.has_permission(Permission::ResourcesRead) {
+        auth.0.require(Permission::PeopleSelfService)?;
+    }
     let t = auth.0.scope.tenant_id;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let c = claim_row(&mut conn, t, id, false).await?;
@@ -2004,6 +2012,21 @@ pub struct MyExpenses {
     pub claims: Vec<ExpenseClaimSummary>,
 }
 
+/// Row of the claims list query: id, number, title, status, staff, total, lines, submitted,
+/// returned reason, version, updated.
+type ClaimSummaryRow = (
+    Uuid,
+    String,
+    String,
+    String,
+    Uuid,
+    Decimal,
+    i64,
+    Option<DateTime<Utc>>,
+    Option<String>,
+    i64,
+    DateTime<Utc>,
+);
 async fn summaries(
     st: &ResourcesState,
     conn: &mut PgConnection,
@@ -2013,19 +2036,7 @@ async fn summaries(
     bind: Uuid,
     status: Option<&str>,
 ) -> Result<Vec<ExpenseClaimSummary>, KernelError> {
-    let rows: Vec<(
-        Uuid,
-        String,
-        String,
-        String,
-        Uuid,
-        Decimal,
-        i64,
-        Option<DateTime<Utc>>,
-        Option<String>,
-        i64,
-        DateTime<Utc>,
-    )> = sqlx::query_as(&format!(
+    let rows: Vec<ClaimSummaryRow> = sqlx::query_as(&format!(
         "SELECT c.id, c.number, c.title, c.status, c.staff_id, CASE WHEN c.status = 'draft' \
              THEN COALESCE((SELECT sum(e.amount) FROM resources.expense e WHERE e.claim_id = c.id \
              AND e.currency = c.currency), 0) ELSE c.total END, (SELECT count(*) FROM \
@@ -2056,13 +2067,13 @@ async fn summaries(
         updated_at,
     ) in rows
     {
-        if !labels.contains_key(&staff_id) {
+        if let std::collections::hash_map::Entry::Vacant(e) = labels.entry(staff_id) {
             let l = st
                 .workforce
                 .staff(scope, sutra_contracts::people::ids::StaffMemberId(staff_id))
                 .await?
                 .map_or_else(|| "Unknown staff".to_owned(), |s| staff_label(&s));
-            labels.insert(staff_id, l);
+            e.insert(l);
         }
         out.push(ExpenseClaimSummary {
             id,

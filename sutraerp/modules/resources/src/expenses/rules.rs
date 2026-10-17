@@ -118,9 +118,9 @@ pub fn parse_amount_str(input: &str) -> Option<f64> {
         s = s[1..s.len() - 1].trim().to_owned();
     }
     let trimmed_end = s.trim_end();
-    if trimmed_end.ends_with('-') {
+    if let Some(stripped) = trimmed_end.strip_suffix('-') {
         negative = true;
-        s = trimmed_end[..trimmed_end.len() - 1].to_owned();
+        s = stripped.to_owned();
     }
     // A minus anywhere before the first digit ("-₹12", "₹-12", "INR -12").
     let before_digit: String = s.chars().take_while(|c| !c.is_ascii_digit()).collect();
