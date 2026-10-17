@@ -76,7 +76,14 @@ impl OperationalMetricsPort for PgResourceMetrics {
              (SELECT COALESCE(sum(acquisition_cost), 0) FROM resources.asset WHERE tenant_id = $1 \
               AND institution_id = $2 AND status <> 'retired') AS asset_value, \
              (SELECT COALESCE(sum(total_amount - paid_amount), 0) FROM resources.vendor_invoice \
-              WHERE tenant_id = $1 AND institution_id = $2 AND status = 'posted') AS payables",
+              WHERE tenant_id = $1 AND institution_id = $2 AND status = 'posted') AS payables, \
+             (SELECT count(*) FROM resources.contract WHERE tenant_id = $1 AND institution_id = $2 \
+              AND status = 'active') AS contracts, \
+             (SELECT count(DISTINCT a.contract_id) FROM resources.contract_activity a \
+              JOIN resources.contract c ON c.id = a.contract_id AND c.tenant_id = a.tenant_id \
+              WHERE a.tenant_id = $1 AND a.institution_id = $2 AND c.kind IN ('mou_academic', \
+              'mou_industry', 'mou_research') \
+              AND c.status <> 'draft' AND a.held_on > current_date - 365) AS functional_mous",
         )
         .bind(t)
         .bind(i)
@@ -132,6 +139,19 @@ impl OperationalMetricsPort for PgResourceMetrics {
                 "Vendor invoices posted and unpaid",
                 d("payables")?,
                 "inr",
+            ),
+            // ERP_EXTENSIONS 3C: contracts and MoUs (NAAC 3.7 evidence).
+            MetricValue::count(
+                "resources",
+                "active_contracts",
+                "Active contracts and MoUs",
+                n("contracts")?,
+            ),
+            MetricValue::count(
+                "resources",
+                "functional_mous",
+                "MoUs with an activity in the last 12 months",
+                n("functional_mous")?,
             ),
         ])
     }
