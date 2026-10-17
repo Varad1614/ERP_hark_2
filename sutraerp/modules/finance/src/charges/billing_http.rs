@@ -1275,7 +1275,7 @@ async fn run(
     id: Uuid,
     b: &BillingRunRequest,
     preview: bool,
-) -> Result<BillingRunView, KernelError> {
+) -> ApiResult<BillingRunView> {
     let ctx = auth.require(Permission::ChargeManage)?;
     let inst = InstitutionId(id);
     let scope = institution_scope(ctx, inst);
@@ -1285,7 +1285,7 @@ async fn run(
         require_institution_writable(st, &scope, inst).await?;
     }
     let input = RunInput::from_request(b)?;
-    execute(st, &scope, inst, &input, preview, &actor(ctx)).await
+    Ok(execute(st, &scope, inst, &input, preview, &actor(ctx)).await?)
 }
 
 /// What a billing run would charge, without charging (`charge.manage`).
