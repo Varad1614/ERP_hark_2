@@ -158,8 +158,8 @@ fn reconcile_matches_everything() {
         let mut seed = i.select_seed;
         let mut selected_order = Vec::new();
         for it in &items {
-            seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
-            if (seed as f64) / 2_147_483_648.0 < i.select_p {
+            seed = (seed * 48_271) % 2_147_483_647;
+            if (seed as f64) / 2_147_483_647.0 < i.select_p {
                 selected_order.push(it.entry);
             }
         }

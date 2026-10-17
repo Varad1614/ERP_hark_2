@@ -105,7 +105,7 @@ export default {
         window: pick(r, [null, null, 3, 30]),
         selectP: pick(r, [0, 0.5, 0.9, 1]),
         endingDelta: pick(r, [0, 0, 0, r.int(-100000, 100000)]),
-        selectSeed: r.int(0, 1 << 30),
+        selectSeed: r.int(1, 1 << 30),
       });
     }
     return out;
@@ -144,8 +144,8 @@ export default {
     let seed = c.selectSeed;
     const selected = new Set();
     for (const it of items) {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      if (seed / 2147483648 < c.selectP) selected.add(it.txn.id);
+      seed = (seed * 48271) % 2147483647;
+      if (seed / 2147483647 < c.selectP) selected.add(it.txn.id);
     }
     const begin = m.reconcile.beginningBalance(store, bank);
     let clearedSum = begin;
