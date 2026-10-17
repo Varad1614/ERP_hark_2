@@ -5,9 +5,9 @@
 
 pub mod bankfile;
 pub mod domain;
+pub mod http;
 pub mod reconcile;
 pub mod reconcile_http;
-pub mod http;
 
 use crate::shared::FinanceState;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -32,7 +32,10 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
         // ERP_EXTENSIONS 1B
         .routes(routes!(reconcile_http::bank_recon_workspace))
         .routes(routes!(reconcile_http::bank_recon_preview))
-        .routes(routes!(reconcile_http::bank_recon_list, reconcile_http::bank_recon_finish))
+        .routes(routes!(
+            reconcile_http::bank_recon_list,
+            reconcile_http::bank_recon_finish
+        ))
         .routes(routes!(reconcile_http::bank_recon_undo))
         .routes(routes!(reconcile_http::bank_recon_brs))
         .routes(routes!(reconcile_http::bank_recon_discrepancies))

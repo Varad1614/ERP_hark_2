@@ -128,7 +128,8 @@ fn reconcile_matches_everything() {
     for (n, c) in fx.cases.iter().enumerate() {
         let i = &c.input;
         let bank = i.accounts[0].id;
-        let names: HashMap<Uuid, &str> = i.accounts.iter().map(|a| (a.id, a.name.as_str())).collect();
+        let names: HashMap<Uuid, &str> =
+            i.accounts.iter().map(|a| (a.id, a.name.as_str())).collect();
         let recons: Vec<Recon> = i
             .recons
             .iter()
@@ -151,7 +152,10 @@ fn reconcile_matches_everything() {
             .map(|l| l.txn_id)
             .collect();
         let items = candidates(&postings, &reconciled, &cleared, i.statement_date);
-        let got: Vec<Value> = items.iter().map(|x| json!([x.entry, x.amount, x.cleared])).collect();
+        let got: Vec<Value> = items
+            .iter()
+            .map(|x| json!([x.entry, x.amount, x.cleared]))
+            .collect();
         assert_eq!(json!(got), c.expected["candidates"], "case {n}: candidates");
 
         // The spec's LCG selection.
@@ -163,18 +167,36 @@ fn reconcile_matches_everything() {
                 selected_order.push(it.entry);
             }
         }
-        assert_eq!(json!(selected_order), c.expected["selected"], "case {n}: selection");
+        assert_eq!(
+            json!(selected_order),
+            c.expected["selected"],
+            "case {n}: selection"
+        );
         let selected: HashSet<Uuid> = selected_order.iter().copied().collect();
         let current = |id: Uuid| amount_on(&i.txns, bank, id);
         let begin = beginning_balance(&recons, bank, current);
         assert_eq!(json!(begin), c.expected["beginning"], "case {n}: beginning");
-        let cleared_sum = begin + items.iter().filter(|x| selected.contains(&x.entry)).map(|x| x.amount).sum::<i64>();
+        let cleared_sum = begin
+            + items
+                .iter()
+                .filter(|x| selected.contains(&x.entry))
+                .map(|x| x.amount)
+                .sum::<i64>();
         let s = summarize(1, begin, &items, &selected, cleared_sum + i.ending_delta);
-        assert_eq!(serde_json::to_value(&s).unwrap(), c.expected["summary"], "case {n}: summary");
+        assert_eq!(
+            serde_json::to_value(&s).unwrap(),
+            c.expected["summary"],
+            "case {n}: summary"
+        );
         let amounts = finish_amounts(&selected_order, current);
-        let want: HashMap<Uuid, i64> = serde_json::from_value(c.expected["finish"]["amounts"].clone()).unwrap();
+        let want: HashMap<Uuid, i64> =
+            serde_json::from_value(c.expected["finish"]["amounts"].clone()).unwrap();
         assert_eq!(amounts, want, "case {n}: finish amounts");
-        assert_eq!(json!(begin), c.expected["finish"]["beginningBalance"], "case {n}: finish beginning");
+        assert_eq!(
+            json!(begin),
+            c.expected["finish"]["beginningBalance"],
+            "case {n}: finish beginning"
+        );
         assert_eq!(
             json!(last_reconciliation(&recons, bank).map(|r| r.id)),
             c.expected["last"],
@@ -184,9 +206,22 @@ fn reconcile_matches_everything() {
         let disc = discrepancies(&recons, |acc, id| amount_on(&i.txns, acc, id));
         let got: Vec<Value> = disc
             .iter()
-            .map(|x| json!([names[&x.account], x.statement_date, x.entry, x.was, x.now, x.change]))
+            .map(|x| {
+                json!([
+                    names[&x.account],
+                    x.statement_date,
+                    x.entry,
+                    x.was,
+                    x.now,
+                    x.change
+                ])
+            })
             .collect();
-        assert_eq!(json!(got), c.expected["discrepancies"], "case {n}: discrepancies");
+        assert_eq!(
+            json!(got),
+            c.expected["discrepancies"],
+            "case {n}: discrepancies"
+        );
 
         let taken: HashSet<Uuid> = i.bank_lines.iter().map(|l| l.txn_id).collect();
         let docs: Vec<OpenDoc> = i
@@ -202,7 +237,10 @@ fn reconcile_matches_everything() {
             })
             .collect();
         let m = find_matches(
-            &MatchLine { date: i.line.date, amount: i.line.amount },
+            &MatchLine {
+                date: i.line.date,
+                amount: i.line.amount,
+            },
             &postings,
             i.window.unwrap_or(10),
             &taken,

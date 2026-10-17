@@ -393,16 +393,40 @@ mod tests {
         let acc = u(1);
         let (dep, e1, e2) = (u(10), u(11), u(12));
         let postings = vec![
-            Posting { entry: dep, date: d(5, 1), amount: 100_000 },
-            Posting { entry: e1, date: d(5, 10), amount: -2_500 },
-            Posting { entry: e2, date: d(6, 2), amount: -1_000 },
+            Posting {
+                entry: dep,
+                date: d(5, 1),
+                amount: 100_000,
+            },
+            Posting {
+                entry: e1,
+                date: d(5, 10),
+                amount: -2_500,
+            },
+            Posting {
+                entry: e2,
+                date: d(6, 2),
+                amount: -1_000,
+            },
         ];
         let none = HashSet::new();
         let items = candidates(&postings, &none, &none, Some(d(5, 31)));
-        assert_eq!(items.iter().map(|c| c.amount).collect::<Vec<_>>(), vec![100_000, -2_500]);
+        assert_eq!(
+            items.iter().map(|c| c.amount).collect::<Vec<_>>(),
+            vec![100_000, -2_500]
+        );
         let sel: HashSet<Uuid> = [dep, e1].into();
         let s = summarize(1, 0, &items, &sel, 97_500);
-        assert_eq!((s.beginning, s.increases, s.decreases, s.cleared, s.difference), (0, 100_000, 2_500, 97_500, 0));
+        assert_eq!(
+            (
+                s.beginning,
+                s.increases,
+                s.decreases,
+                s.cleared,
+                s.difference
+            ),
+            (0, 100_000, 2_500, 97_500, 0)
+        );
         let partial = summarize(1, 0, &items, &[dep].into(), 97_500);
         assert_eq!(partial.difference, -2_500);
 
@@ -420,36 +444,83 @@ mod tests {
         assert_eq!(beginning_balance(&recons, acc, current), 97_500);
         let rec_ids = reconciled_ids(&recons, acc);
         let next = candidates(&postings, &rec_ids, &none, Some(d(6, 30)));
-        assert_eq!(next.iter().map(|c| c.amount).collect::<Vec<_>>(), vec![-1_000]);
+        assert_eq!(
+            next.iter().map(|c| c.amount).collect::<Vec<_>>(),
+            vec![-1_000]
+        );
 
         // e1 edited to 3000 later: a discrepancy of −500.
         let edited = |_: Uuid, id: Uuid| if id == e1 { Some(-3_000) } else { current(id) };
         let disc = discrepancies(&recons, edited);
         assert_eq!(disc.len(), 1);
-        assert_eq!((disc[0].was, disc[0].now, disc[0].change), (-2_500, -3_000, -500));
+        assert_eq!(
+            (disc[0].was, disc[0].now, disc[0].change),
+            (-2_500, -3_000, -500)
+        );
         assert_eq!(last_reconciliation(&recons, acc).map(|r| r.id), Some(u(99)));
     }
 
     #[test]
     fn matches_prefer_close_entries_over_open_documents() {
-        let line = MatchLine { date: d(7, 10), amount: 5_000 };
+        let line = MatchLine {
+            date: d(7, 10),
+            amount: 5_000,
+        };
         let postings = vec![
-            Posting { entry: u(1), date: d(7, 1), amount: 5_000 },
-            Posting { entry: u(2), date: d(7, 12), amount: 5_000 },
-            Posting { entry: u(3), date: d(7, 30), amount: 5_000 },
-            Posting { entry: u(4), date: d(7, 10), amount: -5_000 },
+            Posting {
+                entry: u(1),
+                date: d(7, 1),
+                amount: 5_000,
+            },
+            Posting {
+                entry: u(2),
+                date: d(7, 12),
+                amount: 5_000,
+            },
+            Posting {
+                entry: u(3),
+                date: d(7, 30),
+                amount: 5_000,
+            },
+            Posting {
+                entry: u(4),
+                date: d(7, 10),
+                amount: -5_000,
+            },
         ];
         let docs = vec![
-            OpenDoc { id: u(20), receivable: true, date: d(6, 1), due: Some(d(7, 15)), voided: false, open: 5_000 },
-            OpenDoc { id: u(21), receivable: false, date: d(7, 10), due: None, voided: false, open: 5_000 },
+            OpenDoc {
+                id: u(20),
+                receivable: true,
+                date: d(6, 1),
+                due: Some(d(7, 15)),
+                voided: false,
+                open: 5_000,
+            },
+            OpenDoc {
+                id: u(21),
+                receivable: false,
+                date: d(7, 10),
+                due: None,
+                voided: false,
+                open: 5_000,
+            },
         ];
         let taken: HashSet<Uuid> = [u(1)].into();
         let m = find_matches(&line, &postings, 10, &taken, &HashSet::new(), &docs);
         assert_eq!(
             m,
             vec![
-                Suggestion { kind: SuggestionKind::Entry, id: u(2), score: 200 },
-                Suggestion { kind: SuggestionKind::Open, id: u(20), score: 10_005 },
+                Suggestion {
+                    kind: SuggestionKind::Entry,
+                    id: u(2),
+                    score: 200
+                },
+                Suggestion {
+                    kind: SuggestionKind::Open,
+                    id: u(20),
+                    score: 10_005
+                },
             ]
         );
     }
@@ -458,8 +529,16 @@ mod tests {
     fn brs_adjusts_book_balance_to_pass_book() {
         // Book 1,00,000; cheque issued 20,000 not presented; deposit 5,000 not credited;
         // bank interest 300 and charges 118 not booked.
-        let b = brs(100_000_00, &[-20_000_00, 5_000_00], &[300_00, -118_00], Some(115_182_00));
-        assert_eq!(b.bank_balance, 100_000_00 + 20_000_00 - 5_000_00 + 300_00 - 118_00);
+        let b = brs(
+            100_000_00,
+            &[-20_000_00, 5_000_00],
+            &[300_00, -118_00],
+            Some(115_182_00),
+        );
+        assert_eq!(
+            b.bank_balance,
+            100_000_00 + 20_000_00 - 5_000_00 + 300_00 - 118_00
+        );
         assert_eq!(b.difference, Some(0));
         assert_eq!(brs(0, &[], &[], None).difference, None);
     }

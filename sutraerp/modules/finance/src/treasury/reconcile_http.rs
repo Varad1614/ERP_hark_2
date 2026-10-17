@@ -36,11 +36,36 @@ use sutra_web::{ApiResult, Authenticated, Problem};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
+/// `(line id, value date, credit, amount, reference, description)`.
+type UnbookedLine = (
+    Uuid,
+    NaiveDate,
+    bool,
+    Decimal,
+    Option<String>,
+    Option<String>,
+);
+/// `(reconciliation, bank account, name, statement date, entry, number, posting date, was, now)`.
+type DiscrepancyRow = (
+    Uuid,
+    Uuid,
+    String,
+    NaiveDate,
+    Uuid,
+    Option<String>,
+    Option<NaiveDate>,
+    Decimal,
+    Decimal,
+);
+
 const MAX_SELECTED: usize = 20_000;
 const MAX_LIST: usize = 500;
 
 fn paise(d: Decimal) -> i64 {
-    (d * Decimal::ONE_HUNDRED).round().to_i64().unwrap_or(i64::MAX)
+    (d * Decimal::ONE_HUNDRED)
+        .round()
+        .to_i64()
+        .unwrap_or(i64::MAX)
 }
 fn rupees(p: i64) -> String {
     fmt(Decimal::new(p, 2))
@@ -371,20 +396,25 @@ fn to_items(
 ) -> Vec<BankReconItem> {
     let cleared_set: HashSet<Uuid> = cleared.keys().copied().collect();
     let by_id: HashMap<Uuid, &EntryRow> = entries.iter().map(|e| (e.id, e)).collect();
-    candidates(&postings_of(entries), &HashSet::new(), &cleared_set, Some(date))
-        .into_iter()
-        .map(|c| {
-            let e = by_id[&c.entry];
-            BankReconItem {
-                journal_entry_id: c.entry,
-                entry_number: e.number.clone(),
-                posting_date: c.date,
-                description: e.description.clone(),
-                amount: rupees(c.amount),
-                cleared: c.cleared,
-            }
-        })
-        .collect()
+    candidates(
+        &postings_of(entries),
+        &HashSet::new(),
+        &cleared_set,
+        Some(date),
+    )
+    .into_iter()
+    .map(|c| {
+        let e = by_id[&c.entry];
+        BankReconItem {
+            journal_entry_id: c.entry,
+            entry_number: e.number.clone(),
+            posting_date: c.date,
+            description: e.description.clone(),
+            amount: rupees(c.amount),
+            cleared: c.cleared,
+        }
+    })
+    .collect()
 }
 
 /// Ticked entries against a statement ending balance.
@@ -461,7 +491,12 @@ async fn evaluate(
         ));
     }
     let entries = unreconciled_entries(conn, t, bank, None, Some(date)).await?;
-    let items = candidates(&postings_of(&entries), &HashSet::new(), &HashSet::new(), Some(date));
+    let items = candidates(
+        &postings_of(&entries),
+        &HashSet::new(),
+        &HashSet::new(),
+        Some(date),
+    );
     let amount_of: HashMap<Uuid, i64> = items.iter().map(|c| (c.entry, c.amount)).collect();
     let mut selected = HashSet::new();
     let mut picked = Vec::new();
@@ -603,7 +638,17 @@ pub async fn bank_recon_finish(
         &mut tx,
         &scope,
         None,
-        &changed(view.id, bank.institution, None, "done", 1, Some(Decimal::new(s.ending, 2)), None, None, None),
+        &changed(
+            view.id,
+            bank.institution,
+            None,
+            "done",
+            1,
+            Some(Decimal::new(s.ending, 2)),
+            None,
+            None,
+            None,
+        ),
         "finance.bank_account.reconcile",
         "bank_account_reconciliation",
         json!({"bankAccountId": bank.id, "statementDate": date, "cleared": picked.len(),
@@ -670,14 +715,13 @@ pub async fn bank_recon_undo(
     let bank = load_bank(&mut tx, t, id, true).await?;
     let scope = institution_scope(ctx, bank.institution);
     require_institution_writable(&st, &scope, bank.institution).await?;
-    let last = last_done(&mut tx, t, bank.id)
-        .await?
-        .ok_or_else(|| KernelError::Conflict("the bank account has no reconciliation to undo".into()))?;
+    let last = last_done(&mut tx, t, bank.id).await?.ok_or_else(|| {
+        KernelError::Conflict("the bank account has no reconciliation to undo".into())
+    })?;
     if last.id != input.reconciliation_id {
-        return Err(KernelError::Conflict(
-            "only the latest reconciliation can be undone".into(),
-        )
-        .into());
+        return Err(
+            KernelError::Conflict("only the latest reconciliation can be undone".into()).into(),
+        );
     }
     let row = sqlx::query(&format!(
         "UPDATE finance.bank_account_reconciliation SET status = 'undone', undone_by = $2, undone_at = clock_timestamp() \
@@ -693,7 +737,17 @@ pub async fn bank_recon_undo(
         &mut tx,
         &scope,
         None,
-        &changed(view.id, bank.institution, Some("done"), "undone", 2, None, None, None, None),
+        &changed(
+            view.id,
+            bank.institution,
+            Some("done"),
+            "undone",
+            2,
+            None,
+            None,
+            None,
+            None,
+        ),
         "finance.bank_account.reconcile_undo",
         "bank_account_reconciliation",
         json!({"bankAccountId": bank.id, "statementDate": view.statement_date}),
@@ -812,7 +866,7 @@ pub async fn bank_recon_brs(
         .filter(|e| !reconciled.contains(&e.id))
         .filter(|e| cleared.get(&e.id).is_none_or(|d| *d > as_of))
         .collect();
-    let unbooked: Vec<(Uuid, NaiveDate, bool, Decimal, Option<String>, Option<String>)> = sqlx::query_as(
+    let unbooked: Vec<UnbookedLine> = sqlx::query_as(
         "SELECT s.id, s.value_date, s.direction = 'credit', s.amount, s.reference, s.description \
          FROM finance.bank_statement_line s JOIN finance.bank_statement bs ON bs.id = s.bank_statement_id \
          WHERE bs.tenant_id = $1 AND bs.bank_account_id = $2 AND s.match_status = 'unmatched' AND s.value_date <= $3 \
@@ -829,7 +883,10 @@ pub async fn bank_recon_brs(
     let b: Brs = brs(
         paise(book),
         &uncleared.iter().map(|e| e.amount).collect::<Vec<_>>(),
-        &unbooked.iter().map(|l| signed(l.2, l.3)).collect::<Vec<_>>(),
+        &unbooked
+            .iter()
+            .map(|l| signed(l.2, l.3))
+            .collect::<Vec<_>>(),
         closing.map(paise),
     );
     let entry_item = |e: &&EntryRow| BrsItem {
@@ -840,7 +897,14 @@ pub async fn bank_recon_brs(
         journal_entry_id: Some(e.id),
         statement_line_id: None,
     };
-    let line_item = |l: &(Uuid, NaiveDate, bool, Decimal, Option<String>, Option<String>)| BrsItem {
+    let line_item = |l: &(
+        Uuid,
+        NaiveDate,
+        bool,
+        Decimal,
+        Option<String>,
+        Option<String>,
+    )| BrsItem {
         date: l.1,
         reference: l.4.clone(),
         description: l.5.clone(),
@@ -859,10 +923,30 @@ pub async fn bank_recon_brs(
         bank_balance: rupees(b.bank_balance),
         statement_balance: b.statement_balance.map(rupees),
         difference: b.difference.map(rupees),
-        issued: uncleared.iter().filter(|e| e.amount < 0).take(MAX_LIST).map(entry_item).collect(),
-        deposited: uncleared.iter().filter(|e| e.amount > 0).take(MAX_LIST).map(entry_item).collect(),
-        bank_credits: unbooked.iter().filter(|l| l.2).take(MAX_LIST).map(line_item).collect(),
-        bank_debits: unbooked.iter().filter(|l| !l.2).take(MAX_LIST).map(line_item).collect(),
+        issued: uncleared
+            .iter()
+            .filter(|e| e.amount < 0)
+            .take(MAX_LIST)
+            .map(entry_item)
+            .collect(),
+        deposited: uncleared
+            .iter()
+            .filter(|e| e.amount > 0)
+            .take(MAX_LIST)
+            .map(entry_item)
+            .collect(),
+        bank_credits: unbooked
+            .iter()
+            .filter(|l| l.2)
+            .take(MAX_LIST)
+            .map(line_item)
+            .collect(),
+        bank_debits: unbooked
+            .iter()
+            .filter(|l| !l.2)
+            .take(MAX_LIST)
+            .map(line_item)
+            .collect(),
     }))
 }
 
@@ -906,7 +990,7 @@ pub async fn bank_recon_discrepancies(
     let t = tenant(ctx);
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     // Same rule as `reconcile::discrepancies`, in SQL so it scales with the journal.
-    let rows: Vec<(Uuid, Uuid, String, NaiveDate, Uuid, Option<String>, Option<NaiveDate>, Decimal, Decimal)> = sqlx::query_as(
+    let rows: Vec<DiscrepancyRow> = sqlx::query_as(
         "SELECT r.id, r.bank_account_id, b.name, r.statement_date, re.journal_entry_id, e.entry_number, e.posting_date, \
                 re.amount, COALESCE(cur.amount, 0) \
          FROM finance.bank_account_reconciliation r \
@@ -1017,11 +1101,13 @@ pub async fn statement_line_suggestions(
     // Entries other lines already explain are taken (this line's own match is not).
     let mut own: HashSet<Uuid> = HashSet::new();
     if let Some(jl) = matched_jl {
-        if let Some(e) = sqlx::query_scalar::<_, Uuid>("SELECT journal_entry_id FROM finance.journal_line WHERE id = $1")
-            .bind(jl)
-            .fetch_optional(&mut *conn)
-            .await
-            .map_err(map_db_error)?
+        if let Some(e) = sqlx::query_scalar::<_, Uuid>(
+            "SELECT journal_entry_id FROM finance.journal_line WHERE id = $1",
+        )
+        .bind(jl)
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(map_db_error)?
         {
             own.insert(e);
         }
@@ -1033,8 +1119,17 @@ pub async fn statement_line_suggestions(
                 .fetch_optional(&mut *conn)
                 .await
                 .map_err(map_db_error)?;
-        for i in items.as_ref().and_then(|v| v.as_array()).into_iter().flatten() {
-            if let Some(e) = i.get("journalEntryId").and_then(|x| x.as_str()).and_then(|s| Uuid::parse_str(s).ok()) {
+        for i in items
+            .as_ref()
+            .and_then(|v| v.as_array())
+            .into_iter()
+            .flatten()
+        {
+            if let Some(e) = i
+                .get("journalEntryId")
+                .and_then(|x| x.as_str())
+                .and_then(|s| Uuid::parse_str(s).ok())
+            {
                 own.insert(e);
             }
         }
@@ -1044,7 +1139,11 @@ pub async fn statement_line_suggestions(
         .into_keys()
         .filter(|e| !own.contains(e))
         .collect();
-    let line_amount = if credit { paise(amount) } else { -paise(amount) };
+    let line_amount = if credit {
+        paise(amount)
+    } else {
+        -paise(amount)
+    };
     let mut docs = Vec::new();
     let mut charge_meta: HashMap<Uuid, (String, String, NaiveDate)> = HashMap::new();
     if credit {
@@ -1095,15 +1194,19 @@ pub async fn statement_line_suggestions(
                 amount: rupees(e.amount.abs()),
                 days_apart: s.score / 100,
             }),
-            SuggestionKind::Open => charge_meta.get(&s.id).map(|(n, d, when)| StatementLineSuggestion {
-                kind: "charge".into(),
-                id: s.id,
-                number: n.clone(),
-                description: d.clone(),
-                date: *when,
-                amount: fmt(amount),
-                days_apart: s.score - 10_000,
-            }),
+            SuggestionKind::Open => {
+                charge_meta
+                    .get(&s.id)
+                    .map(|(n, d, when)| StatementLineSuggestion {
+                        kind: "charge".into(),
+                        id: s.id,
+                        number: n.clone(),
+                        description: d.clone(),
+                        date: *when,
+                        amount: fmt(amount),
+                        days_apart: s.score - 10_000,
+                    })
+            }
         })
         .collect();
     Ok(Json(StatementLineSuggestionList { items }))
