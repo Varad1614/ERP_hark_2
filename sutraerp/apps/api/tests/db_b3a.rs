@@ -2772,3 +2772,283 @@ async fn document_requests_and_student_documents() {
     .await;
     assert_eq!(docs["items"].as_array().unwrap().len(), 4);
 }
+
+/// ERP_EXTENSIONS 2A: admissions funnel. Settings and seat targets, enquiries with stage
+/// history, duplicate hints, Lost needs a reason, a linked application drags its enquiry to
+/// Offered and then Admitted, and the funnel / forecast / duplicates reads add up.
+#[tokio::test]
+async fn admission_funnel_enquiries_follow_applications() {
+    let t = tenant();
+    let (app, pool) = app(t).await;
+    let admin = login(&app, "admin@sutra.dev").await;
+    let setup = b3::academic_setup(&app, &admin, t, "Funnel University").await;
+    let inst = setup.institution_id;
+    let prog = setup.programme_id;
+
+    let s = ok(
+        &app,
+        &admin,
+        "GET",
+        &format!("{API}/institutions/{inst}/admission-funnel-settings"),
+        json!(null),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(s["stages"].as_array().unwrap().len(), 7, "{s}");
+    assert_eq!(s["version"], 0);
+    let put = format!("{API}/institutions/{inst}/admission-funnel-settings");
+    let (st, b) = call(&app, &admin, "PUT", &put, json!({"stages": [{"id": "lost", "label": "x", "probability": 0.1}], "staleDays": 7, "version": 0}), None).await;
+    assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    let s = ok(&app, &admin, "PUT", &put, json!({"stages": [], "staleDays": 7, "targets": [{"programmeId": prog, "intake": "2026", "seats": 2}], "version": 0}), None, StatusCode::OK).await;
+    assert_eq!(s["version"], 1);
+    assert_eq!(s["targets"][0]["seats"], 2);
+    let (st, _) = call(
+        &app,
+        &admin,
+        "PUT",
+        &put,
+        json!({"stages": [], "staleDays": 7, "version": 0}),
+        None,
+    )
+    .await;
+    assert_eq!(
+        st,
+        StatusCode::PRECONDITION_FAILED,
+        "stale settings version"
+    );
+
+    let enquiries = format!("{API}/institutions/{inst}/admission-enquiries");
+    let c1 = ok(
+        &app,
+        &admin,
+        "POST",
+        &enquiries,
+        json!({
+            "givenName": "Aarav", "familyName": "Kulkarni", "email": "aarav@example.in",
+            "phone": "+91 98765 43210", "source": "referral", "programmeId": prog, "intake": "2026",
+            "expectedFee": "150000.00", "expectedJoin": "2026-07-01",
+        }),
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+    let e1 = c1["enquiry"].clone();
+    assert_eq!(e1["stage"], "enquiry", "{c1}");
+    assert!(e1["enquiryNumber"].as_str().unwrap().starts_with("ENQ-"));
+    assert_eq!(c1["possibleDuplicates"].as_array().unwrap().len(), 0);
+    let (st, _) = call(
+        &app,
+        &admin,
+        "POST",
+        &enquiries,
+        json!({"givenName": "X", "source": "billboard"}),
+        None,
+    )
+    .await;
+    assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY);
+    let c2 = ok(&app, &admin, "POST", &enquiries, json!({"givenName": "A.", "familyName": "Kulkarni", "email": " AARAV@example.in", "source": "website"}), None, StatusCode::CREATED).await;
+    let dup = &c2["possibleDuplicates"][0];
+    assert_eq!(dup["id"], e1["id"], "{c2}");
+    assert_eq!(dup["reasons"], json!(["email"]));
+    let e2 = c2["enquiry"].clone();
+    let p2 = format!("{API}/admission-enquiries/{}", id(&e2));
+    let (st, _) = call(
+        &app,
+        &admin,
+        "PATCH",
+        &p2,
+        json!({"stage": "lost"}),
+        Some(ver(&e2)),
+    )
+    .await;
+    assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "lost needs a reason");
+    let e2 = ok(
+        &app,
+        &admin,
+        "PATCH",
+        &p2,
+        json!({"stage": "lost", "closeReason": "Duplicate of an earlier enquiry"}),
+        Some(ver(&e2)),
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(e2["stage"], "lost");
+    assert!(e2["closedAt"].is_string());
+
+    let p1 = format!("{API}/admission-enquiries/{}", id(&e1));
+    let e1 = ok(
+        &app,
+        &admin,
+        "PATCH",
+        &p1,
+        json!({"stage": "counselling", "notes": "Wants hostel"}),
+        Some(ver(&e1)),
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(e1["stageHistory"].as_array().unwrap().len(), 2);
+    assert_eq!(e1["notes"], "Wants hostel");
+    let (st, _) = call(
+        &app,
+        &admin,
+        "PATCH",
+        &p1,
+        json!({"notes": "late"}),
+        Some(ver(&e1) - 1),
+    )
+    .await;
+    assert_eq!(st, StatusCode::PRECONDITION_FAILED);
+
+    // The application is offered; linking it moves the enquiry through Applied to Offered.
+    let adm = offered(&app, &admin, &setup, "Aarav", None, json!({})).await;
+    let application = adm["applicationId"].as_str().unwrap().to_owned();
+    let e1 = ok(
+        &app,
+        &admin,
+        "POST",
+        &format!("{p1}/link-application"),
+        json!({"applicationId": application}),
+        Some(ver(&e1)),
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(e1["applicationId"], json!(application));
+    assert_eq!(e1["stage"], "offered", "{e1}");
+    let stages: Vec<&str> = e1["stageHistory"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|h| h["stage"].as_str().unwrap())
+        .collect();
+    assert_eq!(stages, ["enquiry", "counselling", "applied", "offered"]);
+    let (st, _) = call(
+        &app,
+        &admin,
+        "POST",
+        &format!("{API}/admission-enquiries/{}/link-application", id(&e2)),
+        json!({"applicationId": application}),
+        Some(ver(&e2)),
+    )
+    .await;
+    assert_eq!(st, StatusCode::CONFLICT, "a lost enquiry cannot be linked");
+
+    // The student is created and enrolled: the next read admits the enquiry.
+    let adm = confirmed(&app, &admin, adm).await;
+    enrolled(
+        &app,
+        &admin,
+        adm,
+        json!({"batchCode": "2026", "sectionCode": "A"}),
+    )
+    .await;
+    let list = ok(
+        &app,
+        &admin,
+        "GET",
+        &format!("{enquiries}?stage=admitted"),
+        json!(null),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(list["items"].as_array().unwrap().len(), 1, "{list}");
+    assert_eq!(list["items"][0]["id"], e1["id"]);
+    assert!(list["items"][0]["closedAt"].is_string());
+
+    let f = ok(
+        &app,
+        &admin,
+        "GET",
+        &format!("{API}/institutions/{inst}/admission-funnel"),
+        json!(null),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(f["report"]["totals"]["enquiries"], 2, "{f}");
+    assert_eq!(f["report"]["totals"]["admitted"], 1);
+    assert_eq!(f["report"]["totals"]["lost"], 1);
+    let row = |s: &str| {
+        f["report"]["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["stage"] == s)
+            .cloned()
+            .unwrap()
+    };
+    assert_eq!(row("enquiry")["entered"], 2);
+    assert_eq!(row("enquiry")["lostHere"], 1);
+    assert_eq!(row("offered")["advanced"], 1);
+    let (st, _) = call(
+        &app,
+        &admin,
+        "GET",
+        &format!("{API}/institutions/{inst}/admission-funnel?window=decade"),
+        json!(null),
+        None,
+    )
+    .await;
+    assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY);
+
+    let fc = ok(
+        &app,
+        &admin,
+        "GET",
+        &format!("{API}/institutions/{inst}/admission-forecast?months=3"),
+        json!(null),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(fc["months"].as_array().unwrap().len(), 3, "{fc}");
+    assert_eq!(fc["winRate"]["admitted"], 1);
+    assert_eq!(fc["seats"][0]["seats"], 2);
+    assert_eq!(fc["seats"][0]["admitted"], 1);
+    assert_eq!(fc["seats"][0]["remaining"], 1);
+    assert_eq!(
+        fc["reasonsLost"]["rows"][0]["reason"],
+        "Duplicate of an earlier enquiry"
+    );
+    assert!(fc["bySource"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|g| g["key"] == "referral"));
+
+    // Two open enquiries for the same person surface as a duplicate pair.
+    ok(
+        &app,
+        &admin,
+        "POST",
+        &enquiries,
+        json!({"givenName": "Diya", "familyName": "Patel", "phone": "98200-12345"}),
+        None,
+        StatusCode::CREATED,
+    )
+    .await;
+    ok(&app, &admin, "POST", &enquiries, json!({"givenName": "DIYA", "familyName": " patel ", "phone": "+91 98200 12345", "source": "education_fair"}), None, StatusCode::CREATED).await;
+    let d = ok(
+        &app,
+        &admin,
+        "GET",
+        &format!("{API}/institutions/{inst}/admission-duplicates"),
+        json!(null),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    let pairs = d["pairs"].as_array().unwrap();
+    assert_eq!(pairs.len(), 1, "{d}");
+    assert_eq!(pairs[0]["reasons"], json!(["name"]));
+
+    let actions = audit_actions(&pool, &id(&e1)).await;
+    for a in [
+        "student.admission_enquiry.create",
+        "student.admission_enquiry.move",
+        "student.admission_enquiry.link_application",
+    ] {
+        assert!(actions.iter().any(|x| x == a), "{a} in {actions:?}");
+    }
+}
