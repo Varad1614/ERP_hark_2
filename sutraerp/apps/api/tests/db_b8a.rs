@@ -1792,7 +1792,7 @@ async fn service_desk_rules_views_and_sla_policy() {
     assert_eq!(fd["ticket"]["slaBreached"], true);
 
     // Deleting a rule stops it; its past firings stay.
-    let (s, _) = send(
+    let (s, _, _) = send(
         &app,
         write(
             &admin,
