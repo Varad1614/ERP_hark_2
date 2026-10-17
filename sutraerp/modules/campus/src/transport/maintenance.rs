@@ -28,9 +28,15 @@ pub fn add_days(date: &str, n: i64) -> String {
 
 /// `addMonths`: the same day of the month, clamped to the month's last day.
 pub fn add_months(date: &str, n: i64) -> String {
-    let Some(d) = parse(date) else { return date.to_owned() };
+    let Some(d) = parse(date) else {
+        return date.to_owned();
+    };
     let m = Months::new(n.unsigned_abs().min(u32::MAX as u64) as u32);
-    let out = if n >= 0 { d.checked_add_months(m) } else { d.checked_sub_months(m) };
+    let out = if n >= 0 {
+        d.checked_add_months(m)
+    } else {
+        d.checked_sub_months(m)
+    };
     out.map_or_else(|| date.to_owned(), iso)
 }
 
@@ -67,7 +73,11 @@ fn js_round(x: f64) -> f64 {
 
 /// `addInterval(iso, interval, times)`.
 pub fn add_interval(date: &str, interval: &Interval, times: i64) -> String {
-    let every = if interval.every.is_finite() { js_round(interval.every) as i64 } else { 0 };
+    let every = if interval.every.is_finite() {
+        js_round(interval.every) as i64
+    } else {
+        0
+    };
     let n = every * times;
     if date.is_empty() || n == 0 {
         return date.to_owned();
@@ -126,7 +136,10 @@ pub struct DueSoon {
 
 impl Default for DueSoon {
     fn default() -> Self {
-        Self { days: 14.0, meter: 500.0 }
+        Self {
+            days: 14.0,
+            meter: 500.0,
+        }
     }
 }
 
@@ -141,7 +154,9 @@ pub fn reminder_next_due(r: &Reminder) -> (Option<String>, Option<f64>) {
     let next_date = match some_str(&r.next_date) {
         Some(d) => Some(d.to_owned()),
         None => match (&r.interval, from) {
-            (Some(i), Some(f)) if i.every != 0.0 && !i.every.is_nan() => Some(add_interval(f, i, 1)),
+            (Some(i), Some(f)) if i.every != 0.0 && !i.every.is_nan() => {
+                Some(add_interval(f, i, 1))
+            }
             _ => None,
         },
     };
@@ -168,7 +183,12 @@ pub struct ReminderState {
 }
 
 /// `reminderState`: overdue as soon as either the date or the meter is reached.
-pub fn reminder_state(r: &Reminder, vehicle_meter: Option<f64>, today: &str, due: DueSoon) -> ReminderState {
+pub fn reminder_state(
+    r: &Reminder,
+    vehicle_meter: Option<f64>,
+    today: &str,
+    due: DueSoon,
+) -> ReminderState {
     let (next_date, next_meter) = reminder_next_due(r);
     let days_left = next_date.as_deref().map(|d| diff_days(today, d));
     let meter_left = match (next_meter, vehicle_meter) {
@@ -180,13 +200,21 @@ pub fn reminder_state(r: &Reminder, vehicle_meter: Option<f64>, today: &str, due
     let mut status = "upcoming";
     if days_left.is_some_and(|d| d < 0) || meter_left.is_some_and(|m| m <= 0.0) {
         status = "overdue";
-    } else if days_left.is_some_and(|d| (d as f64) <= soon_days) || meter_left.is_some_and(|m| m <= soon_meter) {
+    } else if days_left.is_some_and(|d| (d as f64) <= soon_days)
+        || meter_left.is_some_and(|m| m <= soon_meter)
+    {
         status = "due_soon";
     }
     if some_str(&r.snoozed_until).is_some_and(|s| s >= today) && status != "upcoming" {
         status = "snoozed";
     }
-    ReminderState { status: status.into(), next_date, next_meter, days_left, meter_left }
+    ReminderState {
+        status: status.into(),
+        next_date,
+        next_meter,
+        days_left,
+        meter_left,
+    }
 }
 
 /// `completeReminder`: the schedule restarts from this date and meter (overrides and snooze
@@ -208,7 +236,9 @@ pub fn complete_reminder(
     if let Some(at) = h.iter().position(|x| x.date.as_str() > date) {
         let prev = at.checked_sub(1).and_then(|i| h.get(i));
         let base = Reminder {
-            last_date: prev.map(|p| p.date.clone()).or_else(|| r.start_date.clone()),
+            last_date: prev
+                .map(|p| p.date.clone())
+                .or_else(|| r.start_date.clone()),
             last_meter: match prev {
                 Some(p) => p.meter.or(r.start_meter),
                 None => r.start_meter,
@@ -227,9 +257,15 @@ pub fn complete_reminder(
             on_time: st.status != "overdue",
         });
         hist.extend_from_slice(&h[at..]);
-        return Reminder { history: tail50(hist), ..r.clone() };
+        return Reminder {
+            history: tail50(hist),
+            ..r.clone()
+        };
     }
-    let unsnoozed = Reminder { snoozed_until: None, ..r.clone() };
+    let unsnoozed = Reminder {
+        snoozed_until: None,
+        ..r.clone()
+    };
     let before = reminder_state(&unsnoozed, meter.or(vehicle_meter), date, due);
     let mut hist = h.clone();
     hist.push(Completion {
@@ -260,10 +296,22 @@ pub fn compliance(r: &Reminder) -> Option<f64> {
 /// "Every 6 months or 10000 km", "One time".
 pub fn describe_schedule(r: &Reminder, meter_unit: &str) -> String {
     let mut parts = Vec::new();
-    if let Some(i) = r.interval.as_ref().filter(|i| i.every != 0.0 && !i.every.is_nan()) {
+    if let Some(i) = r
+        .interval
+        .as_ref()
+        .filter(|i| i.every != 0.0 && !i.every.is_nan())
+    {
         let n = i.every;
-        let unit = if i.unit.is_empty() { "months" } else { i.unit.as_str() };
-        let u = if n == 1.0 { unit.strip_suffix('s').unwrap_or(unit) } else { unit };
+        let unit = if i.unit.is_empty() {
+            "months"
+        } else {
+            i.unit.as_str()
+        };
+        let u = if n == 1.0 {
+            unit.strip_suffix('s').unwrap_or(unit)
+        } else {
+            unit
+        };
         parts.push(format!("{} {u}", num(n)));
     }
     if let Some(m) = r.meter_interval.filter(|m| *m != 0.0 && m.is_finite()) {
@@ -320,7 +368,9 @@ pub struct Renewal {
 
 /// `renewalState`: status and days left.
 pub fn renewal_state(r: &Renewal, today: &str, due: DueSoon) -> (String, Option<i64>) {
-    let Some(d) = some_str(&r.due_date) else { return ("upcoming".into(), None) };
+    let Some(d) = some_str(&r.due_date) else {
+        return ("upcoming".into(), None);
+    };
     let left = diff_days(today, d);
     let soon = r.due_soon_days.unwrap_or(due.days);
     let mut status = if left < 0 {
@@ -338,25 +388,43 @@ pub fn renewal_state(r: &Renewal, today: &str, due: DueSoon) -> (String, Option<
 
 /// `completeRenewal`: rolls forward by its repeat, counted from where the series started (a
 /// renewal due on 31 Jan comes back 31 Mar after 28 Feb), unless `next_due` is given.
-pub fn complete_renewal(r: &Renewal, date: &str, next_due: Option<&str>, cost: Option<f64>) -> Renewal {
+pub fn complete_renewal(
+    r: &Renewal,
+    date: &str,
+    next_due: Option<&str>,
+    cost: Option<f64>,
+) -> Renewal {
     let mut history = r.history.clone();
-    history.push(RenewalDone { date: date.to_owned(), due_date: r.due_date.clone(), cost });
+    history.push(RenewalDone {
+        date: date.to_owned(),
+        due_date: r.due_date.clone(),
+        cost,
+    });
     let skip = history.len().saturating_sub(50);
     let history: Vec<RenewalDone> = history.into_iter().skip(skip).collect();
-    let repeat = r.repeat.as_ref().filter(|i| i.every != 0.0 && !i.every.is_nan());
+    let repeat = r
+        .repeat
+        .as_ref()
+        .filter(|i| i.every != 0.0 && !i.every.is_nan());
     let roll = repeat.map(|rep| {
         let from = some_str(&r.due_date).unwrap_or(date).to_owned();
         let start = match &r.repeat_anchor {
             Some(a) if !a.date.is_empty() && add_interval(&a.date, rep, a.n) == from => a.clone(),
             _ => Anchor { date: from, n: 0 },
         };
-        Anchor { date: start.date, n: start.n + 1 }
+        Anchor {
+            date: start.date,
+            n: start.n + 1,
+        }
     });
     let next = match (&roll, repeat) {
         (Some(a), Some(rep)) => Some(add_interval(&a.date, rep, a.n)),
         _ => None,
     };
-    let rolled = next_due.filter(|d| !d.is_empty()).map(str::to_owned).or_else(|| next.clone());
+    let rolled = next_due
+        .filter(|d| !d.is_empty())
+        .map(str::to_owned)
+        .or_else(|| next.clone());
     let anchor = match (&roll, &rolled) {
         (Some(a), Some(x)) if Some(x) == next.as_ref() => Some(a.clone()),
         _ => None,
@@ -390,7 +458,12 @@ pub struct FuelEntry {
 
 /// `economyValue`: L/100 km for km with litres or kWh; volume per hour on an hour meter;
 /// else distance per volume.
-pub fn economy_value(distance: f64, volume: f64, meter_unit: &str, volume_unit: &str) -> Option<f64> {
+pub fn economy_value(
+    distance: f64,
+    volume: f64,
+    meter_unit: &str,
+    volume_unit: &str,
+) -> Option<f64> {
     if !(distance > 0.0) || !(volume > 0.0) {
         return None;
     }
@@ -455,7 +528,11 @@ pub struct FuelDerived {
 }
 
 /// `fuelDerived` for one vehicle's entries of one kind.
-pub fn fuel_derived(entries: &[FuelEntry], meter_unit: &str, volume_unit: &str) -> BTreeMap<String, FuelDerived> {
+pub fn fuel_derived(
+    entries: &[FuelEntry],
+    meter_unit: &str,
+    volume_unit: &str,
+) -> BTreeMap<String, FuelDerived> {
     let mut list: Vec<&FuelEntry> = entries.iter().filter(|e| e.meter.is_some()).collect();
     list.sort_by(|a, b| {
         a.meter
@@ -463,7 +540,12 @@ pub fn fuel_derived(entries: &[FuelEntry], meter_unit: &str, volume_unit: &str) 
             .partial_cmp(&b.meter.unwrap_or(0.0))
             .unwrap_or(std::cmp::Ordering::Equal)
             .then_with(|| a.date.cmp(&b.date))
-            .then_with(|| a.time.as_deref().unwrap_or("").cmp(b.time.as_deref().unwrap_or("")))
+            .then_with(|| {
+                a.time
+                    .as_deref()
+                    .unwrap_or("")
+                    .cmp(b.time.as_deref().unwrap_or(""))
+            })
     });
     let when = |e: &FuelEntry| format!("{}T{}", e.date, e.time.as_deref().unwrap_or(""));
     let mut loose: Vec<&FuelEntry> = entries.iter().filter(|e| e.meter.is_none()).collect();
@@ -489,7 +571,10 @@ pub fn fuel_derived(entries: &[FuelEntry], meter_unit: &str, volume_unit: &str) 
             vol_since += e.volume;
             if !e.partial {
                 if let Some(lf) = last_full.filter(|lf| meter > *lf) {
-                    let m = Measured { distance: meter - lf, volume: vol_since };
+                    let m = Measured {
+                        distance: meter - lf,
+                        volume: vol_since,
+                    };
                     economy = economy_value(m.distance, m.volume, meter_unit, volume_unit);
                     measured = Some(m);
                 }
@@ -559,7 +644,11 @@ pub fn fuel_summary(
         volume,
         distance,
         avg_price: (volume > 0.0).then(|| cost / 100.0 / volume),
-        avg_economy: if md > 0.0 && mv > 0.0 { economy_value(md, mv, meter_unit, volume_unit) } else { None },
+        avg_economy: if md > 0.0 && mv > 0.0 {
+            economy_value(md, mv, meter_unit, volume_unit)
+        } else {
+            None
+        },
         cost_per_meter: (distance > 0.0).then(|| cost / distance),
     }
 }
@@ -592,7 +681,11 @@ fn in_range(d: &str, from: Option<&str>, to: Option<&str>) -> bool {
 }
 
 /// `costsByVehicle` over an inclusive date range.
-pub fn costs_by_vehicle(lines: &[CostLine], from: Option<&str>, to: Option<&str>) -> BTreeMap<String, VehicleCosts> {
+pub fn costs_by_vehicle(
+    lines: &[CostLine],
+    from: Option<&str>,
+    to: Option<&str>,
+) -> BTreeMap<String, VehicleCosts> {
     let mut out: BTreeMap<String, VehicleCosts> = BTreeMap::new();
     for l in lines.iter().filter(|l| in_range(&l.date, from, to)) {
         let row = out.entry(l.vehicle_id.clone()).or_default();
@@ -620,14 +713,19 @@ pub struct Reading {
 
 /// `usageByVehicle`: distance from the highest reading before the range (else the lowest in
 /// it) to the highest in it.
-pub fn usage_by_vehicle(readings: &[Reading], from: Option<&str>, to: Option<&str>) -> BTreeMap<String, f64> {
+pub fn usage_by_vehicle(
+    readings: &[Reading],
+    from: Option<&str>,
+    to: Option<&str>,
+) -> BTreeMap<String, f64> {
     let mut groups: BTreeMap<&str, Vec<&Reading>> = BTreeMap::new();
     for r in readings.iter().filter(|r| !r.void && r.value.is_some()) {
         groups.entry(r.vehicle_id.as_str()).or_default().push(r);
     }
     let mut out = BTreeMap::new();
     for (vid, list) in groups {
-        let (mut start, mut end, mut before): (Option<f64>, Option<f64>, Option<f64>) = (None, None, None);
+        let (mut start, mut end, mut before): (Option<f64>, Option<f64>, Option<f64>) =
+            (None, None, None);
         for r in list {
             let v = r.value.unwrap_or(0.0);
             if from.is_some_and(|f| r.date.as_str() < f) {
@@ -659,7 +757,10 @@ mod tests {
     #[test]
     fn reminders_renewals_and_fuel() {
         assert_eq!(add_months("2027-01-31", 1), "2027-02-28");
-        let six = Interval { every: 6.0, unit: "months".into() };
+        let six = Interval {
+            every: 6.0,
+            unit: "months".into(),
+        };
         let r = Reminder {
             interval: Some(six.clone()),
             meter_interval: Some(10_000.0),
@@ -670,13 +771,23 @@ mod tests {
         let s = reminder_state(&r, Some(29_800.0), "2026-09-01", DueSoon::default());
         assert_eq!(s.status, "due_soon");
         assert_eq!(s.next_date.as_deref(), Some("2026-10-01"));
-        let done = complete_reminder(&r, "2026-09-02", Some(29_900.0), None, None, DueSoon::default());
+        let done = complete_reminder(
+            &r,
+            "2026-09-02",
+            Some(29_900.0),
+            None,
+            None,
+            DueSoon::default(),
+        );
         assert!(done.history[0].on_time);
         assert_eq!(compliance(&done), Some(1.0));
         assert_eq!(describe_schedule(&r, "km"), "Every 6 months or 10000 km");
         let ren = Renewal {
             due_date: Some("2027-01-31".into()),
-            repeat: Some(Interval { every: 1.0, unit: "months".into() }),
+            repeat: Some(Interval {
+                every: 1.0,
+                unit: "months".into(),
+            }),
             ..Renewal::default()
         };
         let a = complete_renewal(&ren, "2027-01-30", None, None);
@@ -692,7 +803,15 @@ mod tests {
             partial: p,
             ..FuelEntry::default()
         };
-        let d = fuel_derived(&[e("a", 1000.0, 40.0, false), e("b", 1300.0, 10.0, true), e("c", 1500.0, 20.0, false)], "km", "L");
+        let d = fuel_derived(
+            &[
+                e("a", 1000.0, 40.0, false),
+                e("b", 1300.0, 10.0, true),
+                e("c", 1500.0, 20.0, false),
+            ],
+            "km",
+            "L",
+        );
         assert_eq!(d["c"].economy, Some(6.0));
         assert_eq!(fuel_total(12.5, 102.37), 127_963.0);
     }

@@ -68,9 +68,9 @@ struct Input {
 /// Numbers as f64 and keys sorted, so 1 and 1.0 compare equal; tiny float noise tolerated.
 fn norm(v: Value) -> Value {
     match v {
-        Value::Number(n) => n.as_f64().map_or(Value::Number(n), |f| {
-            Value::from((f * 1e9).round() / 1e9)
-        }),
+        Value::Number(n) => n
+            .as_f64()
+            .map_or(Value::Number(n), |f| Value::from((f * 1e9).round() / 1e9)),
         Value::Array(a) => Value::Array(a.into_iter().map(norm).collect()),
         Value::Object(o) => Value::Object(o.into_iter().map(|(k, x)| (k, norm(x))).collect()),
         other => other,
@@ -93,12 +93,26 @@ fn fleet_maintenance_matches_everything() {
             let e = &x["reminders"][ri];
             let w = |s: &str| format!("case {ci} reminder {ri} {s}");
             let (nd, nm) = reminder_next_due(r);
-            eq(json!({"nextDate": nd, "nextMeter": nm}), &e["next"], &w("next"));
+            eq(
+                json!({"nextDate": nd, "nextMeter": nm}),
+                &e["next"],
+                &w("next"),
+            );
             let st = reminder_state(r, i.vehicle_meter, &i.today, i.due);
-            eq(serde_json::to_value(&st).expect("state"), &e["state"], &w("state"));
+            eq(
+                serde_json::to_value(&st).expect("state"),
+                &e["state"],
+                &w("state"),
+            );
             let cp = &i.completions[ri];
-            let done =
-                complete_reminder(r, &cp.date, cp.meter, cp.entry_id.as_deref(), i.vehicle_meter, i.due);
+            let done = complete_reminder(
+                r,
+                &cp.date,
+                cp.meter,
+                cp.entry_id.as_deref(),
+                i.vehicle_meter,
+                i.due,
+            );
             eq(
                 json!({"lastDate": done.last_date, "lastMeter": done.last_meter,
                     "nextDate": done.next_date, "nextMeter": done.next_meter,
@@ -111,7 +125,11 @@ fn fleet_maintenance_matches_everything() {
         for (ri, r) in i.renewals.iter().enumerate() {
             let e = &x["renewals"][ri];
             let (status, left) = renewal_state(r, &i.today, i.due);
-            eq(json!({"status": status, "daysLeft": left}), &e["state"], &format!("case {ci} renewal {ri} state"));
+            eq(
+                json!({"status": status, "daysLeft": left}),
+                &e["state"],
+                &format!("case {ci} renewal {ri} state"),
+            );
             let mut cur = r.clone();
             for (si, o) in i.renew_ops.iter().enumerate() {
                 cur = complete_renewal(&cur, &o.date, o.next_due.as_deref(), o.cost);
@@ -124,17 +142,37 @@ fn fleet_maintenance_matches_everything() {
             }
         }
         let derived = fuel_derived(&i.fuel, &i.meter_unit, &i.volume_unit);
-        eq(serde_json::to_value(&derived).expect("derived"), &x["fuel"]["derived"], &format!("case {ci} fuel derived"));
+        eq(
+            serde_json::to_value(&derived).expect("derived"),
+            &x["fuel"]["derived"],
+            &format!("case {ci} fuel derived"),
+        );
         let s = fuel_summary(&i.fuel, &derived, &i.meter_unit, &i.volume_unit);
-        eq(serde_json::to_value(&s).expect("summary"), &x["fuel"]["summary"], &format!("case {ci} fuel summary"));
+        eq(
+            serde_json::to_value(&s).expect("summary"),
+            &x["fuel"]["summary"],
+            &format!("case {ci} fuel summary"),
+        );
         for (pi, p) in i.prices.iter().enumerate() {
             let t = fuel_total(p.volume, p.price);
-            eq(json!({"total": t, "unit": unit_price(t, p.volume)}), &x["prices"][pi], &format!("case {ci} price {pi}"));
+            eq(
+                json!({"total": t, "unit": unit_price(t, p.volume)}),
+                &x["prices"][pi],
+                &format!("case {ci} price {pi}"),
+            );
         }
         let costs = costs_by_vehicle(&i.lines, i.from.as_deref(), i.to.as_deref());
-        eq(serde_json::to_value(&costs).expect("costs"), &x["costs"], &format!("case {ci} costs"));
+        eq(
+            serde_json::to_value(&costs).expect("costs"),
+            &x["costs"],
+            &format!("case {ci} costs"),
+        );
         let usage = usage_by_vehicle(&i.readings, i.from.as_deref(), i.to.as_deref());
-        eq(serde_json::to_value(&usage).expect("usage"), &x["usage"], &format!("case {ci} usage"));
+        eq(
+            serde_json::to_value(&usage).expect("usage"),
+            &x["usage"],
+            &format!("case {ci} usage"),
+        );
         for (ii, iv) in i.intervals.iter().enumerate() {
             eq(
                 json!({"added": add_interval(&iv.date, &iv.interval, iv.times), "diff": diff_days(&i.today, &iv.date)}),
