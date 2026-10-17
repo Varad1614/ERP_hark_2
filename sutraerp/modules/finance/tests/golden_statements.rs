@@ -86,7 +86,11 @@ fn compact(s: &Statement, expected: &Value) -> Value {
                 .account_id
                 .map(|a| json!(a))
                 .unwrap_or_else(|| json!(r.key.clone().unwrap_or_default()));
-            let mut v: Vec<Value> = r.values.iter().map(|x| x.map_or(Value::Null, num)).collect();
+            let mut v: Vec<Value> = r
+                .values
+                .iter()
+                .map(|x| x.map_or(Value::Null, num))
+                .collect();
             if expected[i][3][3] == "tie" {
                 v[3] = json!("tie");
             }
@@ -124,11 +128,20 @@ fn statements_match_everything() {
         let mut postings = Vec::new();
         let mut entries = Vec::new();
         for (e, t) in txns.iter().enumerate() {
-            entries.push(EntryRef { id: t.id, ..EntryRef::default() });
+            entries.push(EntryRef {
+                id: t.id,
+                ..EntryRef::default()
+            });
             for l in &t.lines {
                 let amount = Decimal::from(l.debit - l.credit);
                 if !amount.is_zero() {
-                    postings.push(Posting { date: t.date, account: l.account_id, amount, entry: e, memo: String::new() });
+                    postings.push(Posting {
+                        date: t.date,
+                        account: l.account_id,
+                        amount,
+                        entry: e,
+                        memo: String::new(),
+                    });
                 }
             }
         }
@@ -146,10 +159,32 @@ fn statements_match_everything() {
             Some("prevPeriod") => Some(Compare::PreviousPeriod),
             _ => None,
         };
-        let pnl = income_expenditure(&books, inp.from, inp.to, if compare.is_some() { Columns::Total } else { columns }, compare);
-        assert_eq!(compact(&pnl, &ex["pnl"]["rows"]), ex["pnl"]["rows"], "case {i} pnl rows");
-        assert_eq!(num(pnl.net.expect("net")), ex["pnl"]["net"], "case {i} pnl net");
-        assert_eq!(json!(pnl.columns.len()), ex["pnl"]["cols"], "case {i} pnl cols");
+        let pnl = income_expenditure(
+            &books,
+            inp.from,
+            inp.to,
+            if compare.is_some() {
+                Columns::Total
+            } else {
+                columns
+            },
+            compare,
+        );
+        assert_eq!(
+            compact(&pnl, &ex["pnl"]["rows"]),
+            ex["pnl"]["rows"],
+            "case {i} pnl rows"
+        );
+        assert_eq!(
+            num(pnl.net.expect("net")),
+            ex["pnl"]["net"],
+            "case {i} pnl net"
+        );
+        assert_eq!(
+            json!(pnl.columns.len()),
+            ex["pnl"]["cols"],
+            "case {i} pnl cols"
+        );
 
         let (sheet_cols, prev) = match inp.sheet.as_str() {
             "month" => (SheetColumns::Month, false),
@@ -158,13 +193,33 @@ fn statements_match_everything() {
             _ => (SheetColumns::Total, false),
         };
         let bs = balance_sheet(&books, inp.as_of, sheet_cols, prev);
-        assert_eq!(compact(&bs, &ex["bs"]["rows"]), ex["bs"]["rows"], "case {i} bs rows");
-        assert_eq!(json!(bs.balanced), ex["bs"]["balanced"], "case {i} balanced");
-        assert_eq!(json!(bs.columns.len()), ex["bs"]["cols"], "case {i} bs cols");
+        assert_eq!(
+            compact(&bs, &ex["bs"]["rows"]),
+            ex["bs"]["rows"],
+            "case {i} bs rows"
+        );
+        assert_eq!(
+            json!(bs.balanced),
+            ex["bs"]["balanced"],
+            "case {i} balanced"
+        );
+        assert_eq!(
+            json!(bs.columns.len()),
+            ex["bs"]["cols"],
+            "case {i} bs cols"
+        );
 
         let cf = cash_flow(&books, inp.from, inp.to);
-        assert_eq!(compact(&cf, &ex["cf"]["rows"]), ex["cf"]["rows"], "case {i} cf rows");
-        assert_eq!(json!(cf.reconciled), json!(ex["cf"]["net"] == ex["cf"]["cash"]), "case {i} cf check");
+        assert_eq!(
+            compact(&cf, &ex["cf"]["rows"]),
+            ex["cf"]["rows"],
+            "case {i} cf rows"
+        );
+        assert_eq!(
+            json!(cf.reconciled),
+            json!(ex["cf"]["net"] == ex["cf"]["cash"]),
+            "case {i} cf check"
+        );
 
         let gl = general_ledger(&books, inp.from, inp.to, None);
         let got: Vec<Value> = gl

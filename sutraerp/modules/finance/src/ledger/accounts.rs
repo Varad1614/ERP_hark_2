@@ -28,6 +28,7 @@ use sutra_kernel::scope::{InstitutionId, TenantId};
 use sutra_persistence::map_db_error;
 use sutra_web::idempotency::require_idempotency_key;
 use sutra_web::{ApiResult, Authenticated, Problem};
+use super::statements::StatementGroup;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -45,6 +46,9 @@ pub struct LedgerAccountView {
     /// Seeded role (`student_receivables`, `bank_main`, …); `null` for user accounts.
     pub system_key: Option<String>,
     pub is_postable: bool,
+    /// Where the account sits on the financial statements (ERP_EXTENSIONS 1C); derived from the
+    /// role / type unless set.
+    pub statement_group: StatementGroup,
     pub currency: String,
     pub status: LedgerAccountStatus,
     #[schema(value_type = String, example = "125000.00")]
@@ -63,7 +67,8 @@ pub struct LedgerAccountList {
 }
 
 const SELECT: &str = "SELECT a.id, a.institution_id, a.code, a.name, a.account_type, a.parent_id, \
-    a.system_key, a.is_postable, a.currency, a.status, a.version, \
+    a.system_key, a.is_postable, a.currency, a.status, a.version, a.statement_group, \
+    EXISTS (SELECT 1 FROM finance.bank_account b WHERE b.ledger_account_id = a.id) AS is_bank, \
     COALESCE((SELECT sum(l.debit) FROM finance.journal_line l WHERE l.ledger_account_id = a.id), 0) AS dr, \
     COALESCE((SELECT sum(l.credit) FROM finance.journal_line l WHERE l.ledger_account_id = a.id), 0) AS cr, \
     (SELECT count(*) FROM finance.journal_line l WHERE l.ledger_account_id = a.id) AS n \
@@ -88,6 +93,13 @@ fn from_row(r: &PgRow) -> Result<LedgerAccountView, KernelError> {
         parent_id: r.try_get("parent_id").map_err(map_db_error)?,
         system_key: r.try_get("system_key").map_err(map_db_error)?,
         is_postable: r.try_get("is_postable").map_err(map_db_error)?,
+        statement_group: {
+            let g: Option<String> = r.try_get("statement_group").map_err(map_db_error)?;
+            let key: Option<String> = r.try_get("system_key").map_err(map_db_error)?;
+            g.as_deref().and_then(StatementGroup::parse).unwrap_or_else(|| {
+                StatementGroup::default_for(ty.as_str(), key.as_deref(), r.try_get("is_bank").unwrap_or(false))
+            })
+        },
         currency: r.try_get("currency").map_err(map_db_error)?,
         status: st,
         debit_total: fmt(dr),
@@ -156,6 +168,33 @@ pub struct LedgerAccountCreate {
     pub parent_id: Option<Uuid>,
     /// Defaults to `true` (a header / grouping account is not postable).
     pub is_postable: Option<bool>,
+    /// Statement placement (must fit the account type); derived when absent.
+    pub statement_group: Option<StatementGroup>,
+}
+
+/// Sets an account's statement group (it must fit the account type).
+async fn set_group(
+    conn: &mut PgConnection,
+    t: TenantId,
+    id: Uuid,
+    account_type: &str,
+    g: StatementGroup,
+) -> Result<(), KernelError> {
+    if g.account_type() != account_type {
+        return Err(invalid(
+            "statementGroup",
+            "type_mismatch",
+            &format!("{} is not a group for a {account_type} account", g.as_str()),
+        ));
+    }
+    sqlx::query("UPDATE finance.ledger_account SET statement_group = $3 WHERE tenant_id = $1 AND id = $2")
+        .bind(t.as_uuid())
+        .bind(id)
+        .bind(g.as_str())
+        .execute(&mut *conn)
+        .await
+        .map_err(map_db_error)?;
+    Ok(())
 }
 
 fn valid_code(code: &str) -> bool {
@@ -259,6 +298,9 @@ pub async fn ledger_account_create(
         body.is_postable.unwrap_or(true),
     )
     .await?;
+    if let Some(g) = body.statement_group {
+        set_group(&mut tx, t, new_id, body.account_type.as_str(), g).await?;
+    }
     audit(
         &mut tx,
         &scope,
@@ -296,6 +338,8 @@ pub struct LedgerAccountUpdate {
     pub name: Option<String>,
     pub status: Option<LedgerAccountStatus>,
     pub is_postable: Option<bool>,
+    /// Statement placement (must fit the account type).
+    pub statement_group: Option<StatementGroup>,
 }
 
 /// Updates an account (`ledger.manage`, `If-Match`). A system account with postings keeps its
@@ -364,13 +408,17 @@ pub async fn ledger_account_update(
     .execute(&mut *tx)
     .await
     .map_err(map_db_error)?;
+    if let Some(g) = body.statement_group {
+        set_group(&mut tx, t, id, cur.account_type.as_str(), g).await?;
+    }
     audit(
         &mut tx,
         &scope,
         "finance.ledger_account.update",
         "ledger_account",
         id.to_string(),
-        json!({"name": opt_text(name.as_deref()), "status": body.status, "isPostable": body.is_postable}),
+        json!({"name": opt_text(name.as_deref()), "status": body.status, "isPostable": body.is_postable,
+               "statementGroup": body.statement_group.map(StatementGroup::as_str)}),
         &actor(ctx),
     )
     .await?;
