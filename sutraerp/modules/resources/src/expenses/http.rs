@@ -14,7 +14,7 @@
 //!   claimant saves, so an approver can see what the receipt said next to what was claimed.
 #![allow(clippy::too_many_arguments)]
 
-use super::receipt_text::{fields_from_lines, OcrLine};
+use super::receipt_text::fields_from_lines;
 use super::rules::{
     self as r, Category, CategoryPolicy, LineFacts, OcrFields, PolicyInput, PAYMENT_METHODS,
 };
@@ -683,6 +683,7 @@ const EXPENSE_COLUMNS: &str = "id, staff_id, institution_id, claim_id, spent_on,
 struct ExpenseRow {
     id: Uuid,
     staff_id: Uuid,
+    #[allow(dead_code)] // selected for tenant-scoped reads; not echoed back
     institution_id: Uuid,
     claim_id: Option<Uuid>,
     spent_on: NaiveDate,
