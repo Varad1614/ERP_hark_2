@@ -30336,6 +30336,500 @@
         ]
       }
     },
+    "/api/v1/campus/institutions/{id}/service-desk/rules": {
+      "get": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "The service-desk triggers of an institution, in run order (`campus.read`).",
+        "operationId": "campus_servicedesk_rule_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskRuleList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Add a trigger (`campus.facility.manage`).",
+        "operationId": "campus_servicedesk_rule_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceDeskRuleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskRule"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/institutions/{id}/service-desk/rules/preview": {
+      "post": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Which unsolved tickets a trigger would match now and what it would change (`campus.read`).",
+        "operationId": "campus_servicedesk_rule_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceDeskRulePreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskRulePreview"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/institutions/{id}/service-desk/sla-board": {
+      "get": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "The SLA board: unsolved tickets by the target due soonest, breaches first (`campus.read`).",
+        "operationId": "campus_servicedesk_sla_board",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskQueue"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/institutions/{id}/service-desk/sla-policy": {
+      "get": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "The service desk's SLA targets (`campus.read`).",
+        "operationId": "campus_servicedesk_sla_policy_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskSlaPolicy"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Save the SLA targets (`campus.facility.manage`). New tickets and re-prioritised ones are\ntimed from them; existing due times stay.",
+        "operationId": "campus_servicedesk_sla_policy_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceDeskSlaPolicyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskSlaPolicy"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/institutions/{id}/service-desk/views": {
+      "get": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Built-in and saved views (`campus.read`).",
+        "operationId": "campus_servicedesk_view_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskViewList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Save a view (`campus.facility.manage`).",
+        "operationId": "campus_servicedesk_view_create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required. Retry-safe key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceDeskViewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/institutions/{id}/service-desk/views/{viewId}/tickets": {
+      "get": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "The tickets of a view, built-in (`sys-…`) or saved (`campus.read`).",
+        "operationId": "campus_servicedesk_view_tickets",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskQueue"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/campus/institutions/{id}/tickets": {
       "get": {
         "tags": [
@@ -37117,6 +37611,160 @@
         ]
       }
     },
+    "/api/v1/campus/service-desk/rules/{id}": {
+      "put": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Replace a trigger (`campus.facility.manage`, `If-Match`).",
+        "operationId": "campus_servicedesk_rule_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the rule",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceDeskRuleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskRule"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Delete a trigger (`campus.facility.manage`). Its past firings stay in the log.",
+        "operationId": "campus_servicedesk_rule_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/service-desk/views/{id}": {
+      "delete": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Delete a saved view (`campus.facility.manage`).",
+        "operationId": "campus_servicedesk_view_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/campus/spaces/{id}/availability": {
       "get": {
         "tags": [
@@ -37303,6 +37951,53 @@
         "security": [
           {
             "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/tickets/{id}/automation": {
+      "get": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "What the service-desk triggers did to a ticket (`campus.read`).",
+        "operationId": "campus_servicedesk_ticket_automation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskRuleRunList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
             "session_cookie": []
           }
         ]
@@ -37877,6 +38572,80 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TicketView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/campus/tickets/{id}/tags": {
+      "post": {
+        "tags": [
+          "campus-facilities"
+        ],
+        "summary": "Tag or untag a ticket (`campus.facility.manage`, `If-Match`); triggers run as on any change.",
+        "operationId": "campus_servicedesk_ticket_tags",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "ETag of the ticket",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceDeskTagChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDeskTicketRow"
                 }
               }
             }
@@ -187474,6 +188243,555 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "ServiceDeskAction": {
+        "type": "object",
+        "description": "One action: `{ field, value }` (+ `to`, `subject`, `body` for notifications).",
+        "required": [
+          "field"
+        ],
+        "properties": {
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "subject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {}
+        }
+      },
+      "ServiceDeskCondition": {
+        "type": "object",
+        "description": "One condition: `{ field, op, value }`.",
+        "required": [
+          "field",
+          "op"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string"
+          },
+          "value": {}
+        }
+      },
+      "ServiceDeskConditions": {
+        "type": "object",
+        "description": "All of `all`, and at least one of `any` when it is not empty.",
+        "properties": {
+          "all": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskCondition"
+            },
+            "default": []
+          },
+          "any": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskCondition"
+            },
+            "default": []
+          }
+        }
+      },
+      "ServiceDeskQueue": {
+        "type": "object",
+        "description": "Tickets of a view or the SLA board.",
+        "required": [
+          "title",
+          "breached",
+          "items"
+        ],
+        "properties": {
+          "breached": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many listed tickets are past a target.",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskTicketRow"
+            }
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceDeskRule": {
+        "type": "object",
+        "description": "A service-desk trigger.",
+        "required": [
+          "id",
+          "title",
+          "event",
+          "position",
+          "active",
+          "conditions",
+          "actions",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskAction"
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/ServiceDeskConditions"
+          },
+          "event": {
+            "type": "string",
+            "description": "`created`, `updated` or `any`."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ServiceDeskRuleInput": {
+        "type": "object",
+        "description": "A trigger to save (create, or replace with `If-Match`).",
+        "required": [
+          "title",
+          "actions"
+        ],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskAction"
+            }
+          },
+          "active": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/ServiceDeskConditions"
+          },
+          "event": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`created`, `updated` or `any` (default)."
+          },
+          "position": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceDeskRuleList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskRule"
+            }
+          }
+        }
+      },
+      "ServiceDeskRulePreview": {
+        "type": "object",
+        "required": [
+          "matched",
+          "hits"
+        ],
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskRulePreviewHit"
+            }
+          },
+          "matched": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Unsolved tickets the conditions match now.",
+            "minimum": 0
+          }
+        }
+      },
+      "ServiceDeskRulePreviewHit": {
+        "type": "object",
+        "required": [
+          "ticketId",
+          "number",
+          "title",
+          "changes"
+        ],
+        "properties": {
+          "changes": {},
+          "number": {
+            "type": "string"
+          },
+          "ticketId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceDeskRulePreviewInput": {
+        "type": "object",
+        "description": "A trigger to try against current tickets without saving it.",
+        "required": [
+          "actions"
+        ],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskAction"
+            }
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/ServiceDeskConditions"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceDeskRuleRun": {
+        "type": "object",
+        "description": "One trigger firing on a ticket.",
+        "required": [
+          "ruleTitle",
+          "event",
+          "changes",
+          "createdAt"
+        ],
+        "properties": {
+          "changes": {},
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "event": {
+            "type": "string"
+          },
+          "ruleId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "ruleTitle": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceDeskRuleRunList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskRuleRun"
+            }
+          }
+        }
+      },
+      "ServiceDeskSlaPolicy": {
+        "type": "object",
+        "description": "The SLA policy (effective: the defaults until the institution saves one).",
+        "required": [
+          "enabled",
+          "targets",
+          "customised",
+          "version"
+        ],
+        "properties": {
+          "customised": {
+            "type": "boolean",
+            "description": "`false` while the defaults apply."
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "targets": {
+            "type": "object",
+            "description": "Minutes per priority (`low`, `medium`, `high`, `critical`).",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ServiceDeskSlaTarget"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ServiceDeskSlaPolicyInput": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "targets",
+          "version"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "targets": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ServiceDeskSlaTarget"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The version read (0 before anything was saved)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceDeskSlaState": {
+        "type": "object",
+        "description": "The target due soonest.",
+        "required": [
+          "metric",
+          "dueAt",
+          "remaining",
+          "breached"
+        ],
+        "properties": {
+          "breached": {
+            "type": "boolean"
+          },
+          "dueAt": {
+            "type": "number",
+            "format": "double"
+          },
+          "metric": {
+            "type": "string",
+            "description": "`first`, `next` or `resolve`."
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ServiceDeskSlaTarget": {
+        "type": "object",
+        "description": "Targets of one priority, in minutes (`0` = none).",
+        "properties": {
+          "first": {
+            "type": "integer",
+            "format": "int64",
+            "description": "First reply / first response.",
+            "default": 0
+          },
+          "next": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Next reply after the requester writes again.",
+            "default": 0
+          },
+          "resolve": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Resolution.",
+            "default": 0
+          }
+        }
+      },
+      "ServiceDeskTagChange": {
+        "type": "object",
+        "description": "Tags to add and remove.",
+        "properties": {
+          "add": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "remove": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceDeskTicketRow": {
+        "type": "object",
+        "description": "A ticket on a queue or the SLA board.",
+        "required": [
+          "ticket",
+          "tags"
+        ],
+        "properties": {
+          "firstResponseAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "sla": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ServiceDeskSlaState",
+                "description": "The SLA target due soonest (`null` when none applies, e.g. resolved)."
+              }
+            ]
+          },
+          "slaIn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`3h`, `-2d` … until that target."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ticket": {
+            "$ref": "#/components/schemas/TicketView"
+          }
+        }
+      },
+      "ServiceDeskView": {
+        "type": "object",
+        "description": "A saved queue: conditions over tickets.",
+        "required": [
+          "id",
+          "title",
+          "conditions",
+          "sort",
+          "system"
+        ],
+        "properties": {
+          "conditions": {
+            "$ref": "#/components/schemas/ServiceDeskConditions"
+          },
+          "id": {
+            "type": "string",
+            "description": "`sys-…` for the built-in views."
+          },
+          "sort": {
+            "type": "string",
+            "description": "`updated_desc`, `created_asc`, `created_desc` or `sla_asc`."
+          },
+          "system": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceDeskViewInput": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "conditions": {
+            "$ref": "#/components/schemas/ServiceDeskConditions"
+          },
+          "sort": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceDeskViewList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDeskView"
+            }
           }
         }
       },

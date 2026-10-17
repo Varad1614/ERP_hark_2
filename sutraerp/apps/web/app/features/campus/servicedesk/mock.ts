@@ -4,7 +4,9 @@
  */
 import type { DeskApi } from "./api";
 import { PRIORITIES } from "./desk";
-import type { Condition, Queue, QueueRow, Rule, SlaPolicy, View } from "./types";
+import type { Condition, Conditions, Queue, QueueRow, Rule, SlaPolicy, View } from "./types";
+
+const full = (c?: Conditions) => ({ all: c?.all ?? [], any: c?.any ?? [] });
 
 const H = 3_600_000;
 
@@ -51,14 +53,14 @@ export function createMockDeskApi(seed: QueueRow[] = []): DeskApi {
     rules: async () => rules,
     createRule: async (_i, input) => {
       if (input.actions.some((a) => a.field === "status")) throw new Error("status is not a rule action");
-      const r: Rule = { id: `rule-${++seq}`, title: input.title, event: input.event ?? "any", position: rules.length * 10 + 10, active: input.active ?? true, conditions: input.conditions ?? { all: [], any: [] }, actions: input.actions, version: 1, updatedAt: new Date().toISOString() };
+      const r: Rule = { id: `rule-${++seq}`, title: input.title, event: input.event ?? "any", position: rules.length * 10 + 10, active: input.active ?? true, conditions: full(input.conditions), actions: input.actions, version: 1, updatedAt: new Date().toISOString() };
       rules = [...rules, r];
       return r;
     },
     updateRule: async (id, version, input) => {
       const cur = rules.find((r) => r.id === id);
       if (!cur || cur.version !== version) throw new Error("rule changed");
-      const next: Rule = { ...cur, ...input, event: input.event ?? cur.event, active: input.active ?? cur.active, position: input.position ?? cur.position, conditions: input.conditions ?? cur.conditions, version: version + 1 };
+      const next: Rule = { ...cur, ...input, event: input.event ?? cur.event, active: input.active ?? cur.active, position: input.position ?? cur.position, conditions: input.conditions ? full(input.conditions) : cur.conditions, version: version + 1 };
       rules = rules.map((r) => (r.id === id ? next : r));
       return next;
     },
@@ -71,7 +73,7 @@ export function createMockDeskApi(seed: QueueRow[] = []): DeskApi {
     },
     views: async () => [...SYSTEM, ...views],
     createView: async (_i, input) => {
-      const v: View = { id: `view-${++seq}`, title: input.title, conditions: input.conditions ?? { all: [], any: [] }, sort: input.sort ?? "updated_desc", system: false };
+      const v: View = { id: `view-${++seq}`, title: input.title, conditions: full(input.conditions), sort: input.sort ?? "updated_desc", system: false };
       views = [...views, v];
       return v;
     },

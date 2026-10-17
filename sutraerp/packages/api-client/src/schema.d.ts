@@ -6151,6 +6151,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campus/institutions/{id}/service-desk/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The service-desk triggers of an institution, in run order (`campus.read`). */
+        get: operations["campus_servicedesk_rule_list"];
+        put?: never;
+        /** Add a trigger (`campus.facility.manage`). */
+        post: operations["campus_servicedesk_rule_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/service-desk/rules/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Which unsolved tickets a trigger would match now and what it would change (`campus.read`). */
+        post: operations["campus_servicedesk_rule_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/service-desk/sla-board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SLA board: unsolved tickets by the target due soonest, breaches first (`campus.read`). */
+        get: operations["campus_servicedesk_sla_board"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/service-desk/sla-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The service desk's SLA targets (`campus.read`). */
+        get: operations["campus_servicedesk_sla_policy_get"];
+        /**
+         * Save the SLA targets (`campus.facility.manage`). New tickets and re-prioritised ones are
+         *     timed from them; existing due times stay.
+         */
+        put: operations["campus_servicedesk_sla_policy_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/service-desk/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Built-in and saved views (`campus.read`). */
+        get: operations["campus_servicedesk_view_list"];
+        put?: never;
+        /** Save a view (`campus.facility.manage`). */
+        post: operations["campus_servicedesk_view_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/institutions/{id}/service-desk/views/{viewId}/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The tickets of a view, built-in (`sys-…`) or saved (`campus.read`). */
+        get: operations["campus_servicedesk_view_tickets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campus/institutions/{id}/tickets": {
         parameters: {
             query?: never;
@@ -7812,6 +7920,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campus/service-desk/rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a trigger (`campus.facility.manage`, `If-Match`). */
+        put: operations["campus_servicedesk_rule_update"];
+        post?: never;
+        /** Delete a trigger (`campus.facility.manage`). Its past firings stay in the log. */
+        delete: operations["campus_servicedesk_rule_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/service-desk/views/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a saved view (`campus.facility.manage`). */
+        delete: operations["campus_servicedesk_view_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campus/spaces/{id}/availability": {
         parameters: {
             query?: never;
@@ -7860,6 +8003,23 @@ export interface paths {
         put?: never;
         /** Assign or reassign a technician / team (`campus.facility.manage`; `service_ticket.assigned`). */
         post: operations["campus_ticket_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the service-desk triggers did to a ticket (`campus.read`). */
+        get: operations["campus_servicedesk_ticket_automation"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -8005,6 +8165,23 @@ export interface paths {
         put?: never;
         /** Start work on an assigned / on-hold / reopened ticket (`campus.facility.manage`). */
         post: operations["campus_ticket_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campus/tickets/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tag or untag a ticket (`campus.facility.manage`, `If-Match`); triggers run as on any change. */
+        post: operations["campus_servicedesk_ticket_tags"];
         delete?: never;
         options?: never;
         head?: never;
@@ -44614,6 +44791,188 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description One action: `{ field, value }` (+ `to`, `subject`, `body` for notifications). */
+        ServiceDeskAction: {
+            body?: string | null;
+            field: string;
+            subject?: string | null;
+            to?: string | null;
+            value?: unknown;
+        };
+        /** @description One condition: `{ field, op, value }`. */
+        ServiceDeskCondition: {
+            field: string;
+            op: string;
+            value?: unknown;
+        };
+        /** @description All of `all`, and at least one of `any` when it is not empty. */
+        ServiceDeskConditions: {
+            /** @default [] */
+            all: components["schemas"]["ServiceDeskCondition"][];
+            /** @default [] */
+            any: components["schemas"]["ServiceDeskCondition"][];
+        };
+        /** @description Tickets of a view or the SLA board. */
+        ServiceDeskQueue: {
+            /**
+             * Format: int32
+             * @description How many listed tickets are past a target.
+             */
+            breached: number;
+            items: components["schemas"]["ServiceDeskTicketRow"][];
+            title: string;
+        };
+        /** @description A service-desk trigger. */
+        ServiceDeskRule: {
+            actions: components["schemas"]["ServiceDeskAction"][];
+            active: boolean;
+            conditions: components["schemas"]["ServiceDeskConditions"];
+            /** @description `created`, `updated` or `any`. */
+            event: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            position: number;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A trigger to save (create, or replace with `If-Match`). */
+        ServiceDeskRuleInput: {
+            actions: components["schemas"]["ServiceDeskAction"][];
+            active?: boolean | null;
+            conditions?: components["schemas"]["ServiceDeskConditions"];
+            /** @description `created`, `updated` or `any` (default). */
+            event?: string | null;
+            /** Format: int32 */
+            position?: number | null;
+            title: string;
+        };
+        ServiceDeskRuleList: {
+            items: components["schemas"]["ServiceDeskRule"][];
+        };
+        ServiceDeskRulePreview: {
+            hits: components["schemas"]["ServiceDeskRulePreviewHit"][];
+            /**
+             * Format: int32
+             * @description Unsolved tickets the conditions match now.
+             */
+            matched: number;
+        };
+        ServiceDeskRulePreviewHit: {
+            changes: unknown;
+            number: string;
+            /** Format: uuid */
+            ticketId: string;
+            title: string;
+        };
+        /** @description A trigger to try against current tickets without saving it. */
+        ServiceDeskRulePreviewInput: {
+            actions: components["schemas"]["ServiceDeskAction"][];
+            conditions?: components["schemas"]["ServiceDeskConditions"];
+        };
+        /** @description One trigger firing on a ticket. */
+        ServiceDeskRuleRun: {
+            changes: unknown;
+            /** Format: date-time */
+            createdAt: string;
+            event: string;
+            /** Format: uuid */
+            ruleId?: string | null;
+            ruleTitle: string;
+        };
+        ServiceDeskRuleRunList: {
+            items: components["schemas"]["ServiceDeskRuleRun"][];
+        };
+        /** @description The SLA policy (effective: the defaults until the institution saves one). */
+        ServiceDeskSlaPolicy: {
+            /** @description `false` while the defaults apply. */
+            customised: boolean;
+            enabled: boolean;
+            /** @description Minutes per priority (`low`, `medium`, `high`, `critical`). */
+            targets: {
+                [key: string]: components["schemas"]["ServiceDeskSlaTarget"];
+            };
+            /** Format: int64 */
+            version: number;
+        };
+        ServiceDeskSlaPolicyInput: {
+            enabled: boolean;
+            targets: {
+                [key: string]: components["schemas"]["ServiceDeskSlaTarget"];
+            };
+            /**
+             * Format: int64
+             * @description The version read (0 before anything was saved).
+             */
+            version: number;
+        };
+        /** @description The target due soonest. */
+        ServiceDeskSlaState: {
+            breached: boolean;
+            /** Format: double */
+            dueAt: number;
+            /** @description `first`, `next` or `resolve`. */
+            metric: string;
+            /** Format: double */
+            remaining: number;
+        };
+        /** @description Targets of one priority, in minutes (`0` = none). */
+        ServiceDeskSlaTarget: {
+            /**
+             * Format: int64
+             * @description First reply / first response.
+             * @default 0
+             */
+            first: number;
+            /**
+             * Format: int64
+             * @description Next reply after the requester writes again.
+             * @default 0
+             */
+            next: number;
+            /**
+             * Format: int64
+             * @description Resolution.
+             * @default 0
+             */
+            resolve: number;
+        };
+        /** @description Tags to add and remove. */
+        ServiceDeskTagChange: {
+            add?: string[];
+            remove?: string[];
+        };
+        /** @description A ticket on a queue or the SLA board. */
+        ServiceDeskTicketRow: {
+            /** Format: date-time */
+            firstResponseAt?: string | null;
+            sla?: null | components["schemas"]["ServiceDeskSlaState"];
+            /** @description `3h`, `-2d` … until that target. */
+            slaIn?: string | null;
+            tags: string[];
+            ticket: components["schemas"]["TicketView"];
+        };
+        /** @description A saved queue: conditions over tickets. */
+        ServiceDeskView: {
+            conditions: components["schemas"]["ServiceDeskConditions"];
+            /** @description `sys-…` for the built-in views. */
+            id: string;
+            /** @description `updated_desc`, `created_asc`, `created_desc` or `sla_asc`. */
+            sort: string;
+            system: boolean;
+            title: string;
+        };
+        ServiceDeskViewInput: {
+            conditions?: components["schemas"]["ServiceDeskConditions"];
+            sort?: string | null;
+            title: string;
+        };
+        ServiceDeskViewList: {
+            items: components["schemas"]["ServiceDeskView"][];
+        };
         /**
          * Format: uuid
          * @description Service desk ticket: service request or complaint from any campus service (L2-G01 / G03 / G04 / G05).
@@ -64277,6 +64636,291 @@ export interface operations {
             };
         };
     };
+    campus_servicedesk_rule_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskRuleList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_rule_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceDeskRuleInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskRule"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_rule_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceDeskRulePreviewInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskRulePreview"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_sla_board: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskQueue"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_sla_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskSlaPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_sla_policy_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceDeskSlaPolicyInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskSlaPolicy"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_view_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskViewList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_view_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceDeskViewInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_view_tickets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                viewId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskQueue"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     campus_ticket_list: {
         parameters: {
             query?: {
@@ -67812,6 +68456,97 @@ export interface operations {
             };
         };
     };
+    campus_servicedesk_rule_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the rule */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceDeskRuleInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskRule"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_rule_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_view_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     campus_space_calendar: {
         parameters: {
             query?: {
@@ -67899,6 +68634,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_ticket_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskRuleRunList"];
                 };
             };
             "4XX": {
@@ -68195,6 +68959,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TicketView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    campus_servicedesk_ticket_tags: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the ticket */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceDeskTagChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDeskTicketRow"];
                 };
             };
             "4XX": {
