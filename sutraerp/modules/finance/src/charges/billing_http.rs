@@ -50,6 +50,14 @@ use sutra_web::{ApiResult, Authenticated, Problem};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+/// An enrolment row: (id or student, student or plan, amount, start, end, on hold).
+type EnrolRow = (Uuid, Uuid, Option<Decimal>, Option<NaiveDate>, Option<NaiveDate>, bool);
+/// An enabled schedule: (tenant, institution, frequency, run day, due days, last period key).
+type DueSchedule = (Uuid, Uuid, String, i32, i32, Option<String>);
+
+/// A stored schedule: (frequency, enabled, run day, due days, last period key, last run).
+type ScheduleRow = (String, bool, i32, i32, Option<String>, Option<Uuid>);
+
 /// The schedule job's actor.
 pub const SCHEDULE_ACTOR: &str = "system:billing-schedule";
 
@@ -628,7 +636,7 @@ async fn enrolment_views(
     plan: Uuid,
     only: Option<Uuid>,
 ) -> Result<Vec<BillingEnrolmentView>, KernelError> {
-    let rows: Vec<(Uuid, Uuid, Option<Decimal>, Option<NaiveDate>, Option<NaiveDate>, bool)> = sqlx::query_as(
+    let rows: Vec<EnrolRow> = sqlx::query_as(
         "SELECT id, student_id, amount, start_date, end_date, on_hold FROM finance.billing_plan_enrolment \
          WHERE tenant_id = $1 AND plan_id = $2 AND ($3::uuid IS NULL OR student_id = $3) ORDER BY created_at",
     )
@@ -863,7 +871,7 @@ async fn roster(
         })
         .collect();
     let ids: Vec<Uuid> = plans.iter().map(|p| p.id).collect();
-    let rows: Vec<(Uuid, Uuid, Option<Decimal>, Option<NaiveDate>, Option<NaiveDate>, bool)> = sqlx::query_as(
+    let rows: Vec<EnrolRow> = sqlx::query_as(
         "SELECT student_id, plan_id, amount, start_date, end_date, on_hold FROM finance.billing_plan_enrolment \
          WHERE tenant_id = $1 AND plan_id = ANY($2) ORDER BY student_id, plan_id",
     )
@@ -1449,7 +1457,7 @@ async fn schedule_views(
     let today = business_today(st, scope, inst).await?;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let fy = fy_start_month(&mut conn, t, inst, today).await?;
-    let rows: Vec<(String, bool, i32, i32, Option<String>, Option<Uuid>)> = sqlx::query_as(
+    let rows: Vec<ScheduleRow> = sqlx::query_as(
         "SELECT frequency, enabled, run_day, due_days, last_period_key, last_run_id FROM finance.billing_schedule \
          WHERE tenant_id = $1 AND institution_id = $2",
     )
@@ -1572,7 +1580,7 @@ pub struct BillingScheduleJob {
 }
 
 impl BillingScheduleJob {
-    async fn run_due(&self, rows: Vec<(Uuid, Uuid, String, i32, i32, Option<String>)>) -> u64 {
+    async fn run_due(&self, rows: Vec<DueSchedule>) -> u64 {
         let mut ran = 0;
         for (tenant_id, inst_id, freq, run_day, due_days, last) in rows {
             let Some(f) = Frequency::parse(&freq) else { continue };
@@ -1625,7 +1633,7 @@ impl sutra_persistence::jobs::SweepJob for BillingScheduleJob {
     }
 
     async fn run(&self, conn: &mut PgConnection) -> Result<u64, sqlx::Error> {
-        let rows: Vec<(Uuid, Uuid, String, i32, i32, Option<String>)> = sqlx::query_as(
+        let rows: Vec<DueSchedule> = sqlx::query_as(
             "SELECT tenant_id, institution_id, frequency, run_day, due_days, last_period_key \
              FROM finance.billing_schedule WHERE enabled ORDER BY tenant_id, institution_id, frequency",
         )

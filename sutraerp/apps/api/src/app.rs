@@ -235,6 +235,15 @@ impl AppContext {
         // ---- 9C ---- workflow adapter + decision sync, search projector / rebuild (see wire_9c)
         let (workflow, search, consumers) = wire_9c(cfg, &pool, consumers)?;
         // ---- end 9C ----
+        // ERP_EXTENSIONS 1E: scheduled billing runs ride the sweeper scheduler (hourly check;
+        // each enabled schedule runs once per period from its run day).
+        let scheduler = scheduler.map(|s| {
+            s.with(Arc::new(sutra_finance::BillingScheduleJob {
+                state: finance_deps_with(pool.clone(), workflow.clone(), cfg.hardening.workflow.approvals)
+                    .into_state(),
+                interval: Duration::from_secs(3600),
+            }))
+        });
         // SEC-P1-AUTH-001: privileged-role MFA also drives dev-mode challenges / enrolment.
         let mfa = PrivilegedRoleMfaPolicy {
             enforce: cfg.dev_mfa_enforced || cfg.privileged_mfa,

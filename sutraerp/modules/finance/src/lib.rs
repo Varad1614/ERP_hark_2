@@ -57,6 +57,7 @@ use sutra_kernel::module::{ModuleDescriptor, ModuleStatus};
 use utoipa_axum::router::OpenApiRouter;
 
 pub use campus_charges::PgCampusCharges;
+pub use charges::billing_http::BillingScheduleJob; // ERP_EXTENSIONS 1E
 pub use clearance::PgFinanceClearance;
 pub use directory::{PgChargeDirectory, PgPostingPort, PgReceivableReader};
 pub use exam_fees::PgExamFees;
