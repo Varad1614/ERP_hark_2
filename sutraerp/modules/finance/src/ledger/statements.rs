@@ -656,6 +656,7 @@ fn account_tree(
         by_parent.entry(p).or_default().push(*id);
     }
     let mut rows = Vec::new();
+    #[allow(clippy::too_many_arguments)]
     fn walk(
         books: &Books,
         by_parent: &HashMap<Option<Uuid>, Vec<Uuid>>,
@@ -867,7 +868,7 @@ pub fn income_expenditure(
             .collect()
     };
     let mut rows = Vec::new();
-    let mut section =
+    let section =
         |key: &str, label: &str, groups: &[StatementGroup], rows: &mut Vec<StatementRow>| {
             let (tree, total) = account_tree(books, groups, &vals, n, false);
             rows.push(heading(key, label, 0, n));
@@ -1020,7 +1021,7 @@ pub fn balance_sheet(
     };
     use StatementGroup as G;
     let mut rows = Vec::new();
-    let mut group =
+    let group =
         |key: &str, label: &str, groups: &[G], depth: u32, rows: &mut Vec<StatementRow>| {
             let (tree, total) = account_tree(books, groups, &values_for, n, false);
             if tree.is_empty() && total.iter().all(Decimal::is_zero) {

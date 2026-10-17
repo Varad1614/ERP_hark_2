@@ -190,7 +190,7 @@ async fn set_group(
         return Err(invalid(
             "statementGroup",
             "type_mismatch",
-            &format!("{} is not a group for a {account_type} account", g.as_str()),
+            format!("{} is not a group for a {account_type} account", g.as_str()),
         ));
     }
     sqlx::query(
