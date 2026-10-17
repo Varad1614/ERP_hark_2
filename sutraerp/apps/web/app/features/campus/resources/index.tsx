@@ -22,6 +22,7 @@ import type { Institution } from "../../institution/types";
 import { useWorkforceApi, wkeys } from "../../people/workforce/hooks";
 import { fkeys, useFacilitiesApi } from "../facilities/hooks";
 import { rkeys, useResourcesApi } from "./hooks";
+import { StockDemandTile } from "./demand/StockDemandTile";
 import type { Asset, GoodsReceipt, PurchaseOrder, Requisition, SourcingEvent, Supplier, VendorInvoice, VendorPayment } from "./types";
 import { formatInr } from "../../finance";
 
@@ -689,6 +690,7 @@ function Inventory({ institution }: { institution: Institution }) {
 
   return (
     <>
+      <StockDemandTile institutionId={inst} />
       <KpiTile icon={Boxes} tone="orange" label="Active items" value={count(items.data, (i) => i.status === "active")} sub="Item master" data-kpi="inv-items" />
       <KpiTile icon={ShieldAlert} tone="amber" label="At reorder level" value={count(stock.data, (l) => l.atReorderLevel)} sub="Stock lines to replenish" data-kpi="inv-reorder" />
       <KpiTile icon={ClipboardList} tone="violet" label="Issues to hand over" value={count(issues.data, (s) => s.status === "requested" || s.status === "approved")} sub="Requested or approved" data-kpi="inv-issues" />
