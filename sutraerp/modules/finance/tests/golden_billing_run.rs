@@ -64,7 +64,7 @@ struct Inv {
 }
 
 fn cents(d: Decimal) -> i64 {
-    (d * Decimal::from(100)).trunc().try_into().unwrap()
+    (d * Decimal::from(100)).trunc().try_into().expect("whole paise fit in i64")
 }
 
 #[test]
