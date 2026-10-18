@@ -19,7 +19,8 @@
     "e2e:campus": "node e2e/campus.e2e.mjs",
     "e2e:reskin2": "node e2e/reskin2-shots.e2e.mjs",
     "e2e:imports": "node e2e/imports.e2e.mjs",
-    "e2e:uat-dryrun": "node e2e/uat-dryrun.e2e.mjs"
+    "e2e:uat-dryrun": "node e2e/uat-dryrun.e2e.mjs",
+    "e2e:extensions": "node e2e/extensions.e2e.mjs"
   },
   "dependencies": {
     "@react-router/node": "^8.4.0",

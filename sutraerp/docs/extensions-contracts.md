@@ -43,3 +43,15 @@ with work arriving from `erp_merge`.
 ## Order
 P0 → 1A, 1C, 1D in parallel → 1B (needs 1A) → 1E → Phase 2 (independent) → Phase 3 (3A needs
 exam sessions) → integration click-through on `ERP_EXTENSIONS`.
+
+## Integration click-through (P4)
+`apps/web/e2e/extensions.e2e.mjs` — `pnpm --filter @sutra/web e2e:extensions` (fresh migrated
+DB in `DATABASE_URL`, API binary from `cargo build -p sutra-api`; same harness as the other
+suites). Seeds an active institution, two students, the finance foundation rows, Meera's staff
+record and an open requisition, then as administrator opens every extension tile — 3E counter
+printing (day close, printer setup, receipt layout, Print / Duplicate copy with `window.print`
+stubbed), 1A/1B treasury file import + reconcile, 1C statements, 1E billing runs, 1D late fees +
+reminders, 2A funnel, 2B service-desk rules, 2C stock demand, 2D fleet, 3A roster, 3B scorecards,
+3C contracts, 3D expense claims — and as faculty My HR → Payslips → My expenses. Page errors,
+console errors and `/api` ≥ 500 fail; 4xx are listed. Screenshots `NN-area-screen.png` go to
+`$SHOTS_DIR` (else `$E2E_SHOTS`, else `apps/web/e2e-shots/extensions`).
