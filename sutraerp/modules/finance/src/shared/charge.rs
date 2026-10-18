@@ -237,6 +237,7 @@ pub struct NewCharge {
 
 /// Inserts a `draft` charge with its lines (number `CHG-…`, total = Σ lines, each line's income
 /// account snapshotted from its fee head, which must be `active` in the same institution).
+/// With a GST profile the lines are re-priced first (`crate::gst::repo::plan_for_insert`).
 /// The caller emits its own event / audit.
 pub async fn insert_charge(
     conn: &mut PgConnection,
@@ -247,8 +248,12 @@ pub async fn insert_charge(
             "a charge needs at least one line".into(),
         ));
     }
+    // ERP_EXTENSIONS 5D: under an enabled GST profile, lines on taxed fee heads are re-priced
+    // (taxable value + one line per tax row on the system GST heads) and the snapshot recorded.
+    let gst = crate::gst::repo::plan_for_insert(conn, c).await?;
+    let lines = gst.as_ref().map_or(&c.lines, |g| &g.lines);
     let mut total = Decimal::ZERO;
-    for (i, l) in c.lines.iter().enumerate() {
+    for (i, l) in lines.iter().enumerate() {
         crate::shared::money::require_positive(&format!("lines[{i}].amount"), l.amount)?;
         total += l.amount;
     }
@@ -283,7 +288,7 @@ pub async fn insert_charge(
     .await
     .map_err(map_db_error)?;
     let charge = charge_from_row(&row).map_err(map_db_error)?;
-    for (i, l) in c.lines.iter().enumerate() {
+    for (i, l) in lines.iter().enumerate() {
         let n = sqlx::query(
             "INSERT INTO finance.charge_line (tenant_id, charge_id, line_no, fee_head_id, \
              description, amount, income_account_id) \
@@ -307,6 +312,9 @@ pub async fn insert_charge(
                 l.fee_head_id
             )));
         }
+    }
+    if let Some(g) = &gst {
+        crate::gst::repo::record_pending(conn, &charge, g).await?;
     }
     Ok(charge)
 }

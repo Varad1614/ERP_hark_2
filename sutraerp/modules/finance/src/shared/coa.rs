@@ -222,6 +222,52 @@ async fn fetch(
     row.as_ref().map(from_row).transpose().map_err(map_db_error)
 }
 
+/// `(system_key, code, name)` of the GST output-tax liability accounts (ERP_EXTENSIONS 5D),
+/// seeded on first use by [`ensure_gst_accounts`] **outside** the Batch 5 default chart (the same
+/// way as the payroll accounts), in [`crate::gst::rules::Component`] order.
+pub const GST_ACCOUNTS: [(&str, &str, &str); 3] = [
+    ("output_cgst", "2510", "Output CGST payable"),
+    ("output_sgst", "2520", "Output SGST / UTGST payable"),
+    ("output_igst", "2530", "Output IGST payable"),
+];
+
+/// Seeds the GST output-tax accounts of an institution (idempotent) and returns their ids in
+/// [`GST_ACCOUNTS`] order. An account already holding the role (a chart with its own numbering)
+/// is kept.
+pub async fn ensure_gst_accounts(
+    conn: &mut PgConnection,
+    tenant: TenantId,
+    institution: InstitutionId,
+) -> Result<[LedgerAccountId; 3], KernelError> {
+    ensure_default_chart(conn, tenant, institution).await?;
+    let mut ids = [LedgerAccountId(Uuid::nil()); 3];
+    for (i, (key, code, name)) in GST_ACCOUNTS.iter().enumerate() {
+        let ty = LedgerAccountType::Liability;
+        sqlx::query(
+            "INSERT INTO finance.ledger_account (tenant_id, institution_id, code, name, \
+             account_type, normal_balance, system_key) VALUES ($1, $2, $3, $4, $5, $6, $7) \
+             ON CONFLICT DO NOTHING",
+        )
+        .bind(tenant.as_uuid())
+        .bind(institution.as_uuid())
+        .bind(*code)
+        .bind(*name)
+        .bind(ty.as_str())
+        .bind(ty.normal_balance().as_str())
+        .bind(*key)
+        .execute(&mut *conn)
+        .await
+        .map_err(map_db_error)?;
+        let row = fetch(conn, tenant, institution, None, Some(key))
+            .await?
+            .ok_or(KernelError::Conflict(format!(
+                "ledger account code {code} is taken; free it or give an account the `{key}` role"
+            )))?;
+        ids[i] = row.id;
+    }
+    Ok(ids)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

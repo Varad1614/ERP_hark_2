@@ -421,7 +421,37 @@ pub async fn posting_request(
             PostingLine::debit(AccountRef::System(SystemAccount::BadDebtExpense), a.amount),
             receivable(false),
         ],
-        AdjustmentKind::CreditNote | AdjustmentKind::Concession | AdjustmentKind::Waiver => vec![
+        // ERP_EXTENSIONS 5D: a credit note on a charge with an issued GST tax invoice reverses
+        // the output tax in proportion (Dr output CGST / SGST / IGST); the rest is the concession.
+        AdjustmentKind::CreditNote => {
+            let reversal =
+                crate::gst::repo::credit_reversal_for(conn, charge, a.id.as_uuid(), a.amount)
+                    .await?;
+            let tax: Decimal = reversal.iter().map(|r| r.amount).sum();
+            let mut lines = Vec::new();
+            if a.amount > tax {
+                lines.push(PostingLine::debit(
+                    AccountRef::System(SystemAccount::ConcessionExpense),
+                    a.amount - tax,
+                ));
+            }
+            for r in &reversal {
+                let account = crate::gst::repo::output_account(
+                    conn,
+                    charge.tenant_id,
+                    charge.institution_id,
+                    r.component,
+                )
+                .await?;
+                lines.push(
+                    PostingLine::debit(AccountRef::Id(account), r.amount)
+                        .memo(format!("{} reversed", r.label())),
+                );
+            }
+            lines.push(receivable(false));
+            lines
+        }
+        AdjustmentKind::Concession | AdjustmentKind::Waiver => vec![
             PostingLine::debit(
                 AccountRef::System(SystemAccount::ConcessionExpense),
                 a.amount,
@@ -471,6 +501,22 @@ pub async fn post_locked(
     let req = posting_request(conn, a, &c, posting_date).await?;
     let receipt = posting::post(conn, a.tenant_id, &req, actor).await?;
     let je = receipt.journal_entry_id.as_uuid();
+    if a.kind == AdjustmentKind::CreditNote {
+        // ERP_EXTENSIONS 5D: the GST credit note (own FY series, original invoice referenced).
+        let reversal =
+            crate::gst::repo::credit_reversal_for(conn, &c, a.id.as_uuid(), a.amount).await?;
+        crate::gst::repo::issue_credit_note(
+            conn,
+            &c,
+            a.id.as_uuid(),
+            &a.adjustment_number,
+            a.amount,
+            &reversal,
+            posting_date,
+            actor,
+        )
+        .await?;
+    }
     let decider = decided_by.or(actor.id.as_deref());
     transition(
         conn,
@@ -718,6 +764,15 @@ async fn unpost(
     })?;
     let c = lock_charge(conn, a.tenant_id, a.charge_id).await?;
     apply_adjustment(conn, &c, -delta(a.kind, a.amount)).await?;
+    // ERP_EXTENSIONS 5D: the mirror entry reverses the tax; the GST credit note is cancelled.
+    crate::gst::repo::cancel_credit_note(
+        conn,
+        a.tenant_id,
+        a.institution_id,
+        a.id.as_uuid(),
+        actor,
+    )
+    .await?;
     let receipt = posting::reverse(
         conn,
         a.tenant_id,

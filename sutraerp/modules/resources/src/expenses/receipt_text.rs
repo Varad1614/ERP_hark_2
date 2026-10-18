@@ -51,24 +51,9 @@ fn pats() -> &'static Patterns {
     })
 }
 
-/// GSTIN checksum (base-36, weights 1/2 alternating): the 15th character.
-pub fn gstin_valid(g: &str) -> bool {
-    const CHARS: &str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let g = g.as_bytes();
-    if g.len() != 15 {
-        return false;
-    }
-    let mut sum = 0u32;
-    for (i, c) in g[..14].iter().enumerate() {
-        let Some(v) = CHARS.find(*c as char) else {
-            return false;
-        };
-        let p = v as u32 * if i % 2 == 0 { 1 } else { 2 };
-        sum += p / 36 + p % 36;
-    }
-    let check = (36 - sum % 36) % 36;
-    CHARS.as_bytes()[check as usize] == g[14]
-}
+/// GSTIN checksum (base-36, weights 1/2 alternating): the 15th character. Lives in the kernel
+/// since ERP_EXTENSIONS 5D (Finance validates the institution's GSTIN with the same rule).
+pub use sutra_kernel::india::gstin_checksum_valid as gstin_valid;
 
 /// Money amounts on a line (percentages skipped), left to right.
 fn amounts(line: &str) -> Vec<f64> {

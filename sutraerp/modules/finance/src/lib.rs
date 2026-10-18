@@ -41,6 +41,7 @@ pub mod adjustments; // 5A
 pub mod aid; // 5A
 pub mod charges; // 5A
 pub mod config; // 5A
+pub mod gst; // ERP_EXTENSIONS 5D (GST tax invoices, bills of supply, GST credit notes)
 pub mod ledger; // 5C
 pub mod payments; // 5B
 pub mod periods; // 5C
@@ -137,7 +138,8 @@ pub fn router_with_state(st: FinanceState) -> OpenApiRouter {
         .merge(receivables::router(st.clone())) // 5B
         .merge(ledger::router(st.clone())) // 5C
         .merge(periods::router(st.clone())) // 5C
-        .merge(treasury::router(st)) // 5C
+        .merge(treasury::router(st.clone())) // 5C
+        .merge(gst::router(st)) // ERP_EXTENSIONS 5D
 }
 
 #[cfg(test)]

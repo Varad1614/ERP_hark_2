@@ -538,6 +538,8 @@ pub async fn publish_locked(
         actor,
     )
     .await?;
+    // ERP_EXTENSIONS 5D: the charge's GST document (if any) is numbered and dated now.
+    let gst_number = crate::gst::repo::issue_for_charge(conn, c, posting_date, actor).await?;
     let published = change_charge_status(
         conn,
         c,
@@ -579,7 +581,7 @@ pub async fn publish_locked(
         "finance.charge.publish",
         "charge",
         c.id.to_string(),
-        json!({"number": c.charge_number, "journalEntryId": receipt.journal_entry_id, "entryNumber": receipt.entry_number}),
+        json!({"number": c.charge_number, "journalEntryId": receipt.journal_entry_id, "entryNumber": receipt.entry_number, "gstDocument": gst_number}),
         actor,
     )
     .await?;

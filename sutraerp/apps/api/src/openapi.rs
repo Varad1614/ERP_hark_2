@@ -61,6 +61,7 @@ use utoipa::OpenApi;
         (name = "finance-ledger", description = "F Finance: chart of accounts, journals, manual journals, accounting batches, reversal, reconciliation, trial balance and accounting close"),
         (name = "finance-periods", description = "F Finance: financial years and periods (open, lock, close, reopen, archive)"),
         (name = "finance-treasury", description = "F Finance: bank accounts, bank execution, statements and reconciliation, cash position, fund transfers, failed bank transactions"),
+        (name = "finance-gst", description = "F Finance: GST profile, fee-head tax setup (SAC / rate / exempt), tax invoices, bills of supply, GST credit notes and the GSTR-1 friendly summary (ERP_EXTENSIONS 5D)"),
         (name = "people-directory", description = "E People & workforce: staff directory, HR staff list and own staff record (foundation)"),
         (name = "people-workforce", description = "E People & workforce: staff records, engagements (activation, modification, transfer, suspension, closure, rejoining), positions and assignments, reporting lines, faculty establishment and eligibility, employee profile"),
         (name = "people-hr", description = "E People & workforce: recruitment, onboarding, probation, separation and certificate requests"),

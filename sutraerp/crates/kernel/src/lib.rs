@@ -17,6 +17,7 @@
 //! * [`cache`] – advisory, scope-namespaced `Cache` port (ADR-L5-0037)
 //! * [`audit`] – audit entry + sink port
 //! * [`idempotency`] – idempotency store port (ADR-L5-0034 §3.6)
+//! * [`india`] – Indian statutory identifier formats (GSTIN check character, GST state codes)
 //! * [`mail`] – outbound e-mail port (notification e-mail channel)
 //! * [`health`] – readiness probe port (ADR-L5-0044)
 //! * [`module`] – module descriptors for the composition root
@@ -38,6 +39,7 @@ pub mod events;
 pub mod health;
 pub mod id;
 pub mod idempotency;
+pub mod india; // ERP_EXTENSIONS 5D: GSTIN + GST state codes (moved from resources 3D)
 pub mod mail;
 pub mod messaging;
 pub mod module;

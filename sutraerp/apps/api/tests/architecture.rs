@@ -318,6 +318,8 @@ async fn finance_operations_follow_the_slice_prefix_and_tag_rules() {
                 "finance_cash_",
             ],
         ),
+        // ERP_EXTENSIONS 5D
+        ("finance-gst", &["finance_gst_"]),
     ];
     let spec: serde_json::Value =
         serde_json::from_str(&sutra_api::openapi::spec_json().unwrap()).unwrap();
