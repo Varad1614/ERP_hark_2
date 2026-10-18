@@ -1,0 +1,25 @@
+/*
+ * P4 (ERP_EXTENSIONS click-through): the extension tiles (billing runs, admissions funnel, service
+ * desk automation, stock demand, fleet maintenance, duty roster, hiring scorecards, contracts,
+ * expenses) lay out button rows and inline forms with a handful of utility class names. The app
+ * has no utility-CSS framework, so these rules were missing and every row stacked vertically.
+ * Keep this list to the names those tiles use.
+ */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.items-end { align-items: flex-end; }
+.gap-1 { gap: 6px; }
+.gap-2 { gap: 10px; }
+.flex.gap-1, .flex.gap-2 { flex-wrap: wrap; }
+.flex > .sb-kv, .flex > dl { margin: 0; }
+.text-sm { font-size: 13px; }
+.underline { text-decoration: underline; text-underline-offset: 2px; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+/* Admissions funnel bars (AdmissionFunnelTile). */
+.sb-funnel-label { flex: none; width: 9rem; }
+.sb-funnel-bar { flex: none; display: inline-block; height: 12px; border-radius: 4px; background: var(--ac); }

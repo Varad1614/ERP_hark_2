@@ -8,7 +8,7 @@ describe("contract helpers", () => {
     expect(clockText(c)).toBe("Renews in 20 days");
     expect(phaseKind(c)).toBe("attention");
     const n = sampleContract(2, { renewal: { phase: "soon", date: "2026-11-06", daysLeft: 20, noticeDate: "2026-11-01", noticeDaysLeft: 15, decision: null, handled: false } });
-    expect(clockText(n)).toBe("Ends in 20 days · notice by 2026-11-01");
+    expect(clockText(n)).toBe("Ends in 20 days · notice by 1 Nov 2026");
     expect(clockText(sampleContract(3, { status: "draft", renewal: { ...n.renewal, phase: "none" } }))).toBe("Draft");
     expect(dueText({ done: false, daysLeft: -1, repeat: null, completed: 0 })).toBe("Overdue 1 day");
     expect(dueText({ done: true, daysLeft: 0, repeat: { every: "monthly", anchor: "2026-01-31", until: null, count: 3, contractEnd: false }, completed: 3 })).toBe("Finished (3 done)");

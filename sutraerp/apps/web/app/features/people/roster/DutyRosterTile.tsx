@@ -4,7 +4,7 @@
  * open one, fill the week, publish it; coverage gaps against requirements; settings.
  */
 import { CalendarClock } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, EmptyState, FormGrid, FormSelect, KeyValue, TextField } from "@sutra/ui";
+import { Badge, BentoTile, Button, DataTable, EmptyState, formatDate, formatDateShort, FormGrid, FormSelect, KeyValue, TextField } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { USES_API } from "../../../lib/api";
@@ -38,7 +38,8 @@ export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { in
   const [warnings, setWarnings] = useState<string[]>([]);
   const [picking, setPicking] = useState<{ id: string; items: Candidate[] } | null>(null);
   const [draft, setDraft] = useState<RosterSettings | null>(null);
-  const key = (...p: string[]) => ["people", "roster", institutionId, ...p];
+  // Prefix `institution`: `useCommand` refreshes every `institution` query after a command.
+  const key = (...p: string[]) => ["institution", "roster", institutionId, ...p];
   const board = useQuery({ queryKey: key("board", from), queryFn: () => api.board(institutionId, from, to), enabled: tab !== "settings" });
   const settings = useQuery({ queryKey: key("settings"), queryFn: () => api.settings(institutionId), enabled: tab === "settings" });
   const shown = draft ?? settings.data ?? null;
@@ -59,7 +60,7 @@ export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { in
       {tab !== "settings" && (
         <div className="flex gap-2 items-center">
           <Button size="sm" variant="ghost" data-action="prev-week" onClick={() => setFrom(addDaysIso(from, -7))}>Previous week</Button>
-          <KeyValue label="Week" value={`${from} to ${to}`} />
+          <KeyValue label="Week" value={`${formatDateShort(from)} – ${formatDate(to)}`} />
           <Button size="sm" variant="ghost" data-action="next-week" onClick={() => setFrom(addDaysIso(from, 7))}>Next week</Button>
         </div>
       )}
@@ -70,7 +71,7 @@ export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { in
           <DataTable caption="Shifts" rows={board.data.shifts} rowKey={(s) => s.id}
             empty={<EmptyState icon={CalendarClock} title="No shifts this week">Plan one below, or copy last week's pattern.</EmptyState>}
             columns={[
-              { key: "d", header: "Day", render: (s) => `${WEEKDAYS[new Date(`${s.date}T00:00:00Z`).getUTCDay()]} ${s.date.slice(5)}` },
+              { key: "d", header: "Day", render: (s) => `${WEEKDAYS[new Date(`${s.date}T00:00:00Z`).getUTCDay()]} ${formatDateShort(s.date)}` },
               { key: "t", header: "Time", render: (s) => timeRange(s) },
               { key: "r", header: "Duty", render: (s) => (s.location ? `${s.role} · ${s.location}` : s.role) },
               { key: "w", header: "Who", render: (s) => s.staffName ?? <Badge kind="attention">Open</Badge> },
@@ -104,7 +105,7 @@ export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { in
           {board.data.gaps.length > 0 && (
             <DataTable caption="Coverage gaps" rows={board.data.gaps} rowKey={(g) => `${g.date}:${g.requirementId}`}
               columns={[
-                { key: "d", header: "Date", render: (g) => g.date },
+                { key: "d", header: "Date", render: (g) => formatDate(g.date) },
                 { key: "r", header: "Duty", render: (g) => g.role },
                 { key: "m", header: "Short by", render: (g) => `${g.missing} (has ${g.scheduled})` },
               ]} />

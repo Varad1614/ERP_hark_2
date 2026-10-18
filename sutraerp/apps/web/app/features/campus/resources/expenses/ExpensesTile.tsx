@@ -5,7 +5,7 @@
  * payment (date + UTR); Settings holds the receipt threshold, the age limit and the categories.
  */
 import { Receipt } from "lucide-react";
-import { Badge, BarChart, BentoTile, Button, DataTable, Drawer, EmptyState, FormGrid, KeyValue, TextArea, TextField } from "@sutra/ui";
+import { Badge, BarChart, BentoTile, Button, DataTable, Drawer, EmptyState, formatDate, FormGrid, KeyValue, TextArea, TextField } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { USES_API } from "../../../../lib/api";
@@ -75,7 +75,7 @@ export function ClaimLinesTable({ api, claim, maxAgeDays }: { api: ExpensesApi; 
       empty={<EmptyState icon={Receipt} title="No lines" compact>This claim has no expenses.</EmptyState>}
       columns={[
         { key: "r", header: "Receipt", render: (l) => <ReceiptThumb api={api} receiptId={l.receiptId} /> },
-        { key: "d", header: "Date", render: (l) => l.spentOn },
+        { key: "d", header: "Date", render: (l) => formatDate(l.spentOn) },
         { key: "m", header: "Merchant", render: (l) => l.merchant },
         { key: "c", header: "Category", render: (l) => l.categoryName ?? "—" },
         { key: "a", header: "Amount", render: (l) => <OcrCompare line={l} /> },

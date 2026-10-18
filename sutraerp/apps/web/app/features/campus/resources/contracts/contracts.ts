@@ -1,4 +1,5 @@
 /** ERP_EXTENSIONS 3C screen helpers: labels and the words a contract's clock is shown in. */
+import { formatDate } from "@sutra/ui";
 import type { Contract, ContractKind, DecisionKind, Obligation, Phase } from "./types";
 
 export const KINDS: { value: ContractKind; label: string }[] = [
@@ -63,7 +64,7 @@ export function clockText(c: Pick<Contract, "autoRenew" | "renewal" | "status">)
   const verb = c.autoRenew && r.decision?.kind !== "notice-given" && r.decision?.kind !== "not-renewing" ? "Renews" : "Ends";
   if (r.phase === "expired") return `Ended ${relativeDays(r.daysLeft ?? 0)}`;
   let s = `${verb} ${relativeDays(r.daysLeft ?? 0)}`;
-  if (r.noticeDate && r.noticeDaysLeft !== null && r.noticeDaysLeft >= 0 && !r.handled) s += ` · notice by ${r.noticeDate}`;
+  if (r.noticeDate && r.noticeDaysLeft !== null && r.noticeDaysLeft >= 0 && !r.handled) s += ` · notice by ${formatDate(r.noticeDate)}`;
   if (r.handled && r.decision) s += ` · ${decisionLabel(r.decision.kind).toLowerCase()}`;
   return s;
 }

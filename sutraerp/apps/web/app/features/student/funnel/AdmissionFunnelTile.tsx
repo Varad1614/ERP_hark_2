@@ -158,8 +158,8 @@ export function AdmissionFunnelTile({ institutionId, programmes = [], api = defa
               <div className="flex flex-col gap-1" data-funnel-bars>
                 {funnel.data.report.rows.map((r, i) => (
                   <div key={r.stage} className="flex items-center gap-2 text-sm" data-funnel-row={r.stage}>
-                    <span className="w-32">{r.label}{r.gone ? " (removed)" : ""}</span>
-                    <span className="h-3 rounded bg-[var(--accent,#4f46e5)]" style={{ width: `${barWidths(funnel.data!.report.rows)[i]}%`, minWidth: 2 }} aria-hidden />
+                    <span className="sb-funnel-label">{r.label}{r.gone ? " (removed)" : ""}</span>
+                    <span className="sb-funnel-bar" style={{ width: `calc(${barWidths(funnel.data!.report.rows)[i]}% * 0.4)`, minWidth: 2 }} aria-hidden />
                     <span>{`${r.entered} in · ${pct(r.advanceRate)} moved on · ${r.lostHere} dropped · ${r.open} waiting`}</span>
                   </div>
                 ))}

@@ -4,7 +4,7 @@
  * Every field the reader fills is a suggestion the claimant confirms.
  */
 import { Camera, Receipt } from "lucide-react";
-import { Badge, BentoTile, Button, Checkbox, DataTable, EmptyState, FormGrid, FormSelect, KeyValue, TextField } from "@sutra/ui";
+import { Badge, BentoTile, Button, Checkbox, DataTable, EmptyState, formatDate, FormGrid, FormSelect, KeyValue, TextField } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useCommand } from "../../../institution/hooks";
@@ -142,7 +142,7 @@ export function MyExpensesTile({ api = defaultExpensesApi() }: { api?: ExpensesA
             columns={[
               { key: "s", header: "", render: (e) => <Checkbox label={<span className="sr-only">Pick {e.merchant}</span>} checked={picked.includes(e.id)} onChange={(ev) => toggle(e.id, ev.target.checked)} data-pick={e.id} /> },
               { key: "r", header: "Receipt", render: (e) => <ReceiptThumb api={api} receiptId={e.receiptId} /> },
-              { key: "d", header: "Date", render: (e) => e.spentOn },
+              { key: "d", header: "Date", render: (e) => formatDate(e.spentOn) },
               { key: "m", header: "Merchant", render: (e) => e.merchant },
               { key: "c", header: "Category", render: (e) => e.categoryName ?? "—" },
               { key: "a", header: "Amount", render: (e) => money(e.amount, e.currency) },
@@ -206,7 +206,7 @@ export function MyExpensesTile({ api = defaultExpensesApi() }: { api?: ExpensesA
             empty={<EmptyState icon={Receipt} title="No lines" compact>Pick expenses above and add them.</EmptyState>}
             columns={[
               { key: "r", header: "Receipt", render: (l) => <ReceiptThumb api={api} receiptId={l.receiptId} /> },
-              { key: "d", header: "Date", render: (l) => l.spentOn },
+              { key: "d", header: "Date", render: (l) => formatDate(l.spentOn) },
               { key: "m", header: "Merchant", render: (l) => l.merchant },
               { key: "a", header: "Amount", render: (l) => <OcrCompare line={l} /> },
               { key: "f", header: "Checks", render: (l) => <FlagChips flags={l.flags} maxAgeDays={maxAge} /> },

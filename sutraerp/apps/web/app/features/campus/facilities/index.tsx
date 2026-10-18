@@ -576,8 +576,8 @@ export function FacilitiesAdminTab({ institution }: { institution: Institution |
   if (!institution) return <NoInstitutionTile title="Service desk & maintenance" />;
   return (
     <>
-      <ServiceDeskRulesTile institutionId={institution.id} />
       <FacilitiesScreen institutionId={institution.id} />
+      <ServiceDeskRulesTile institutionId={institution.id} />
     </>
   );
 }

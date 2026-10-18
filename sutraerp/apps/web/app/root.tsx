@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@sutra/ui";
 import "@sutra/ui/styles.css";
+import "./layout-utilities.css";
 import { useState, type ReactNode } from "react";
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from "react-router";
 import { AuthProvider } from "./lib/auth";

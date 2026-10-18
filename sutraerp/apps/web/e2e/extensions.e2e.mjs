@@ -273,16 +273,6 @@ async function choose(select, text) {
   await select.selectOption(hit.value);
 }
 
-/** Selects the first non-empty, enabled option; returns false when there is none. */
-async function chooseFirst(select) {
-  await select.waitFor({ state: "visible", timeout: 10000 });
-  const opts = await select.locator("option").evaluateAll((os) => os.map((o) => ({ value: o.value, disabled: o.disabled })));
-  const hit = opts.find((o) => o.value !== "" && !o.disabled);
-  if (!hit) return false;
-  await select.selectOption(hit.value);
-  return true;
-}
-
 /** A tile by its data attribute, checked visible with its heading. */
 async function openTile(page, attr, title) {
   const t = page.locator(`[${attr}]`).first();
@@ -645,7 +635,7 @@ try {
     await plan.click();
     const enrol = t.locator('[data-billing-enrolments="HOSTEL-MONTHLY"]');
     await enrol.waitFor();
-    await fill(enrol, "Student ID", ids.aarav);
+    await choose(field(enrol, "Student"), "Aarav");
     await apiAction(page, "PUT", /\/finance\/billing-plans\/[^/]+\/enrolments$/, () => enrol.locator('[data-action="enrol"]').click());
     await row(page, "Aarav", enrol).waitFor({ timeout: 10000 });
     await shot(page, "finance", "charges-billing-plans");
@@ -812,7 +802,8 @@ try {
     await form.waitFor();
     await fill(form, "Merchant", "MSRTC bus");
     await fill(form, "Amount (₹)", "120.00");
-    await chooseFirst(field(form, "Category")).catch(() => false);
+    // Local conveyance: Travel (TA) needs a receipt at any amount, so it could not be submitted.
+    await choose(field(form, "Category"), "Local conveyance");
     await apiAction(page, "POST", /\/resources\/me\/expenses$/, () => form.locator('[data-action="save-expense"]').click());
     await t.getByText("MSRTC bus").first().waitFor();
     await shot(page, "my-hr", "payslips-my-expenses");

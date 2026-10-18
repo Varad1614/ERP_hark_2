@@ -40,7 +40,8 @@ export function HiringScorecardsTile({ institutionId, requisitionId, api = defau
   const [itv, setItv] = useState<{ type: InterviewType; date: string; start: string; end: string; interviewers: string }>({ type: "onsite", date: today(), start: "11:00", end: "11:45", interviewers: "" });
   const [rubricDraft, setRubricDraft] = useState<RatingField[] | null>(null);
   const [newField, setNewField] = useState("");
-  const key = (...p: string[]) => ["people", "hiring", ...p];
+  // Prefix `institution`: `useCommand` refreshes every `institution` query after a command.
+  const key = (...p: string[]) => ["institution", "hiring", ...p];
   const compare = useQuery({ queryKey: key("compare", requisitionId), queryFn: () => api.compare(requisitionId), enabled: requisitionId !== "" && (tab === "compare" || tab === "rubric" || tab === "candidate") });
   const feedback = useQuery({ queryKey: key("feedback", candidateId), queryFn: () => api.feedback(candidateId), enabled: tab === "candidate" && candidateId !== "" });
   const due = useQuery({ queryKey: key("due", institutionId), queryFn: () => api.feedbackDue(institutionId), enabled: tab === "due" });

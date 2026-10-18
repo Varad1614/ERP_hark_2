@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { todayIso } from "../../institution/forms";
 import { useCommand } from "../../institution/hooks";
+import { PersonPicker } from "../../campus/PersonPicker";
 import { fkeys, useChargesApi } from "./hooks";
 import { FREQUENCIES, periodFor } from "./billing";
 import type { BillingFrequency, BillingPlan, BillingRun } from "./types";
@@ -112,7 +113,7 @@ export function BillingRunsTile({ institutionId }: { institutionId: string }) {
                   ) },
                 ]} />
               <FormGrid columns={3}>
-                <TextField label="Student ID" value={enrol.studentId} onChange={(e) => setEnrol({ ...enrol, studentId: e.target.value.trim() })} />
+                <PersonPicker institutionId={institutionId} kind="student" label="Student" name="billingStudentId" value={enrol.studentId} onChange={(id) => setEnrol({ ...enrol, studentId: id })} />
                 <TextField label="Own amount (₹, optional)" value={enrol.amount} onChange={(e) => setEnrol({ ...enrol, amount: e.target.value })} />
                 <TextField label="From" type="date" value={enrol.startDate} onChange={(e) => setEnrol({ ...enrol, startDate: e.target.value })} />
                 <TextField label="Until" type="date" value={enrol.endDate} onChange={(e) => setEnrol({ ...enrol, endDate: e.target.value })} />

@@ -235,7 +235,7 @@ try {
   // ------------------------------------------------------------ 8A: service desk
   await step(page, "admin: Service desk — ticket triaged, work order started, completed and verified", async () => {
     await go(page, "/campus/facilities");
-    const desk = tile(page, "Service desk");
+    const desk = tile(page, /^Service desk(?! automation)/);
     await action(page, "ticket-new", desk);
     await fillForm(page, "ticket", { category: "maintenance", priority: "medium", nodeId: ids.classroom.id, title: "Projector not working in Room 101" });
     await row(page, "Projector not working", desk).waitFor();
