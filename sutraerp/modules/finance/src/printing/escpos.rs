@@ -141,14 +141,8 @@ fn char_width(ch: char) -> usize {
 fn is_js_space(ch: char) -> bool {
     matches!(
         ch,
-        '\t' | '\n'
-            | '\u{b}'
-            | '\u{c}'
-            | '\r'
-            | ' '
-            | '\u{a0}'
-            | '\u{1680}'
-            | '\u{2000}'..='\u{200a}'
+        '\t' | '\n' | '\u{b}' | '\u{c}' | '\r' | ' ' | '\u{a0}' | '\u{1680}' | '\u{2000}'
+            ..='\u{200a}'
                 | '\u{2028}'
                 | '\u{2029}'
                 | '\u{202f}'
@@ -249,7 +243,10 @@ impl Default for EscposBuilder {
 impl EscposBuilder {
     /// A builder for paper `columns` characters wide (32 on 58 mm, 48 on 80 mm).
     pub fn new(columns: usize) -> Self {
-        Self { columns, bytes: Vec::new() }
+        Self {
+            columns,
+            bytes: Vec::new(),
+        }
     }
 
     /// The paper width this builder lays out for.
@@ -306,7 +303,10 @@ impl EscposBuilder {
         let room = self.columns as i64 - right_width - indent as i64;
         let pad = " ".repeat(indent);
         if room <= 1 {
-            let whole: String = format!("{pad}{amount}").chars().take(self.columns).collect();
+            let whole: String = format!("{pad}{amount}")
+                .chars()
+                .take(self.columns)
+                .collect();
             return self.line(&whole);
         }
         let left = clip(label, (room - 1) as usize);
@@ -462,7 +462,11 @@ fn rows(b: &mut EscposBuilder, list: &[SlipRow]) {
 pub fn escpos_receipt(doc: &SlipDoc, columns: usize, kick: bool) -> Vec<u8> {
     let mut b = EscposBuilder::new(columns);
     b.init().align(1);
-    b.bold(true).big(true).wrapped(&doc.store_name, 0, 2).big(false).bold(false);
+    b.bold(true)
+        .big(true)
+        .wrapped(&doc.store_name, 0, 2)
+        .big(false)
+        .bold(false);
     if !doc.address.is_empty() {
         b.wrapped(&doc.address, 0, 1);
     }
@@ -473,7 +477,10 @@ pub fn escpos_receipt(doc: &SlipDoc, columns: usize, kick: bool) -> Vec<u8> {
         b.feed(1).bold(true).line("*** VOID ***").bold(false);
     }
     if let Some(kind) = doc.kind.as_deref().filter(|k| !k.is_empty()) {
-        b.feed(1).bold(true).line(&format!("*** {kind} ***")).bold(false);
+        b.feed(1)
+            .bold(true)
+            .line(&format!("*** {kind} ***"))
+            .bold(false);
     }
     b.feed(1);
     for meta in &doc.meta {
@@ -523,11 +530,18 @@ pub fn escpos_receipt(doc: &SlipDoc, columns: usize, kick: bool) -> Vec<u8> {
 pub fn escpos_report(head: &ReportHead, rows: &[ReportRow], columns: usize) -> Vec<u8> {
     let mut b = EscposBuilder::new(columns);
     b.init().align(1);
-    b.bold(true).big(true).wrapped(&head.store_name, 0, 2).big(false).bold(false);
+    b.bold(true)
+        .big(true)
+        .wrapped(&head.store_name, 0, 2)
+        .big(false)
+        .bold(false);
     if !head.address.is_empty() {
         b.wrapped(&head.address, 0, 1);
     }
-    b.feed(1).bold(true).line(&format!("*** {} ***", head.kind)).bold(false);
+    b.feed(1)
+        .bold(true)
+        .line(&format!("*** {} ***", head.kind))
+        .bold(false);
     for meta in &head.meta {
         b.wrapped(meta, 0, 1);
     }
@@ -535,7 +549,10 @@ pub fn escpos_report(head: &ReportHead, rows: &[ReportRow], columns: usize) -> V
 
     for row in rows {
         if let Some(section) = row.section.as_deref().filter(|s| !s.is_empty()) {
-            b.rule("-").bold(true).line(&section.to_uppercase()).bold(false);
+            b.rule("-")
+                .bold(true)
+                .line(&section.to_uppercase())
+                .bold(false);
             continue;
         }
         if row.strong {
@@ -573,7 +590,11 @@ pub fn readable(bytes: &[u8]) -> String {
                 continue;
             }
             GS => {
-                i += if bytes.get(i + 1) == Some(&0x56) { 4 } else { 3 };
+                i += if bytes.get(i + 1) == Some(&0x56) {
+                    4
+                } else {
+                    3
+                };
                 continue;
             }
             0x0a => out.push('\n'),
@@ -614,10 +635,22 @@ mod tests {
                 amount: "$6.40".into(),
                 subs: vec!["no ice".into()],
             }],
-            totals: vec![SlipRow { label: "Total".into(), value: "$7.01".into(), strong: true }],
+            totals: vec![SlipRow {
+                label: "Total".into(),
+                value: "$7.01".into(),
+                strong: true,
+            }],
             payments: vec![
-                SlipRow { label: "Cash".into(), value: "$10.00".into(), strong: false },
-                SlipRow { label: "Change".into(), value: "$2.99".into(), strong: false },
+                SlipRow {
+                    label: "Cash".into(),
+                    value: "$10.00".into(),
+                    strong: false,
+                },
+                SlipRow {
+                    label: "Change".into(),
+                    value: "$2.99".into(),
+                    strong: false,
+                },
             ],
             note: "for Sam".into(),
             reward: "a free espresso".into(),
@@ -681,7 +714,10 @@ mod tests {
 
     #[test]
     fn wrap_breaks_words_and_long_words() {
-        assert_eq!(wrap("one two three four", 9), vec!["one two", "three", "four"]);
+        assert_eq!(
+            wrap("one two three four", 9),
+            vec!["one two", "three", "four"]
+        );
         assert_eq!(wrap("aaaaaaaaaaaa", 5), vec!["aaaaa", "aaaaa", "aa"]);
         assert_eq!(wrap("", 10), vec![""]);
         assert_eq!(wrap("ab \u{20ac}5", 6), vec!["ab", "\u{20ac}5"]);
@@ -703,7 +739,11 @@ mod tests {
             let mut b = EscposBuilder::new(columns);
             b.columns_line("Total", "\u{20ac}24.68", 0);
             b.columns_line("Sales tax 7.75%", "\u{20ac}1.24", 0);
-            b.columns_line("A product name long enough to need shortening", "\u{20ac}9.99", 0);
+            b.columns_line(
+                "A product name long enough to need shortening",
+                "\u{20ac}9.99",
+                0,
+            );
             let text = readable(&b.build());
             for line in text.split('\n').filter(|l| !l.is_empty()) {
                 assert_eq!(line.chars().count(), columns);
@@ -751,15 +791,24 @@ mod tests {
         for pair in order.windows(2) {
             assert!(at(pair[1]) > at(pair[0]), "{} after {}", pair[1], pair[0]);
         }
-        let item = text.lines().find(|l| l.starts_with("2x Espresso")).unwrap_or_default();
+        let item = text
+            .lines()
+            .find(|l| l.starts_with("2x Espresso"))
+            .unwrap_or_default();
         assert!(item.ends_with("$6.40"));
     }
 
     #[test]
     fn marks_void_and_kind() {
-        let voided = SlipDoc { voided: true, ..doc() };
+        let voided = SlipDoc {
+            voided: true,
+            ..doc()
+        };
         assert!(readable(&escpos_receipt(&voided, 32, false)).contains("*** VOID ***"));
-        let refund = SlipDoc { kind: Some("REFUND".into()), ..doc() };
+        let refund = SlipDoc {
+            kind: Some("REFUND".into()),
+            ..doc()
+        };
         assert!(readable(&escpos_receipt(&refund, 32, false)).contains("*** REFUND ***"));
     }
 
@@ -769,7 +818,10 @@ mod tests {
             let text = readable(&escpos_receipt(&doc(), columns, false));
             assert!(text.lines().all(|l| l.chars().count() <= columns));
         }
-        let long = SlipDoc { store_name: "The Corner Roast Coffee House".into(), ..doc() };
+        let long = SlipDoc {
+            store_name: "The Corner Roast Coffee House".into(),
+            ..doc()
+        };
         let narrow = readable(&escpos_receipt(&long, 32, false));
         let narrow: Vec<&str> = narrow.split('\n').collect();
         assert_eq!(narrow[0], "The Corner Roast");
@@ -794,7 +846,10 @@ mod tests {
                 amount: "\u{20ac}6.40".into(),
                 subs: vec![],
             }],
-            totals: vec![row("Subtotal", "\u{20ac}6.40", false), row("Total", "€7.01", true)],
+            totals: vec![
+                row("Subtotal", "\u{20ac}6.40", false),
+                row("Total", "€7.01", true),
+            ],
             payments: vec![row("Cash", "€10.00", false), row("Change", "€2.99", false)],
             footer: "Bedankt\u{2026} tot morgen".into(),
             ..doc()
@@ -824,8 +879,15 @@ mod tests {
             footer: "counted and closed".into(),
         };
         let rows = vec![
-            ReportRow { section: Some("Takings".into()), ..ReportRow::default() },
-            ReportRow { label: "Cash".into(), value: "120.00".into(), ..ReportRow::default() },
+            ReportRow {
+                section: Some("Takings".into()),
+                ..ReportRow::default()
+            },
+            ReportRow {
+                label: "Cash".into(),
+                value: "120.00".into(),
+                ..ReportRow::default()
+            },
             ReportRow {
                 label: "Expected".into(),
                 value: "140.00".into(),
@@ -836,7 +898,9 @@ mod tests {
         let text = readable(&escpos_report(&head, &rows, 32));
         assert!(text.contains("*** Z-REPORT ***"));
         assert!(text.contains("TAKINGS"));
-        assert!(text.lines().any(|l| l.starts_with("Cash ") && l.ends_with("120.00")));
+        assert!(text
+            .lines()
+            .any(|l| l.starts_with("Cash ") && l.ends_with("120.00")));
         assert!(text.contains("counted and closed"));
     }
 

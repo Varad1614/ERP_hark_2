@@ -41,8 +41,16 @@ struct Builder {
 #[derive(Deserialize)]
 #[serde(tag = "op", rename_all = "camelCase")]
 enum Op {
-    ColumnsLine { label: String, amount: String, indent: usize },
-    Wrapped { value: String, indent: usize, scale: usize },
+    ColumnsLine {
+        label: String,
+        amount: String,
+        indent: usize,
+    },
+    Wrapped {
+        value: String,
+        indent: usize,
+        scale: usize,
+    },
 }
 
 #[derive(Deserialize)]
@@ -87,10 +95,18 @@ fn escpos_matches_everything() {
         let mut b = EscposBuilder::new(inp.builder.columns);
         for op in &inp.builder.ops {
             match op {
-                Op::ColumnsLine { label, amount, indent } => {
+                Op::ColumnsLine {
+                    label,
+                    amount,
+                    indent,
+                } => {
                     b.columns_line(label, amount, *indent);
                 }
-                Op::Wrapped { value, indent, scale } => {
+                Op::Wrapped {
+                    value,
+                    indent,
+                    scale,
+                } => {
                     b.wrapped(value, *indent, *scale);
                 }
             }
@@ -98,7 +114,11 @@ fn escpos_matches_everything() {
         assert_eq!(b.build(), exp.builder, "case {i}: builder");
 
         let r = &inp.receipt;
-        assert_eq!(escpos_receipt(&r.doc, r.columns, r.kick), exp.receipt, "case {i}: receipt");
+        assert_eq!(
+            escpos_receipt(&r.doc, r.columns, r.kick),
+            exp.receipt,
+            "case {i}: receipt"
+        );
         let rep = &inp.report;
         let got = escpos_report(&rep.head, &rep.rows, rep.columns);
         assert_eq!(got, exp.report, "case {i}: report");
