@@ -17890,6 +17890,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/candidate-followups/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a follow-up done or open again (`people.staff.manage`). */
+        post: operations["people_recruitment_followup_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/candidate-interviews/{id}/cancel": {
         parameters: {
             query?: never;
@@ -17975,6 +17992,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/candidates/{id}/followups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Follow-ups of a candidate: open first (soonest due), done last (`people.read`). */
+        get: operations["people_recruitment_followup_list"];
+        put?: never;
+        /** Add a follow-up to a candidate (`people.staff.manage`). */
+        post: operations["people_recruitment_followup_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/candidates/{id}/interview": {
         parameters: {
             query?: never;
@@ -18023,6 +18058,27 @@ export interface paths {
          *     requisition's.
          */
         post: operations["people_recruitment_candidate_offer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/candidates/{id}/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offers of a candidate, newest first (`people.read`). */
+        get: operations["people_recruitment_offer_list"];
+        put?: never;
+        /**
+         * Draft an offer for a shortlisted, interviewed or offered candidate (`people.staff.manage`;
+         *     Idempotency-Key). One offer in play per candidate (409).
+         */
+        post: operations["people_recruitment_offer_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -18669,6 +18725,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/institutions/{id}/careers-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The careers page settings and listings (`people.read`). */
+        get: operations["people_recruitment_careers_page_get"];
+        /**
+         * Save the careers page (`people.staff.manage`). Enabling needs a slug; a slug another
+         *     institution uses is a 409.
+         */
+        put: operations["people_recruitment_careers_page_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/institutions/{id}/directory": {
         parameters: {
             query?: never;
@@ -18681,6 +18758,44 @@ export interface paths {
          *     name, designation, department and work e-mail only (`people.self`).
          */
         get: operations["people_directory_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/effort-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Effort report (`people.read`): hours, % effort and person-months per staff per project per
+         *     month, costed at chargeable hours × hourly rate, with project utilisation against the
+         *     manpower budget — the figures a DST / SERB / UGC utilisation certificate asks for.
+         */
+        get: operations["people_time_effort_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/effort-report/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The effort report as CSV (`people.read`). */
+        get: operations["people_time_effort_report_csv"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18718,6 +18833,46 @@ export interface paths {
         };
         /** Final settlements of an institution (`people.read`). */
         get: operations["people_settlement_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/hiring-analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hiring analytics (`people.read`): pipeline conversion per stage, time to hire, average time in
+         *     stage, source effectiveness, offer acceptance — for the institution and per requisition.
+         */
+        get: operations["people_recruitment_hiring_analytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/hiring-followups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recruitment follow-ups (`people.read`): reminders due now, candidates stuck in a stage, and
+         *     archived candidates past the retention window.
+         */
+        get: operations["people_recruitment_hiring_followups"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18867,6 +19022,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/institutions/{id}/offer-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offer / onboarding settings (`people.read`). */
+        get: operations["people_recruitment_offer_settings_get"];
+        /**
+         * Save offer / onboarding settings (`people.staff.manage`). Templates are cleaned as
+         *     Everything does (safe unique ids, named, tasks with titles, offsets within a year); a blank
+         *     letter template restores the default.
+         */
+        put: operations["people_recruitment_offer_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offers of an institution, newest first (`people.read`). */
+        get: operations["people_recruitment_offer_institution_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/institutions/{id}/onboarding-cases": {
         parameters: {
             query?: never;
@@ -18876,6 +19070,23 @@ export interface paths {
         };
         /** Onboarding cases of an institution (`people.read`). */
         get: operations["people_onboarding_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/onboarding-due": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unfinished onboarding tasks due within three days or overdue, soonest first (`people.read`). */
+        get: operations["people_onboarding_checklist_due"];
         put?: never;
         post?: never;
         delete?: never;
@@ -19014,6 +19225,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/institutions/{id}/roster/payroll-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hand approved timesheets to payroll (`people.payroll.manage`): approved ones are locked, and
+         *     their overtime hours, extra loss-of-pay days, night and holiday shifts become 7C payroll
+         *     inputs that every payroll calculation of the month the period starts in reads. Each
+         *     timesheet is exported once.
+         */
+        post: operations["people_roster_payroll_export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/payroll-export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Approved and locked timesheet totals as CSV for payroll (`people.payroll.manage`): one row
+         *     per timesheet, formula-safe.
+         */
+        get: operations["people_roster_payroll_export_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/institutions/{id}/roster/publish": {
         parameters: {
             query?: never;
@@ -19025,6 +19278,44 @@ export interface paths {
         put?: never;
         /** Publish the draft shifts in a range (`staff.manage`): staff see published shifts only. */
         post: operations["people_roster_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Roster report (`people.read`): Everything's people / roles / attendance / coverage / open
+         *     shifts with the previous period's totals, plus hours by department, overtime and punctuality
+         *     per person (from the reconciliation), and swap request counts.
+         */
+        get: operations["people_roster_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/reports.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One report section as CSV (`people.read`). */
+        get: operations["people_roster_report_csv"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -19060,6 +19351,78 @@ export interface paths {
         put?: never;
         /** Plan a shift (`staff.manage`; Idempotency-Key). An overlap on the staff member is 409. */
         post: operations["people_roster_shift_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/swaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Requests of the institution, newest first (`people.read`). */
+        get: operations["people_roster_swap_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/timesheet-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Timesheet and pay settings (`people.read`). */
+        get: operations["people_roster_timesheet_settings_get"];
+        /** Save timesheet and pay settings (`people.staff.manage`). */
+        put: operations["people_roster_timesheet_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/timesheet.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Everything's timesheet export of the roster (`people.read`): one row per assigned shift with
+         *     its punches, then a per-person summary.
+         */
+        get: operations["people_roster_timesheet_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/roster/timesheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Timesheets of the institution (`people.read`). */
+        get: operations["people_roster_timesheet_list"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -19117,6 +19480,99 @@ export interface paths {
          *     already used by a live record.
          */
         post: operations["people_staff_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/time-entries/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Time entries of the institution as CSV (`people.read`). */
+        get: operations["people_time_entries_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/time-projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Trackable projects, grants and committees (`people.read`). */
+        get: operations["people_time_project_list"];
+        put?: never;
+        /**
+         * Create a project / grant / committee (`people.time.manage`; Idempotency-Key). The PI is
+         *     always a member.
+         */
+        post: operations["people_time_project_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/time-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hourly cost rates of active staff (`people.read`). */
+        get: operations["people_time_rate_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/time-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Time-tracking settings (`people.read`). */
+        get: operations["people_time_settings_get"];
+        /** Save time-tracking settings (`people.time.manage`). */
+        put: operations["people_time_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/institutions/{id}/timesheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Timesheets of an institution (`people.read`), newest week first; `?status=submitted` is the
+         *     approval queue.
+         */
+        get: operations["people_time_timesheet_list"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -19673,6 +20129,151 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/me/roster.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My published duties as an iCalendar file (`people.self`; default: the last week and the
+         *     next eight). An authenticated download — there is no token feed.
+         */
+        get: operations["people_roster_me_ics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/roster/open-shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open published shifts of my institution from today (default: the next four weeks), with the
+         *     checks against my own roster (`people.self`).
+         */
+        get: operations["people_roster_open_shifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/roster/shifts/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim an open, published, upcoming shift (`people.self`; Idempotency-Key): a manager
+         *     approves it. An overlap with my own shifts is refused (409).
+         */
+        post: operations["people_roster_shift_claim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/roster/shifts/{id}/clock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clock in to / out of my published shift now (`people.self`): the institution's clock, the
+         *     shift's own day (or the day before, for a night shift); late beyond the grace period.
+         */
+        post: operations["people_roster_clock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/roster/swaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My requests (as requester or colleague) and open cover requests I could take
+         *     (`people.self`).
+         */
+        get: operations["people_roster_swap_mine"];
+        put?: never;
+        /**
+         * Ask a colleague to take, swap or cover one of my shifts (`people.self`; Idempotency-Key). An
+         *     overlap the move would cause is refused (409); the rest are warnings for the manager.
+         */
+        post: operations["people_roster_swap_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/roster/timesheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My timesheet (`people.self`): published shifts I held in the period (default this week)
+         *     reconciled with my punches and attendance days; the saved timesheet when I submitted one.
+         */
+        get: operations["people_roster_timesheet_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/roster/timesheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit my weekly or monthly timesheet (`people.self`; Idempotency-Key): the reconciliation
+         *     now is saved for a manager. A returned timesheet can be submitted again; an approved one
+         *     cannot (409).
+         */
+        post: operations["people_roster_timesheet_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/me/staff": {
         parameters: {
             query?: never;
@@ -19693,6 +20294,205 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/me/time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My week (`people.self`): the projects I can log on with daily totals and timesheet status,
+         *     the week's entries and my running timer.
+         */
+        get: operations["people_time_me_week"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Timesheets waiting for my decision (`people.self`): projects I lead as PI and staff who
+         *     report to me; never my own.
+         */
+        get: operations["people_time_me_approvals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My time entries as CSV (`people.self`). */
+        get: operations["people_time_me_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log time (`people.self`; Idempotency-Key). 409 when the week is submitted or the clock times
+         *     overlap another of your entries.
+         */
+        post: operations["people_time_entry_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time/entries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change one of your entries (`people.self`; If-Match). Both the old and the new week must be
+         *     open.
+         */
+        put: operations["people_time_entry_update"];
+        post?: never;
+        /** Delete one of your entries in an open week (`people.self`; If-Match). */
+        delete: operations["people_time_entry_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import my time from another tracker's CSV (`people.self`). Projects match my loggable
+         *     projects by code or name (case-insensitive); unknown projects, dates outside the project,
+         *     submitted weeks and overlapping times are reported per line, never created; re-importing
+         *     the same file adds nothing.
+         */
+        post: operations["people_time_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time/timer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start your timer on a project (`people.self`); 409 while one is running. */
+        post: operations["people_time_timer_start"];
+        /** Discard your running timer without recording anything (`people.self`). */
+        delete: operations["people_time_timer_discard"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time/timer/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop your timer and record an entry on the day it started (`people.self`): under a minute
+         *     still records a minute; a forgotten timer is trimmed to the cap.
+         */
+        post: operations["people_time_timer_stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time/timesheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit one project's week for approval (`people.self`): the week's entries lock until the
+         *     PI or your reporting manager decides. A week without time is 422; a submitted or approved
+         *     week is 409.
+         */
+        post: operations["people_time_timesheet_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/me/time/timesheets/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take back a submitted timesheet before it is decided (`people.self`; If-Match): the week
+         *     opens again.
+         */
+        post: operations["people_time_timesheet_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/me/workload": {
         parameters: {
             query?: never;
@@ -19704,6 +20504,166 @@ export interface paths {
         get: operations["people_workload_self_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/offers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One offer (`people.read`). */
+        get: operations["people_recruitment_offer_get"];
+        /** Edit a draft offer (`people.staff.manage`; If-Match). */
+        put: operations["people_recruitment_offer_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/offers/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the candidate's acceptance (`people.staff.manage`; If-Match): the candidate moves to
+         *     `offer_accepted` with the offer's joining date and designation, ready for the onboarding
+         *     case. 409 when the requisition has no opening left or the offer has lapsed.
+         */
+        post: operations["people_recruitment_offer_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/offers/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or send back an offer awaiting approval (`people.approve`; If-Match). Separation of
+         *     duties: whoever drafted or submitted the offer cannot decide it (403).
+         */
+        post: operations["people_recruitment_offer_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/offers/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The candidate declined (`people.staff.manage`; reason required): the candidate moves to
+         *     `offer_declined`.
+         */
+        post: operations["people_recruitment_offer_decline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/offers/{id}/letter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The offer letter as text and HTML (`people.read`): the snapshot once sent, else a live
+         *     preview from the institution's template.
+         */
+        get: operations["people_recruitment_offer_letter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/offers/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send an approved offer (`people.staff.manage`; If-Match): snapshots the letter text and moves
+         *     the candidate to `offered`. 409 when the requisition is no longer open or the offer has
+         *     already lapsed.
+         */
+        post: operations["people_recruitment_offer_send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/offers/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft for approval (`people.staff.manage`; If-Match). Under dev / test
+         *     auto-approval (`SUTRA_APPROVAL_MODE=auto`) it is approved at once by the system approver.
+         */
+        post: operations["people_recruitment_offer_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/offers/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw an offer that is not yet answered (`people.staff.manage`; reason required). The
+         *     candidate keeps their stage; a revised offer can be drafted.
+         */
+        post: operations["people_recruitment_offer_withdraw"];
         delete?: never;
         options?: never;
         head?: never;
@@ -19738,6 +20698,24 @@ export interface paths {
         put?: never;
         /** Cancel an onboarding case before joining (`people.staff.manage`; If-Match; reason required). */
         post: operations["people_onboarding_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-cases/{id}/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The onboarding checklist of a case, grouped by category with due dates (`people.read`). */
+        get: operations["people_onboarding_checklist_get"];
+        put?: never;
+        /** Add a task to a case's checklist (`people.staff.manage`). */
+        post: operations["people_onboarding_checklist_add"];
         delete?: never;
         options?: never;
         head?: never;
@@ -19836,6 +20814,23 @@ export interface paths {
          *     verified, otherwise the case returns to documentation (reason required).
          */
         post: operations["people_onboarding_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/onboarding-tasks/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a checklist task done or not done (`people.staff.manage`). */
+        post: operations["people_onboarding_checklist_complete"];
         delete?: never;
         options?: never;
         head?: never;
@@ -20650,6 +21645,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/public/careers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open, published requisitions of an institution's careers page — **public, no session**
+         *     (safe fields only; 404 for an unknown or disabled page).
+         */
+        get: operations["people_recruitment_careers_public"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/public/careers/{id}/requisitions/{requisition_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply to an open, published requisition — **public, no session**. 202 on success (also for
+         *     a repeat e-mail or a filled honeypot, which store nothing); 413 over 16 KB; 422 on bad fields;
+         *     429 past the daily cap of the requisition.
+         */
+        post: operations["people_recruitment_careers_apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/requisitions/{id}": {
         parameters: {
             query?: never;
@@ -20682,6 +21718,26 @@ export interface paths {
          *     duplicate e-mail on the same requisition.
          */
         post: operations["people_recruitment_candidate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/requisitions/{id}/careers-listing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Publish or unpublish a requisition on the careers page (`people.staff.manage`). Only an
+         *     approved or open requisition can be published; it is listed while open.
+         */
+        put: operations["people_recruitment_careers_listing_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -20803,6 +21859,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/roster/shifts/{id}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Record or correct the attendance of an assigned shift (`people.staff.manage`). Refused (409)
+         *     once the holder's timesheet for the day is approved.
+         */
+        put: operations["people_roster_attendance_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/roster/shifts/{id}/suggestions": {
         parameters: {
             query?: never;
@@ -20818,6 +21894,121 @@ export interface paths {
         get: operations["people_roster_shift_suggestions"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/roster/swaps/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw my own pending request (`people.self`; If-Match). */
+        post: operations["people_roster_swap_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/roster/swaps/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or decline a request agreed by the colleague (`people.staff.manage`; If-Match;
+         *     never the requester or the colleague). Approving re-checks the roster and reassigns the
+         *     shift(s) atomically; an overlap, a shift that changed hands or an approved timesheet is 409.
+         */
+        post: operations["people_roster_swap_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/roster/swaps/{id}/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Agree to (or turn down) a request addressed to me, or take an open cover request
+         *     (`people.self`; If-Match). Agreeing sends it to a manager.
+         */
+        post: operations["people_roster_swap_respond"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/roster/timesheets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One timesheet (`people.read`). */
+        get: operations["people_roster_timesheet_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/roster/timesheets/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or return a submitted timesheet (`people.staff.manage`; If-Match; never the staff
+         *     member or whoever submitted it). Approving re-reconciles and freezes the totals.
+         */
+        post: operations["people_roster_timesheet_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/roster/timesheets/{id}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lock an approved timesheet (`people.staff.manage`; If-Match): punches and swaps of its
+         *     days are frozen.
+         */
+        post: operations["people_roster_timesheet_lock"];
         delete?: never;
         options?: never;
         head?: never;
@@ -21410,6 +22601,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/people/staff/{id}/time-rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a staff member's hourly rate (`people.time.manage`): with a date it starts a new period
+         *     so earlier work keeps its rate (Everything's effective-dated `withRateFrom`).
+         */
+        put: operations["people_time_rate_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/people/staff/{id}/verify": {
         parameters: {
             query?: never;
@@ -21462,6 +22673,69 @@ export interface paths {
          *     a working engagement only; a second open plan for the same period is a conflict.
          */
         post: operations["people_workload_plan_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/time-projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A project with its members (`people.read`). */
+        get: operations["people_time_project_get"];
+        /**
+         * Change a project, its members and status (`people.time.manage`; If-Match). Time already
+         *     logged stays; members removed can no longer log.
+         */
+        put: operations["people_time_project_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/timesheets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A timesheet and its entries: the owner, the project's PI, the owner's reporting manager or
+         *     `people.read`.
+         */
+        get: operations["people_time_timesheet_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/people/timesheets/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a submitted timesheet (If-Match): the project's PI or the staff member's reporting
+         *     manager (`people.self`), or `people.timesheet.decide` on behalf of any approver. Never the
+         *     person who logged or submitted it (separation of duties, 403). Approved weeks stay locked;
+         *     a rejected week opens again for correction and resubmission.
+         */
+        post: operations["people_time_timesheet_decide"];
         delete?: never;
         options?: never;
         head?: never;
@@ -34770,6 +36044,14 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        /** @description Monthly CTC breakup input (₹, numbers or decimal strings). */
+        CtcInput: {
+            allowances?: string | null;
+            basic: string;
+            da?: string | null;
+            employerPf?: string | null;
+            hra?: string | null;
+        };
         Curriculum: {
             code: string;
             /** Format: date-time */
@@ -35573,6 +36855,88 @@ export interface components {
             validUntil?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        /** @description Utilisation of one project over the range. */
+        EffortProjectSummary: {
+            code: string;
+            cost: string;
+            fundingAgency?: string | null;
+            /** Format: double */
+            hours: number;
+            manpowerBudget?: string | null;
+            name: string;
+            /** Format: double */
+            personMonths: number;
+            /** Format: uuid */
+            projectId: string;
+            sanctionNumber?: string | null;
+            sanctionedAmount?: string | null;
+            /** Format: int64 */
+            staffCount: number;
+            /**
+             * Format: double
+             * @description Cost ÷ manpower budget, %.
+             */
+            utilisationPercent?: number | null;
+        };
+        /** @description Effort report. */
+        EffortReport: {
+            approvedOnly: boolean;
+            from: string;
+            projects: components["schemas"]["EffortProjectSummary"][];
+            rows: components["schemas"]["EffortRow"][];
+            staffTotals: components["schemas"]["EffortStaffTotal"][];
+            /** Format: double */
+            standardMonthlyHours: number;
+            to: string;
+        };
+        /** @description Hours and effort of one staff member on one project in one month. */
+        EffortRow: {
+            /**
+             * Format: int64
+             * @description Chargeable seconds after rounding.
+             */
+            billedSeconds: number;
+            /** @description ₹ = chargeable hours × hourly rate. */
+            cost: string;
+            /** Format: double */
+            hours: number;
+            /** @description `YYYY-MM`. */
+            month: string;
+            /**
+             * Format: double
+             * @description Share of the staff member's tracked time that month, %.
+             */
+            percent: number;
+            /**
+             * Format: double
+             * @description Share × 1 month (the utilisation certificate's person-months).
+             */
+            personMonths: number;
+            projectCode: string;
+            /** Format: uuid */
+            projectId: string;
+            projectName: string;
+            /** Format: int64 */
+            seconds: number;
+            /** Format: uuid */
+            staffId: string;
+            staffName: string;
+            staffNumber: string;
+        };
+        /** @description Totals of one staff member on one project over the range. */
+        EffortStaffTotal: {
+            cost: string;
+            /** Format: double */
+            hours: number;
+            /** Format: double */
+            personMonths: number;
+            projectCode: string;
+            /** Format: uuid */
+            projectId: string;
+            /** Format: uuid */
+            staffId: string;
+            staffName: string;
         };
         /**
          * @description Eligibility commands (L3-E-029).
@@ -38996,6 +40360,207 @@ export interface components {
             /** @description `ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`. */
             status: string;
         };
+        /** @description Hiring analytics of an institution (or one requisition). */
+        HiringAnalytics: {
+            /** Format: date-time */
+            asOf: string;
+            averageDaysInStage: components["schemas"]["HiringStageTime"][];
+            /** Format: int64 */
+            candidates: number;
+            conversion: components["schemas"]["HiringStageConversion"][];
+            funnel: components["schemas"]["HiringFunnelStage"][];
+            offers: components["schemas"]["HiringOfferFigures"];
+            requisitions: components["schemas"]["HiringRequisitionFigures"][];
+            /** Format: int64 */
+            sinceDays?: number | null;
+            sources: components["schemas"]["HiringSourceRow"][];
+            timeToHire: components["schemas"]["HiringTimeToHire"];
+        };
+        /** @description What needs attention in recruitment now. */
+        HiringAttention: {
+            /** Format: date-time */
+            asOf: string;
+            /** @description The last reminders the hourly job recorded. */
+            recorded: components["schemas"]["HiringRecordedReminder"][];
+            /** @description Offers expiring within three days (or lapsed), due follow-ups, due onboarding tasks. */
+            reminders: components["schemas"]["HiringReminder"][];
+            retentionDue: components["schemas"]["HiringRetentionRow"][];
+            /** Format: int32 */
+            retentionMonths: number;
+            stale: components["schemas"]["HiringStaleRow"][];
+            /** Format: int32 */
+            staleAfterDays: number;
+        };
+        /** @description The public apply form. */
+        HiringCareersApplication: {
+            email: string;
+            /** @description A CV / profile link (http or https). */
+            link?: string | null;
+            name: string;
+            note?: string | null;
+            phone?: string | null;
+            /** @description Leave empty (hidden from people; bots fill it). */
+            website?: string | null;
+        };
+        /** @description A requisition's public listing. */
+        HiringCareersListing: {
+            /**
+             * Format: int64
+             * @description Candidates who applied through the careers page.
+             */
+            applications: number;
+            /** Format: date */
+            closesOn?: string | null;
+            description?: string | null;
+            location?: string | null;
+            number: string;
+            published: boolean;
+            /** Format: uuid */
+            requisitionId: string;
+            status: string;
+            title: string;
+        };
+        /** @description A requisition's public listing. */
+        HiringCareersListingInput: {
+            /**
+             * Format: date
+             * @description Applications close at the end of this day.
+             */
+            closesOn?: string | null;
+            /** @description Plain text; blank lines separate paragraphs, `-` / `*` lines are bullets. */
+            description?: string | null;
+            location?: string | null;
+            published: boolean;
+        };
+        /** @description The careers page of an institution. */
+        HiringCareersPage: {
+            contactEmail?: string | null;
+            enabled: boolean;
+            intro?: string | null;
+            listings: components["schemas"]["HiringCareersListing"][];
+            /** @description Web path of the public page (`/careers/<slug>`), when enabled. */
+            publicPath?: string | null;
+            slug?: string | null;
+            /** @description A slug made from the institution's name (`subdomainBase`). */
+            suggestedSlug: string;
+        };
+        /** @description Careers page settings. */
+        HiringCareersPageInput: {
+            contactEmail?: string | null;
+            enabled: boolean;
+            intro?: string | null;
+            /** @description 3–40 of `a-z0-9-`; unique across SutraERP. */
+            slug?: string | null;
+        };
+        /** @description The apply receipt (the same for every accepted, duplicate or filtered submission). */
+        HiringCareersReceipt: {
+            received: boolean;
+        };
+        /** @description The onboarding checklist of a case. */
+        HiringChecklist: {
+            candidateName: string;
+            groups: components["schemas"]["HiringChecklistGroup"][];
+            /** Format: date */
+            joiningDate: string;
+            /** Format: uuid */
+            onboardingCaseId: string;
+            overdue: number;
+            progress: components["schemas"]["HiringChecklistProgress"];
+            status: string;
+        };
+        /** @description Tick or untick a task. */
+        HiringChecklistDoneBody: {
+            done: boolean;
+        };
+        /** @description A category of the checklist, in template order. */
+        HiringChecklistGroup: {
+            category: string;
+            tasks: components["schemas"]["HiringChecklistTask"][];
+        };
+        /** @description `onboardingProgress`. */
+        HiringChecklistProgress: {
+            done: number;
+            /** Format: int32 */
+            pct: number;
+            total: number;
+        };
+        /** @description One checklist task. */
+        HiringChecklistTask: {
+            category: string;
+            done: boolean;
+            /** Format: date-time */
+            doneAt?: string | null;
+            doneBy?: string | null;
+            /** Format: date */
+            dueDate?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            offsetDays?: number | null;
+            /** @description "7 days before the joining date". */
+            offsetLabel: string;
+            overdue: boolean;
+            /** @description `hr`, `it`, `department`, `accounts`, `admin`. */
+            owner?: string | null;
+            title: string;
+        };
+        /** @description A task added by hand. */
+        HiringChecklistTaskInput: {
+            category?: string | null;
+            /** Format: int32 */
+            offsetDays?: number | null;
+            owner?: string | null;
+            title: string;
+        };
+        /** @description A due onboarding task across the institution. */
+        HiringDueTask: {
+            candidateName: string;
+            caseNumber: string;
+            /** Format: int64 */
+            daysLeft: number;
+            /** Format: date */
+            dueDate: string;
+            /** Format: uuid */
+            onboardingCaseId: string;
+            overdue: boolean;
+            owner?: string | null;
+            /** Format: uuid */
+            taskId: string;
+            title: string;
+        };
+        HiringDueTaskList: {
+            items: components["schemas"]["HiringDueTask"][];
+        };
+        /** @description Complete or reopen. */
+        HiringFollowupDoneBody: {
+            done: boolean;
+        };
+        /** @description A new follow-up. */
+        HiringFollowupInput: {
+            dueDate: string;
+            /** @description `HH:MM` (24 h); without it the follow-up is due from the start of its day. */
+            dueTime?: string | null;
+            /** @example Call about the notice period */
+            text: string;
+        };
+        HiringFollowupList: {
+            items: components["schemas"]["HiringFollowupView"][];
+        };
+        /** @description A follow-up on a candidate. */
+        HiringFollowupView: {
+            /** Format: uuid */
+            candidateId: string;
+            done: boolean;
+            /** @description Due now (date-only follow-ups at the start of their day, timed ones at their time). */
+            due: boolean;
+            /** Format: date */
+            dueDate: string;
+            dueTime?: string | null;
+            /** Format: uuid */
+            id: string;
+            overdue: boolean;
+            text: string;
+        };
         /** @description A requisition's hiring form. */
         HiringForm: {
             /** @description The requisition's own rubric (null = the institution's or the default). */
@@ -39010,6 +40575,13 @@ export interface components {
         HiringFormInput: {
             ratingFields?: components["schemas"]["HiringRatingField"][] | null;
             screeningQuestions?: components["schemas"]["HiringScreeningQuestion"][] | null;
+        };
+        /** @description One funnel stage with its active candidates. */
+        HiringFunnelStage: {
+            /** Format: int64 */
+            count: number;
+            label: string;
+            stage: string;
         };
         /** @description An interview guide. */
         HiringGuide: {
@@ -39034,10 +40606,257 @@ export interface components {
             id: string;
             text: string;
         };
+        /** @description The candidate's acceptance. */
+        HiringOfferAcceptBody: {
+            /** @description The name the candidate signed with (defaults to the candidate's name). */
+            acceptedByName?: string | null;
+        };
+        /** @description Monthly cost-to-institution breakup of an offer. */
+        HiringOfferCtc: {
+            /** @description Other allowances per month (special, conveyance, …). */
+            allowances?: string;
+            /**
+             * @description Basic pay per month (₹).
+             * @example 45000
+             */
+            basic: string;
+            /** @description Dearness allowance per month. */
+            da?: string;
+            /** @description Employer EPF contribution per month. */
+            employerPf?: string;
+            /** @description House rent allowance per month. */
+            hra?: string;
+        };
+        /** @description Offer figures of the scope. */
+        HiringOfferFigures: components["schemas"]["HiringOfferOutcomes"] & {
+            /** Format: int64 */
+            expired: number;
+            /**
+             * Format: int64
+             * @description Drafts, awaiting approval, approved and sent.
+             */
+            inPlay: number;
+            /** Format: int64 */
+            withdrawn: number;
+        };
+        /** @description Offer terms (create and edit a draft). */
+        HiringOfferInput: {
+            /** @description Monthly breakup. A missing `employerPf` is 12 % of basic + DA up to the ₹15,000 ceiling. */
+            ctc: components["schemas"]["CtcInput"];
+            /** @description Department named in the letter. */
+            department?: string | null;
+            /** @description Defaults to the requisition's designation. */
+            designation?: string | null;
+            /**
+             * Format: date
+             * @description The offer lapses after this day (on or before the joining date).
+             */
+            expiresOn?: string | null;
+            /** @description Pay level / grade as printed on the letter (defaults to the requisition's grade). */
+            grade?: string | null;
+            joiningBonus?: string | null;
+            /** Format: date */
+            joiningDate: string;
+            notes?: string | null;
+            /**
+             * Format: int32
+             * @description Probation in months (0–36).
+             */
+            probationMonths?: number | null;
+        };
+        /** @description The offer letter. */
+        HiringOfferLetter: {
+            /** @description The same letter as a small self-contained HTML document (print / save as PDF). */
+            html: string;
+            number: string;
+            /** Format: uuid */
+            offerId: string;
+            /** @description `true` when this is the text snapshotted at sending. */
+            snapshot: boolean;
+            text: string;
+        };
+        HiringOfferList: {
+            items: components["schemas"]["HiringOfferView"][];
+        };
+        /** @description Offer outcomes. */
+        HiringOfferOutcomes: {
+            /**
+             * Format: double
+             * @description `accepted / (accepted + declined)`.
+             */
+            acceptance?: number | null;
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            declined: number;
+            /** Format: int64 */
+            sent: number;
+        };
+        /** @description Offer and onboarding settings of an institution. */
+        HiringOfferSettings: {
+            /** @description The default letter (read-only). */
+            defaultOfferTemplate?: string;
+            /** @description The shipped default checklist (read-only). */
+            defaultOnboardingTemplate?: components["schemas"]["HiringOnboardingTemplate"];
+            /** @description The institution's letter template; null = the default. */
+            offerTemplate?: string | null;
+            /** @description Checklist templates; empty = the shipped default. */
+            onboardingTemplates: components["schemas"]["HiringOnboardingTemplate"][];
+            /**
+             * Format: int32
+             * @description Months after which archived candidates are offered for erasure (0 = keep).
+             */
+            retentionMonths: number;
+            /**
+             * Format: int32
+             * @description Days in one stage after which a candidate counts as stuck.
+             */
+            staleAfterDays: number;
+            /** @description Placeholders a template can use (read-only). */
+            templateVariables?: string[];
+        };
+        /**
+         * @description Offer status.
+         * @enum {string}
+         */
+        HiringOfferStatus: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "declined" | "expired" | "withdrawn";
+        /** @description An offer letter on a candidate. */
+        HiringOfferView: {
+            acceptedByName?: string | null;
+            /** Format: uuid */
+            candidateId: string;
+            candidateName: string;
+            /** @description Monthly breakup (₹). */
+            ctc: components["schemas"]["HiringOfferCtc"];
+            ctcAnnual: string;
+            ctcMonthly: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            department?: string | null;
+            designation: string;
+            draftedBy?: string | null;
+            /** Format: date */
+            expiresOn?: string | null;
+            grade?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            joiningBonus?: string | null;
+            /** Format: date */
+            joiningDate: string;
+            notes?: string | null;
+            /** @example OFR-000001 */
+            number: string;
+            /** Format: int32 */
+            probationMonths?: number | null;
+            /** Format: uuid */
+            requisitionId: string;
+            requisitionNumber: string;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            /** Format: date-time */
+            sentAt?: string | null;
+            status: components["schemas"]["HiringOfferStatus"];
+            statusReason?: string | null;
+            submittedBy?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A named checklist template, attached to requisitions (`jobIds`) or departments. */
+        HiringOnboardingTemplate: {
+            departments: string[];
+            id: string;
+            jobIds: string[];
+            name: string;
+            tasks: components["schemas"]["HiringOnboardingTemplateTask"][];
+        };
+        /** @description One task of a checklist template. */
+        HiringOnboardingTemplateTask: {
+            category: string;
+            /**
+             * Format: int64
+             * @description Days from the joining date (negative = before joining).
+             */
+            offsetDays?: number | null;
+            /** @description `hr`, `it`, `department`, `accounts`, `admin`. */
+            owner?: string | null;
+            title: string;
+        };
+        /** @description The public careers page of an institution. */
+        HiringPublicCareers: {
+            contactEmail?: string | null;
+            institution: string;
+            introHtml: string;
+            openings: components["schemas"]["HiringPublicOpening"][];
+        };
+        /** @description One opening on the public page (safe fields only). */
+        HiringPublicOpening: {
+            /** Format: date */
+            closesOn?: string | null;
+            /** @description The description as escaped paragraphs and bullet lists. */
+            descriptionHtml: string;
+            designation: string;
+            employmentType: string;
+            /** Format: uuid */
+            id: string;
+            location?: string | null;
+            /** Format: int32 */
+            openings: number;
+            /** @description `teaching`, `non_teaching`, … */
+            staffCategory: string;
+            title: string;
+        };
         /** @description A rating dimension. */
         HiringRatingField: {
             key: string;
             label: string;
+        };
+        /** @description A reminder the hourly job recorded. */
+        HiringRecordedReminder: {
+            body: string;
+            /** Format: uuid */
+            candidateId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            key: string;
+            kind: string;
+            title: string;
+        };
+        /** @description A reminder due now. `key` is stable so it is recorded once. */
+        HiringReminder: {
+            body: string;
+            candidateId: string;
+            /** @example offer-…-2026-06-15-soon */
+            key: string;
+            /** @description `offer`, `followup`, `onboarding`. */
+            kind: string;
+            title: string;
+        };
+        /** @description Figures of one requisition. */
+        HiringRequisitionFigures: {
+            /** Format: int64 */
+            active: number;
+            /** Format: int64 */
+            candidates: number;
+            /** Format: int64 */
+            hired: number;
+            offers: components["schemas"]["HiringOfferOutcomes"];
+            requisitionId: string;
+            requisitionNumber: string;
+            timeToHire: components["schemas"]["HiringTimeToHire"];
+        };
+        /**
+         * @description An archived candidate past the retention window (DPDP Act 2023: erase personal data once its
+         *     purpose is served). Listed for a person to confirm; nothing is erased automatically.
+         */
+        HiringRetentionRow: {
+            /** Format: date */
+            archivedOn: string;
+            candidateId: string;
+            name: string;
+            requisitionNumber: string;
         };
         /** @description A panel's feedback rolled up. */
         HiringScorecardSummary: {
@@ -39079,6 +40898,54 @@ export interface components {
              *     communication, collaboration).
              */
             ratingFields?: components["schemas"]["HiringRatingField"][] | null;
+        };
+        /** @description Candidates and hires per source. */
+        HiringSourceRow: {
+            /** Format: int64 */
+            hired: number;
+            source: string;
+            /** Format: int64 */
+            total: number;
+        };
+        /** @description Conversion of one stage to any later one. */
+        HiringStageConversion: {
+            /** Format: int64 */
+            advanced: number;
+            next: string;
+            /**
+             * Format: double
+             * @description `advanced / reached`; null when nobody reached the stage.
+             */
+            rate?: number | null;
+            /** Format: int64 */
+            reached: number;
+            stage: string;
+        };
+        /** @description Average days in a stage. */
+        HiringStageTime: {
+            /** Format: double */
+            average?: number | null;
+            stage: string;
+        };
+        /** @description A candidate sitting in one stage too long. */
+        HiringStaleRow: {
+            candidateId: string;
+            /** Format: int64 */
+            days: number;
+            name: string;
+            requisitionNumber: string;
+            stage: string;
+            stageLabel: string;
+        };
+        /** @description `timeToHire` result. */
+        HiringTimeToHire: {
+            /** Format: int64 */
+            count: number;
+            /**
+             * Format: double
+             * @description Median days from application to offer acceptance.
+             */
+            median?: number | null;
         };
         /** @description One status history entry (historical reconstruction, L3-F-019). */
         HistoryView: {
@@ -42868,6 +44735,41 @@ export interface components {
             /** Format: date-time */
             submittedAt?: string | null;
         };
+        /** @description One project row of my week. */
+        MyTimeProjectWeek: {
+            billableDefault: boolean;
+            code: string;
+            /** @description Seconds per day of the week, in order. */
+            daySeconds: number[];
+            fundingAgency?: string | null;
+            kind: string;
+            name: string;
+            /** Format: uuid */
+            projectId: string;
+            /** Format: int64 */
+            seconds: number;
+            timesheet?: null | components["schemas"]["TimesheetBrief"];
+        };
+        /** @description My time for one week. */
+        MyTimeWeek: {
+            days: string[];
+            entries: components["schemas"]["TimeEntryView"][];
+            /** Format: uuid */
+            institutionId: string;
+            projects: components["schemas"]["MyTimeProjectWeek"][];
+            settings: components["schemas"]["TimeSettings"];
+            /** Format: uuid */
+            staffId: string;
+            timer?: null | components["schemas"]["TimeTimerView"];
+            /** Format: date */
+            today: string;
+            /** Format: int64 */
+            weekSeconds: number;
+            /** Format: date */
+            weekStart: string;
+            /** @description `1h 30m`. */
+            weekTotal: string;
+        };
         /** @description Request a seat on a route. */
         MyTransportRequest: {
             /** Format: uuid */
@@ -45021,6 +46923,33 @@ export interface components {
             /** Format: date-time */
             withdrawnAt?: string | null;
         };
+        /** @description `budgetProgress` over spent figures already summed for the budget's period. */
+        PeopleTimeBudget: {
+            /** @description `hours` | `amount`. */
+            kind: string;
+            /** @description `total` | `monthly`. */
+            period: string;
+            /** Format: double */
+            ratio: number;
+            /**
+             * Format: double
+             * @description Seconds (hours budget) or rupees (amount budget).
+             */
+            spent: number;
+            /** Format: double */
+            value: number;
+        };
+        /**
+         * @description One effective-dated period of a rate (`from` null = since the beginning; `rate` null = no
+         *     rate of this level's own from here on).
+         */
+        PeopleTimeRatePeriod: {
+            from?: string | null;
+            /** Format: double */
+            rate?: number | null;
+        };
+        /** @description A rate: a plain number ("always") or a list of effective-dated periods. */
+        PeopleTimeRateValue: number | components["schemas"]["PeopleTimeRatePeriod"][];
         PeriodList: {
             items: components["schemas"]["PeriodView"][];
         };
@@ -48317,6 +50246,15 @@ export interface components {
             /** @description `available | partial`. */
             status: string;
         };
+        /** @description Why I want the open shift. */
+        RosterClaimInput: {
+            reason?: string | null;
+        };
+        /** @description Clock in or out. */
+        RosterClockInput: {
+            /** @description `in | out`. */
+            action: string;
+        };
         /** @description A staffing gap. */
         RosterCoverageGap: {
             date: string;
@@ -48332,6 +50270,48 @@ export interface components {
             end?: string;
             off?: boolean;
             start?: string;
+        };
+        /** @description Hours by department. */
+        RosterDepartmentHours: {
+            department: string;
+            /** Format: double */
+            overtimeMinutes: number;
+            /** Format: double */
+            scheduledMinutes: number;
+            /** Format: int64 */
+            shifts: number;
+            staff: number;
+            /** Format: double */
+            workedMinutes: number;
+        };
+        /** @description One timesheet handed to payroll. */
+        RosterExportItem: {
+            /** Format: date */
+            periodFrom: string;
+            /** Format: date */
+            periodTo: string;
+            /** @description `overtime_hours | lop_days | night_shifts | holiday_shifts` → quantity (non-zero only). */
+            quantities: {
+                [key: string]: number;
+            };
+            /** Format: uuid */
+            staffId: string;
+            staffName: string;
+            /** Format: uuid */
+            timesheetId: string;
+        };
+        /** @description Periods to export. */
+        RosterExportRange: {
+            /**
+             * Format: date
+             * @description Timesheets whose period starts on or after.
+             */
+            from: string;
+            /**
+             * Format: date
+             * @description … and on or before.
+             */
+            to: string;
         };
         /** @description Fill open shifts in a range. */
         RosterFillBody: {
@@ -48367,6 +50347,57 @@ export interface components {
             /** @description A pinned pick an earlier row made impossible. */
             stale: boolean;
         };
+        /** @description My timesheet for a period, reconciled now, and the saved one. */
+        RosterMyTimesheet: {
+            /** Format: date */
+            from: string;
+            lines: components["schemas"]["RosterTimesheetLine"][];
+            saved?: null | components["schemas"]["RosterTimesheetView"];
+            /** Format: date */
+            to: string;
+            totals: components["schemas"]["RosterTimesheetTotals"];
+        };
+        /** @description Open shifts I could claim. */
+        RosterOpenShifts: {
+            /** Format: date */
+            from: string;
+            items: components["schemas"]["DutyShiftView"][];
+            /** Format: date */
+            to: string;
+        };
+        /** @description One person's overtime and punctuality. */
+        RosterOvertimeRow: {
+            department: string;
+            /** Format: int64 */
+            earlyLeaveMinutes: number;
+            /** Format: int64 */
+            holidayShifts: number;
+            /** Format: int64 */
+            lateMinutes: number;
+            /** Format: int64 */
+            missedPunches: number;
+            name: string;
+            /** Format: int64 */
+            nightShifts: number;
+            /** Format: double */
+            overtimeMinutes: number;
+            /** Format: uuid */
+            staffId: string;
+            /** Format: double */
+            workedMinutes: number;
+        };
+        /** @description What the export did. */
+        RosterPayrollExport: {
+            /** @description Timesheets handed to payroll now. */
+            exported: number;
+            /** @description Payroll input rows written. */
+            inputs: number;
+            items: components["schemas"]["RosterExportItem"][];
+            /** @description Approved timesheets this export locked. */
+            locked: number;
+            /** @description Timesheets in the range still awaiting approval (not exported). */
+            pending: number;
+        };
         /** @description A staff member's roster profile. */
         RosterProfile: {
             /** @description Seven windows, Sunday first; null = available any time. */
@@ -48385,6 +50416,42 @@ export interface components {
             /** Format: int64 */
             published: number;
         };
+        /** @description Record or correct a shift's attendance. */
+        RosterPunchInput: {
+            /** @description `HH:MM`. */
+            clockIn?: string | null;
+            /** @description `HH:MM` (earlier than the clock-in = after midnight). */
+            clockOut?: string | null;
+            note?: string | null;
+            /** @description `present | late | absent`. */
+            status: string;
+        };
+        /** @description A shift's clock record. */
+        RosterPunchView: {
+            clockIn?: string | null;
+            clockOut?: string | null;
+            /**
+             * Format: int64
+             * @description Minutes late against the scheduled start.
+             */
+            lateMinutes: number;
+            note?: string | null;
+            /** Format: uuid */
+            shiftId: string;
+            /** @description `self | manager`. */
+            source: string;
+            /** Format: uuid */
+            staffId: string;
+            /** @description `present | late | absent`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+            /**
+             * Format: int64
+             * @description Worked minutes so far (both punches) net of nothing.
+             */
+            workedMinutes?: number | null;
+        };
         /** @description A date range (inclusive). */
         RosterRange: {
             /**
@@ -48397,6 +50464,20 @@ export interface components {
              * @description Default: six days after `from`; at most 62 days.
              */
             to?: string | null;
+        };
+        /** @description A roster report. */
+        RosterReport: {
+            departments: components["schemas"]["RosterDepartmentHours"][];
+            /** Format: date */
+            from: string;
+            overtime: components["schemas"]["RosterOvertimeRow"][];
+            /** @description The same totals for the period of equal length before. */
+            previous: Record<string, never>;
+            /** @description Everything's report: `people`, `roles`, `attendance`, `coverage`, `open`, `totals`. */
+            report: Record<string, never>;
+            swaps: components["schemas"]["RosterSwapCounts"];
+            /** Format: date */
+            to: string;
         };
         /** @description A coverage requirement. */
         RosterRequirementInput: {
@@ -48466,6 +50547,300 @@ export interface components {
             items: components["schemas"]["RosterCandidate"][];
             /** Format: uuid */
             shiftId: string;
+        };
+        /** @description Swap requests made in the period. */
+        RosterSwapCounts: {
+            /** Format: int64 */
+            approved: number;
+            /** @description `give_away | swap | cover | claim` → requests. */
+            byKind: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            cancelled: number;
+            /** Format: int64 */
+            declined: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            total: number;
+        };
+        /**
+         * @description What a request asks for.
+         * @enum {string}
+         */
+        RosterSwapKind: "give_away" | "swap" | "cover" | "claim";
+        /** @description A list of requests. */
+        RosterSwapList: {
+            items: components["schemas"]["RosterSwapView"][];
+        };
+        /** @description Ask for a shift to change hands. */
+        RosterSwapRequestInput: {
+            /** @description `give_away | swap | cover` (claims use `…/claim`). */
+            kind: components["schemas"]["RosterSwapKind"];
+            /**
+             * Format: uuid
+             * @description Their shift I take in exchange (`swap` only).
+             */
+            otherShiftId?: string | null;
+            reason?: string | null;
+            /**
+             * Format: uuid
+             * @description One of my published, upcoming shifts.
+             */
+            shiftId: string;
+            /**
+             * Format: uuid
+             * @description The colleague (required for `give_away` and `swap`; optional for `cover`).
+             */
+            toStaffId?: string | null;
+        };
+        /** @description A colleague's answer. */
+        RosterSwapRespond: {
+            accept: boolean;
+            reason?: string | null;
+        };
+        /** @description A swap, cover, give-away or open-shift claim. */
+        RosterSwapView: {
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decisionReason?: string | null;
+            /** Format: uuid */
+            fromStaffId?: string | null;
+            fromStaffName?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            kind: components["schemas"]["RosterSwapKind"];
+            /** Format: uuid */
+            otherShiftId?: string | null;
+            /** Format: date-time */
+            peerRespondedAt?: string | null;
+            reason?: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: uuid */
+            shiftId?: string | null;
+            /** @description `{ shift: {date, start, end, role}, other: {…} | null }` as asked. */
+            snapshot: Record<string, never>;
+            /** @description `awaiting_peer | awaiting_manager | approved | declined | cancelled`. */
+            status: string;
+            /** Format: uuid */
+            toStaffId?: string | null;
+            toStaffName?: string | null;
+            /** Format: int64 */
+            version: number;
+            warnings: string[];
+        };
+        /** @description A reconciled shift line. */
+        RosterTimesheetLine: {
+            clockIn?: string | null;
+            clockOut?: string | null;
+            date: string;
+            /** Format: int64 */
+            earlyLeaveMinutes: number;
+            end: string;
+            /**
+             * @description `late | early_leave | missed_punch | not_recorded | absent | on_leave |
+             *     day_absent_but_punched | holiday`.
+             */
+            flags: string[];
+            holiday: boolean;
+            /** Format: int64 */
+            lateMinutes: number;
+            night: boolean;
+            role: string;
+            /** Format: double */
+            scheduledMinutes: number;
+            shiftId: string;
+            start: string;
+            /** @description `present | late | absent | half_day | on_leave | missed_punch | not_recorded | upcoming`. */
+            status: string;
+            /**
+             * Format: double
+             * @description Paid minutes: punched time net of the break; the schedule when punches are incomplete;
+             *     nothing for an absence or leave; half for a half day.
+             */
+            workedMinutes: number;
+        };
+        /** @description Timesheets. */
+        RosterTimesheetList: {
+            items: components["schemas"]["RosterTimesheetView"][];
+        };
+        /** @description Timesheet and pay settings of the roster (Indian defaults: Factories Act 1948 s.51/54/59). */
+        RosterTimesheetSettings: {
+            /**
+             * Format: double
+             * @description Paid hours a day before overtime (default 9; null = none).
+             */
+            dailyOvertimeHours?: number | null;
+            /**
+             * Format: int64
+             * @description Minutes before the end that do not count as leaving early.
+             */
+            earlyLeaveGraceMinutes: number;
+            /**
+             * Format: double
+             * @description ₹ per shift worked on a holiday.
+             */
+            holidayShiftAllowance?: number | null;
+            /**
+             * Format: int64
+             * @description Minutes after the start that still count as on time.
+             */
+            lateGraceMinutes: number;
+            /**
+             * Format: double
+             * @description ₹ per night shift (one running past midnight).
+             */
+            nightShiftAllowance?: number | null;
+            /**
+             * Format: double
+             * @description Overtime pays this times the ordinary hourly rate (default 2).
+             */
+            overtimeMultiplier: number;
+            /**
+             * Format: double
+             * @description A flat ₹ per overtime hour instead (null = from BASIC + DA).
+             */
+            overtimeRatePerHour?: number | null;
+            /**
+             * Format: double
+             * @description Hours of an ordinary day (ordinary hourly rate = (BASIC + DA) / days / hours).
+             */
+            standardHoursPerDay: number;
+            /**
+             * Format: double
+             * @description Paid hours a week before overtime (default 48; null = none).
+             */
+            weeklyOvertimeHours?: number | null;
+        };
+        /** @description Submit a timesheet. */
+        RosterTimesheetSubmit: {
+            /**
+             * Format: date
+             * @description A Monday (weekly) or the 1st (monthly).
+             */
+            from: string;
+            note?: string | null;
+            /**
+             * Format: date
+             * @description The Sunday after `from`, or the month's last day.
+             */
+            to: string;
+        };
+        /** @description Totals of a reconciled period. */
+        RosterTimesheetTotals: {
+            /**
+             * Format: int64
+             * @default 0
+             */
+            absences: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            earlyLeaveCount: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            earlyLeaveMinutes: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            holidayShifts: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            lateCount: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            lateMinutes: number;
+            /**
+             * Format: double
+             * @description Loss-of-pay days from shift absences that daily attendance does not already show as
+             *     absent (those reach payroll through the leave reader; counting them here would charge
+             *     them twice).
+             * @default 0
+             */
+            lopDays: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            missedPunches: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            nightShifts: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            notRecorded: number;
+            /**
+             * Format: double
+             * @default 0
+             */
+            overtimeMinutes: number;
+            /**
+             * Format: double
+             * @default 0
+             */
+            scheduledMinutes: number;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            shifts: number;
+            /**
+             * Format: double
+             * @default 0
+             */
+            workedMinutes: number;
+        };
+        /** @description A timesheet. */
+        RosterTimesheetView: {
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decisionReason?: string | null;
+            /**
+             * Format: date-time
+             * @description When the payroll export handed it to payroll.
+             */
+            exportedAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            lines: components["schemas"]["RosterTimesheetLine"][];
+            /** Format: date-time */
+            lockedAt?: string | null;
+            note?: string | null;
+            /** Format: date */
+            periodFrom: string;
+            /** @description `weekly | monthly`. */
+            periodKind: string;
+            /** Format: date */
+            periodTo: string;
+            /** Format: uuid */
+            staffId: string;
+            staffName: string;
+            staffNumber: string;
+            /** @description `submitted | returned | approved | locked`. */
+            status: string;
+            /** Format: date-time */
+            submittedAt: string;
+            totals: components["schemas"]["RosterTimesheetTotals"];
+            /** Format: int64 */
+            version: number;
         };
         /** @description One stop in a draft version. */
         RouteStopInput: {
@@ -51514,6 +53889,403 @@ export interface components {
             title: string;
             /** Format: int64 */
             version: number;
+        };
+        /**
+         * @description A manual entry. `duration` takes `1:30`, `1h30`, `1.5`, `90m`, `:45`; with `start` and `end`
+         *     (`HH:MM`; an end at or before the start is the next morning) the duration may be left out.
+         *     When all three are given the start stays and the end moves to where the duration lands.
+         */
+        TimeEntryInput: {
+            /** @description Chargeable to the project (default: the project's default). */
+            billable?: boolean | null;
+            /** Format: date */
+            date: string;
+            duration?: string | null;
+            end?: string | null;
+            notes?: string | null;
+            /** Format: uuid */
+            projectId: string;
+            start?: string | null;
+            task?: string | null;
+        };
+        /** @description A saved entry. */
+        TimeEntryResult: {
+            entry: components["schemas"]["TimeEntryView"];
+        };
+        /** @description One time entry. */
+        TimeEntryView: {
+            /** @description Chargeable to the project (counts towards cost and utilisation). */
+            billable: boolean;
+            /** Format: date */
+            date: string;
+            /** @description `h:mm` (`h:mm:ss` when the seconds are not whole minutes). */
+            duration: string;
+            end?: string | null;
+            /** @description The end falls on the next day (a night's work). */
+            endsNextDay: boolean;
+            /** Format: uuid */
+            id: string;
+            /** @description The week is submitted or approved: the entry cannot change. */
+            locked: boolean;
+            notes: string;
+            projectCode: string;
+            /** Format: uuid */
+            projectId: string;
+            projectName: string;
+            /** Format: int64 */
+            seconds: number;
+            /** @description `manual | timer | import`. */
+            source: string;
+            /** Format: uuid */
+            staffId: string;
+            staffName: string;
+            /** @description `HH:MM` wall-clock start on the entry's day, when known. */
+            start?: string | null;
+            task: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A CSV export of another tracker (Toggl, Clockify, Harvest or any CSV with a mapping). */
+        TimeImportInput: {
+            /** @description The file's text. */
+            csv: string;
+            /** @description Preview only (default true): nothing is written. */
+            dryRun?: boolean | null;
+            /**
+             * @description Column per field (`date`, `duration`, `project`, `task`, `notes`, `billable`, `start`,
+             *     `end`; -1 = absent). Default: detected from the header row.
+             */
+            mapping?: {
+                [key: string]: number;
+            } | null;
+        };
+        /** @description A row the import skipped. */
+        TimeImportProblem: {
+            /** Format: int64 */
+            line: number;
+            reason: string;
+        };
+        /** @description Import outcome. */
+        TimeImportResult: {
+            /**
+             * Format: int64
+             * @description Rows that would be (dry run) or were added.
+             */
+            added: number;
+            dryRun: boolean;
+            headers: string[];
+            invalid: components["schemas"]["TimeImportProblem"][];
+            mapping: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            rows: number;
+            /** Format: int64 */
+            seconds: number;
+            /**
+             * Format: int64
+             * @description Identical to time already logged (same day, project, task, duration, notes).
+             */
+            skipped: number;
+            /** @description `Toggl | Clockify | Harvest | CSV`. */
+            source: string;
+        };
+        /** @description A project's hours / ₹ budget. */
+        TimeProjectBudget: {
+            /** @description `hours` | `amount` (₹ of chargeable time). */
+            kind: string;
+            /** @description `total` | `monthly`. */
+            period: string;
+            value: string;
+        };
+        /** @description Create / change a trackable project (money as decimal strings: `"2500000.00"`). */
+        TimeProjectInput: {
+            billableDefault?: boolean | null;
+            /** @description `hours` | `amount`; with `budgetPeriod` and `budgetValue`, or none of the three. */
+            budgetKind?: string | null;
+            budgetPeriod?: string | null;
+            budgetValue?: string | null;
+            code: string;
+            /** Format: uuid */
+            contractId?: string | null;
+            costCentre?: string | null;
+            /** Format: date */
+            endDate?: string | null;
+            fundingAgency?: string | null;
+            kind: string;
+            manpowerBudget?: string | null;
+            members?: components["schemas"]["TimeProjectMemberInput"][];
+            /** Format: int64 */
+            minimumMinutes?: number | null;
+            name: string;
+            notes?: string | null;
+            openToAll?: boolean | null;
+            /** Format: uuid */
+            piStaffId?: string | null;
+            /** Format: int64 */
+            roundingMinutes?: number | null;
+            /** Format: date */
+            sanctionDate?: string | null;
+            sanctionNumber?: string | null;
+            sanctionedAmount?: string | null;
+            scheme?: string | null;
+            /** Format: date */
+            startDate?: string | null;
+            /** @description Update only: `active | closed | archived`. */
+            status?: string | null;
+        };
+        /** @description Projects of an institution. */
+        TimeProjectList: {
+            items: components["schemas"]["TimeProjectView"][];
+        };
+        /** @description A member of a project. */
+        TimeProjectMember: {
+            /**
+             * Format: double
+             * @description Effort committed in the sanction (% of time), if any.
+             */
+            commitmentPercent?: number | null;
+            name: string;
+            /** @description `pi | co_pi | member | jrf | srf | research_associate | project_assistant | technical_staff`. */
+            role: string;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+        };
+        /** @description One member in a project body. */
+        TimeProjectMemberInput: {
+            /** Format: double */
+            commitmentPercent?: number | null;
+            role: string;
+            /** Format: uuid */
+            staffId: string;
+        };
+        /**
+         * @description A trackable work item: a sponsored research project / grant, consultancy, internal project
+         *     or committee.
+         */
+        TimeProjectView: {
+            billableDefault: boolean;
+            budget?: null | components["schemas"]["TimeProjectBudget"];
+            budgetProgress?: null | components["schemas"]["PeopleTimeBudget"];
+            code: string;
+            /**
+             * Format: uuid
+             * @description The research MoU / sanction contract in Resources → Contracts, if linked.
+             */
+            contractId?: string | null;
+            /**
+             * @description Finance cost centre / fund code the project's cost is booked to (free text: Finance has
+             *     no cost-centre master yet).
+             */
+            costCentre?: string | null;
+            /** Format: date */
+            endDate?: string | null;
+            /** @description DST, SERB (ANRF), UGC, ICSSR, AICTE, DBT, CSIR, ICMR, industry… */
+            fundingAgency?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description `sponsored_research | consultancy | internal_project | committee | other`. */
+            kind: string;
+            /**
+             * Format: int64
+             * @description Seconds logged on the project so far, by everyone.
+             */
+            loggedSeconds: number;
+            /** @description The sanction's manpower (salaries) head, against which time cost is utilised. */
+            manpowerBudget?: string | null;
+            members: components["schemas"]["TimeProjectMember"][];
+            /** Format: int64 */
+            minimumMinutes?: number | null;
+            name: string;
+            notes?: string | null;
+            openToAll: boolean;
+            piName?: string | null;
+            /** Format: uuid */
+            piStaffId?: string | null;
+            /** Format: int64 */
+            roundingMinutes?: number | null;
+            /** Format: date */
+            sanctionDate?: string | null;
+            sanctionNumber?: string | null;
+            sanctionedAmount?: string | null;
+            scheme?: string | null;
+            /** Format: date */
+            startDate?: string | null;
+            /** @description `active | closed | archived`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Change a staff member's own hourly rate. */
+        TimeRateInput: {
+            /**
+             * Format: date
+             * @description Start a new period on this date; null edits the period in effect today.
+             */
+            from?: string | null;
+            /**
+             * Format: double
+             * @description ₹ per hour; null clears (from a date: stops this level from that day).
+             */
+            rate?: number | null;
+        };
+        /** @description Time-tracking settings of an institution. */
+        TimeSettings: {
+            defaultHourlyRate?: null | components["schemas"]["PeopleTimeRateValue"];
+            /**
+             * Format: int64
+             * @description Default rounding of chargeable time, minutes, always up (0, 5, 6, 10, 15, 30).
+             */
+            roundingMinutes: number;
+            /**
+             * Format: double
+             * @description Working hours in a month for salary-derived hourly rates (default 176 = 22 days × 8 h).
+             */
+            standardMonthlyHours: number;
+            /**
+             * Format: double
+             * @description A running timer is trimmed to this many hours when stopped (default 12).
+             */
+            timerCapHours: number;
+            /**
+             * Format: int32
+             * @description 1 = weeks start on Monday (default), 0 = Sunday.
+             */
+            weekStart: number;
+        };
+        /** @description Hourly cost rate of one staff member. */
+        TimeStaffRate: {
+            /**
+             * Format: double
+             * @description The rate costing uses today.
+             */
+            effectiveToday: number;
+            name: string;
+            /**
+             * Format: double
+             * @description Gross salary of the last finalised payroll ÷ standard monthly hours.
+             */
+            payrollHourly?: number | null;
+            periods: components["schemas"]["PeopleTimeRatePeriod"][];
+            rate?: null | components["schemas"]["PeopleTimeRateValue"];
+            /** @description `staff | payroll | default | none`. */
+            source: string;
+            /** Format: uuid */
+            staffId: string;
+            staffNumber: string;
+        };
+        /** @description Staff rates. */
+        TimeStaffRateList: {
+            items: components["schemas"]["TimeStaffRate"][];
+        };
+        /** @description Start a timer. */
+        TimeTimerStart: {
+            billable?: boolean | null;
+            notes?: string | null;
+            /** Format: uuid */
+            projectId: string;
+            task?: string | null;
+        };
+        /** @description Stop the timer. */
+        TimeTimerStop: {
+            /**
+             * Format: double
+             * @description Trim a forgotten timer to this many hours (default: the institution's timer cap).
+             */
+            capHours?: number | null;
+        };
+        /** @description A running timer. */
+        TimeTimerView: {
+            billable: boolean;
+            /** @description `h:mm:ss`. */
+            elapsed: string;
+            /** Format: int64 */
+            elapsedSeconds: number;
+            notes: string;
+            projectCode: string;
+            /** Format: uuid */
+            projectId: string;
+            projectName: string;
+            /**
+             * Format: date-time
+             * @description Local wall-clock start (institution timezone).
+             */
+            startedAt: string;
+            task: string;
+        };
+        /** @description A timesheet in brief. */
+        TimesheetBrief: {
+            decisionNote?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `submitted | approved | rejected | draft`. */
+            status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description Approve or reject. */
+        TimesheetDecision: {
+            /** @description `approve` | `reject`. */
+            decision: string;
+            /** @description Required to reject. */
+            reason?: string | null;
+        };
+        /** @description A timesheet with its entries. */
+        TimesheetDetail: {
+            /** @description The caller may approve / reject it now. */
+            canDecide: boolean;
+            entries: components["schemas"]["TimeEntryView"][];
+            timesheet: components["schemas"]["TimesheetView"];
+        };
+        /** @description Timesheets. */
+        TimesheetList: {
+            items: components["schemas"]["TimesheetView"][];
+        };
+        /** @description Submit a week. */
+        TimesheetSubmit: {
+            /** Format: uuid */
+            projectId: string;
+            /**
+             * Format: date
+             * @description Any day of the week.
+             */
+            week: string;
+        };
+        /** @description A weekly timesheet of one staff member on one project. */
+        TimesheetView: {
+            /**
+             * Format: int64
+             * @description Chargeable seconds after rounding (snapshot at submission).
+             */
+            billedSeconds: number;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionNote?: string | null;
+            /** Format: uuid */
+            id: string;
+            projectCode: string;
+            /** Format: uuid */
+            projectId: string;
+            projectName: string;
+            /** Format: uuid */
+            staffId: string;
+            staffName: string;
+            /** @description `draft | submitted | approved | rejected`. */
+            status: string;
+            /** Format: date-time */
+            submittedAt?: string | null;
+            /** Format: int64 */
+            totalSeconds: number;
+            /** Format: int64 */
+            version: number;
+            /** Format: date */
+            weekEnd: string;
+            /** Format: date */
+            weekStart: string;
         };
         /** @description A timetable version with its slots. */
         Timetable: {
@@ -98587,6 +101359,37 @@ export interface operations {
             };
         };
     };
+    people_recruitment_followup_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringFollowupDoneBody"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_recruitment_candidate_interview_cancel: {
         parameters: {
             query?: never;
@@ -98747,6 +101550,68 @@ export interface operations {
             };
         };
     };
+    people_recruitment_followup_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringFollowupList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_followup_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringFollowupInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringFollowupView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_recruitment_candidate_interview: {
         parameters: {
             query?: never;
@@ -98845,6 +101710,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringOfferInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
                 };
             };
             "4XX": {
@@ -100242,6 +103172,68 @@ export interface operations {
             };
         };
     };
+    people_recruitment_careers_page_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringCareersPage"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_careers_page_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringCareersPageInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringCareersPage"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_directory_list: {
         parameters: {
             query?: {
@@ -100262,6 +103254,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DirectoryList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_effort_report: {
+        parameters: {
+            query?: {
+                /** @description First month `YYYY-MM` (default: this month). */
+                from?: string;
+                /** @description Last month `YYYY-MM` (default: `from`). */
+                to?: string;
+                /** @description Only this project. */
+                projectId?: string;
+                /** @description Count only time in approved timesheets. */
+                approvedOnly?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffortReport"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_effort_report_csv: {
+        parameters: {
+            query?: {
+                /** @description First month `YYYY-MM` (default: this month). */
+                from?: string;
+                /** @description Last month `YYYY-MM` (default: `from`). */
+                to?: string;
+                /** @description Only this project. */
+                projectId?: string;
+                /** @description Count only time in approved timesheets. */
+                approvedOnly?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             "4XX": {
@@ -100320,6 +103388,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FinalSettlementList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_hiring_analytics: {
+        parameters: {
+            query?: {
+                /** @description One requisition only. */
+                requisitionId?: string;
+                /** @description Hires / offers in the last N days (time to hire and offer outcomes); omit for all time. */
+                sinceDays?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringAnalytics"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_hiring_followups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringAttention"];
                 };
             };
             "4XX": {
@@ -100772,6 +103903,100 @@ export interface operations {
             };
         };
     };
+    people_recruitment_offer_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringOfferSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_institution_list: {
+        parameters: {
+            query?: {
+                /** @description One offer status (`draft`, `pending_approval`, `approved`, `sent`, …). */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_onboarding_list: {
         parameters: {
             query?: {
@@ -100792,6 +104017,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OnboardingList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_checklist_due: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringDueTaskList"];
                 };
             };
             "4XX": {
@@ -101171,6 +104425,73 @@ export interface operations {
             };
         };
     };
+    people_roster_payroll_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterExportRange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterPayrollExport"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_payroll_export_csv: {
+        parameters: {
+            query: {
+                /** @description Timesheets whose period starts on or after. */
+                from: string;
+                /** @description … and on or before. */
+                to: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_roster_publish: {
         parameters: {
             query?: never;
@@ -101192,6 +104513,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RosterPublished"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_report: {
+        parameters: {
+            query?: {
+                /** @description Default: Monday of this week. */
+                from?: string;
+                /** @description Default: six days after `from`; at most 62 days. */
+                to?: string;
+                /** @description CSV only: `hours | cost | roles | attendance | coverage | departments`. */
+                section?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterReport"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_report_csv: {
+        parameters: {
+            query?: {
+                /** @description Default: Monday of this week. */
+                from?: string;
+                /** @description Default: six days after `from`; at most 62 days. */
+                to?: string;
+                /** @description CSV only: `hours | cost | roles | attendance | coverage | departments`. */
+                section?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             "4XX": {
@@ -101291,6 +104684,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DutyShiftResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_swap_list: {
+        parameters: {
+            query?: {
+                /** @description `awaiting_peer | awaiting_manager | approved | declined | cancelled`; default all. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSwapList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterTimesheetSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterTimesheetSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterTimesheetSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_csv: {
+        parameters: {
+            query?: {
+                /** @description Default: Monday of this week. */
+                from?: string;
+                /** @description Default: six days after `from`; at most 62 days. */
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_list: {
+        parameters: {
+            query?: {
+                /** @description Periods starting on or after (default: 62 days ago). */
+                from?: string;
+                /** @description Periods starting on or before (default: today). */
+                to?: string;
+                /** @description `submitted | returned | approved | locked`. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterTimesheetList"];
                 };
             };
             "4XX": {
@@ -101463,6 +105020,233 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffRecordView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_entries_csv: {
+        parameters: {
+            query?: {
+                /** @description First day (default: 30 days ago). */
+                from?: string;
+                /** @description Last day (default: today). */
+                to?: string;
+                projectId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_project_list: {
+        parameters: {
+            query?: {
+                /** @description Only this status. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeProjectList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_project_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeProjectInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeProjectView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_rate_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeStaffRateList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_timesheet_list: {
+        parameters: {
+            query?: {
+                /** @description Only this status. */
+                status?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetList"];
                 };
             };
             "4XX": {
@@ -102590,6 +106374,269 @@ export interface operations {
             };
         };
     };
+    people_roster_me_ics: {
+        parameters: {
+            query?: {
+                /** @description Default: Monday of this week. */
+                from?: string;
+                /** @description Default: six days after `from`; at most 62 days. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_open_shifts: {
+        parameters: {
+            query?: {
+                /** @description Default: Monday of this week. */
+                from?: string;
+                /** @description Default: six days after `from`; at most 62 days. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterOpenShifts"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_shift_claim: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterClaimInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSwapView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_clock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterClockInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterPunchView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_swap_mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSwapList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_swap_request: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterSwapRequestInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSwapView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_me: {
+        parameters: {
+            query?: {
+                /** @description Default: Monday of this week. */
+                from?: string;
+                /** @description Default: six days after `from`; at most 62 days. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterMyTimesheet"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterTimesheetSubmit"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterTimesheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_directory_self_get: {
         parameters: {
             query?: never;
@@ -102605,6 +106652,379 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_me_week: {
+        parameters: {
+            query?: {
+                /** @description Any day of the week (default: this week). */
+                week?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTimeWeek"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_me_approvals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_me_csv: {
+        parameters: {
+            query?: {
+                /** @description First day (default: 30 days ago). */
+                from?: string;
+                /** @description Last day (default: today). */
+                to?: string;
+                projectId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_entry_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required. Retry-safe key. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeEntryInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntryResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_entry_update: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeEntryInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntryResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_entry_delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeImportInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeImportResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_timer_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeTimerStart"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeTimerView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_timer_discard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_timer_stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeTimerStop"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntryResult"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_timesheet_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetSubmit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_timesheet_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetView"];
                 };
             };
             "4XX": {
@@ -102634,6 +107054,316 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffWorkloadView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offer */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringOfferInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_accept: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offer */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringOfferAcceptBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offer */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_decline: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offer */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_letter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferLetter"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_send: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offer */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_submit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offer */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_offer_withdraw: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag of the offer */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringOfferView"];
                 };
             };
             "4XX": {
@@ -102701,6 +107431,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_checklist_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringChecklist"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_checklist_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringChecklistTaskInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringChecklist"];
                 };
             };
             "4XX": {
@@ -102886,6 +107678,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OnboardingView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_onboarding_checklist_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringChecklistDoneBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringChecklist"];
                 };
             };
             "4XX": {
@@ -104632,6 +109457,71 @@ export interface operations {
             };
         };
     };
+    people_recruitment_careers_public: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description careers page slug */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringPublicCareers"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_careers_apply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description careers page slug */
+                id: string;
+                requisition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringCareersApplication"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringCareersReceipt"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_recruitment_requisition_get: {
         parameters: {
             query?: never;
@@ -104715,6 +109605,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CandidateView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_recruitment_careers_listing_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiringCareersListingInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HiringCareersPage"];
                 };
             };
             "4XX": {
@@ -104965,6 +109888,39 @@ export interface operations {
             };
         };
     };
+    people_roster_attendance_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterPunchInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterPunchView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_roster_shift_suggestions: {
         parameters: {
             query?: {
@@ -104985,6 +109941,208 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RosterSuggestions"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_swap_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSwapView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_swap_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSwapView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_swap_respond: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RosterSwapRespond"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterSwapView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterTimesheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveDecisionBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterTimesheetView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_roster_timesheet_lock: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterTimesheetView"];
                 };
             };
             "4XX": {
@@ -106442,6 +111600,39 @@ export interface operations {
             };
         };
     };
+    people_time_rate_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeRateInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeStaffRate"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     people_staff_verify: {
         parameters: {
             query?: never;
@@ -106564,6 +111755,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkloadPlanView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_project_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeProjectView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_project_update: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeProjectInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeProjectView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_timesheet_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetDetail"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    people_time_timesheet_decide: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetView"];
                 };
             };
             "4XX": {
