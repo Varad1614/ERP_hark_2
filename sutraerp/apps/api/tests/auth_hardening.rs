@@ -252,8 +252,11 @@ const PUBLIC: [(&str, &str); 17] = [
     ("POST", "/api/v1/auth/logout"),
     ("POST", "/api/v1/finance/gateway/webhook"),
     // ERP_EXTENSIONS 5A: the public careers page (read-only list + spam-safe apply form).
-    ("GET", "/api/v1/people/public/careers/{slug}"),
-    ("POST", "/api/v1/people/public/careers/{slug}/requisitions/{id}/apply"),
+    ("GET", "/api/v1/people/public/careers/{id}"),
+    (
+        "POST",
+        "/api/v1/people/public/careers/{id}/requisitions/{requisition_id}/apply",
+    ),
     ("GET", "/api/v1/platform/modules"),
     ("GET", "/api/v1/platform/workspaces"),
     ("GET", "/api/v1/platform/workspaces/{key}"),

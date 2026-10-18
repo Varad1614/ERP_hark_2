@@ -5,7 +5,7 @@
 //! * Admin (`people.read` / `people.staff.manage`): the institution's careers page (on / off,
 //!   slug, intro, contact e-mail) and each requisition's public listing (published, description,
 //!   location, closing date).
-//! * Public (**no session**, like the payment webhook): `GET /people/public/careers/{slug}` lists
+//! * Public (**no session**, like the payment webhook): `GET /people/public/careers/{id}` (id = slug) lists
 //!   the open, published requisitions with safe fields only; `POST …/requisitions/{id}/apply`
 //!   creates a candidate (`applied`, source "Careers page"). Spam-safe: a honeypot field (bots
 //!   that fill it get the same 202 and nothing is stored), a 16 KB body cap, field size limits,
@@ -401,8 +401,8 @@ async fn site(st: &PeopleState, slug: &str) -> Result<Site, KernelError> {
 
 /// Open, published requisitions of an institution's careers page — **public, no session**
 /// (safe fields only; 404 for an unknown or disabled page).
-#[utoipa::path(get, path = "/api/v1/people/public/careers/{slug}", operation_id = "people_recruitment_careers_public", tag = "people-hr",
-    params(("slug" = String, Path)),
+#[utoipa::path(get, path = "/api/v1/people/public/careers/{id}", operation_id = "people_recruitment_careers_public", tag = "people-hr",
+    params(("id" = String, Path, description = "careers page slug")),
     responses((status = 200, body = HiringPublicCareers), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
 pub async fn careers_public(
     State(st): State<PeopleState>,
@@ -477,8 +477,8 @@ pub struct HiringCareersReceipt {
 /// Apply to an open, published requisition — **public, no session**. 202 on success (also for
 /// a repeat e-mail or a filled honeypot, which store nothing); 413 over 16 KB; 422 on bad fields;
 /// 429 past the daily cap of the requisition.
-#[utoipa::path(post, path = "/api/v1/people/public/careers/{slug}/requisitions/{id}/apply", operation_id = "people_recruitment_careers_apply", tag = "people-hr",
-    params(("slug" = String, Path), ("id" = String, Path, format = Uuid)),
+#[utoipa::path(post, path = "/api/v1/people/public/careers/{id}/requisitions/{requisition_id}/apply", operation_id = "people_recruitment_careers_apply", tag = "people-hr",
+    params(("id" = String, Path, description = "careers page slug"), ("requisition_id" = String, Path, format = Uuid)),
     request_body = HiringCareersApplication,
     responses((status = 202, body = HiringCareersReceipt), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
 pub async fn careers_apply(

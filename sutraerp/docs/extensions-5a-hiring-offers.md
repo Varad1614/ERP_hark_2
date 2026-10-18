@@ -71,8 +71,8 @@ RLS: `platform.apply_tenant_rls()`. Grants to `sutra_people`.
 | `GET /people/institutions/{id}/hiring-analytics?requisitionId=&sinceDays=` | `people_recruitment_hiring_analytics` | read |
 | `GET/PUT /people/institutions/{id}/careers-page` | `people_recruitment_careers_page_get/put` | read / staff.manage |
 | `PUT /people/requisitions/{id}/careers-listing` | `people_recruitment_careers_listing_put` | staff.manage |
-| `GET /people/public/careers/{slug}` | `people_recruitment_careers_public` | **public** |
-| `POST /people/public/careers/{slug}/requisitions/{id}/apply` | `people_recruitment_careers_apply` | **public** |
+| `GET /people/public/careers/{id}` | `people_recruitment_careers_public` | **public** |
+| `POST /people/public/careers/{id}/requisitions/{requisition_id}/apply` | `people_recruitment_careers_apply` | **public** |
 
 All routes are under the `hr` module (entitlements `people` default). The two public routes are in
 `apps/api/tests/auth_hardening.rs` `PUBLIC` and justified in
