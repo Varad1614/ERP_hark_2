@@ -75,8 +75,7 @@ export function CareersPage({ slug, api = defaultOffersApi() }: { slug: string; 
     <div data-careers-page>
       <BentoGrid>
         <BentoTile span={12} title={`Careers at ${d.institution}`}>
-          {/* Escaped by the server. */}
-          <div dangerouslySetInnerHTML={{ __html: d.introHtml }} />
+          <RichText html={d.introHtml} />
           {d.contactEmail && <KeyValue label="Questions" value={<a href={`mailto:${d.contactEmail}`}>{d.contactEmail}</a>} />}
         </BentoTile>
         {d.openings.length === 0 ? (
@@ -91,12 +90,45 @@ export function CareersPage({ slug, api = defaultOffersApi() }: { slug: string; 
               <KeyValue label="Openings" value={o.openings} />
               {o.location && <KeyValue label="Location" value={o.location} />}
               {o.closesOn && <KeyValue label="Apply by" value={o.closesOn} />}
-              <div dangerouslySetInnerHTML={{ __html: o.descriptionHtml }} />
+              <RichText html={o.descriptionHtml} />
               {open === o.id && <ApplyForm slug={slug} opening={o} api={api} />}
             </BentoTile>
           ))
         )}
       </BentoGrid>
+    </div>
+  );
+}
+
+/** Decodes the five entities the server's `escape_html` writes. */
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/**
+ * Renders the server's escaped `<p>` / `<ul><li>` description as React text nodes (no raw HTML
+ * sink): any other markup is dropped as plain text.
+ */
+export function RichText({ html }: { html: string }) {
+  const blocks: { kind: "p" | "ul"; items: string[] }[] = [];
+  const re = /<p>([\s\S]*?)<\/p>|<ul>([\s\S]*?)<\/ul>/g;
+  for (let m = re.exec(html); m; m = re.exec(html)) {
+    if (m[1] !== undefined) blocks.push({ kind: "p", items: [decodeEntities(m[1])] });
+    else {
+      const items = [...(m[2] ?? "").matchAll(/<li>([\s\S]*?)<\/li>/g)].map((li) => decodeEntities(li[1] ?? ""));
+      blocks.push({ kind: "ul", items });
+    }
+  }
+  return (
+    <div data-rich-text>
+      {blocks.map((b, i) =>
+        b.kind === "p" ? <p key={i}>{b.items[0]}</p> : <ul key={i}>{b.items.map((t, j) => <li key={j}>{t}</li>)}</ul>,
+      )}
     </div>
   );
 }

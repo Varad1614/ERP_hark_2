@@ -51,3 +51,7 @@ condition = "AND"
 paths = ['''^sutraerp/deploy/monitoring/drill/run-drill\.sh$''']
 regexTarget = "match"
 regexes = ['''admin:\$\{SUTRA_GRAFANA_ADMIN_PASSWORD(:\?)?\}''']
+
+[[allowlists]]
+description = "ERP_EXTENSIONS 5A: generated golden vectors of the hiring-offers port (tools/golden/specs/hiring-offers.mjs, commit 365beef onwards). Their follow-up / stage `key` fields ('followup-f00-2026-02-16', 'interview', …) match generic-api-key; the file is deterministic test data with no credentials (docs/security/findings.md SEC-EXT-5A-001)"
+paths = ['''^sutraerp/modules/people/tests/golden/hiring_offers\.json$''']
