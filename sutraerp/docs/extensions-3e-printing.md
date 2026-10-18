@@ -59,7 +59,7 @@ words (`Rupees One Lakh Twenty-Five Thousand Only`), counter day-close rows.
 ```ts
 ReceiptPrintSettings = { institutionId, title: string, address: string,
   registrations: {label: string, number: string}[] /* ≤ 2, e.g. GSTIN, PAN */,
-  footer: string, showAmountInWords: boolean, timezone: string /* default Asia/Kolkata */,
+  footer: string, showAmountInWords: boolean /* times print in the institution's timezone */,
   updatedAt: string | null }
 ReceiptPrintSettingsInput = same minus institutionId/updatedAt
 ReceiptSlip = { receiptId: string | null, receiptNumber: string | null, columns: 32 | 48,
@@ -76,7 +76,7 @@ meta; reprints carry `DUPLICATE` in `kind` when `?copy=duplicate`.
 
 Migration `20270103000500_finance_receipt_printing.sql`: `finance.receipt_print_settings`
 (tenant_id, institution_id PK pair, title, address, registrations jsonb, footer,
-show_amount_in_words, timezone, updated_at, updated_by).
+show_amount_in_words, updated_at, updated_by).
 
 ## Web (owner: web agent) — `apps/web/app/features/finance/printing/`
 
