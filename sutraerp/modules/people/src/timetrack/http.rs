@@ -3206,7 +3206,14 @@ async fn effort(
             utilisation_percent: p
                 .manpower_budget
                 .filter(|b| *b > Decimal::ZERO)
-                .and_then(|b| (cost * Decimal::from(100) / b).round_dp(2).to_f64()),
+                .and_then(|b| {
+                    (cost * Decimal::from(100) / b)
+                        .round_dp_with_strategy(
+                            2,
+                            rust_decimal::RoundingStrategy::MidpointAwayFromZero,
+                        )
+                        .to_f64()
+                }),
             staff_count: staff.len() as i64,
         });
     }
