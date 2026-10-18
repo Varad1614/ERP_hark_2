@@ -842,6 +842,60 @@ try {
     await shot(page, "procurement", "expenses-approvals");
   });
 
+  // ============================================================ 5C time tracking (screenshots 60–69)
+  shotNo = Math.max(shotNo, 59);
+  await step(page, "5C: People → Workload — Time tracking: a SERB grant with Meera as JRF", async () => {
+    await go(page, "/people/workload");
+    const t = await openTile(page, "data-time-tracking", "Time tracking");
+    await fill(t, "Code", "SERB-CRG/2026/014");
+    await fill(t, "Name", "Monsoon rainfall nowcasting");
+    await fill(t, "Sanction order no.", "CRG/2026/000014");
+    await fill(t, "Sanctioned amount (₹)", "3200000");
+    await fill(t, "Manpower head (₹)", "1200000");
+    await fill(t, "Starts", "2026-04-01");
+    await fill(t, "Ends", "2029-03-31");
+    await choose(field(t, "Add a member"), "Meera");
+    await t.locator('[data-action="add-member"]').click();
+    await apiAction(page, "POST", /\/people\/institutions\/[^/]+\/time-projects$/, () => t.locator('[data-action="create-time-project"]').click());
+    await t.locator('[data-project-code="SERB-CRG/2026/014"]').first().waitFor();
+    await shot(page, "people", "workload-time-projects");
+  });
+
+  await signOut(page);
+  await signIn(page, "faculty");
+  await step(page, "5C: faculty My HR → Workload — My time: 1h30 logged, week submitted", async () => {
+    await go(page, "/leave/workload");
+    const t = await openTile(page, "data-my-time", "My time");
+    await t.locator('[data-week-project="SERB-CRG/2026/014"]').first().waitFor({ timeout: 15000 });
+    await choose(field(t, "Project"), "SERB-CRG/2026/014");
+    await fill(t, "Duration", "1h30");
+    await fill(t, "Task", "Radar data cleaning");
+    await apiAction(page, "POST", /\/people\/me\/time\/entries$/, () => t.locator('[data-action="add-entry"]').click());
+    await t.getByText("Radar data cleaning").first().waitFor();
+    await shot(page, "my-hr", "workload-my-time");
+    await apiAction(page, "POST", /\/people\/me\/time\/timesheets$/, () => t.locator('[data-action="submit-week"]').first().click());
+    await t.getByText("Awaiting approval").first().waitFor();
+    ids.timesheetSubmitted = true;
+    await shot(page, "my-hr", "workload-my-time-submitted");
+  });
+
+  await signOut(page);
+  await signIn(page, "administrator");
+  await step(page, "5C: People → Workload — Time tracking: week approved, effort report", async () => {
+    await go(page, "/people/workload");
+    const t = await openTile(page, "data-time-tracking", "Time tracking");
+    await apiAction(page, "GET", /\/people\/institutions\/[^/]+\/timesheets$/, () => tab(page, t, "data-time-tab", "approvals"), { query: "status=submitted" });
+    if (ids.timesheetSubmitted) {
+      await t.getByText("Meera").first().waitFor({ timeout: 10000 });
+      await shot(page, "people", "workload-time-approvals");
+      await apiAction(page, "POST", /\/people\/timesheets\/[^/]+\/decision$/, () => t.locator('[data-action="approve-timesheet"]').first().click());
+    }
+    await apiAction(page, "GET", /\/people\/institutions\/[^/]+\/effort-report$/, () => tab(page, t, "data-time-tab", "effort"));
+    await shot(page, "people", "workload-effort-report");
+    await apiAction(page, "GET", /\/people\/institutions\/[^/]+\/time-rates$/, () => tab(page, t, "data-time-tab", "rates"));
+    await shot(page, "people", "workload-time-rates");
+  });
+
   const late = newProblems();
   if (late.length) failed.push(`errors outside the steps:\n    ${late.join("\n    ")}`);
   else log("  ✓ no page errors, console errors or 5xx answers outside the steps");

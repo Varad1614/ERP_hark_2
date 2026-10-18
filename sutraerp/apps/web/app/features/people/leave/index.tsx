@@ -22,6 +22,7 @@ import { Acts, days, hours, splitActions, useAsk, type RowAction } from "../ui";
 import type { Institution } from "../../institution/types";
 import { lkeys, useLeaveApi } from "./hooks";
 import { DutyRosterTile } from "../roster/DutyRosterTile";
+import { TimeTrackingTile } from "../timetrack/TimeTrackingTile"; // ERP_EXTENSIONS 5C
 import type { AttendanceGridRow, LeaveBalance, LeavePolicy, LeaveRequest, LeaveType, StaffRow } from "./types";
 
 export { LeaveApiProvider } from "./hooks";
@@ -846,7 +847,12 @@ export function AttendanceAdminTab({ institution }: { institution: Institution |
 /** Admin → People → Workload: faculty teaching load (Domain D) against workload plans. */
 export function WorkloadAdminTab({ institution }: { institution: Institution | null }) {
   if (!institution) return <NoInstitutionTile title="Workload" />;
-  return <WorkloadTile institutionId={institution.id} span={12} />;
+  return (
+    <>
+      <WorkloadTile institutionId={institution.id} span={12} />
+      <TimeTrackingTile institutionId={institution.id} />
+    </>
+  );
 }
 
 // ================================================================== Faculty → Leave (My HR)
