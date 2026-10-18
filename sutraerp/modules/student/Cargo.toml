@@ -27,7 +27,6 @@ sqlx.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 unicode-normalization.workspace = true
-rust_decimal.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
