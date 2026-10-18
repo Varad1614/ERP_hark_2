@@ -14289,6 +14289,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/institutions/{id}/counter-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The counter's day close (`finance.read`): standing receipts by tender, cancellations and the
+         *     receipt-number range for one business day; `mine=true` limits it to the caller's receipts.
+         */
+        get: operations["finance_receipt_counter_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/institutions/{id}/dunning-runs": {
         parameters: {
             query?: never;
@@ -14595,6 +14615,41 @@ export interface paths {
         };
         /** Payments of an institution, newest first (`finance.read`). */
         get: operations["finance_payment_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/receipt-print-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The institution's slip settings (`finance.read`); defaults until it saves its own. */
+        get: operations["finance_receipt_print_settings_get"];
+        /** Replaces the institution's slip settings (`finance.config.manage`; audited). */
+        put: operations["finance_receipt_print_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/receipt-test-slip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A test slip for a counter's printer (`finance.read`). */
+        get: operations["finance_receipt_test_slip"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15117,6 +15172,26 @@ export interface paths {
         };
         /** One receipt (`finance.read`; students read their own through `/me/receipts`). */
         get: operations["finance_receipt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/receipts/{id}/slip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One fee receipt as a counter slip (`finance.read`). A cancelled receipt prints as VOID;
+         *     `copy=duplicate` marks a reprint; `kick=true` opens the cash drawer for a cash receipt.
+         */
+        get: operations["finance_receipt_slip"];
         put?: never;
         post?: never;
         delete?: never;
@@ -33324,6 +33399,17 @@ export interface components {
             /** Format: int64 */
             staffVersion: number;
         };
+        /** @description One report row: a section heading when `section` is set, else a label/value line. */
+        CounterReportRow: {
+            /** @description Left-hand label. */
+            label: string;
+            /** @description Section heading (printed upper-case after a rule); the row's label/value are ignored. */
+            section?: string | null;
+            /** @description Printed bold. */
+            strong?: boolean;
+            /** @description Right-hand value. */
+            value: string;
+        };
         /**
          * @description Course Offering lifecycle (L2-D01 §10 + §71 state transition matrix).
          * @enum {string}
@@ -45032,6 +45118,38 @@ export interface components {
             studentId: components["schemas"]["StudentId"];
             toStatus: components["schemas"]["ScholarshipEligibilityStatus"];
         };
+        /** @description One tender's share of the counter's day. */
+        ReceiptCounterChannel: {
+            /** @example 12500.00 */
+            amount: string;
+            channel: string;
+            /** Format: int64 */
+            count: number;
+        };
+        /** @description The counter's day close. */
+        ReceiptCounterReport: {
+            byChannel: components["schemas"]["ReceiptCounterChannel"][];
+            /** Format: int64 */
+            cancelledCount: number;
+            /** Format: date */
+            date: string;
+            escposBase64: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description `true` when limited to the caller's own receipts. */
+            mine: boolean;
+            preview: string;
+            /**
+             * Format: int64
+             * @description Receipts issued that day and still standing.
+             */
+            receiptCount: number;
+            rows: components["schemas"]["CounterReportRow"][];
+            /** @example 62500.00 */
+            total: string;
+            /** @description `₹62,500.00`. */
+            totalDisplay: string;
+        };
         /**
          * Format: uuid
          * @description Receipt issued for a completed payment.
@@ -45039,6 +45157,36 @@ export interface components {
         ReceiptId: string;
         ReceiptList: {
             items: components["schemas"]["ReceiptView"][];
+        };
+        /** @description One registration printed under the header (GSTIN, PAN, trust registration …). */
+        ReceiptPrintRegistration: {
+            label: string;
+            number: string;
+        };
+        /** @description What an institution prints on its counter slips. */
+        ReceiptPrintSettings: {
+            address: string;
+            footer: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description At most two (GSTIN, PAN, trust registration). */
+            registrations: components["schemas"]["ReceiptPrintRegistration"][];
+            showAmountInWords: boolean;
+            /** @description Empty means the institution's own name. */
+            title: string;
+            /**
+             * Format: date-time
+             * @description `null` until the institution saves its own settings.
+             */
+            updatedAt?: string | null;
+        };
+        /** @description New print settings (the whole set; the server keeps nothing it is not sent). */
+        ReceiptPrintSettingsInput: {
+            address?: string;
+            footer?: string;
+            registrations?: components["schemas"]["ReceiptPrintRegistration"][];
+            showAmountInWords?: boolean;
+            title?: string;
         };
         /** @description What reading a receipt pre-filled (every field is a suggestion). */
         ReceiptReading: {
@@ -45058,6 +45206,73 @@ export interface components {
             issuedAt: string;
             receiptNumber: string;
             status: components["schemas"]["ReceiptStatus"];
+        };
+        /** @description A slip ready for the counter's printer. */
+        ReceiptSlip: {
+            /** @description 32 (58 mm paper) or 48 (80 mm paper). */
+            columns: number;
+            doc: components["schemas"]["ReceiptSlipDoc"];
+            /** @description ESC/POS bytes, base64 (standard alphabet, padded). */
+            escposBase64: string;
+            /** @description `true` when the bytes end with the cash-drawer pulse (asked for, and a cash receipt). */
+            kickDrawer: boolean;
+            /** @description The slip as plain text, for the browser's own print dialog. */
+            preview: string;
+            /**
+             * Format: uuid
+             * @description `null` on a test slip.
+             */
+            receiptId?: string | null;
+            receiptNumber?: string | null;
+        };
+        /** @description A receipt as the slip shows it: header, meta lines, items, totals, payments, footer. */
+        ReceiptSlipDoc: {
+            /** @description Postal address under the name (omitted when empty). */
+            address: string;
+            /** @description Centered footer (omitted when empty). */
+            footer: string;
+            /** @description Line items. */
+            items: components["schemas"]["ReceiptSlipItem"][];
+            /** @description Prints `*** {kind} ***` (e.g. `DUPLICATE`) when present and non-empty. */
+            kind?: string | null;
+            /** @description Centered bold line (omitted when empty). */
+            loyalty: string;
+            /** @description Receipt number, date, student and similar lines. */
+            meta: string[];
+            /** @description Free note (omitted when empty). */
+            note: string;
+            /** @description Payment rows (a rule is printed above them only when there are some). */
+            payments: components["schemas"]["ReceiptSlipRow"][];
+            /** @description Registration lines, e.g. `GSTIN 27AAAAA0000A1Z5`. */
+            registrations: string[];
+            /** @description Centered line (omitted when empty). */
+            reward: string;
+            /** @description Institution name, printed double size. */
+            storeName: string;
+            /** @description Total rows. */
+            totals: components["schemas"]["ReceiptSlipRow"][];
+            /** @description Prints `*** VOID ***` under the header. */
+            voided: boolean;
+        };
+        /** @description One item line: quantity and name on the left, amount on the right, sub-lines indented. */
+        ReceiptSlipItem: {
+            /** @description Amount text, never shortened. */
+            amount: string;
+            /** @description Item name; shortened with `~` when the paper is narrow. */
+            name: string;
+            /** @description Quantity text, e.g. `1x`. */
+            qty: string;
+            /** @description Indented detail lines. */
+            subs: string[];
+        };
+        /** @description A label/value row (totals and payments). */
+        ReceiptSlipRow: {
+            /** @description Left-hand label. */
+            label: string;
+            /** @description Printed bold. */
+            strong?: boolean;
+            /** @description Right-hand value. */
+            value: string;
         };
         /**
          * @description Receipt.
@@ -85288,6 +85503,40 @@ export interface operations {
             };
         };
     };
+    finance_receipt_counter_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description The business day (default today, institution time). */
+                date: string | null;
+                columns: number | null;
+                /** @description Only the receipts the caller recorded. */
+                mine: boolean | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptCounterReport"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_dunning_run: {
         parameters: {
             query?: never;
@@ -86066,6 +86315,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receipt_print_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptPrintSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receipt_print_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptPrintSettingsInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptPrintSettings"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receipt_test_slip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description 32 or 48 (anything else prints at 48). */
+                columns: number | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptSlip"];
                 };
             };
             "4XX": {
@@ -87186,6 +87528,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReceiptView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_receipt_slip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description 32 or 48 (anything else prints at 48). */
+                columns: number | null;
+                /** @description End with the cash-drawer pulse (only a cash receipt opens the drawer). */
+                kick: boolean | null;
+                /** @description `duplicate` marks a reprint. */
+                copy: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptSlip"];
                 };
             };
             "4XX": {

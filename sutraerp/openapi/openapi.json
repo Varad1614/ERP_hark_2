@@ -64079,6 +64079,90 @@
         ]
       }
     },
+    "/api/v1/finance/institutions/{id}/counter-report": {
+      "get": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "The counter's day close (`finance.read`): standing receipts by tender, cancellations and the\nreceipt-number range for one business day; `mine=true` limits it to the caller's receipts.",
+        "operationId": "finance_receipt_counter_report",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "date",
+            "in": "path",
+            "description": "The business day (default today, institution time).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          },
+          {
+            "name": "mine",
+            "in": "path",
+            "description": "Only the receipts the caller recorded.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptCounterReport"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/institutions/{id}/dunning-runs": {
       "post": {
         "tags": [
@@ -65695,6 +65779,168 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaymentList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/receipt-print-settings": {
+      "get": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "The institution's slip settings (`finance.read`); defaults until it saves its own.",
+        "operationId": "finance_receipt_print_settings_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptPrintSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "Replaces the institution's slip settings (`finance.config.manage`; audited).",
+        "operationId": "finance_receipt_print_settings_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptPrintSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptPrintSettings"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/receipt-test-slip": {
+      "get": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "A test slip for a counter's printer (`finance.read`).",
+        "operationId": "finance_receipt_test_slip",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "path",
+            "description": "32 or 48 (anything else prints at 48).",
+            "required": true,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptSlip"
                 }
               }
             }
@@ -67772,6 +68018,90 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReceiptView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/receipts/{id}/slip": {
+      "get": {
+        "tags": [
+          "finance-payments"
+        ],
+        "summary": "One fee receipt as a counter slip (`finance.read`). A cancelled receipt prints as VOID;\n`copy=duplicate` marks a reprint; `kick=true` opens the cash drawer for a cash receipt.",
+        "operationId": "finance_receipt_slip",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "path",
+            "description": "32 or 48 (anything else prints at 48).",
+            "required": true,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          },
+          {
+            "name": "kick",
+            "in": "path",
+            "description": "End with the cash-drawer pulse (only a cash receipt opens the drawer).",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "copy",
+            "in": "path",
+            "description": "`duplicate` marks a reprint.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptSlip"
                 }
               }
             }
@@ -152514,6 +152844,35 @@
           }
         }
       },
+      "CounterReportRow": {
+        "type": "object",
+        "description": "One report row: a section heading when `section` is set, else a label/value line.",
+        "required": [
+          "label",
+          "value"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Left-hand label."
+          },
+          "section": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Section heading (printed upper-case after a rule); the row's label/value are ignored."
+          },
+          "strong": {
+            "type": "boolean",
+            "description": "Printed bold."
+          },
+          "value": {
+            "type": "string",
+            "description": "Right-hand value."
+          }
+        }
+      },
       "CourseOfferingStatus": {
         "type": "string",
         "description": "Course Offering lifecycle (L2-D01 §10 + §71 state transition matrix).",
@@ -189377,6 +189736,94 @@
           }
         }
       },
+      "ReceiptCounterChannel": {
+        "type": "object",
+        "description": "One tender's share of the counter's day.",
+        "required": [
+          "channel",
+          "count",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "12500.00"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ReceiptCounterReport": {
+        "type": "object",
+        "description": "The counter's day close.",
+        "required": [
+          "institutionId",
+          "date",
+          "mine",
+          "receiptCount",
+          "cancelledCount",
+          "total",
+          "totalDisplay",
+          "byChannel",
+          "rows",
+          "preview",
+          "escposBase64"
+        ],
+        "properties": {
+          "byChannel": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptCounterChannel"
+            }
+          },
+          "cancelledCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "escposBase64": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mine": {
+            "type": "boolean",
+            "description": "`true` when limited to the caller's own receipts."
+          },
+          "preview": {
+            "type": "string"
+          },
+          "receiptCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Receipts issued that day and still standing."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CounterReportRow"
+            }
+          },
+          "total": {
+            "type": "string",
+            "example": "62500.00"
+          },
+          "totalDisplay": {
+            "type": "string",
+            "description": "`₹62,500.00`."
+          }
+        }
+      },
       "ReceiptId": {
         "type": "string",
         "format": "uuid",
@@ -189393,6 +189840,92 @@
             "items": {
               "$ref": "#/components/schemas/ReceiptView"
             }
+          }
+        }
+      },
+      "ReceiptPrintRegistration": {
+        "type": "object",
+        "description": "One registration printed under the header (GSTIN, PAN, trust registration …).",
+        "required": [
+          "label",
+          "number"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          }
+        }
+      },
+      "ReceiptPrintSettings": {
+        "type": "object",
+        "description": "What an institution prints on its counter slips.",
+        "required": [
+          "institutionId",
+          "title",
+          "address",
+          "registrations",
+          "footer",
+          "showAmountInWords"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "footer": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registrations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptPrintRegistration"
+            },
+            "description": "At most two (GSTIN, PAN, trust registration)."
+          },
+          "showAmountInWords": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string",
+            "description": "Empty means the institution's own name."
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "`null` until the institution saves its own settings."
+          }
+        }
+      },
+      "ReceiptPrintSettingsInput": {
+        "type": "object",
+        "description": "New print settings (the whole set; the server keeps nothing it is not sent).",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "footer": {
+            "type": "string"
+          },
+          "registrations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptPrintRegistration"
+            }
+          },
+          "showAmountInWords": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
           }
         }
       },
@@ -189463,6 +189996,196 @@
           },
           "status": {
             "$ref": "#/components/schemas/ReceiptStatus"
+          }
+        }
+      },
+      "ReceiptSlip": {
+        "type": "object",
+        "description": "A slip ready for the counter's printer.",
+        "required": [
+          "columns",
+          "doc",
+          "preview",
+          "escposBase64",
+          "kickDrawer"
+        ],
+        "properties": {
+          "columns": {
+            "type": "integer",
+            "description": "32 (58 mm paper) or 48 (80 mm paper).",
+            "minimum": 0
+          },
+          "doc": {
+            "$ref": "#/components/schemas/ReceiptSlipDoc"
+          },
+          "escposBase64": {
+            "type": "string",
+            "description": "ESC/POS bytes, base64 (standard alphabet, padded)."
+          },
+          "kickDrawer": {
+            "type": "boolean",
+            "description": "`true` when the bytes end with the cash-drawer pulse (asked for, and a cash receipt)."
+          },
+          "preview": {
+            "type": "string",
+            "description": "The slip as plain text, for the browser's own print dialog."
+          },
+          "receiptId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "`null` on a test slip."
+          },
+          "receiptNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ReceiptSlipDoc": {
+        "type": "object",
+        "description": "A receipt as the slip shows it: header, meta lines, items, totals, payments, footer.",
+        "required": [
+          "storeName",
+          "address",
+          "registrations",
+          "voided",
+          "meta",
+          "items",
+          "totals",
+          "payments",
+          "note",
+          "reward",
+          "loyalty",
+          "footer"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Postal address under the name (omitted when empty)."
+          },
+          "footer": {
+            "type": "string",
+            "description": "Centered footer (omitted when empty)."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptSlipItem"
+            },
+            "description": "Line items."
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Prints `*** {kind} ***` (e.g. `DUPLICATE`) when present and non-empty."
+          },
+          "loyalty": {
+            "type": "string",
+            "description": "Centered bold line (omitted when empty)."
+          },
+          "meta": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Receipt number, date, student and similar lines."
+          },
+          "note": {
+            "type": "string",
+            "description": "Free note (omitted when empty)."
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptSlipRow"
+            },
+            "description": "Payment rows (a rule is printed above them only when there are some)."
+          },
+          "registrations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Registration lines, e.g. `GSTIN 27AAAAA0000A1Z5`."
+          },
+          "reward": {
+            "type": "string",
+            "description": "Centered line (omitted when empty)."
+          },
+          "storeName": {
+            "type": "string",
+            "description": "Institution name, printed double size."
+          },
+          "totals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptSlipRow"
+            },
+            "description": "Total rows."
+          },
+          "voided": {
+            "type": "boolean",
+            "description": "Prints `*** VOID ***` under the header."
+          }
+        }
+      },
+      "ReceiptSlipItem": {
+        "type": "object",
+        "description": "One item line: quantity and name on the left, amount on the right, sub-lines indented.",
+        "required": [
+          "qty",
+          "name",
+          "amount",
+          "subs"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "description": "Amount text, never shortened."
+          },
+          "name": {
+            "type": "string",
+            "description": "Item name; shortened with `~` when the paper is narrow."
+          },
+          "qty": {
+            "type": "string",
+            "description": "Quantity text, e.g. `1x`."
+          },
+          "subs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Indented detail lines."
+          }
+        }
+      },
+      "ReceiptSlipRow": {
+        "type": "object",
+        "description": "A label/value row (totals and payments).",
+        "required": [
+          "label",
+          "value"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Left-hand label."
+          },
+          "strong": {
+            "type": "boolean",
+            "description": "Printed bold."
+          },
+          "value": {
+            "type": "string",
+            "description": "Right-hand value."
           }
         }
       },

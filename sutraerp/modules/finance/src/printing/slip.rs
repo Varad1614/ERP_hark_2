@@ -202,7 +202,14 @@ pub fn fee_receipt_doc(
         address: settings.address.trim().to_owned(),
         registrations: registration_lines(settings),
         voided: facts.cancelled,
-        kind: Some(if duplicate { "DUPLICATE COPY" } else { "FEE RECEIPT" }.to_owned()),
+        kind: Some(
+            if duplicate {
+                "DUPLICATE COPY"
+            } else {
+                "FEE RECEIPT"
+            }
+            .to_owned(),
+        ),
         meta,
         items,
         totals,
@@ -235,7 +242,11 @@ pub fn test_doc(settings: &PrintSettings, institution_name: &str, columns: usize
             strong: true,
         }],
         payments: Vec::new(),
-        note: "1234567890".repeat(columns.div_ceil(10)).chars().take(columns).collect(),
+        note: "1234567890"
+            .repeat(columns.div_ceil(10))
+            .chars()
+            .take(columns)
+            .collect(),
         reward: String::new(),
         loyalty: String::new(),
         footer: "If this prints cleanly, the printer is ready.".to_owned(),
@@ -342,8 +353,26 @@ pub fn counter_report(
 }
 
 const ONES: [&str; 20] = [
-    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven",
-    "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen",
+    "",
+    "One",
+    "Two",
+    "Three",
+    "Four",
+    "Five",
+    "Six",
+    "Seven",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+    "Twelve",
+    "Thirteen",
+    "Fourteen",
+    "Fifteen",
+    "Sixteen",
+    "Seventeen",
+    "Eighteen",
+    "Nineteen",
 ];
 const TENS: [&str; 10] = [
     "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
@@ -452,10 +481,19 @@ mod tests {
         assert_eq!(amount_in_words_inr(d("0.50")), "Fifty Paise Only");
         assert_eq!(amount_in_words_inr(d("0")), "Rupees Zero Only");
         assert_eq!(amount_in_words_inr(d("100")), "Rupees One Hundred Only");
-        assert_eq!(amount_in_words_inr(d("1005")), "Rupees One Thousand Five Only");
-        assert_eq!(amount_in_words_inr(d("90000")), "Rupees Ninety Thousand Only");
+        assert_eq!(
+            amount_in_words_inr(d("1005")),
+            "Rupees One Thousand Five Only"
+        );
+        assert_eq!(
+            amount_in_words_inr(d("90000")),
+            "Rupees Ninety Thousand Only"
+        );
         assert_eq!(number_in_words_indian(1_000_000_000), "One Hundred Crore");
-        assert_eq!(amount_in_words_inr(d("10.005")), "Rupees Ten and One Paise Only");
+        assert_eq!(
+            amount_in_words_inr(d("10.005")),
+            "Rupees Ten and One Paise Only"
+        );
     }
 
     fn facts() -> ReceiptFacts {
@@ -482,11 +520,18 @@ mod tests {
 
     #[test]
     fn a_fee_receipt_carries_the_counter_facts() {
-        let doc = fee_receipt_doc(&facts(), &PrintSettings::default(), "Ahilyanagar College", false);
+        let doc = fee_receipt_doc(
+            &facts(),
+            &PrintSettings::default(),
+            "Ahilyanagar College",
+            false,
+        );
         assert_eq!(doc.store_name, "Ahilyanagar College");
         assert_eq!(doc.kind.as_deref(), Some("FEE RECEIPT"));
         assert_eq!(doc.meta[0], "Receipt #RCT-2026-00042");
-        assert!(doc.meta.contains(&"Student: Ananya Kulkarni (2026BCS014)".to_owned()));
+        assert!(doc
+            .meta
+            .contains(&"Student: Ananya Kulkarni (2026BCS014)".to_owned()));
         assert_eq!(doc.items[0].amount, "₹25,000.00");
         assert_eq!(doc.totals[0].label, "Held as advance");
         assert_eq!(doc.totals[1].value, "₹25,500.00");
@@ -505,8 +550,14 @@ mod tests {
         let settings = PrintSettings {
             title: "SPPU Affiliated College".into(),
             registrations: vec![
-                Registration { label: "PAN".into(), number: "AAATS1234K".into() },
-                Registration { label: "GSTIN".into(), number: String::new() },
+                Registration {
+                    label: "PAN".into(),
+                    number: "AAATS1234K".into(),
+                },
+                Registration {
+                    label: "GSTIN".into(),
+                    number: String::new(),
+                },
             ],
             show_amount_in_words: false,
             ..PrintSettings::default()
@@ -527,8 +578,16 @@ mod tests {
             scope_label: "All counters".into(),
             printed_local: "17 Oct 2026 · 6:05 PM".into(),
             by_channel: vec![
-                ChannelTotal { channel: "cheque".into(), count: 2, amount: d("50000") },
-                ChannelTotal { channel: "cash".into(), count: 5, amount: d("12500") },
+                ChannelTotal {
+                    channel: "cheque".into(),
+                    count: 2,
+                    amount: d("50000"),
+                },
+                ChannelTotal {
+                    channel: "cash".into(),
+                    count: 5,
+                    amount: d("12500"),
+                },
             ],
             receipt_count: 7,
             cancelled_count: 1,

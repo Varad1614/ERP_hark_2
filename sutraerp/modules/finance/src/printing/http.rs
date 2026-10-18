@@ -10,8 +10,8 @@
 
 use super::escpos::{escpos_receipt, escpos_report, readable, ReportRow, SlipDoc};
 use super::slip::{
-    counter_report, fee_receipt_doc, test_doc, ChannelTotal, CounterDay, PaidLine,
-    PrintSettings, ReceiptFacts, Registration,
+    counter_report, fee_receipt_doc, test_doc, ChannelTotal, CounterDay, PaidLine, PrintSettings,
+    ReceiptFacts, Registration,
 };
 use crate::shared::guard::require_institution;
 use crate::shared::http::actor;
@@ -521,7 +521,11 @@ pub async fn counter_report_get(
     let institution = require_institution(&st, &institution_scope(ctx, inst), inst).await?;
     let t = tenant(ctx);
     let mine = q.mine.unwrap_or(false);
-    let who = if mine { Some(ctx.subject.clone()) } else { None };
+    let who = if mine {
+        Some(ctx.subject.clone())
+    } else {
+        None
+    };
     let tz = institution.timezone.clone();
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let date: NaiveDate = match q.date {
