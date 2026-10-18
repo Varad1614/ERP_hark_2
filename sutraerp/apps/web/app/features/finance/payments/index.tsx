@@ -12,7 +12,7 @@
  *   owns the mock-gateway checkout and the student refund request).
  */
 import { CreditCard, HandCoins, Inbox, ReceiptText, RotateCcw, Scale } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, EmptyState, KeyValue, NameCell, StepDialog, formatDate } from "@sutra/ui";
+import { Badge, BentoTile, Button, DataTable, EmptyState, KeyValue, NameCell, StepDialog, formatDate, useToast } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { REASON, type RowAction } from "../../institution/forms";
@@ -21,6 +21,7 @@ import type { Institution } from "../../institution/types";
 import { ledger, money, rowActions, useFinanceAsk } from "../ui";
 import { pkeys, usePaymentsApi } from "./hooks";
 import { toPaise } from "./mock";
+import { CounterPrintingSection, PrintSlipButton, autoPrintAfterRecording, defaultPrintingApi } from "../printing";
 import type { LateFeeRun, Payment, Receipt, Refund } from "./types";
 
 export { PaymentsApiProvider } from "./hooks";
@@ -46,7 +47,7 @@ function NoInstitutionTile({ title }: { title: string }) {
 }
 
 /** Receipt dialog (prototype `.md`): eyebrow, receipt number, amount with paise, allocations. */
-export function ReceiptModal({ receipt, onClose }: { receipt: Receipt; onClose: () => void }) {
+export function ReceiptModal({ receipt, onClose, printable = false }: { receipt: Receipt; onClose: () => void; /** Staff counter view: print the thermal slip (3E). */ printable?: boolean }) {
   return (
     <StepDialog
       open
@@ -56,6 +57,7 @@ export function ReceiptModal({ receipt, onClose }: { receipt: Receipt; onClose: 
       data-receipt={receipt.receiptNumber}
       footer={
         <div className="sb-dialog-foot">
+          {printable && <PrintSlipButton receiptId={receipt.id} channel={receipt.channel} showDuplicate />}
           <button type="button" className="sb-btn" onClick={onClose}>
             Done
           </button>
@@ -85,6 +87,7 @@ export function CollectionsAdminTab({ institution }: { institution: Institution 
   const { run, submit, busy, dialog } = useCommand();
   const { ask, prompt } = useFinanceAsk();
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const toast = useToast();
   const inst = institution?.id ?? "-";
   const accounts = useQuery({ queryKey: pkeys.scoped(inst, "accounts"), queryFn: () => api.accounts(inst), enabled: !!institution });
   const payments = useQuery({ queryKey: pkeys.scoped(inst, "payments"), queryFn: () => api.payments(inst), enabled: !!institution });
@@ -129,7 +132,12 @@ export function CollectionsAdminTab({ institution }: { institution: Institution 
                 ],
                 onSubmit: (v) =>
                   submit(
-                    () => api.recordPayment(v.accountId!, { channel: v.channel as "cash", amount: v.amount!, externalRef: v.externalRef || undefined, payerName: v.payerName || undefined }),
+                    async () => {
+                      const p = await api.recordPayment(v.accountId!, { channel: v.channel as "cash", amount: v.amount!, externalRef: v.externalRef || undefined, payerName: v.payerName || undefined });
+                      // 3E: a device set to auto-print hands the cash slip over straight away.
+                      void autoPrintAfterRecording(defaultPrintingApi(), p.receipt, p.channel).then((m) => m && toast(m));
+                      return p;
+                    },
                     (p) => `${p.paymentNumber} recorded · receipt ${p.receipt?.receiptNumber ?? "—"}`,
                   ),
               })
@@ -156,6 +164,7 @@ export function CollectionsAdminTab({ institution }: { institution: Institution 
             { key: "u", header: "Unapplied", render: (p) => (isZero(p.unappliedAmount) ? "—" : money(p.unappliedAmount)) },
             { key: "r", header: "Receipt", render: (p) => p.receipt?.receiptNumber ?? "—" },
             { key: "s", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
+            { key: "p", header: "Slip", render: (p) => (p.receipt ? <PrintSlipButton receiptId={p.receipt.id} channel={p.channel} /> : "—") },
             { key: "x", header: "", render: (p) => rowActions(actions(p), busy) },
           ]}
         />
@@ -231,7 +240,8 @@ export function CollectionsAdminTab({ institution }: { institution: Institution 
           />
         </BentoTile>
       )}
-      {receipt && <ReceiptModal receipt={receipt} onClose={() => setReceipt(null)} />}
+      <CounterPrintingSection institutionId={institution.id} institutionName={institution.name} />
+      {receipt && <ReceiptModal receipt={receipt} printable onClose={() => setReceipt(null)} />}
       {prompt}
       {dialog}
     </>

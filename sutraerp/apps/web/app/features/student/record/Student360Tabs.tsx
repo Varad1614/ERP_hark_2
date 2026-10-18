@@ -26,6 +26,7 @@ import { useSession } from "../../../lib/auth";
 import { useInstitutionApi, useInstitutions, keys as instKeys } from "../../institution/hooks";
 import { rkeys as regKeys, useRegistrationApi } from "../registration/hooks";
 import { Actions, DialogFrame, REASON, rowProps, SpecForm, useAsk, type RowAction } from "../ui";
+import { PrintSlipButton } from "../../finance/printing/PrintSlipButton";
 import { AttendanceBadge, FeeBadge, useProgrammeNames } from "./AdminTabs";
 import type { Student } from "./api";
 import { rkeys, useRecordApi, useRecordCommand } from "./hooks";
@@ -431,6 +432,8 @@ export function Student360Fees({ studentId }: { studentId: string }) {
                   { key: "mode", header: "Mode", render: (p) => CHANNEL[p.channel] ?? humanize(p.channel) },
                   { key: "ref", header: "Reference", render: (p) => p.receipt?.receiptNumber ?? p.paymentNumber, muted: true },
                   { key: "amt", header: "Amount", render: (p) => <span className="st-strong st-num">{formatINR(p.amount)}</span> },
+                  // 3E: staff reprint of the counter slip.
+                  ...(fig.admin ? [{ key: "slip", header: "", render: (p: (typeof paid)[number]) => (p.receipt ? <PrintSlipButton receiptId={p.receipt.id} channel={p.channel} showDuplicate /> : null) }] : []),
                 ]}
               />
               {(charges.data ?? []).length > 0 && (
