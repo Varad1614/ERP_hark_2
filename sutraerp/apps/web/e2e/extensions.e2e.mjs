@@ -37,6 +37,13 @@
  *            settings saved (3D admin).
  *   faculty  My HR → Payslips: My expenses — expense typed in and saved, claimed, submitted (3D).
  *   admin    Procurement → Expense claims → Approvals lists the submitted claim.             (3D)
+ *   admin    People → Recruitment: careers page published + public /careers/:slug application;
+ *            offer drafted for Kavya → submitted (dev auto-approval; SoD forbids self-approval) →
+ *            letter previewed → sent → accepted; onboarding checklist; hiring analytics.  (5A)
+ *            People → Attendance → Duty roster → Swaps & timesheets: Swaps, Timesheets, Pay rules
+ *            saved.                                                                         (5B)
+ *   faculty  My HR → Attendance: My duty roster.                                            (5B)
+ *   admin / faculty  Workload: time tracking (5C).
  *
  * Failure policy: every `pageerror`, console error and /api/ response ≥ 500 fails the step it
  * happened in; /api/ 4xx answers are recorded (printed at the end) and only fail when the step's
@@ -421,7 +428,7 @@ try {
     let r = await admin.call("POST", `${P}/institutions/${setup.id}/requisitions`, { title: "Assistant Professor (Computer Engineering)", designation: "Assistant Professor", staffCategory: "teaching", employmentType: "probation", openings: 1 });
     r = await admin.call("POST", `${P}/requisitions/${r.id}/submit`, {}, r.version);
     if (r.status !== "open" && r.version !== undefined) r = await admin.call("POST", `${P}/requisitions/${r.id}/decision`, { decision: "approve" }, r.version).catch(() => r);
-    await admin.call("POST", `${P}/requisitions/${r.id}/candidates`, { givenName: "Kavya", familyName: "Nair", email: "kavya.nair@example.org" });
+    ids.kavya = await admin.call("POST", `${P}/requisitions/${r.id}/candidates`, { givenName: "Kavya", familyName: "Nair", email: "kavya.nair@example.org" });
     return r;
   });
 
@@ -474,7 +481,7 @@ try {
 
   await signIn(page, "administrator");
   // Warm the routes (first compile in dev mode); errors before the steps are not attributed.
-  for (const p of ["/finance/collections", "/finance/treasury", "/finance/ledger", "/finance/charges", "/finance/receivables", "/students/admissions", "/campus/facilities", "/campus/inventory", "/campus/transport", "/campus/procurement", "/people/attendance", "/people/recruitment"]) await go(page, p);
+  for (const p of ["/finance/collections", "/finance/treasury", "/finance/ledger", "/finance/charges", "/finance/receivables", "/students/admissions", "/campus/facilities", "/campus/inventory", "/campus/transport", "/campus/procurement", "/people/attendance", "/people/recruitment", "/careers/sit-careers"]) await go(page, p);
   page.setDefaultNavigationTimeout(30000);
   newProblems();
 
@@ -841,6 +848,173 @@ try {
     }
     await shot(page, "procurement", "expenses-approvals");
   });
+
+  // ============================================================ 5A hiring offers & careers (screenshots 40–49)
+  shotNo = Math.max(shotNo, 39);
+  const CAREERS_SLUG = "sit-careers";
+  await step(page, "5A: People → Recruitment — Offers & onboarding: careers page published, requisition listed", async () => {
+    await go(page, "/people/recruitment");
+    const t = await openTile(page, "data-offers", "Offers & onboarding");
+    await apiAction(page, "GET", /\/people\/institutions\/[^/]+\/careers-page$/, () => tab(page, t, "data-offers-tab", "careers"));
+    const c = t.locator("[data-careers]");
+    await c.waitFor();
+    const live = c.locator('input[data-field="careers-enabled"]');
+    if (!(await live.isChecked().catch(() => false))) await c.locator("label.sb-toggle", { has: live }).click();
+    await c.locator('input[data-field="careers-slug"]').fill(CAREERS_SLUG);
+    await apiAction(page, "PUT", /\/people\/institutions\/[^/]+\/careers-page$/, () => c.locator('[data-action="careers-save"]').click());
+    await c.locator("[data-careers-path]", { hasText: CAREERS_SLUG }).waitFor({ timeout: 10000 }).catch(() => {});
+    check(((await c.locator("[data-careers-path]").textContent()) ?? "").includes(`/careers/${CAREERS_SLUG}`), `public path /careers/${CAREERS_SLUG}`);
+    const pub = c.locator('input[data-action="careers-publish"]').first();
+    if (ids.requisition && (await pub.count()) > 0) {
+      if (!(await pub.isChecked())) await apiAction(page, "PUT", /\/people\/requisitions\/[^/]+\/careers-listing$/, () => c.locator("label.sb-toggle", { has: pub }).click());
+      ids.careersListed = true;
+    } else log("  (no requisition to list on the careers page)");
+    await shot(page, "people", "recruitment-careers-page");
+  });
+
+  await step(page, "5A: public /careers/:slug — opening listed, application received", async () => {
+    await go(page, `/careers/${CAREERS_SLUG}`);
+    const p = page.locator("[data-careers-page]");
+    await p.waitFor({ timeout: 20000 });
+    await p.locator("[data-careers-opening], .sb-empty").first().waitFor({ timeout: 15000 }).catch(() => {});
+    const opening = p.locator("[data-careers-opening]").first();
+    if (ids.careersListed) check(await opening.isVisible().catch(() => false), "the published requisition is listed on the public page");
+    if (await opening.isVisible().catch(() => false)) {
+      await opening.locator('[data-action="careers-open-apply"]').click();
+      const form = opening.locator("[data-careers-apply]");
+      await form.waitFor();
+      await form.locator('input[name="name"]').fill("Sneha Joshi");
+      await form.locator('input[name="email"]').fill("sneha.joshi@example.org");
+      await form.locator('input[name="phone"]').fill("+91 98220 54321");
+      await form.locator('textarea[name="note"]').fill("M.Tech (CSE), NET qualified; 3 years teaching.");
+      await shot(page, "careers", "public-apply-form");
+      await apiAction(page, "POST", /\/people\/public\/careers\/[^/]+\/requisitions\/[^/]+\/apply$/, () => form.locator('[data-action="careers-apply"]').click());
+      await opening.locator("[data-careers-received]").waitFor();
+      check(true, "application received");
+    }
+    await shot(page, "careers", "public-page");
+  });
+
+  await step(page, "5A: Offers — draft for Kavya with CTC breakup → submit → letter preview → send → accept", async () => {
+    check(!!ids.kavya, "candidate Kavya Nair seeded");
+    // Offers go to shortlisted / interviewed candidates: shortlist through the API when still applied.
+    const cand = await admin.get(`${P}/candidates/${ids.kavya.id}`).catch(() => null);
+    if (cand?.status === "applied") await admin.call("POST", `${P}/candidates/${cand.id}/shortlist`, {}, cand.version);
+    await go(page, "/people/recruitment");
+    const t = await openTile(page, "data-offers", "Offers & onboarding");
+    await tab(page, t, "data-offers-tab", "offers");
+    await choose(t.locator('select[data-field="offers-candidate"]'), "Kavya");
+    await settle(page);
+    const form = t.locator("[data-offer-form]");
+    await form.waitFor();
+    const status = () => t.locator("[data-offer-status]").first().getAttribute("data-offer-status").catch(() => null);
+    if ((await t.locator("[data-offer-status]").count()) === 0) {
+      await form.locator('[data-field="offer-designation"]').fill("Assistant Professor");
+      await form.locator('[data-field="offer-joining"]').fill(iso(daysFromNow(30)));
+      await form.locator('[data-field="offer-expiry"]').fill(iso(daysFromNow(14)));
+      await form.locator('[data-field="offer-basic"]').fill("57700");
+      await form.locator('[data-field="offer-da"]').fill("26539");
+      await form.locator('[data-field="offer-hra"]').fill("15579");
+      await form.locator('[data-field="offer-allowances"]').fill("3600");
+      check(((await form.locator("[data-offer-ctc-monthly]").textContent()) ?? "").includes("₹"), "live monthly CTC in rupees");
+      await apiAction(page, "POST", /\/people\/candidates\/[^/]+\/offers$/, () => form.locator('[data-action="offer-draft"]').click());
+      await t.locator('[data-offer-status="draft"]').first().waitFor();
+    }
+    await shot(page, "people", "recruitment-offer-drafted");
+    if ((await status()) === "draft")
+      await apiAction(page, "POST", /\/people\/offers\/[^/]+\/submit$/, () => t.locator('[data-action="offer-submit"]').first().click());
+    await t.locator('[data-offer-status]:not([data-offer-status="draft"])').first().waitFor({ timeout: 10000 }).catch(() => {});
+    if ((await status()) === "pending_approval") {
+      // SoD: the approver must differ from the drafter / submitter (ensure_independent_decider), and
+      // the administrator is the only admin-capable seeded role — stop at pending approval.
+      log("  (offer pending approval: the administrator drafted it, so it cannot approve its own offer — stopping here)");
+      await shot(page, "people", "recruitment-offer-pending-approval");
+      return;
+    }
+    check((await status()) === "approved", `offer approved by the dev auto-approver (status ${await status()})`);
+    await t.locator('[data-action="offer-preview"]').first().click();
+    const letter = t.locator("[data-offer-letter]");
+    await letter.locator("pre").waitFor({ timeout: 15000 });
+    check(((await letter.textContent()) ?? "").includes("Kavya"), "offer letter addresses Kavya");
+    await shot(page, "people", "recruitment-offer-letter");
+    await apiAction(page, "POST", /\/people\/offers\/[^/]+\/send$/, () => t.locator('[data-action="offer-send"]').first().click());
+    await t.locator('[data-offer-status="sent"]').first().waitFor();
+    await t.locator('input[data-field="offer-accepted-by"]').fill("Kavya Nair");
+    await apiAction(page, "POST", /\/people\/offers\/[^/]+\/accept$/, () => t.locator('[data-action="offer-accept"]').first().click());
+    await t.locator('[data-offer-status="accepted"]').first().waitFor();
+    ids.offerAccepted = true;
+    await shot(page, "people", "recruitment-offer-accepted");
+  });
+
+  await step(page, "5A: Onboarding — case started for Kavya, checklist shown", async () => {
+    if (!ids.offerAccepted) {
+      log("  (no accepted offer — onboarding checklist skipped)");
+      return;
+    }
+    await go(page, "/people/recruitment");
+    const cands = page.locator("[data-candidates]").first();
+    await cands.waitFor();
+    await row(page, "Kavya", cands).waitFor({ timeout: 10000 });
+    if (await rowAction(page, "Kavya", "candidate-onboard", cands, { optional: true }))
+      await apiAction(page, "POST", /\/people\/candidates\/[^/]+\/onboarding$/, () => fillDialog(page, "onboarding-create", { probationEndDate: iso(daysFromNow(395)) }));
+    const t = await openTile(page, "data-offers", "Offers & onboarding");
+    await tab(page, t, "data-offers-tab", "onboarding");
+    await choose(t.locator('select[data-field="offers-candidate"]'), "Kavya");
+    const list = t.locator("[data-onboarding-checklist]");
+    await list.waitFor({ timeout: 15000 });
+    check((await list.locator("[data-task]").count()) > 0, "onboarding checklist lists tasks");
+    await shot(page, "people", "recruitment-onboarding-checklist");
+  });
+
+  await step(page, "5A: Hiring analytics — funnel, time to hire, offer acceptance (last 90 days)", async () => {
+    await go(page, "/people/recruitment");
+    const t = await openTile(page, "data-hiring-analytics", "Hiring analytics");
+    await apiAction(page, "GET", /\/people\/institutions\/[^/]+\/hiring-analytics$/, () => choose(t.locator('select[data-field="analytics-since"]'), "90"), { query: "sinceDays=90" });
+    await t.locator("[data-analytics-funnel], .sb-empty").first().waitFor().catch(() => {});
+    await shot(page, "people", "recruitment-hiring-analytics");
+  });
+
+  // ============================================================ 5B shift swaps & timesheets (screenshots 50–59)
+  shotNo = Math.max(shotNo, 49);
+  await step(page, "5B: People → Attendance → Duty roster — Swaps & timesheets: Swaps, Timesheets", async () => {
+    await go(page, "/people/attendance");
+    const t = await openTile(page, "data-duty-roster", "Duty roster");
+    await tab(page, t, "data-roster-tab", "shifts");
+    const s = t.locator("[data-shifts-admin]");
+    await s.waitFor();
+    await tab(page, s, "data-shifts-tab", "swaps");
+    await shot(page, "people", "attendance-roster-swaps");
+    await apiAction(page, "GET", /\/people\/institutions\/[^/]+\/roster\/timesheets$/, () => tab(page, s, "data-shifts-tab", "timesheets"));
+    await s.locator("[data-shifts-period]").first().waitFor().catch(() => {});
+    await shot(page, "people", "attendance-roster-timesheets");
+  });
+
+  await step(page, "5B: Swaps & timesheets — Pay rules saved", async () => {
+    await go(page, "/people/attendance");
+    const t = await openTile(page, "data-duty-roster", "Duty roster");
+    await tab(page, t, "data-roster-tab", "shifts");
+    const s = t.locator("[data-shifts-admin]");
+    await s.waitFor();
+    await tab(page, s, "data-shifts-tab", "settings");
+    const grace = s.locator('input[name="lateGraceMinutes"]');
+    await grace.waitFor({ timeout: 15000 });
+    await grace.fill("10");
+    await s.locator('input[name="nightShiftAllowance"]').fill("300");
+    await apiAction(page, "PUT", /\/people\/institutions\/[^/]+\/roster\/timesheet-settings$/, () => s.locator('[data-action="save-timesheet-settings"]').click());
+    await shot(page, "people", "attendance-roster-pay-rules");
+  });
+
+  await signOut(page);
+  await signIn(page, "faculty");
+  await step(page, "5B: faculty My HR → Attendance — My duty roster", async () => {
+    await go(page, "/leave/attendance");
+    const t = await openTile(page, "data-my-duty-roster", "My duty roster");
+    if (ids.meera) check((await t.getByText("No duty roster").count()) === 0, "My duty roster is available for the linked staff record");
+    await t.locator("[data-my-timesheet], .sb-empty").first().waitFor().catch(() => {});
+    await shot(page, "my-hr", "attendance-my-duty-roster");
+  });
+  await signOut(page);
+  await signIn(page, "administrator");
 
   // ============================================================ 5C time tracking (screenshots 60–69)
   shotNo = Math.max(shotNo, 59);
