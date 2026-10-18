@@ -134,7 +134,7 @@ const nav = (): DeviceNavigator => (typeof navigator === "undefined" ? {} : (nav
 export function printerSupport(): PrinterSupport {
   // Every one of these needs a secure context; without one the API objects are simply absent,
   // which reads as "not supported" — the honest answer for the device at the counter.
-  let n: DeviceNavigator = {};
+  let n: DeviceNavigator;
   try {
     n = nav();
   } catch {
