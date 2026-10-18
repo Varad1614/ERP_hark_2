@@ -5,6 +5,7 @@
 //! Mapping: Everything's `signed` is SutraERP's `accepted`; an unknown offer status (`bogus`)
 //! behaves like a terminal status everywhere but the transition table, where it is never legal.
 //! Everything's `draft → sent` is SutraERP's `draft → pending_approval → approved → sent`.
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::Deserialize;
