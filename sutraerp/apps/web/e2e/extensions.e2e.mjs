@@ -635,7 +635,7 @@ try {
     await plan.click();
     const enrol = t.locator('[data-billing-enrolments="HOSTEL-MONTHLY"]');
     await enrol.waitFor();
-    await choose(field(enrol, "Student"), "Aarav");
+    await choose(enrol.locator('[data-person-picker="student"] select').first(), "Aarav");
     await apiAction(page, "PUT", /\/finance\/billing-plans\/[^/]+\/enrolments$/, () => enrol.locator('[data-action="enrol"]').click());
     await row(page, "Aarav", enrol).waitFor({ timeout: 10000 });
     await shot(page, "finance", "charges-billing-plans");

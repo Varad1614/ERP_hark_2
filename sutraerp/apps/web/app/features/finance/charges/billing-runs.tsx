@@ -6,7 +6,7 @@
  * back at past runs. The server decides everything; `periodFor` only labels the period picked.
  */
 import { CalendarClock, Plus } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, EmptyState, FormGrid, FormSelect, KeyValue, TextField, formatDate } from "@sutra/ui";
+import { Badge, BentoTile, Button, DataTable, EmptyState, FormGrid, FormSelect, KeyValue, TextField, formatDate, humanize } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { todayIso } from "../../institution/forms";
@@ -73,7 +73,7 @@ export function BillingRunsTile({ institutionId }: { institutionId: string }) {
               { key: "h", header: "Fee head", render: (p) => p.feeHeadCode },
               { key: "p", header: "Part period", render: (p) => (p.proration === "daily" ? "By day" : "Full") },
               { key: "e", header: "Students", render: (p) => p.enrolled },
-              { key: "s", header: "Status", render: (p) => <Badge kind={p.status === "active" ? "done" : "neutral"}>{p.status}</Badge> },
+              { key: "s", header: "Status", render: (p) => <Badge kind={p.status === "active" ? "done" : "neutral"}>{humanize(p.status)}</Badge> },
               { key: "x", header: "", render: (p) => (
                 <Button size="sm" variant="ghost" data-action="toggle-plan" disabled={busy} onClick={() => void run(() => api.updateBillingPlan(p.id, { status: p.status === "active" ? "retired" : "active" }), p.status === "active" ? "Plan retired" : "Plan reactivated")}>
                   {p.status === "active" ? "Retire" : "Reactivate"}

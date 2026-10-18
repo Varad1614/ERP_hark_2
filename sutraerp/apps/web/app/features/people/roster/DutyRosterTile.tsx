@@ -4,7 +4,7 @@
  * open one, fill the week, publish it; coverage gaps against requirements; settings.
  */
 import { CalendarClock } from "lucide-react";
-import { Badge, BentoTile, Button, DataTable, EmptyState, formatDate, formatDateShort, FormGrid, FormSelect, KeyValue, TextField } from "@sutra/ui";
+import { Badge, BentoTile, Button, DataTable, EmptyState, formatDate, formatDateShort, FormGrid, FormSelect, KeyValue, plural, TextField } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { USES_API } from "../../../lib/api";
@@ -67,7 +67,7 @@ export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { in
 
       {tab === "week" && board.data && (
         <>
-          <KeyValue label="This week" value={`${board.data.shifts.length} shifts · ${board.data.openShifts} open · ${board.data.gaps.length} coverage gaps`} />
+          <KeyValue label="This week" value={`${plural(board.data.shifts.length, "shift")} · ${board.data.openShifts} open · ${plural(board.data.gaps.length, "coverage gap")}`} />
           <DataTable caption="Shifts" rows={board.data.shifts} rowKey={(s) => s.id}
             empty={<EmptyState icon={CalendarClock} title="No shifts this week">Plan one below, or copy last week's pattern.</EmptyState>}
             columns={[
