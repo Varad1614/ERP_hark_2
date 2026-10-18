@@ -2,6 +2,8 @@ import { index, layout, route, type RouteConfig } from "@react-router/dev/routes
 
 export default [
   route("sign-in", "routes/sign-in.tsx"),
+  // 5A public careers page: outside `app-shell`, so it renders without a session.
+  route("careers/:slug", "routes/careers.tsx"),
   // Re-skin v2 component catalogue (dev / VITE_UI_CATALOGUE=1 builds only; docs/reskin2-contracts.md §6).
   route("dev/catalogue", "routes/dev/catalogue.tsx"),
   layout("routes/app-shell.tsx", [
