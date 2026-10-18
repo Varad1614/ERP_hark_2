@@ -1176,10 +1176,7 @@ pub fn progress(done_flags: impl IntoIterator<Item = bool>) -> Progress {
 }
 
 /// `groupTasks`: categories in first-appearance order ('' → Other).
-pub fn group_tasks<T>(
-    tasks: &[T],
-    category: impl Fn(&T) -> &str,
-) -> Vec<(String, Vec<&T>)> {
+pub fn group_tasks<T>(tasks: &[T], category: impl Fn(&T) -> &str) -> Vec<(String, Vec<&T>)> {
     let mut groups: Vec<(String, Vec<&T>)> = Vec::new();
     for t in tasks {
         let c = category(t);

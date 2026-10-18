@@ -1006,6 +1006,23 @@ async fn candidate_step(
         &actor,
     )
     .await?;
+    // ERP_EXTENSIONS 5A: a sent offer letter follows the candidate's direct accept / decline.
+    if let Some(offer_status) = match step {
+        Step::Accept => Some("accepted"),
+        Step::Decline => Some("declined"),
+        _ => None,
+    } {
+        sqlx::query(
+            "UPDATE people.candidate_offer SET status = $2, status_reason = $3, resolved_at = now(), \
+             version = version + 1, updated_at = now() WHERE candidate_id = $1 AND status = 'sent'",
+        )
+        .bind(id)
+        .bind(offer_status)
+        .bind(reason.as_deref())
+        .execute(&mut *tx)
+        .await
+        .map_err(map_db_error)?;
+    }
     let out = load_candidate(&mut tx, t, id, false).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(with_etag(StatusCode::OK, &out, Version(out.version)))

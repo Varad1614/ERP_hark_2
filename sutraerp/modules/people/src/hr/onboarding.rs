@@ -394,6 +394,9 @@ pub async fn create(
         &actor,
     )
     .await?;
+    // ERP_EXTENSIONS 5A: the case starts with its checklist (institution templates, due offsets
+    // from the joining date).
+    super::offers_http::stamp_checklist(&mut tx, t, institution, oid, r.id, c.id).await?;
     let o = load(&mut tx, t, oid, false).await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(with_etag(StatusCode::CREATED, &o, Version(o.version)))
