@@ -859,14 +859,14 @@ try {
     const c = t.locator("[data-careers]");
     await c.waitFor();
     const live = c.locator('input[data-field="careers-enabled"]');
-    if (!(await live.isChecked().catch(() => false))) await c.locator("label.sb-toggle", { has: live }).click();
+    if (!(await live.isChecked().catch(() => false))) await c.locator('label.sb-toggle:has(input[data-field="careers-enabled"])').click();
     await c.locator('input[data-field="careers-slug"]').fill(CAREERS_SLUG);
     await apiAction(page, "PUT", /\/people\/institutions\/[^/]+\/careers-page$/, () => c.locator('[data-action="careers-save"]').click());
     await c.locator("[data-careers-path]", { hasText: CAREERS_SLUG }).waitFor({ timeout: 10000 }).catch(() => {});
     check(((await c.locator("[data-careers-path]").textContent()) ?? "").includes(`/careers/${CAREERS_SLUG}`), `public path /careers/${CAREERS_SLUG}`);
     const pub = c.locator('input[data-action="careers-publish"]').first();
     if (ids.requisition && (await pub.count()) > 0) {
-      if (!(await pub.isChecked())) await apiAction(page, "PUT", /\/people\/requisitions\/[^/]+\/careers-listing$/, () => c.locator("label.sb-toggle", { has: pub }).click());
+      if (!(await pub.isChecked())) await apiAction(page, "PUT", /\/people\/requisitions\/[^/]+\/careers-listing$/, () => c.locator('label.sb-toggle:has(input[data-action="careers-publish"])').first().click());
       ids.careersListed = true;
     } else log("  (no requisition to list on the careers page)");
     await shot(page, "people", "recruitment-careers-page");

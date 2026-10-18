@@ -207,7 +207,11 @@ async fn swap_needs_peer_then_an_independent_manager() {
         ver(&req),
     )
     .await;
-    assert_eq!(s, StatusCode::FORBIDDEN, "not addressed to the requester: {body}");
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "not addressed to the requester: {body}"
+    );
     let req = ok(
         &bilal_app,
         &me,
@@ -331,7 +335,10 @@ async fn timesheet_reconciles_punches_and_feeds_payroll() {
     )
     .await;
     assert_eq!(mine["lines"].as_array().unwrap().len(), 1, "{mine}");
-    assert!(mine["totals"]["lateMinutes"].as_i64().unwrap() > 0, "{mine}");
+    assert!(
+        mine["totals"]["lateMinutes"].as_i64().unwrap() > 0,
+        "{mine}"
+    );
     assert!(
         mine["totals"]["overtimeMinutes"].as_f64().unwrap() > 0.0,
         "{mine}"
