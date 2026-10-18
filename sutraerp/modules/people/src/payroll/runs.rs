@@ -11,7 +11,7 @@ use super::common::{
 use super::domain::{
     calculate, days_between, employed_days, retro_delta, round_with, run_can_transition, totals,
     year_month, CalcInput, CalcLine, CalcOutput, ComponentDef, Encashment, LineSource, PriorLine,
-    RuleDef,
+    RuleDef, TimesheetPay,
 };
 use super::rows::*;
 use crate::shared::approval::{business_key, process, request_approval, ApprovalOutcome};
@@ -523,11 +523,31 @@ pub(crate) async fn calc_employee(
         c.st.leave
             .payroll_inputs(&scope, e.staff_id, window_from, window_to)
             .await?;
+    // ERP_EXTENSIONS 5B: approved timesheets of the window (overtime, extra LOP, shifts).
+    let timesheet = if ec.pay_salary {
+        timesheet_pay(
+            conn,
+            c.tenant,
+            e.institution_id.as_uuid(),
+            e.staff_id.as_uuid(),
+            window_from,
+            window_to,
+        )
+        .await?
+    } else {
+        None
+    };
+    let timesheet_lop = timesheet.as_ref().map_or(Decimal::ZERO, |(_, l)| *l);
     let lop = if ec.pay_salary {
-        inputs.lop_days()
+        inputs.lop_days() + timesheet_lop
     } else {
         Decimal::ZERO
     };
+    let timesheet = timesheet.map(|(t, _)| t);
+    let timesheet_snapshot = timesheet.as_ref().map(|t| {
+        json!({"overtimeHours": fmt2(t.overtime_hours), "nightShifts": fmt2(t.night_shifts),
+               "holidayShifts": fmt2(t.holiday_shifts), "lopDays": fmt2(timesheet_lop)})
+    });
     let out = calculate(&CalcInput {
         components: &cfg.components,
         rules: &cfg.rules,
@@ -538,6 +558,7 @@ pub(crate) async fn calc_employee(
         employed_days: employed,
         lop_days: lop,
         encashments: &ec.encashments,
+        timesheet,
     });
     let structure_lines: Vec<Value> = s
         .lines
@@ -563,6 +584,7 @@ pub(crate) async fn calc_employee(
             "absentDays": fmt2(inputs.absent_days),
             "lopDays": fmt2(lop),
             "encashments": encashed,
+            "timesheet": timesheet_snapshot,
         },
         "periodDays": ec.period_days,
         "employedDays": employed,
@@ -580,6 +602,80 @@ pub(crate) async fn calc_employee(
         structure_id: Some(s.id),
         snapshot,
     }))
+}
+
+/// ERP_EXTENSIONS 5B: the approved-timesheet quantities whose work started inside
+/// `[from, to]` (`people.payroll_variable_input`) with the institution's rates
+/// (`people.roster_settings`), and the extra loss-of-pay days; `None` when there are none.
+async fn timesheet_pay(
+    conn: &mut PgConnection,
+    tenant: sutra_kernel::scope::TenantId,
+    institution: Uuid,
+    staff: Uuid,
+    from: NaiveDate,
+    to: NaiveDate,
+) -> Result<Option<(TimesheetPay, Decimal)>, KernelError> {
+    let rows: Vec<(String, Decimal, i64, Option<Uuid>)> = sqlx::query_as(
+        "SELECT code, sum(quantity), count(DISTINCT source_id), min(source_id::text)::uuid \
+         FROM people.payroll_variable_input WHERE tenant_id = $1 AND staff_id = $2 \
+         AND status = 'active' AND work_from BETWEEN $3 AND $4 GROUP BY code",
+    )
+    .bind(tenant.as_uuid())
+    .bind(staff)
+    .bind(from)
+    .bind(to)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    if rows.is_empty() {
+        return Ok(None);
+    }
+    let q = |code: &str| {
+        rows.iter()
+            .find(|r| r.0 == code)
+            .map_or(Decimal::ZERO, |r| r.1)
+    };
+    let single = rows.iter().all(|r| r.2 == 1)
+        && rows
+            .iter()
+            .filter_map(|r| r.3)
+            .collect::<BTreeSet<_>>()
+            .len()
+            == 1;
+    // (rate per hour, multiplier, hours a day, night allowance, holiday allowance)
+    type Rates = (
+        Option<Decimal>,
+        Decimal,
+        Decimal,
+        Option<Decimal>,
+        Option<Decimal>,
+    );
+    let settings: Option<Rates> = sqlx::query_as(
+        "SELECT overtime_rate_per_hour, overtime_multiplier, standard_hours_per_day, \
+         night_shift_allowance, holiday_shift_allowance FROM people.roster_settings \
+         WHERE tenant_id = $1 AND institution_id = $2",
+    )
+    .bind(tenant.as_uuid())
+    .bind(institution)
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
+    let (rate, mult, hours, night, holiday) =
+        settings.unwrap_or((None, Decimal::from(2), Decimal::from(8), None, None));
+    Ok(Some((
+        TimesheetPay {
+            overtime_hours: q("overtime_hours"),
+            night_shifts: q("night_shifts"),
+            holiday_shifts: q("holiday_shifts"),
+            overtime_rate: rate,
+            overtime_multiplier: mult,
+            hours_per_day: hours,
+            night_allowance: night,
+            holiday_allowance: holiday,
+            source_ref: if single { rows[0].3 } else { None },
+        },
+        q("lop_days"),
+    )))
 }
 
 /// Lines finalised results of the period already paid an engagement (regular + retro runs,

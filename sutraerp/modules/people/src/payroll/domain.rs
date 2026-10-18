@@ -118,6 +118,10 @@ pub const BASIC: &str = "BASIC";
 pub const DA: &str = "DA";
 /// Line code of a leave encashment payment.
 pub const LEAVE_ENCASHMENT: &str = "LEAVE_ENC";
+/// ERP_EXTENSIONS 5B: line codes of approved-timesheet pay (overtime, night / holiday shifts).
+pub const OVERTIME: &str = "OVERTIME";
+pub const NIGHT_SHIFT: &str = "NIGHT_SHIFT";
+pub const HOLIDAY_SHIFT: &str = "HOLIDAY_SHIFT";
 
 // ------------------------------------------------------------------ transitions
 
@@ -521,6 +525,27 @@ pub struct CalcInput<'a> {
     /// Loss of pay (unpaid leave + unauthorised absence) from `LeaveReader::payroll_inputs`.
     pub lop_days: Decimal,
     pub encashments: &'a [Encashment],
+    /// ERP_EXTENSIONS 5B: variable pay from approved timesheets (`None` = nothing to pay).
+    pub timesheet: Option<TimesheetPay>,
+}
+
+/// ERP_EXTENSIONS 5B: approved-timesheet quantities of the salary window and the institution's
+/// rates (`people.payroll_variable_input` + `people.roster_settings`).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct TimesheetPay {
+    pub overtime_hours: Decimal,
+    pub night_shifts: Decimal,
+    pub holiday_shifts: Decimal,
+    /// Flat ₹ per overtime hour; `None` = the ordinary hourly rate × `overtime_multiplier`.
+    pub overtime_rate: Option<Decimal>,
+    /// Factories Act 1948 s.59: twice the ordinary rate.
+    pub overtime_multiplier: Decimal,
+    /// Hours of an ordinary working day (ordinary hourly rate = (BASIC + DA) / days / hours).
+    pub hours_per_day: Decimal,
+    pub night_allowance: Option<Decimal>,
+    pub holiday_allowance: Option<Decimal>,
+    /// The source of the lines (a timesheet, when exactly one fed the window).
+    pub source_ref: Option<Uuid>,
 }
 
 /// Totals of a set of lines.
@@ -649,6 +674,47 @@ pub fn calculate(i: &CalcInput<'_>) -> CalcOutput {
             .basis("encashment")
             .source(LineSource::Encashment, Some(*entry)),
         );
+    }
+
+    // ERP_EXTENSIONS 5B: overtime and shift allowances from approved timesheets. Like leave
+    // encashment they are paid outside the regular (prorated) gross the statutory rules read.
+    if let Some(tp) = &i.timesheet {
+        let ordinary = if i.period_days > 0 && tp.hours_per_day > Decimal::ZERO {
+            (monthly.get(BASIC).copied().unwrap_or(Decimal::ZERO)
+                + monthly.get(DA).copied().unwrap_or(Decimal::ZERO))
+                / Decimal::from(i.period_days)
+                / tp.hours_per_day
+        } else {
+            Decimal::ZERO
+        };
+        let ot_rate = tp
+            .overtime_rate
+            .unwrap_or(ordinary * tp.overtime_multiplier);
+        let extra = [
+            (OVERTIME, "Overtime", tp.overtime_hours, Some(ot_rate)),
+            (
+                NIGHT_SHIFT,
+                "Night shift allowance",
+                tp.night_shifts,
+                tp.night_allowance,
+            ),
+            (
+                HOLIDAY_SHIFT,
+                "Holiday duty allowance",
+                tp.holiday_shifts,
+                tp.holiday_allowance,
+            ),
+        ];
+        for (code, name, qty, rate) in extra {
+            let a = round_with(r, qty * rate.unwrap_or(Decimal::ZERO));
+            if a > Decimal::ZERO {
+                lines.push(
+                    CalcLine::new(code, name, PayComponentKind::Earning, a)
+                        .basis("timesheet")
+                        .source(LineSource::Calculation, tp.source_ref),
+                );
+            }
+        }
     }
 
     // Non-statutory deductions and employer contributions.
@@ -982,7 +1048,34 @@ mod tests {
             employed_days: days.1,
             lop_days: d(lop),
             encashments: enc,
+            timesheet: None,
         }
+    }
+
+    #[test]
+    fn timesheet_overtime_and_allowances() {
+        let (c, r) = standard();
+        let s = structure();
+        let mut i = input(&c, &r, &s, (30, 30), "0", &[]);
+        i.timesheet = Some(TimesheetPay {
+            overtime_hours: d("3"),
+            night_shifts: d("2"),
+            holiday_shifts: d("0"),
+            overtime_rate: None,
+            overtime_multiplier: d("2"),
+            hours_per_day: d("8"),
+            night_allowance: Some(d("150")),
+            holiday_allowance: Some(d("500")),
+            source_ref: None,
+        });
+        let o = calculate(&i);
+        // (30000 + 3000) / 30 / 8 = 137.50 an hour; × 2 × 3 h = 825.
+        assert_eq!(amount(&o, OVERTIME), d("825.00"));
+        assert_eq!(amount(&o, NIGHT_SHIFT), d("300.00"));
+        assert_eq!(amount(&o, HOLIDAY_SHIFT), d("0"));
+        // Statutory deductions still read the regular gross only.
+        assert_eq!(amount(&o, "PF"), d("1800.00"));
+        assert_eq!(o.totals.gross, d("46125.00"));
     }
 
     #[test]

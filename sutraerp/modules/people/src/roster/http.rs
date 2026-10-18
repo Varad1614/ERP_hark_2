@@ -39,39 +39,41 @@ use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-fn ds(d: NaiveDate) -> String {
+pub(crate) fn ds(d: NaiveDate) -> String {
     d.format("%Y-%m-%d").to_string()
 }
 
-fn pd(s: &str) -> Option<NaiveDate> {
+pub(crate) fn pd(s: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
 }
 
-fn fo(d: Option<Decimal>) -> Option<f64> {
+pub(crate) fn fo(d: Option<Decimal>) -> Option<f64> {
     d.and_then(|x| x.to_f64())
 }
 
-fn dec(x: Option<f64>) -> Option<Decimal> {
+pub(crate) fn dec(x: Option<f64>) -> Option<Decimal> {
     x.and_then(Decimal::from_f64).map(|d| d.round_dp(1))
 }
 
 // ------------------------------------------------------------------ loading
 
-struct World {
-    shifts: Vec<Shift>,
-    employees: Vec<Employee>,
-    availability: BTreeMap<String, Availability>,
-    rules: Rules,
-    requirements: Vec<Requirement>,
-    meta: BTreeMap<String, ShiftMeta>,
+pub(crate) struct World {
+    pub(crate) shifts: Vec<Shift>,
+    pub(crate) employees: Vec<Employee>,
+    pub(crate) availability: BTreeMap<String, Availability>,
+    pub(crate) rules: Rules,
+    pub(crate) requirements: Vec<Requirement>,
+    pub(crate) meta: BTreeMap<String, ShiftMeta>,
+    /// ERP_EXTENSIONS 5B: shifts with clock punches recorded (`people.duty_shift_punch`).
+    pub(crate) punched: HashSet<String>,
 }
 
 #[derive(Clone)]
-struct ShiftMeta {
-    location: Option<String>,
-    note: Option<String>,
-    status: String,
-    version: i64,
+pub(crate) struct ShiftMeta {
+    pub(crate) location: Option<String>,
+    pub(crate) note: Option<String>,
+    pub(crate) status: String,
+    pub(crate) version: i64,
 }
 
 async fn load_rules(
@@ -126,7 +128,7 @@ async fn load_requirements(
 }
 
 /// Shifts, staff, availability (weekly windows + approved leave) and settings around a range.
-async fn load(
+pub(crate) async fn load(
     conn: &mut PgConnection,
     t: TenantId,
     inst: Uuid,
@@ -219,6 +221,17 @@ async fn load(
                 note: Some(format!("{code} leave")),
             });
     }
+    let punched: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT p.shift_id FROM people.duty_shift_punch p JOIN people.duty_shift s ON s.id = p.shift_id \
+         WHERE p.tenant_id = $1 AND p.institution_id = $2 AND s.shift_date BETWEEN $3 AND $4",
+    )
+    .bind(t.as_uuid())
+    .bind(inst)
+    .bind(from)
+    .bind(to)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_db_error)?;
     Ok(World {
         shifts,
         employees,
@@ -226,12 +239,13 @@ async fn load(
         rules: load_rules(conn, t, inst).await?,
         requirements: load_requirements(conn, t, inst).await?,
         meta,
+        punched: punched.into_iter().map(|u| u.to_string()).collect(),
     })
 }
 
 /// The window loaded to judge a date range: whole weeks, plus two days either side for
 /// overnight spill and rest gaps.
-fn window(from: NaiveDate, to: NaiveDate) -> (NaiveDate, NaiveDate) {
+pub(crate) fn window(from: NaiveDate, to: NaiveDate) -> (NaiveDate, NaiveDate) {
     let start = pd(&r::start_of_week(&ds(from))).unwrap_or(from);
     let end_week = pd(&r::start_of_week(&ds(to))).unwrap_or(to) + Duration::days(6);
     (
@@ -269,7 +283,7 @@ pub struct DutyShiftView {
     pub version: i64,
 }
 
-fn shift_view(s: &Shift, w: &World) -> DutyShiftView {
+pub(crate) fn shift_view(s: &Shift, w: &World) -> DutyShiftView {
     let m = w.meta.get(&s.id).cloned().unwrap_or(ShiftMeta {
         location: None,
         note: None,
@@ -349,7 +363,10 @@ pub struct RosterRange {
     pub to: Option<NaiveDate>,
 }
 
-fn range(q: &RosterRange, today: NaiveDate) -> Result<(NaiveDate, NaiveDate), KernelError> {
+pub(crate) fn range(
+    q: &RosterRange,
+    today: NaiveDate,
+) -> Result<(NaiveDate, NaiveDate), KernelError> {
     let from = q
         .from
         .unwrap_or_else(|| pd(&r::start_of_week(&ds(today))).unwrap_or(today));
@@ -484,12 +501,11 @@ fn check_input(b: &DutyShiftInput) -> Result<Shift, KernelError> {
 /// Checks putting `shift` (with its new times) on `staff` on `date`: a block becomes 409; the
 /// rest are warnings, plus the working-time limits.
 fn judge(original: &Shift, updated: &Shift, w: &World) -> Result<Vec<String>, KernelError> {
-    let attendance = HashSet::new();
     let ctx = Context {
         shifts: &w.shifts,
         employees: &w.employees,
         availability: &w.availability,
-        attendance: &attendance,
+        attendance: &w.punched,
     };
     let to = updated.assignee_id.as_deref();
     let base = Shift {
@@ -555,7 +571,11 @@ async fn shift_result(
     ))
 }
 
-fn clean(s: &Option<String>, max: usize, field: &str) -> Result<Option<String>, KernelError> {
+pub(crate) fn clean(
+    s: &Option<String>,
+    max: usize,
+    field: &str,
+) -> Result<Option<String>, KernelError> {
     let v = s
         .as_deref()
         .map(str::trim)
@@ -1344,7 +1364,8 @@ pub fn router(st: PeopleState) -> OpenApiRouter {
         .routes(routes!(settings_get, settings_put))
         .routes(routes!(profile_put))
         .routes(routes!(me))
-        .with_state(st)
+        .with_state(st.clone())
+        .merge(super::shifts_http::router(st))
 }
 
 #[cfg(test)]

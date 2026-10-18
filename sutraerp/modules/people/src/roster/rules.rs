@@ -128,7 +128,8 @@ pub fn format_hours(minutes: f64) -> String {
     format!("{}h", num(rounded))
 }
 
-fn js_round(x: f64) -> f64 {
+/// `Math.round`.
+pub fn js_round(x: f64) -> f64 {
     let f = x.floor();
     if x - f >= 0.5 {
         f + 1.0
@@ -137,7 +138,8 @@ fn js_round(x: f64) -> f64 {
     }
 }
 
-fn num(x: f64) -> String {
+/// A number as JavaScript's `String(n)` writes it (integers without a fraction).
+pub fn num(x: f64) -> String {
     if x.fract() == 0.0 && x.abs() < 1e15 {
         format!("{}", x as i64)
     } else {
