@@ -20,6 +20,7 @@ import { Acts, splitActions, useAsk, type RowAction } from "../ui";
 import type { Institution } from "../../institution/types";
 import { useWorkforceApi, wkeys } from "./hooks";
 import { HiringScorecardsTile } from "../hiring/HiringScorecardsTile";
+import { HiringAnalyticsTile } from "../hiring/HiringAnalyticsTile";
 import type { Candidate, Engagement, EngagementCommand, OnboardingCase, Position, Requisition, Staff, StaffCommand } from "./types";
 
 export { WorkforceApiProvider } from "./hooks";
@@ -504,6 +505,7 @@ function RecruitmentAdmin({ institution }: { institution: Institution }) {
         />
       </BentoTile>
       <HiringScorecardsTile institutionId={institution.id} requisitionId={reqId} />
+      <HiringAnalyticsTile institutionId={institution.id} />
       <BentoTile span={12} title="Onboarding" data-slice="7A" data-onboarding>
         <DataTable
           caption="Onboarding cases"
