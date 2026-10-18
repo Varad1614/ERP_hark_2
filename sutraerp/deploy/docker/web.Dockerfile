@@ -27,7 +27,9 @@ FROM nginxinc/nginx-unprivileged:1.30-alpine
 # 9D: security (SEC-9D-016) — pick up Alpine security fixes released after the base image was
 # built (zlib 1.3.2-r1, found by Grype); the base runs as UID 101, so upgrade as root and drop back.
 USER root
-RUN apk upgrade --no-cache
+# P4: CVE-2026-77214 (libexpat < 2.9.0-r0, Trivy HIGH). The explicit floor also changes this
+# layer's cache key, so a cached `apk upgrade` layer from before the fix cannot be reused.
+RUN apk upgrade --no-cache && apk add --no-cache 'libexpat>=2.9.0-r0'
 USER 101
 # 9B: OCI metadata (docs/batch9-contracts.md §10.2).
 ARG SUTRA_GIT_SHA=unknown
