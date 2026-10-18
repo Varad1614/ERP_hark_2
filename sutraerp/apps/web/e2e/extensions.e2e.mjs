@@ -267,8 +267,14 @@ async function fill(scope, label, value) {
 /** Selects the option whose value is `text`, else the first whose label contains it. */
 async function choose(select, text) {
   await select.waitFor({ state: "visible", timeout: 10000 });
-  const opts = await select.locator("option").evaluateAll((os) => os.map((o) => ({ value: o.value, label: o.textContent ?? "", disabled: o.disabled })));
-  const hit = opts.find((o) => o.value === text) ?? opts.find((o) => o.label.includes(text));
+  // Options can arrive after the select renders (e.g. the PersonPicker shows "Loading…" first).
+  let opts = [];
+  let hit;
+  for (let i = 0; i < 40 && !hit; i++) {
+    if (i) await new Promise((r) => setTimeout(r, 250));
+    opts = await select.locator("option").evaluateAll((os) => os.map((o) => ({ value: o.value, label: o.textContent ?? "", disabled: o.disabled })));
+    hit = opts.find((o) => o.value === text) ?? opts.find((o) => o.label.includes(text));
+  }
   if (!hit) throw new Error(`no option “${text}” (${opts.map((o) => o.label).join(" | ")})`);
   await select.selectOption(hit.value);
 }
