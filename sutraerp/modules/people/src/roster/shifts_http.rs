@@ -1638,7 +1638,7 @@ pub struct RosterMyTimesheet {
 
 /// My timesheet (`people.self`): published shifts I held in the period (default this week)
 /// reconciled with my punches and attendance days; the saved timesheet when I submitted one.
-#[utoipa::path(get, path = "/api/v1/people/me/timesheet", operation_id = "people_roster_timesheet_me", tag = "people-roster",
+#[utoipa::path(get, path = "/api/v1/people/me/roster/timesheet", operation_id = "people_roster_timesheet_me", tag = "people-roster",
     params(RosterRange), security(("session_cookie" = [])),
     responses((status = 200, body = RosterMyTimesheet), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
 pub async fn timesheet_me(
@@ -1701,7 +1701,7 @@ pub struct RosterTimesheetSubmit {
 /// Submit my weekly or monthly timesheet (`people.self`; Idempotency-Key): the reconciliation
 /// now is saved for a manager. A returned timesheet can be submitted again; an approved one
 /// cannot (409).
-#[utoipa::path(post, path = "/api/v1/people/me/timesheets", operation_id = "people_roster_timesheet_submit", tag = "people-roster",
+#[utoipa::path(post, path = "/api/v1/people/me/roster/timesheets", operation_id = "people_roster_timesheet_submit", tag = "people-roster",
     params(("Idempotency-Key" = String, Header, description = "Required. Retry-safe key.")),
     request_body = RosterTimesheetSubmit, security(("session_cookie" = [], "csrf_token" = [])),
     responses((status = 201, body = RosterTimesheetView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
@@ -1826,7 +1826,7 @@ pub struct TimesheetQuery {
 }
 
 /// Timesheets of the institution (`people.read`).
-#[utoipa::path(get, path = "/api/v1/people/institutions/{id}/timesheets", operation_id = "people_roster_timesheet_list", tag = "people-roster",
+#[utoipa::path(get, path = "/api/v1/people/institutions/{id}/roster/timesheets", operation_id = "people_roster_timesheet_list", tag = "people-roster",
     params(("id" = String, Path, format = Uuid), TimesheetQuery), security(("session_cookie" = [])),
     responses((status = 200, body = RosterTimesheetList), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
 pub async fn timesheet_list(
@@ -1859,7 +1859,7 @@ pub async fn timesheet_list(
 }
 
 /// One timesheet (`people.read`).
-#[utoipa::path(get, path = "/api/v1/people/timesheets/{id}", operation_id = "people_roster_timesheet_get", tag = "people-roster",
+#[utoipa::path(get, path = "/api/v1/people/roster/timesheets/{id}", operation_id = "people_roster_timesheet_get", tag = "people-roster",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [])),
     responses((status = 200, body = RosterTimesheetView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
 pub async fn timesheet_get(
@@ -1881,7 +1881,7 @@ pub async fn timesheet_get(
 
 /// Approve or return a submitted timesheet (`people.staff.manage`; If-Match; never the staff
 /// member or whoever submitted it). Approving re-reconciles and freezes the totals.
-#[utoipa::path(post, path = "/api/v1/people/timesheets/{id}/decision", operation_id = "people_roster_timesheet_decide", tag = "people-roster",
+#[utoipa::path(post, path = "/api/v1/people/roster/timesheets/{id}/decision", operation_id = "people_roster_timesheet_decide", tag = "people-roster",
     params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header)),
     request_body = LeaveDecisionBody, security(("session_cookie" = [], "csrf_token" = [])),
     responses((status = 200, body = RosterTimesheetView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
@@ -1971,7 +1971,7 @@ pub async fn timesheet_decide(
 
 /// Lock an approved timesheet (`people.staff.manage`; If-Match): punches and swaps of its
 /// days are frozen.
-#[utoipa::path(post, path = "/api/v1/people/timesheets/{id}/lock", operation_id = "people_roster_timesheet_lock", tag = "people-roster",
+#[utoipa::path(post, path = "/api/v1/people/roster/timesheets/{id}/lock", operation_id = "people_roster_timesheet_lock", tag = "people-roster",
     params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header)), security(("session_cookie" = [], "csrf_token" = [])),
     responses((status = 200, body = RosterTimesheetView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
 pub async fn timesheet_lock(
