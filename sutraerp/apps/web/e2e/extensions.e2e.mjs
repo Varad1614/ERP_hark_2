@@ -854,7 +854,7 @@ try {
     await fill(t, "Manpower head (₹)", "1200000");
     await fill(t, "Starts", "2026-04-01");
     await fill(t, "Ends", "2029-03-31");
-    await choose(field(t, "Add a member"), "Meera");
+    await choose(t.locator('select[name="timeProjectMember"]').first(), "Meera");
     await t.locator('[data-action="add-member"]').click();
     await apiAction(page, "POST", /\/people\/institutions\/[^/]+\/time-projects$/, () => t.locator('[data-action="create-time-project"]').click());
     await t.locator('[data-project-code="SERB-CRG/2026/014"]').first().waitFor();
