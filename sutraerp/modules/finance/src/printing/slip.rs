@@ -233,12 +233,12 @@ pub fn test_doc(settings: &PrintSettings, institution_name: &str, columns: usize
         items: vec![SlipItem {
             qty: "1".to_owned(),
             name: "Line width check".to_owned(),
-            amount: display_inr(Decimal::new(125_000_00, 2)),
+            amount: display_inr(Decimal::new(12_500_000, 2)),
             subs: vec!["The amount above should end at the right edge.".to_owned()],
         }],
         totals: vec![SlipRow {
             label: "Total".to_owned(),
-            value: display_inr(Decimal::new(125_000_00, 2)),
+            value: display_inr(Decimal::new(12_500_000, 2)),
             strong: true,
         }],
         payments: Vec::new(),
