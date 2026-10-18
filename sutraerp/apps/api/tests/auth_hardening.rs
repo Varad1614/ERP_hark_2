@@ -236,8 +236,9 @@ async fn api_responses_carry_hardening_headers() {
 /// Routes that answer without a session, by design (each justified in
 /// docs/readiness/security/auth.md): health probes, the sign-in bootstrap (pre-session CSRF
 /// protected), the OIDC redirect endpoints, the signed back-channel logout and payment webhook,
-/// idempotent logout and the static navigation catalog (the same JSON ships in the web bundle).
-const PUBLIC: [(&str, &str); 15] = [
+/// idempotent logout, the static navigation catalog (the same JSON ships in the web bundle) and
+/// the public careers page (ERP_EXTENSIONS 5A).
+const PUBLIC: [(&str, &str); 17] = [
     ("GET", "/health/live"),
     ("GET", "/health/ready"),
     ("GET", "/api/v1/auth/csrf"),
@@ -250,6 +251,9 @@ const PUBLIC: [(&str, &str); 15] = [
     ("POST", "/api/v1/auth/oidc/backchannel-logout"),
     ("POST", "/api/v1/auth/logout"),
     ("POST", "/api/v1/finance/gateway/webhook"),
+    // ERP_EXTENSIONS 5A: the public careers page (read-only list + spam-safe apply form).
+    ("GET", "/api/v1/people/public/careers/{slug}"),
+    ("POST", "/api/v1/people/public/careers/{slug}/requisitions/{id}/apply"),
     ("GET", "/api/v1/platform/modules"),
     ("GET", "/api/v1/platform/workspaces"),
     ("GET", "/api/v1/platform/workspaces/{key}"),
