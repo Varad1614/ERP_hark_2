@@ -235,12 +235,12 @@ jobs:
   # chromium + API + preview together). Runs on ui/**, batch*/**, part1/** (dispatch) and erp_merge.
   e2e:
     name: E2E ${{ matrix.suite }} (preview)
-    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || startsWith(github.ref, 'refs/heads/part1/') || startsWith(github.ref, 'refs/heads/part2/') || github.ref == 'refs/heads/erp_merge'
+    if: startsWith(github.ref, 'refs/heads/batch') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/reskin2/') || startsWith(github.ref, 'refs/heads/part1/') || startsWith(github.ref, 'refs/heads/part2/') || github.ref == 'refs/heads/erp_merge' || github.ref == 'refs/heads/ERP_EXTENSIONS'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        suite: [finance, student, academic, ui, exams, people, campus, reskin2]
+        suite: [finance, student, academic, ui, exams, people, campus, reskin2, extensions]
     services:
       postgres:
         image: postgres:18
@@ -287,7 +287,7 @@ jobs:
   # approver (maker ≠ checker), history, export. Also runs on part2/** (workflow_dispatch).
   e2e-imports:
     name: E2E imports (preview)
-    if: startsWith(github.ref, 'refs/heads/part2/') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/part1/') || github.ref == 'refs/heads/erp_merge'
+    if: startsWith(github.ref, 'refs/heads/part2/') || startsWith(github.ref, 'refs/heads/ui/') || startsWith(github.ref, 'refs/heads/part1/') || github.ref == 'refs/heads/erp_merge' || github.ref == 'refs/heads/ERP_EXTENSIONS'
     runs-on: ubuntu-24.04
     services:
       postgres:

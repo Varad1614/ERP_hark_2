@@ -25,7 +25,8 @@
     "e2e:campus": "pnpm --filter @sutra/web e2e:campus",
     "e2e:reskin2": "pnpm --filter @sutra/web e2e:reskin2",
     "e2e:imports": "pnpm --filter @sutra/web e2e:imports",
-    "e2e:uat-dryrun": "pnpm --filter @sutra/web e2e:uat-dryrun"
+    "e2e:uat-dryrun": "pnpm --filter @sutra/web e2e:uat-dryrun",
+    "e2e:extensions": "pnpm --filter @sutra/web e2e:extensions"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
