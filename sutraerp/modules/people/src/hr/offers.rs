@@ -1296,7 +1296,7 @@ mod tests {
             "Rupees Nine Lakh Sixty Thousand only"
         );
         assert_eq!(
-            number_in_words(12_34_56_789),
+            number_in_words(123_456_789),
             "Twelve Crore Thirty-Four Lakh Fifty-Six Thousand Seven Hundred Eighty-Nine"
         );
     }
