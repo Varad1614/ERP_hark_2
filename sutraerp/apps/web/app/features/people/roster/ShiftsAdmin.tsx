@@ -26,7 +26,8 @@ const TONE_KIND: Record<Tone, BadgeKind> = { neutral: "neutral", warning: "atten
 const today = () => new Date().toISOString().slice(0, 10);
 const monthStart = (iso: string) => `${iso.slice(0, 7)}-01`;
 function monthEnd(iso: string): string {
-  const [y, m] = iso.slice(0, 7).split("-").map(Number);
+  const y = Number(iso.slice(0, 4));
+  const m = Number(iso.slice(5, 7));
   return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
 }
 
@@ -101,7 +102,7 @@ export function ShiftsAdmin({ institutionId, api = defaultShiftsApi(), initialTa
       fields: [REASON],
       submitLabel: "Reject timesheet",
       onSubmit: async (v) => {
-        await cmd.decideTimesheet(t, { decision: "reject", reason: v.reason.trim() });
+        await cmd.decideTimesheet(t, { decision: "reject", reason: (v.reason ?? "").trim() });
       },
     });
 
