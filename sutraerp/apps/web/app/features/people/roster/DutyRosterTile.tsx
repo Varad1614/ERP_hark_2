@@ -11,6 +11,8 @@ import { USES_API } from "../../../lib/api";
 import { useCommand } from "../../institution/hooks";
 import { createHttpRosterApi, type RosterApi } from "./api";
 import { createMockRosterApi } from "./mock";
+import { ShiftsAdmin } from "./ShiftsAdmin"; // ERP_EXTENSIONS 5B
+import type { ShiftsApi } from "./shifts-api";
 import { addDaysIso, flags, hours, mondayOf, timeRange, WEEKDAYS } from "./roster";
 import type { Candidate, RosterSettings } from "./types";
 
@@ -20,16 +22,17 @@ export function defaultRosterApi(): RosterApi {
   return fallback;
 }
 
-type Tab = "week" | "staff" | "settings";
+type Tab = "week" | "staff" | "settings" | "shifts";
 const TABS: { value: Tab; label: string }[] = [
   { value: "week", label: "Week" },
   { value: "staff", label: "Staff hours" },
   { value: "settings", label: "Rules" },
+  { value: "shifts", label: "Swaps & timesheets" },
 ];
 
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
-export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { institutionId: string; api?: RosterApi }) {
+export function DutyRosterTile({ institutionId, api = defaultRosterApi(), shiftsApi }: { institutionId: string; api?: RosterApi; shiftsApi?: ShiftsApi }) {
   const { run, busy, dialog } = useCommand();
   const [tab, setTab] = useState<Tab>("week");
   const [from, setFrom] = useState(() => mondayOf(new Date().toISOString().slice(0, 10)));
@@ -40,7 +43,7 @@ export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { in
   const [draft, setDraft] = useState<RosterSettings | null>(null);
   // Prefix `institution`: `useCommand` refreshes every `institution` query after a command.
   const key = (...p: string[]) => ["institution", "roster", institutionId, ...p];
-  const board = useQuery({ queryKey: key("board", from), queryFn: () => api.board(institutionId, from, to), enabled: tab !== "settings" });
+  const board = useQuery({ queryKey: key("board", from), queryFn: () => api.board(institutionId, from, to), enabled: tab === "week" || tab === "staff" });
   const settings = useQuery({ queryKey: key("settings"), queryFn: () => api.settings(institutionId), enabled: tab === "settings" });
   const shown = draft ?? settings.data ?? null;
   const staffOptions = [{ value: "", label: "Open (no one yet)" }, ...(board.data?.staff ?? []).filter((s) => s.rosterable).map((s) => ({ value: s.staffId, label: s.name }))];
@@ -57,7 +60,7 @@ export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { in
 
   return (
     <BentoTile span={12} title="Duty roster" data-slice="3A" data-duty-roster action={tabs}>
-      {tab !== "settings" && (
+      {(tab === "week" || tab === "staff") && (
         <div className="flex gap-2 items-center">
           <Button size="sm" variant="ghost" data-action="prev-week" onClick={() => setFrom(addDaysIso(from, -7))}>Previous week</Button>
           <KeyValue label="Week" value={`${formatDateShort(from)} – ${formatDate(to)}`} />
@@ -167,6 +170,7 @@ export function DutyRosterTile({ institutionId, api = defaultRosterApi() }: { in
           }, "Rules saved")}>Save rules</Button>
         </>
       )}
+      {tab === "shifts" && <ShiftsAdmin institutionId={institutionId} api={shiftsApi} />}
       {dialog}
     </BentoTile>
   );
