@@ -3,7 +3,10 @@
 //! Tag `people-hr`; operation id prefixes `people_recruitment_`, `people_onboarding_`,
 //! `people_probation_`, `people_separation_`, `people_certificate_` (contract §5.2).
 
+pub mod careers; // ERP_EXTENSIONS 5A
 pub mod certificate;
+pub mod hiring_analytics; // ERP_EXTENSIONS 5A
+pub mod offers; // ERP_EXTENSIONS 5A
 pub mod onboarding;
 pub mod probation;
 pub mod recruitment;
