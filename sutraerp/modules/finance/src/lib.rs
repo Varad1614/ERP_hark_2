@@ -43,6 +43,7 @@ pub mod config; // 5A
 pub mod ledger; // 5C
 pub mod payments; // 5B
 pub mod periods; // 5C
+pub mod printing; // ERP_EXTENSIONS 3E (counter slips, ESC/POS)
 pub mod receivables; // 5B
 pub mod refunds; // 5B
 pub mod treasury; // 5C

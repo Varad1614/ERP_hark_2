@@ -27,5 +27,6 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
     OpenApiRouter::new()
         .merge(http::router(state.clone()))
         .merge(unidentified::router(state.clone()))
-        .merge(collections::router(state))
+        .merge(collections::router(state.clone()))
+        .merge(crate::printing::http::router(state)) // ERP_EXTENSIONS 3E
 }
