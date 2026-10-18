@@ -341,6 +341,10 @@ pub enum Permission {
     PayrollApprove,
     /// Batch 7: decide governed HR approvals — engagement activation / change, position assignment, onboarding acceptance, probation, separation, leave policy and payroll configuration activation (step-up).
     PeopleApprove,
+    /// ERP_EXTENSIONS 5C: time tracking set-up — research projects / grants / committees, their members, staff hourly rates, settings.
+    TimeTrackingManage,
+    /// ERP_EXTENSIONS 5C: decide any submitted timesheet on behalf of the project's PI or the staff member's manager (never one's own).
+    TimesheetDecide,
     // ---- Batch 8 (Domains G, H, J). Reads use `CampusRead` / `ReportRead` / `ResourcesRead`; everyone acts on their own campus services with `CampusSelfService`. ----
     /// Batch 8 (Domain G): read infrastructure, reservations, labs, tickets, work orders, hostel, transport and library records of the tenant (campus office: administrators).
     CampusRead,
@@ -406,7 +410,7 @@ pub enum Permission {
 }
 
 impl Permission {
-    pub const ALL: [Permission; 121] = [
+    pub const ALL: [Permission; 123] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -501,6 +505,8 @@ impl Permission {
         Permission::PayrollManage,
         Permission::PayrollApprove,
         Permission::PeopleApprove,
+        Permission::TimeTrackingManage,
+        Permission::TimesheetDecide,
         Permission::CampusRead,
         Permission::CampusSelfService,
         Permission::FacilityManage,
@@ -626,6 +632,8 @@ impl Permission {
             Permission::PayrollManage => "people.payroll.manage",
             Permission::PayrollApprove => "people.payroll.approve",
             Permission::PeopleApprove => "people.approve",
+            Permission::TimeTrackingManage => "people.time.manage",
+            Permission::TimesheetDecide => "people.timesheet.decide",
             Permission::CampusRead => "campus.read",
             Permission::CampusSelfService => "campus.self",
             Permission::FacilityManage => "campus.facility.manage",
@@ -806,6 +814,9 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             PayrollManage,
             PayrollApprove,
             PeopleApprove,
+            // ERP_EXTENSIONS 5C: time tracking set-up and timesheet decisions on behalf of approvers.
+            TimeTrackingManage,
+            TimesheetDecide,
             // Batch 8 (Domains G, H, J): campus, facilities, hostel, transport, library, reports and
             // procurement offices = administrators; administrators use campus self-service too.
             CampusRead,

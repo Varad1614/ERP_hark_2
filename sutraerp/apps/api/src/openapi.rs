@@ -67,6 +67,7 @@ use utoipa::OpenApi;
         (name = "people-leave", description = "E People & workforce: leave policies and types, leave requests and decisions, accrual, consumption, cancellation, adjustment, carry forward, encashment, exceptions, long leave"),
         (name = "people-attendance", description = "E People & workforce: staff attendance days and faculty availability / workload plans"),
         (name = "people-roster", description = "E People & workforce: duty rosters (ERP_EXTENSIONS 3A): shifts, conflicts and working-time limits, suggestions, fill, coverage, publish, my duties"),
+        (name = "people-time", description = "E People & workforce: time tracking (ERP_EXTENSIONS 5C): research projects / sponsored grants / committees, time entries and timer, weekly timesheets with PI / manager approval, effort reports and person-months, CSV import / export"),
         (name = "people-payroll", description = "E People & workforce: payroll configuration, salary structures and assignments, payroll runs, results, Finance posting, payslips, adjustments, retro pay, final settlement, off-cycle runs"),
         (name = "campus-directory", description = "G Campus operations: infrastructure tree and the caller's campus person (foundation)"),
         (name = "campus-infrastructure", description = "G Campus operations: infrastructure hierarchy (campus, buildings, floors, spaces, zones), classification, capabilities, capacity and availability, suspension, decommissioning, space reservations"),

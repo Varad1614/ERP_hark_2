@@ -26,6 +26,8 @@ sqlx.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 tracing.workspace = true
+unicode-normalization.workspace = true # ERP_EXTENSIONS 5C
+regex.workspace = true # ERP_EXTENSIONS 5C (time tracking)
 
 [dev-dependencies]
 tokio.workspace = true
