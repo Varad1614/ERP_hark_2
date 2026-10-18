@@ -199,6 +199,14 @@ observability:
 approvals:
   mode: human                          # SUTRA_APPROVAL_MODE: human | auto
 
+# Part 2 · S7-entitle: SUTRA_ENTITLEMENT_DEFAULT — what an institution WITHOUT a stored licence
+# (platform.tenant_entitlement) may use: a package key (core_academic | academic_plus |
+# institution_operations | complete_erp) or none (core only until a licence is approved). Required
+# when global.environment=production (the render fails when empty; the API refuses to start
+# without it). Set it to the package the institution bought. docs/readiness/ENTITLEMENT_IMPLEMENTATION.md
+entitlements:
+  default: complete_erp
+
 flowable:
   # Part 1 (DEF-X-001): on by default — production refuses SUTRA_WORKFLOW=noop.
   enabled: true                        # true → SUTRA_WORKFLOW=flowable

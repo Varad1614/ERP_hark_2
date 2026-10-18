@@ -14,11 +14,13 @@
 //! * [`health`] – `/health/live` and `/health/ready` — ADR-L5-0044
 //! * [`security_headers`], [`cors`], [`rate_limit`] – response hardening headers, CORS allow-list and
 //!   public-endpoint rate limiting (Part 1 · Stage 3, `docs/security/config.md`)
+//! * [`entitlement`] – server-side module entitlement and licence gate (Part 2 · S7-entitle)
 //!
 //! Framework types defined here never leak into canonical contracts (`sutra-contracts`).
 
 pub mod auth;
 pub mod cors;
+pub mod entitlement; // Part 2 · S7-entitle: module entitlement / licence gate
 pub mod health;
 pub mod idempotency;
 pub mod problem;

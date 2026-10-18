@@ -36,6 +36,7 @@ use sutra_kernel::auth::{AuthContext, Permission};
 use sutra_kernel::concurrency::Version;
 use sutra_kernel::error::{FieldViolation, KernelError};
 use sutra_kernel::scope::{ExecutionScope, InstitutionId, TenantId};
+use sutra_kernel::signal::{self, SecurityEvent};
 use sutra_persistence::map_db_error;
 use sutra_web::idempotency::require_idempotency_key;
 use sutra_web::{ApiResult, Authenticated, Problem};
@@ -108,6 +109,36 @@ pub struct InitiatePaymentRequest {
     pub student_account_id: Option<Uuid>,
     /// Charges to pay (defaults to every open charge, oldest due first).
     pub charge_ids: Option<Vec<Uuid>>,
+}
+
+/// Part 2 S4-pay: what Razorpay Checkout hands the browser after a successful payment
+/// (`razorpay_payment_id`, `razorpay_order_id`, `razorpay_signature`), forwarded to `confirm`.
+/// Optional: without it `confirm` only polls the gateway. With it the signature is verified
+/// server-side first (422 `invalid_signature` otherwise); the payment is still marked paid only
+/// when the gateway itself reports the capture (never on the browser's word).
+#[derive(Debug, Clone, Default, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfirmPaymentRequest {
+    #[serde(alias = "razorpay_payment_id")]
+    pub gateway_payment_id: Option<String>,
+    #[serde(alias = "razorpay_order_id")]
+    pub gateway_order_id: Option<String>,
+    #[serde(alias = "razorpay_signature")]
+    pub gateway_signature: Option<String>,
+}
+
+/// Part 2 S4 (UI fees, DEF-F-007): which online checkout the student's browser opens.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentGatewayInfo {
+    /// Configured adapter: `disabled | mock | razorpay`.
+    pub gateway: String,
+    /// `false` when online payment is switched off (`SUTRA_PAYMENT_GATEWAY=disabled`): the UI
+    /// hides "Pay now" and points to the finance office.
+    pub online_payments: bool,
+    /// Public key id Razorpay Checkout is opened with (`rzp_test_…` / `rzp_live_…`); absent for
+    /// the mock / disabled adapters. Never a secret.
+    pub checkout_key_id: Option<String>,
 }
 
 /// Acknowledgement of a gateway webhook.
@@ -232,7 +263,8 @@ async fn list_payments(
 }
 
 /// Applies a gateway outcome to a locked open payment (capture → completion, failure → failed).
-async fn apply_outcome(
+/// Part 2 S4-pay: shared with the recovery job (`payments::recovery`).
+pub(crate) async fn apply_outcome(
     st: &FinanceState,
     conn: &mut sqlx::PgConnection,
     p: &super::service::PaymentRow,
@@ -750,6 +782,24 @@ pub async fn my_payment_list(
     }))
 }
 
+/// Part 2 S4 (UI fees, DEF-F-007): the configured online gateway and the public checkout key
+/// (`finance.self`). Nothing tenant-specific is returned.
+#[utoipa::path(get, path = "/api/v1/finance/me/payment-gateway", operation_id = "finance_payment_self_gateway", tag = "finance-payments",
+    security(("session_cookie" = [])),
+    responses((status = 200, body = PaymentGatewayInfo), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
+pub async fn my_payment_gateway(
+    State(st): State<FinanceState>,
+    auth: Authenticated,
+) -> ApiResult<Json<PaymentGatewayInfo>> {
+    auth.0.require(Permission::FinanceSelfService)?;
+    let gateway = st.gateway.name();
+    Ok(Json(PaymentGatewayInfo {
+        gateway: gateway.to_owned(),
+        online_payments: gateway != super::gateway::DISABLED_GATEWAY,
+        checkout_key_id: st.gateway.checkout_key_id(),
+    }))
+}
+
 /// Starts an online payment with the (mock) gateway: creates the gateway order and a pending
 /// payment (`finance.self`, `Idempotency-Key` — a retry returns the same payment / order).
 #[utoipa::path(post, path = "/api/v1/finance/me/payments", operation_id = "finance_payment_self_initiate", tag = "finance-payments",
@@ -889,21 +939,31 @@ pub async fn my_payment_initiate(
     view_response(&st, t, p.id.as_uuid(), StatusCode::CREATED).await
 }
 
-/// Return from the (mock) checkout: asks the gateway for the outcome and completes / fails the
-/// caller's own payment (`finance.self`, `If-Match`). Still pending → unchanged.
+/// Return from checkout: asks the gateway for the outcome and completes / fails the caller's own
+/// payment (`finance.self`, `If-Match`). Still pending → unchanged. Part 2 S4-pay: the optional
+/// body carries the Checkout callback (`razorpay_payment_id`, `razorpay_order_id`,
+/// `razorpay_signature`), verified server-side before the gateway is asked (422 when forged); the
+/// fee is marked paid only on the gateway's own capture report.
 #[utoipa::path(post, path = "/api/v1/finance/me/payments/{id}/confirm", operation_id = "finance_payment_self_confirm", tag = "finance-payments",
-    params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header)), security(("session_cookie" = [])),
+    params(("id" = String, Path, format = Uuid), ("If-Match" = String, Header)), request_body = Option<ConfirmPaymentRequest>, security(("session_cookie" = [])),
     responses((status = 200, body = PaymentView, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
 pub async fn my_payment_confirm(
     State(st): State<FinanceState>,
     auth: Authenticated,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
+    body: Bytes,
 ) -> ApiResult<Response> {
     let ctx = &auth.0;
     let v = match if_match(&headers)? {
         Ok(v) => v,
         Err(r) => return Ok(r),
+    };
+    let callback: ConfirmPaymentRequest = if body.iter().all(u8::is_ascii_whitespace) {
+        ConfirmPaymentRequest::default()
+    } else {
+        serde_json::from_slice(&body)
+            .map_err(|e| KernelError::BadRequest(format!("confirm body: {e}")))?
     };
     let mine = my_accounts(&st, ctx).await?;
     let t = tenant(ctx);
@@ -918,16 +978,112 @@ pub async fn my_payment_confirm(
         return view_response(&st, t, id, StatusCode::OK).await;
     }
     let scope = institution_scope(ctx, current.institution_id);
+    let a = actor(ctx);
+    let verified = verify_checkout_callback(&st, &scope, &current, &callback, &a).await?;
     let outcome = match current.gateway_order_ref.as_deref() {
         Some(order) => st.gateway.fetch_outcome(&scope, order).await?,
         None => GatewayPaymentOutcome::Pending,
     };
-    let a = actor(ctx);
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let p = load_payment(&mut tx, t, id, true).await?;
+    if let Some(payment_ref) = verified.as_deref() {
+        crate::shared::publish::audit(
+            &mut tx,
+            &scope,
+            "finance.payment.checkout_verified",
+            "payment",
+            p.id.to_string(),
+            serde_json::json!({"paymentNumber": p.payment_number, "gateway": st.gateway.name(),
+                "orderRef": p.gateway_order_ref, "gatewayPaymentRef": payment_ref,
+                "gatewayOutcome": outcome_label(&outcome)}),
+            &a,
+        )
+        .await?;
+    }
     apply_outcome(&st, &mut tx, &p, &outcome, &a).await?;
     tx.commit().await.map_err(map_db_error)?;
     view_response(&st, t, id, StatusCode::OK).await
+}
+
+/// `captured | failed | pending`.
+pub(crate) fn outcome_label(o: &GatewayPaymentOutcome) -> &'static str {
+    match o {
+        GatewayPaymentOutcome::Captured { .. } => "captured",
+        GatewayPaymentOutcome::Failed { .. } => "failed",
+        GatewayPaymentOutcome::Pending => "pending",
+    }
+}
+
+/// Part 2 S4-pay: server-side verification of a checkout callback. No callback → `None`; a
+/// complete, matching and correctly signed one → `Some(gateway payment ref)`; anything else is a
+/// 422 and is audited (`finance.payment.checkout_rejected`).
+async fn verify_checkout_callback(
+    st: &FinanceState,
+    scope: &ExecutionScope,
+    p: &super::service::PaymentRow,
+    cb: &ConfirmPaymentRequest,
+    a: &Actor,
+) -> Result<Option<String>, KernelError> {
+    let trim = |s: &Option<String>| {
+        s.as_deref()
+            .map(str::trim)
+            .filter(|x| !x.is_empty())
+            .map(str::to_owned)
+    };
+    let (pay, order, sig) = (
+        trim(&cb.gateway_payment_id),
+        trim(&cb.gateway_order_id),
+        trim(&cb.gateway_signature),
+    );
+    if pay.is_none() && order.is_none() && sig.is_none() {
+        return Ok(None);
+    }
+    let problem = match (&pay, &order, &sig) {
+        (Some(pay), Some(order), Some(sig)) => {
+            if p.gateway_order_ref.as_deref() != Some(order.as_str()) {
+                Some((
+                    "gatewayOrderId",
+                    "order_mismatch",
+                    "is not the order of this payment",
+                ))
+            } else if st.gateway.verify_checkout(order, pay, sig).is_err() {
+                signal::security(SecurityEvent::CheckoutSignatureFailed);
+                Some((
+                    "gatewaySignature",
+                    "invalid_signature",
+                    "the checkout signature does not verify",
+                ))
+            } else {
+                None
+            }
+        }
+        _ => Some((
+            "gatewaySignature",
+            "incomplete_callback",
+            "gatewayPaymentId, gatewayOrderId and gatewaySignature go together",
+        )),
+    };
+    match problem {
+        None => Ok(pay),
+        Some((field, code, message)) => {
+            let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+            crate::shared::publish::audit(
+                &mut tx,
+                scope,
+                "finance.payment.checkout_rejected",
+                "payment",
+                p.id.to_string(),
+                serde_json::json!({"paymentNumber": p.payment_number, "reason": code,
+                    "orderRef": p.gateway_order_ref, "claimedOrderId": order, "claimedPaymentId": pay}),
+                a,
+            )
+            .await?;
+            tx.commit().await.map_err(map_db_error)?;
+            Err(KernelError::Validation(vec![FieldViolation::new(
+                field, code, message,
+            )]))
+        }
+    }
 }
 
 /// Abandons the caller's own open online payment (L3-F-012; `finance.self`, `If-Match`).
@@ -1015,11 +1171,20 @@ async fn gateway_webhook_signed(
     if st.gateway.name() == crate::payments::gateway::DISABLED_GATEWAY {
         return Err(KernelError::Unavailable("online payments are disabled".into()).into());
     }
+    // Part 2 S5-monitor: a missing or wrong signature is counted (alert on spikes).
+    let bad_signature = |e: KernelError| {
+        signal::security(SecurityEvent::WebhookSignatureFailed);
+        e
+    };
     let signature = headers
         .get("x-razorpay-signature")
         .and_then(|v| v.to_str().ok())
-        .ok_or(KernelError::Unauthenticated)?;
-    let hook = st.gateway.verify_webhook(&body, signature)?;
+        .ok_or(KernelError::Unauthenticated)
+        .map_err(bad_signature)?;
+    let hook = st
+        .gateway
+        .verify_webhook(&body, signature)
+        .map_err(bad_signature)?;
     let gateway = st.gateway.name();
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     let found = sqlx::query(&format!(
@@ -1081,7 +1246,32 @@ async fn gateway_webhook_signed(
     .await
     .map_err(map_db_error)?;
     let a = Actor::system(Some(format!("gateway:{}", hook.event_id)));
-    let done = apply_outcome(&st, &mut tx, &p, &hook.outcome, &a).await?;
+    let done = match apply_outcome(&st, &mut tx, &p, &hook.outcome, &a).await {
+        Ok(d) => d,
+        Err(e @ KernelError::Conflict(_)) => {
+            // Part 2 S4-pay (DEF-F-004): a verified event that cannot be applied (e.g. the gateway
+            // captured another amount) leaves a trace — the event row (`amount_mismatch`, so
+            // replays are duplicates) and an audit row for the finance office — instead of
+            // vanishing with the rolled-back transaction.
+            tx.rollback().await.map_err(map_db_error)?;
+            record_rejected_webhook(&st, gateway, &hook, &p, &e, &a).await?;
+            return Err(e.into());
+        }
+        Err(e) => return Err(e.into()),
+    };
+    // Part 2 S4-pay: every processed (verified, first-seen) webhook is audited in its tenant.
+    crate::shared::publish::audit(
+        &mut tx,
+        &ExecutionScope::institution(p.tenant_id, p.institution_id),
+        "finance.gateway.webhook",
+        "payment",
+        p.id.to_string(),
+        serde_json::json!({"gateway": gateway, "eventId": hook.event_id, "event": hook.event,
+            "orderRef": hook.order_ref, "outcome": outcome_name,
+            "from": p.status.as_str(), "to": done.status.as_str()}),
+        &a,
+    )
+    .await?;
     tx.commit().await.map_err(map_db_error)?;
     Ok(Json(WebhookAck {
         event_id: hook.event_id,
@@ -1089,6 +1279,58 @@ async fn gateway_webhook_signed(
         payment_id: Some(done.id.as_uuid()),
         payment_status: Some(done.status),
     }))
+}
+
+/// Part 2 S4-pay (DEF-F-004): records a verified webhook whose outcome was refused.
+async fn record_rejected_webhook(
+    st: &FinanceState,
+    gateway: &str,
+    hook: &sutra_contracts::finance::ports::GatewayWebhook,
+    p: &super::service::PaymentRow,
+    error: &KernelError,
+    a: &Actor,
+) -> Result<(), KernelError> {
+    let mut tx = st.pool.begin().await.map_err(map_db_error)?;
+    sqlx::query(
+        "INSERT INTO finance.gateway_webhook_event (gateway, event_id, event, order_ref, tenant_id, payment_id, outcome) \
+         VALUES ($1, $2, $3, $4, $5, $6, 'amount_mismatch') ON CONFLICT (gateway, event_id) DO NOTHING",
+    )
+    .bind(gateway)
+    .bind(&hook.event_id)
+    .bind(&hook.event)
+    .bind(&hook.order_ref)
+    .bind(p.tenant_id.as_uuid())
+    .bind(p.id.as_uuid())
+    .execute(&mut *tx)
+    .await
+    .map_err(map_db_error)?;
+    sutra_persistence::pool::apply_context(
+        &mut tx,
+        Some(sutra_kernel::db_context::DbContext::Scoped(
+            ExecutionScope::tenant(p.tenant_id),
+        )),
+        true,
+    )
+    .await
+    .map_err(map_db_error)?;
+    let claimed = match &hook.outcome {
+        GatewayPaymentOutcome::Captured { amount, .. } => Some(crate::shared::money::fmt(*amount)),
+        _ => None,
+    };
+    crate::shared::publish::audit(
+        &mut tx,
+        &ExecutionScope::institution(p.tenant_id, p.institution_id),
+        "finance.gateway.webhook_rejected",
+        "payment",
+        p.id.to_string(),
+        serde_json::json!({"gateway": gateway, "eventId": hook.event_id, "event": hook.event,
+            "orderRef": hook.order_ref, "paymentNumber": p.payment_number,
+            "paymentAmount": crate::shared::money::fmt(p.amount), "gatewayAmount": claimed,
+            "status": p.status.as_str(), "error": error.to_string()}),
+        a,
+    )
+    .await?;
+    tx.commit().await.map_err(map_db_error)
 }
 
 pub fn router(state: FinanceState) -> OpenApiRouter {
@@ -1104,6 +1346,7 @@ pub fn router(state: FinanceState) -> OpenApiRouter {
         .routes(routes!(receipt_of_payment))
         .routes(routes!(receipt_get))
         .routes(routes!(my_payment_list, my_payment_initiate))
+        .routes(routes!(my_payment_gateway))
         .routes(routes!(my_payment_confirm))
         .routes(routes!(my_payment_cancel))
         .routes(routes!(my_receipt_list))

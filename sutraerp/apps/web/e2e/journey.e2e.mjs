@@ -25,7 +25,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { chromium } from "playwright";
 
 process.env.DATABASE_URL ??= "postgres://sutra:sutra@localhost:5432/sutra";
@@ -63,6 +63,19 @@ const save = () => {
   writeFileSync(STATE, JSON.stringify(state, null, 2));
 };
 const gap = (step, why) => R.gaps.push({ step, why });
+
+/**
+ * Part 2 · S4-docs: a plain PDF (no scripts / embedded files) of about `size` bytes; the padding is
+ * PDF comment lines, so the content check (magic bytes, active-content refusal) accepts it.
+ */
+function pdf(label, size = 0) {
+  const head = `%PDF-1.7\n% SutraERP journey document: ${label}\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [] /Count 0 >> endobj\n`;
+  const tail = "trailer << /Root 1 0 R >>\n%%EOF\n";
+  const line = `%${"0".repeat(1022)}\n`;
+  const n = Math.max(0, Math.ceil((size - head.length - tail.length) / line.length));
+  return Buffer.from(head + line.repeat(n) + tail, "latin1");
+}
+const sha256hex = (b) => createHash("sha256").update(b).digest("hex");
 
 // ---------------------------------------------------------------- step runner + checks
 
@@ -374,7 +387,31 @@ try {
           await fillForm(page, "admission-document", { documentType: type, title, fileRef: `dms://admissions/${type}.pdf` });
         }, e);
         check(r.status === 201 && r.body.status === "submitted", `${type} handed in`, e);
+        // Part 2 · S4-docs + S4 UI: the scanned file is uploaded with the drawer's upload control
+        // (object storage = MinIO in the demo stack). The marksheet is above 1 MiB: the browser
+        // sends it with its own content type and without an Idempotency-Key.
+        const bytes = pdf(title, type === "qualifying_marksheet" ? 1536 * 1024 : 0);
+        const filename = `${title}.pdf`;
+        const docRow = drawer.locator(`.sb-lrow[data-admission-doc="${type}"][data-file="none"]`).first();
+        await docRow.waitFor({ timeout: 15000 });
+        await act(page, docRow, "doc-upload");
+        const picker = page.locator('[data-form="document-upload"] input[type="file"]');
+        await picker.setInputFiles({ name: filename, mimeType: "application/pdf", buffer: bytes });
+        const [resp] = await Promise.all([
+          page.waitForResponse((x) => x.request().method() === "PUT" && /\/admissions\/[^/]+\/documents\/[^/]+\/file$/.test(new URL(x.url()).pathname), { timeout: 120000 }),
+          page.locator('[data-action="document-upload-submit"]').click(),
+        ]);
+        const sent = await resp.request().allHeaders();
+        const up = { status: resp.status(), json: await resp.json().catch(() => ({})) };
+        e(`browser → PUT ${new URL(resp.url()).pathname}${new URL(resp.url()).search} (${bytes.length} bytes, ${sent["content-type"]}${"idempotency-key" in sent ? ", WITH Idempotency-Key" : ", no Idempotency-Key"}) → ${up.status} ${up.status === 201 ? `object ${up.json.file?.id}` : JSON.stringify(up.json).slice(0, 300)}`);
+        check(sent["content-type"] === "application/pdf" && !("idempotency-key" in sent), `${type}: browser sent the file's own content type, no Idempotency-Key`, e);
+        check(up.status === 201 && up.json.documentId === r.body.id && up.json.file?.sha256 === sha256hex(bytes) && up.json.file?.sizeBytes === bytes.length, `${type} file stored (201, SHA-256 and size match)`, e);
+        check(up.json.file?.filename === filename && up.json.file?.contentType === "application/pdf" && !("storageKey" in (up.json.file ?? {})), `${type} file metadata (name, type; no storage key exposed)`, e);
+        await drawer.locator(`.sb-lrow[data-admission-doc="${type}"][data-file="attached"]`).first().waitFor({ timeout: 15000 });
+        e(`drawer shows ${type} with its file attached`);
+        (ids.files ??= []).push({ type, documentId: r.body.id, objectId: up.json.file.id, sha256: sha256hex(bytes), size: bytes.length, filename });
       }
+      e(`(${await snap(page, "1-admission-documents-uploaded")})`);
       await page.keyboard.press("Escape");
       await settle(page);
       r = await ui(page, "POST", /\/admissions\/[^/]+\/submit-documents$/, () => act(page, page.locator('.sb-lrow[data-admission="Aarav Desai"]'), "admission-submit-documents"), e);
@@ -422,6 +459,50 @@ try {
       // visibility
       await sees(e, "faculty", faculty, `${S}/admissions/${ids.admissionId}`, 200, (j) => j.id === ids.admissionId, "student.read: read-only");
       await sees(e, "student", student, `${S}/admissions/${ids.admissionId}`, 403);
+    });
+
+    await step("1 Admission", "Document files: downloaded back byte-for-byte, integrity verified at verification, the student retrieves the verified files (browser /documents), access denied to others (MinIO)", "API + browser (student /documents)", async (e) => {
+      need(ids.files?.length === 2 && ids.aarav?.id, "uploaded files + student");
+      for (const f of ids.files) {
+        const d = await admin.download(`${S}/admissions/${ids.admissionId}/documents/${f.documentId}/file`);
+        e(`admin GET …/documents/${f.type}/file → ${d.status}, ${d.bytes.length} bytes, ${d.headers.get("content-type")}, ${d.headers.get("content-disposition")}`);
+        check(d.status === 200 && d.bytes.length === f.size && sha256hex(d.bytes) === f.sha256, `${f.type}: identical bytes downloaded`, e);
+        check(d.headers.get("content-type") === "application/pdf" && (d.headers.get("content-disposition") ?? "").startsWith("attachment;") && d.headers.get("x-document-sha256") === f.sha256, `${f.type}: attachment, own content type, SHA-256 header`, e);
+        db(e, `${f.type} object`, `SELECT content_type || '|' || size_bytes || '|' || sha256 || '|' || CASE WHEN quarantined_at IS NULL THEN 'clean' ELSE 'quarantined' END FROM platform.document_object WHERE id = ${q(f.objectId)}`, (v) => v === `application/pdf|${f.size}|${f.sha256}|clean`);
+        db(e, `${f.type} linked`, `SELECT status || '|' || document_object_id FROM student.admission_document WHERE id = ${q(f.documentId)}`, (v) => v === `verified|${f.objectId}`);
+        const au = audit(e, f.objectId, ["platform.document.upload", "platform.document.verify_integrity", "platform.document.download"], `${f.type} file`);
+        check(au.actors.includes(admin.subject), "the administrator is the actor of the file audit trail", e);
+        const s403 = await student.download(`${S}/admissions/${ids.admissionId}/documents/${f.documentId}/file`);
+        e(`student GET admission file → ${s403.status}`);
+        check(s403.status === 403, "the student cannot read the admission's files (403)", e);
+      }
+      const mine = await student.get(`${S}/me/documents`);
+      const items = (Array.isArray(mine) ? mine : mine.items ?? []).filter((d) => d.documentObjectId);
+      e(`student GET /me/documents → ${items.length} document(s) with a file`);
+      check(items.length === ids.files.length, "both verified files moved to the student's record", e);
+      for (const d of items) {
+        const f = ids.files.find((x) => x.objectId === d.documentObjectId);
+        check(!!f, `record document ${d.id} carries an uploaded object`, e);
+        const g = await student.download(`${S}/me/documents/${d.id}/file`);
+        e(`student GET /me/documents/{id}/file → ${g.status}, ${g.bytes.length} bytes`);
+        check(g.status === 200 && sha256hex(g.bytes) === f.sha256, `student retrieves ${f.type} (identical bytes)`, e);
+      }
+      // S4 UI: the student downloads the verified files from Documents in the browser.
+      const sp = P.student;
+      await go(sp, "/documents");
+      for (const f of ids.files) {
+        const rowSel = sp.locator(`.sb-lrow[data-my-document="${f.type}"][data-file="attached"]`).first();
+        await rowSel.waitFor({ timeout: 15000 });
+        const [dl] = await Promise.all([sp.waitForEvent("download", { timeout: 30000 }), rowSel.locator('[data-action="my-document-download"]').click()]);
+        const bytes = readFileSync(await dl.path());
+        e(`student browser download ${dl.suggestedFilename()} → ${bytes.length} bytes`);
+        check(dl.suggestedFilename() === f.filename && bytes.length === f.size && sha256hex(bytes) === f.sha256, `student downloads ${f.type} in the browser (same name, identical bytes)`, e);
+      }
+      e(`(${await snap(sp, "1-student-documents-download")})`);
+      noServerErrors(e);
+      const other = await faculty.download(`${S}/me/documents/${items[0].id}/file`);
+      e(`faculty GET the student's /me document → ${other.status}`);
+      check(other.status === 403 || other.status === 404, "another user cannot read the student's own file", e);
     });
 
     await step("1 Admission", "Negative: wrong role — faculty cannot decide an admission, student cannot create an application (403)", "API", async (e) => {
@@ -715,10 +796,18 @@ try {
       ids.onlinePaymentId = r.body.id;
       await page.locator("[data-checkout]").waitFor();
       await snap(page, "4-student-checkout");
+      // S4 UI (DEF-F-007): the dialog says which gateway it is and is not "paid" before the server confirms.
+      check((await page.locator("[data-paid]").count()) === 0 && (await page.locator('[data-pay-stage="checkout"]').count()) === 1, "checkout stage — nothing shown as paid before the server confirms", e);
+      check(/test gateway/.test((await page.locator("[data-checkout]").first().textContent()) ?? ""), "mock gateway labelled as a test gateway", e);
       r = await ui(page, "POST", /\/finance\/me\/payments\/[^/]+\/confirm$/, () => page.locator('[data-action="checkout-pay"]').click(), e);
       check(r.status === 200 && r.body.status === "completed" && r.body.receipt?.receiptNumber, `online payment completed, receipt ${r.body?.receipt?.receiptNumber}`, e);
-      await page.locator("[data-receipt-number]").first().waitFor();
-      await page.locator('[data-action="pay-done"]').click();
+      await page.locator('[data-pay-stage="paid"]').waitFor();
+      const shown = (await page.locator("[data-receipt-number]").first().textContent())?.trim();
+      check(shown === r.body.receipt.receiptNumber, `paid view after the server's confirmation shows receipt ${shown}`, e);
+      await page.locator('[data-action="pay-receipt"]').click({ timeout: 15000 });
+      await page.locator(`[data-receipt="${shown}"]`).waitFor();
+      e(`receipt view (${await snap(page, "4-student-receipt")})`);
+      await page.locator(`[data-receipt="${shown}"]`).getByRole("button", { name: "Done" }).click();
       await settle(page);
       // With nothing due the Invoices tile swaps the amount for [data-outstanding-none].
       const after = (await page.locator("[data-outstanding-none]").textContent({ timeout: 15000 }))?.trim();
@@ -912,6 +1001,41 @@ try {
       await sp.locator("[data-result]").first().waitFor();
       e(`student Results screen (${await snap(sp, "6-student-results")})`);
       noServerErrors(e);
+    });
+
+    // ============================================================ 8. Data import (Part 2 · S4-ui-import)
+    await step("8 Data import", "Admin Data import: a 2.2 MiB students CSV (above the 2 MiB default body limit, through nginx) → suggested mapping → dry run → commit → reconciliation", "browser (admin /data-import)", async (e) => {
+      need(ids.id, "institution");
+      const page = P.administrator;
+      // The screen works on the selected institution (picker state in localStorage).
+      await page.evaluate((id) => window.localStorage.setItem("sutra.selectedInstitution", id), ids.id);
+      await go(page, "/data-import");
+      await page.locator('[data-screen="data-import"]').waitFor();
+      await page.selectOption('select[name="entity"]', "students");
+      const tag = `IMP${Date.now().toString(36).toUpperCase().slice(-5)}`;
+      const notes = "n".repeat(560 * 1024);
+      const lines = ["student_number,given_name,family_name,date_of_birth,programme_code,notes"];
+      for (let i = 1; i <= 4; i++) lines.push(`${tag}-${i},Migrated${i},Student,2006-05-0${i},BTECH-CSE,${notes}`);
+      const file = Buffer.from(`${lines.join("\n")}\n`);
+      check(file.length > 2 * 1024 * 1024, `file is ${file.length} bytes (> 2 MiB)`, e);
+      await page.locator('input[name="file"]').setInputFiles({ name: "legacy-students.csv", mimeType: "text/csv", buffer: file });
+      let r = await ui(page, "POST", /^\/api\/v1\/platform\/imports$/, () => page.click("[data-import-upload]"), e);
+      check(r.status === 201, `upload accepted through nginx (${r.status})`, e);
+      ids.importJobId = r.body.id;
+      check(r.body.fileBytes === file.length && r.body.summary.rowsInFile === 4, "job holds the whole file (4 rows)", e);
+      await page.locator("[data-import-mapping]").waitFor();
+      r = await ui(page, "POST", /\/api\/v1\/platform\/imports\/[^/]+\/dry-run$/, () => page.click("[data-import-dry-run]"), e);
+      check(r.status === 200 && r.body.status === "validated" && r.body.actions.create === 4, `dry run: ${r.body?.status}, ${r.body?.actions?.create} to create`, e);
+      await page.locator('[data-import-dryrun="validated"]').waitFor();
+      r = await ui(page, "POST", /\/api\/v1\/platform\/imports\/[^/]+\/commit$/, () => page.click("[data-import-commit]"), e);
+      check(r.status === 200 && r.body.status === "committed" && r.body.summary.created === 4, `committed: ${r.body?.summary?.created} created`, e);
+      await page.locator('[data-import-reconciliation="committed"]').waitFor();
+      e(`admin sees the reconciliation (${await snap(page, "8-admin-data-import")})`);
+      noServerErrors(e);
+      db(e, "imported students", `SELECT count(*) FROM student.student WHERE student_number LIKE ${q(`${tag}-%`)}`, (v) => v === "4");
+      db(e, "import job", `SELECT status || '|' || file_bytes FROM platform.import_job WHERE id = ${q(ids.importJobId)}`, (v) => v === `committed|${file.length}`);
+      audit(e, ids.importJobId, ["platform.import.upload", "platform.import.dry_run", "platform.import.commit"], "import job");
+      await sees(e, "faculty", faculty, `/api/v1/platform/imports/${ids.importJobId}`, 403);
     });
 
     R.snapshot.pgStartedAt = psql("SELECT pg_postmaster_start_time()");

@@ -79,12 +79,27 @@ one year). Applies to 404 / 413 / 429 / timeout / panic answers too.
   `deploy/docker/csp-hashes.mjs` into `/etc/nginx/sutra-csp.conf` (fails the build on inline event
   handlers). Replaces `'unsafe-inline'` (SEC-9D-011). `style-src` keeps `'unsafe-inline'` (React style
   attributes; no script execution — accepted).
+* Part 2 S4 (UI fees, DEF-F-007): Razorpay Checkout needs exactly three additions, nothing else is
+  loosened — `script-src … https://checkout.razorpay.com` (the SPA injects `checkout.js` only when
+  `GET /api/v1/finance/me/payment-gateway` reports `razorpay`), `frame-src 'self' https://api.razorpay.com
+  https://checkout.razorpay.com` (the Checkout iframe) and `connect-src 'self' https://api.razorpay.com`.
+  No SRI on `checkout.js` (Razorpay serves one unversioned, changing file). `Permissions-Policy
+  payment=()` and COOP `same-origin` are unchanged; whether some bank / 3-D Secure flows need
+  `payment=(self "https://api.razorpay.com")` or COOP `same-origin-allow-popups` can only be seen
+  against a live Razorpay test account (BLOCKED_EXTERNAL, docs/readiness/part2/s4-pay.md).
 * Same header set inherited by every location (no per-location `add_header`), `frame-ancestors 'none'`,
   `X-Frame-Options DENY`, `Referrer-Policy strict-origin-when-cross-origin`, `Permissions-Policy`,
   COOP / CORP, `server_tokens off`; HSTS added by the Helm config when the ingress terminates TLS.
 * The API's duplicates are hidden behind the proxy (`proxy_hide_header`) so each header appears once.
 * `client_max_body_size 2m`, client / proxy timeouts, `limit_req` zones (credentials 10 r/s burst 50,
   API 100 r/s burst 400 per client; 429).
+* Part 2 · S5-capacity (DEF-P2-CAP-003): "per client" means the real client behind the edge /
+  ingress. When the peer is on a private network (the proxy) the zone key is the last
+  `X-Forwarded-For` entry that proxy appended; otherwise the peer's own address. `$remote_addr` is
+  not rewritten, so the API's `SUTRA_TRUSTED_PROXY_HOPS` rule is unchanged. Expose the web port only
+  to the edge: a client reaching it directly from a private network could choose its bucket via
+  `X-Forwarded-For` (the API limiter, keyed by the trusted-hop rule, still applies). Regression:
+  `deploy/capacity/run.sh flood-check` (capacity workflow).
 
 ## 4. Admin / ops endpoints
 

@@ -1,0 +1,999 @@
+#!/usr/bin/env bash
+# sutra-onprem — install and operate SutraERP on one college server from the offline release bundle.
+# (Part 2 · S5-deploy; runbook: docs/DEPLOYMENT_RUNBOOK.md inside the bundle.)
+#
+#   sudo ./bin/sutra-onprem install --domain erp.college.edu.in --sso-domain sso.college.edu.in \
+#        (--cert fullchain.pem --key privkey.pem [--ca college-ca.pem] | --local-ca)
+#   sudo sutra-onprem create-tenant --name "College of Engineering"
+#   sudo sutra-onprem create-user --tenant <uuid> --email principal@college.edu.in --role administrator \
+#        --first Asha --last Kulkarni [--password-file F] [--no-temporary]
+#   sudo sutra-onprem health [--wait 600] | status | logs [svc] | restart [svc…] | stop | start
+#   sudo sutra-onprem backup [--label L]        → /var/backups/sutraerp/<name>/
+#   sudo sutra-onprem restore <backup dir>
+#   sudo sutra-onprem fullbackup [nightly|base]  → encrypted set (deploy/backup/sutra-fullbackup.sh via
+#        with-metrics.sh; needs $SUTRA_ETC/backup.env + age, jq, aws) — also run by `backup` when set up
+#   sudo sutra-onprem upgrade <new bundle dir | .tar>
+#   sudo sutra-onprem rollback [--app-only]
+#   sudo sutra-onprem verify [bundle dir] | preflight | counts
+#
+# Layout: /opt/sutraerp/releases/<version>/ (extracted bundles), /opt/sutraerp/current → the running
+# release, /etc/sutraerp/ (sutraerp.conf: host names, TLS paths, tuning — edit; secrets.env:
+# generated, 0600; rendered compose.env / api.env / edge / realm; tls/), data in Docker volumes
+# sutraerp_{pgdata,natsdata,miniodata}, backups in $SUTRA_BACKUP_DIR (default /var/backups/sutraerp).
+# Host needs: Docker Engine 24+ with the compose v2 plugin, bash, curl, openssl, python3, sha256sum.
+# Set SUTRA_TIMINGS_FILE to append "<step>\t<seconds>" lines (measurements).
+set -euo pipefail
+umask 022
+
+SELF=$(readlink -f "${BASH_SOURCE[0]}")
+BUNDLE_DIR=$(cd "$(dirname "$SELF")/.." && pwd)
+SUTRA_ROOT=${SUTRA_ROOT:-/opt/sutraerp}
+SUTRA_ETC=${SUTRA_ETC:-/etc/sutraerp}
+PROJECT=sutraerp
+PRIVILEGED_ROLES=" administrator finance_approver exam_controller registrar payroll_approver procurement_approver "
+
+log() { printf '%s [sutra-onprem] %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
+die() { log "ERROR: $*"; exit 1; }
+ok() { printf 'ok %s\n' "$*"; }
+need_root() { [[ $(id -u) -eq 0 ]] || die "run as root (sudo $0 …)"; }
+now() { date +%s.%N; }
+since() { awk -v a="$1" -v b="$(now)" 'BEGIN { printf "%.1f", b - a }'; }
+timing() {
+  log "timing $1 = ${2}s"
+  if [[ -n "${SUTRA_TIMINGS_FILE:-}" ]]; then printf '%s\t%s\n' "$1" "$2" >>"$SUTRA_TIMINGS_FILE"; fi
+}
+gen_hex() { openssl rand -hex "$1"; }
+
+# ------------------------------------------------------------------ configuration
+
+load_conf() {
+  [[ -f "$SUTRA_ETC/sutraerp.conf" ]] || die "$SUTRA_ETC/sutraerp.conf missing (run install)"
+  # shellcheck source=/dev/null
+  . "$SUTRA_ETC/sutraerp.conf"
+  if [[ -f "$SUTRA_ETC/secrets.env" ]]; then
+    # shellcheck source=/dev/null
+    . "$SUTRA_ETC/secrets.env"
+  fi
+  : "${SUTRA_DOMAIN:?SUTRA_DOMAIN missing in sutraerp.conf}" "${SUTRA_SSO_DOMAIN:?SUTRA_SSO_DOMAIN missing}"
+  SUTRA_HTTP_PORT=${SUTRA_HTTP_PORT:-80}
+  SUTRA_HTTPS_PORT=${SUTRA_HTTPS_PORT:-443}
+  SUTRA_MINIO_PORT=${SUTRA_MINIO_PORT:-9000}
+  SUTRA_S3_BUCKET=${SUTRA_S3_BUCKET:-sutraerp-documents}
+  SUTRA_BACKUP_DIR=${SUTRA_BACKUP_DIR:-/var/backups/sutraerp}
+  # PostgreSQL WAL archive (point-in-time recovery, deploy/backup) and base-backup staging.
+  SUTRA_WAL_ARCHIVE_DIR=${SUTRA_WAL_ARCHIVE_DIR:-/var/lib/sutraerp/wal-archive}
+  SUTRA_PG_STAGING_DIR=${SUTRA_PG_STAGING_DIR:-$SUTRA_BACKUP_DIR/staging}
+}
+
+# bundle.env of a release directory (VERSION, MINIO tag, capabilities).
+load_bundle() {
+  local dir=$1
+  [[ -f "$dir/bundle.env" ]] || die "$dir is not a SutraERP release bundle (no bundle.env)"
+  # shellcheck source=/dev/null
+  . "$dir/bundle.env"
+}
+
+current_dir() { readlink -f "$SUTRA_ROOT/current" 2>/dev/null || true; }
+
+state_set() { # key value
+  touch "$SUTRA_ETC/state.env"
+  sed -i "/^$1=/d" "$SUTRA_ETC/state.env"
+  printf '%s=%q\n' "$1" "$2" >>"$SUTRA_ETC/state.env"
+}
+state_get() {
+  [[ -f "$SUTRA_ETC/state.env" ]] || return 0
+  (
+    # shellcheck source=/dev/null
+    . "$SUTRA_ETC/state.env"
+    printf '%s' "${!1:-}"
+  )
+}
+
+dc() {
+  local cur
+  cur=$(current_dir)
+  [[ -n "$cur" ]] || die "no current release ($SUTRA_ROOT/current)"
+  docker compose -p "$PROJECT" -f "$cur/compose/compose.yaml" --env-file "$SUTRA_ETC/compose.env" "$@"
+}
+
+# ------------------------------------------------------------------ preflight / verify / load
+
+cmd_preflight() {
+  local bad=0 t
+  for t in docker curl openssl python3 sha256sum tar awk sed; do
+    command -v "$t" >/dev/null || { log "missing tool: $t"; bad=1; }
+  done
+  docker compose version >/dev/null 2>&1 || { log "docker compose v2 plugin missing"; bad=1; }
+  docker info >/dev/null 2>&1 || { log "docker daemon not reachable"; bad=1; }
+  local cpus mem_mb disk_gb
+  cpus=$(nproc)
+  mem_mb=$(awk '/MemTotal/ { printf "%d", $2 / 1024 }' /proc/meminfo)
+  disk_gb=$(df -BG --output=avail "$(docker info -f '{{.DockerRootDir}}' 2>/dev/null || echo /)" | tail -1 | tr -dc 0-9)
+  log "host: ${cpus} vCPU, ${mem_mb} MiB RAM, ${disk_gb} GiB free for Docker"
+  # Minimum spec (docs/readiness/INFRASTRUCTURE_REPORT.md): 4 vCPU, 8 GiB, 60 GiB free.
+  [[ $cpus -ge 4 ]] || log "WARN fewer than 4 vCPU (minimum)"
+  [[ $mem_mb -ge 7500 ]] || log "WARN less than 8 GiB RAM (minimum)"
+  [[ ${disk_gb:-0} -ge 60 ]] || log "WARN less than 60 GiB free disk (minimum)"
+  if command -v timedatectl >/dev/null; then
+    timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -q yes || log "WARN clock not NTP-synchronised (TOTP / OIDC need correct time)"
+  fi
+  if [[ ! -f "$SUTRA_ETC/compose.env" ]]; then
+    for t in "${SUTRA_HTTP_PORT:-80}" "${SUTRA_HTTPS_PORT:-443}"; do
+      if ss -Htln "sport = :$t" 2>/dev/null | grep -q .; then log "port $t already in use"; bad=1; fi
+    done
+  fi
+  [[ $bad -eq 0 ]] || die "preflight failed"
+  ok "preflight"
+}
+
+cmd_verify() {
+  local dir=${1:-$BUNDLE_DIR} t0
+  t0=$(now)
+  [[ -f "$dir/SHA256SUMS" ]] || die "$dir/SHA256SUMS missing"
+  (cd "$dir" && sha256sum --quiet --strict -c SHA256SUMS) || die "bundle checksum mismatch in $dir"
+  timing verify_bundle "$(since "$t0")"
+  ok "bundle checksums ($dir, $(wc -l <"$dir/SHA256SUMS") files)"
+}
+
+cmd_load() {
+  local dir=${1:-$BUNDLE_DIR} f t0
+  t0=$(now)
+  for f in "$dir"/images/*.tar.gz; do
+    log "docker load $(basename "$f")"
+    docker load -q -i "$f" >/dev/null
+  done
+  timing load_images "$(since "$t0")"
+  ok "images loaded from $dir/images"
+}
+
+# Copies (or extracts) a bundle into $SUTRA_ROOT/releases/<version>; prints that directory.
+stage_release() {
+  local src=$1 tmp ver
+  if [[ -f "$src" ]]; then
+    tmp=$(mktemp -d)
+    tar -C "$tmp" -xf "$src"
+    src=$(find "$tmp" -mindepth 1 -maxdepth 1 -type d | head -1)
+  fi
+  src=$(cd "$src" && pwd)
+  ver=$(sed -n 's/^SUTRA_VERSION=//p' "$src/bundle.env")
+  [[ -n "$ver" ]] || die "no SUTRA_VERSION in $src/bundle.env"
+  mkdir -p "$SUTRA_ROOT/releases"
+  if [[ "$src" != "$SUTRA_ROOT/releases/$ver" ]]; then
+    rm -rf "$SUTRA_ROOT/releases/$ver.tmp"
+    cp -a "$src" "$SUTRA_ROOT/releases/$ver.tmp"
+    rm -rf "$SUTRA_ROOT/releases/$ver"
+    mv "$SUTRA_ROOT/releases/$ver.tmp" "$SUTRA_ROOT/releases/$ver"
+  fi
+  printf '%s' "$SUTRA_ROOT/releases/$ver"
+}
+
+switch_current() { ln -sfn "$1" "$SUTRA_ROOT/current.new" && mv -T "$SUTRA_ROOT/current.new" "$SUTRA_ROOT/current"; }
+
+# ------------------------------------------------------------------ secrets
+
+cmd_secrets() {
+  need_root
+  mkdir -p "$SUTRA_ETC"
+  local f="$SUTRA_ETC/secrets.env" k added=0
+  (umask 077 && touch "$f")
+  chmod 600 "$f"
+  # Every credential is random and generated on this server; nothing ships in the bundle.
+  local -A gen=(
+    [POSTGRES_PASSWORD]="gen_hex 24" [SUTRA_DB_RUNTIME_PASSWORD]="gen_hex 24"
+    [KEYCLOAK_DB_PASSWORD]="gen_hex 24" [FLOWABLE_DB_PASSWORD]="gen_hex 24"
+    [SUTRA_FLOWABLE_PASSWORD]="gen_hex 24" [KC_ADMIN_PASSWORD]="gen_hex 24"
+    [SUTRA_OIDC_CLIENT_SECRET]="gen_hex 24" [SUTRA_API_CLIENT_SECRET]="gen_hex 24"
+    [SUTRA_IDP_CLIENT_SECRET]="gen_hex 24" [VALKEY_PASSWORD]="gen_hex 24"
+    [MINIO_ROOT_USER]="echo sutra-$(gen_hex 6)" [MINIO_ROOT_PASSWORD]="gen_hex 24"
+    [MINIO_KMS_SECRET_KEY]="echo sutra-sse:$(openssl rand -base64 32)"
+    [SUTRA_CSRF_KEY]="gen_hex 32" [SUTRA_MFA_ENCRYPTION_KEY]="gen_hex 32"
+    [SUTRA_AUDIT_ANCHOR_KEY]="gen_hex 32"
+  )
+  for k in "${!gen[@]}"; do
+    if ! grep -q "^$k=" "$f"; then
+      printf '%s=%s\n' "$k" "$(eval "${gen[$k]}")" >>"$f"
+      added=$((added + 1))
+    fi
+  done
+  ok "secrets ($f, $added generated, mode 600)"
+}
+
+# ------------------------------------------------------------------ TLS
+
+# issue <ca dir> <out crt> <out key> <cn> <subjectAltName list>
+issue_cert() {
+  local ca=$1 crt=$2 key=$3 cn=$4 san=$5 tmp
+  tmp=$(mktemp -d)
+  openssl req -newkey rsa:2048 -nodes -keyout "$key" -out "$tmp/req.csr" -subj "/CN=$cn" 2>/dev/null
+  printf 'basicConstraints=CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=%s\n' "$san" >"$tmp/ext"
+  openssl x509 -req -in "$tmp/req.csr" -CA "$ca/ca.crt" -CAkey "$ca/ca.key" -CAcreateserial \
+    -out "$crt" -days 825 -sha256 -extfile "$tmp/ext" 2>/dev/null
+  chmod 600 "$key"
+  chmod 644 "$crt"
+  rm -rf "$tmp"
+}
+
+new_ca() { # dir cn
+  mkdir -p "$1"
+  chmod 700 "$1"
+  [[ -f "$1/ca.crt" ]] && return 0
+  openssl req -x509 -newkey rsa:3072 -nodes -keyout "$1/ca.key" -out "$1/ca.crt" -days 3650 -sha256 \
+    -subj "/CN=$2" -addext "basicConstraints=critical,CA:TRUE" \
+    -addext "keyUsage=critical,keyCertSign,cRLSign" 2>/dev/null
+  chmod 600 "$1/ca.key"
+  chmod 644 "$1/ca.crt"
+}
+
+# Internal CA + certificates for PostgreSQL (DNS:postgres) and MinIO (DNS:minio). Never leaves
+# the server; renewed with `sutra-onprem tls-internal --renew`.
+cmd_tls_internal() {
+  need_root
+  local d="$SUTRA_ETC/tls/internal" renew=${1:-}
+  new_ca "$d" "SutraERP internal CA ($(hostname -s))"
+  chmod 755 "$d"
+  mkdir -p "$d/postgres" "$d/minio/CAs"
+  if [[ ! -f "$d/postgres/server.crt" || "$renew" == --renew ]]; then
+    issue_cert "$d" "$d/postgres/server.crt" "$d/postgres/server.key" postgres "DNS:postgres,DNS:localhost"
+  fi
+  if [[ ! -f "$d/minio/public.crt" || "$renew" == --renew ]]; then
+    issue_cert "$d" "$d/minio/public.crt" "$d/minio/private.key" minio "DNS:minio,DNS:localhost,IP:127.0.0.1"
+  fi
+  cp "$d/ca.crt" "$d/minio/CAs/ca.crt"
+  # Container users: postgres (999) needs its key 0600 and owned; MinIO runs as 10001.
+  chown -R 999:999 "$d/postgres" && chmod 700 "$d/postgres" && chmod 600 "$d/postgres/server.key"
+  chown -R 10001:10001 "$d/minio" && chmod 700 "$d/minio" && chmod 600 "$d/minio/private.key"
+  ok "internal TLS (CA $d/ca.crt; postgres, minio certificates)"
+}
+
+# A local CA for the college host names — for colleges without a CA / public certificate. Every
+# browser must trust $SUTRA_ETC/tls/local-ca/ca.crt (import it via the college's device policy).
+cmd_tls_local_ca() {
+  need_root
+  load_conf
+  local d="$SUTRA_ETC/tls/local-ca"
+  new_ca "$d" "SutraERP local CA ($SUTRA_DOMAIN)"
+  chmod 755 "$d"
+  issue_cert "$d" "$d/server.crt" "$d/server.key" "$SUTRA_DOMAIN" "DNS:$SUTRA_DOMAIN,DNS:$SUTRA_SSO_DOMAIN"
+  conf_set SUTRA_TLS_CERT_FILE "$d/server.crt"
+  conf_set SUTRA_TLS_KEY_FILE "$d/server.key"
+  conf_set SUTRA_TLS_CA_FILE "$d/ca.crt"
+  ok "local CA $d/ca.crt; certificate for $SUTRA_DOMAIN, $SUTRA_SSO_DOMAIN (825 days)"
+}
+
+conf_set() {
+  sed -i "/^$1=/d" "$SUTRA_ETC/sutraerp.conf"
+  printf '%s=%q\n' "$1" "$2" >>"$SUTRA_ETC/sutraerp.conf"
+}
+
+# ------------------------------------------------------------------ render
+
+cmd_render() {
+  need_root
+  load_conf
+  local rel
+  rel=$(current_dir)
+  [[ -n "$rel" ]] || die "no current release"
+  load_bundle "$rel"
+  : "${SUTRA_TLS_CERT_FILE:?set SUTRA_TLS_CERT_FILE (or run tls-local-ca)}" "${SUTRA_TLS_KEY_FILE:?}"
+  local t="$SUTRA_ETC/tls"
+  mkdir -p "$t/public" "$SUTRA_ETC/edge" "$SUTRA_ETC/keycloak"
+  # Containers read these as their own users (edge 101, keycloak 1000:0): traversable directories.
+  chmod 755 "$SUTRA_ETC" "$t" "$t/public" "$SUTRA_ETC/edge" "$SUTRA_ETC/keycloak"
+  # Public certificate for the edge (nginx-unprivileged runs as 101).
+  install -m 644 "$SUTRA_TLS_CERT_FILE" "$t/public/server.crt"
+  install -m 600 -o 101 -g 101 "$SUTRA_TLS_KEY_FILE" "$t/public/server.key"
+  openssl x509 -in "$t/public/server.crt" -noout -checkend 0 >/dev/null || die "the TLS certificate has expired"
+  openssl x509 -in "$t/public/server.crt" -noout -ext subjectAltName 2>/dev/null | grep -q "DNS:$SUTRA_SSO_DOMAIN" ||
+    log "WARN certificate has no SAN for $SUTRA_SSO_DOMAIN"
+  # Trust bundle of the API (SSL_CERT_FILE): the college CA of the public certificate + the
+  # internal CA (MinIO / PostgreSQL). Public CAs stay trusted through the bundled webpki roots.
+  {
+    if [[ -n "${SUTRA_TLS_CA_FILE:-}" ]]; then cat "$SUTRA_TLS_CA_FILE"; fi
+    cat "$t/internal/ca.crt"
+  } >"$t/trust.pem"
+  chmod 644 "$t/trust.pem"
+
+  # WAL archive + base-backup staging: bind mounts written by postgres (uid 999 in postgres:18).
+  install -d -o 999 -g 999 -m 0700 "$SUTRA_WAL_ARCHIVE_DIR" "$SUTRA_PG_STAGING_DIR"
+  # Entitlement of a tenant without a stored licence row (Part 2 · S7): required in production
+  # (the API refuses to start without it). Installations that predate entitlements ran every module,
+  # so an unset value is recorded explicitly as complete_erp; a commercial installation sets `none`
+  # (or a package key) in sutraerp.conf and stores the purchased entitlement.
+  if [[ -z "${SUTRA_ENTITLEMENT_DEFAULT:-}" ]]; then
+    log "WARN SUTRA_ENTITLEMENT_DEFAULT not set in sutraerp.conf — recording complete_erp (every module)"
+    SUTRA_ENTITLEMENT_DEFAULT=complete_erp
+    conf_set SUTRA_ENTITLEMENT_DEFAULT "$SUTRA_ENTITLEMENT_DEFAULT"
+  fi
+
+  touch "$SUTRA_ETC/compose.env" "$SUTRA_ETC/api.env"
+  chmod 600 "$SUTRA_ETC/compose.env" "$SUTRA_ETC/api.env"
+  cat >"$SUTRA_ETC/compose.env" <<EOF
+# rendered by sutra-onprem render — do not edit (edit sutraerp.conf / secrets.env)
+SUTRA_ETC=$SUTRA_ETC
+SUTRA_VERSION=$SUTRA_VERSION
+SUTRA_MINIO_TAG=$SUTRA_MINIO_TAG
+SUTRA_DOMAIN=$SUTRA_DOMAIN
+SUTRA_SSO_DOMAIN=$SUTRA_SSO_DOMAIN
+SUTRA_HTTP_PORT=$SUTRA_HTTP_PORT
+SUTRA_HTTPS_PORT=$SUTRA_HTTPS_PORT
+SUTRA_MINIO_PORT=$SUTRA_MINIO_PORT
+SUTRA_PG_SHARED_BUFFERS=${SUTRA_PG_SHARED_BUFFERS:-512MB}
+SUTRA_PG_MAX_CONNECTIONS=${SUTRA_PG_MAX_CONNECTIONS:-200}
+SUTRA_PG_ARCHIVE_TIMEOUT=${SUTRA_PG_ARCHIVE_TIMEOUT:-60}
+SUTRA_WAL_ARCHIVE_DIR=$SUTRA_WAL_ARCHIVE_DIR
+SUTRA_PG_STAGING_DIR=$SUTRA_PG_STAGING_DIR
+SUTRA_KC_HEAP=${SUTRA_KC_HEAP:-768m}
+SUTRA_FLOWABLE_HEAP=${SUTRA_FLOWABLE_HEAP:-768m}
+SUTRA_VALKEY_MAXMEMORY=${SUTRA_VALKEY_MAXMEMORY:-256mb}
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+KEYCLOAK_DB_PASSWORD=$KEYCLOAK_DB_PASSWORD
+FLOWABLE_DB_PASSWORD=$FLOWABLE_DB_PASSWORD
+SUTRA_FLOWABLE_PASSWORD=$SUTRA_FLOWABLE_PASSWORD
+KC_ADMIN_PASSWORD=$KC_ADMIN_PASSWORD
+VALKEY_PASSWORD=$VALKEY_PASSWORD
+MINIO_ROOT_USER=$MINIO_ROOT_USER
+MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
+MINIO_KMS_SECRET_KEY=$MINIO_KMS_SECRET_KEY
+EOF
+  local pg_tls="sslmode=verify-full&sslrootcert=/etc/sutraerp/tls/internal-ca.crt"
+  {
+    echo "# rendered by sutra-onprem render ($SUTRA_VERSION) — do not edit"
+    echo "SUTRA_ENV=production"
+    echo "SUTRA_LOG_FORMAT=json"
+    echo "SUTRA_GIT_SHA=$SUTRA_GIT_SHA"
+    echo "DATABASE_URL=postgres://sutra_api:$SUTRA_DB_RUNTIME_PASSWORD@postgres:5432/sutra?$pg_tls"
+    echo "SUTRA_MIGRATION_DATABASE_URL=postgres://sutra:$POSTGRES_PASSWORD@postgres:5432/sutra?$pg_tls"
+    echo "SUTRA_DB_RUNTIME_USER=sutra_api"
+    echo "SUTRA_DB_RUNTIME_PASSWORD=$SUTRA_DB_RUNTIME_PASSWORD"
+    echo "SUTRA_PUBLIC_URL=https://$SUTRA_DOMAIN"
+    echo "SUTRA_AUTH_MODE=keycloak"
+    echo "SUTRA_OIDC_ISSUER=https://$SUTRA_SSO_DOMAIN/realms/sutra"
+    if [[ "${SUTRA_BUNDLE_PRIVATE_CA_TRUST:-false}" != true ]]; then
+      # Releases before 2026.10.1 cannot trust a private CA: Keycloak back channel through the
+      # edge's internal listener (host-internal Docker network).
+      echo "SUTRA_OIDC_BACKCHANNEL_URL=http://edge:8081/realms/sutra"
+    fi
+    echo "SUTRA_OIDC_CLIENT_ID=sutra-web"
+    echo "SUTRA_OIDC_CLIENT_SECRET=$SUTRA_OIDC_CLIENT_SECRET"
+    echo "SUTRA_OIDC_REDIRECT_URI=https://$SUTRA_DOMAIN/api/v1/auth/oidc/callback"
+    echo "SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI=https://$SUTRA_DOMAIN/sign-in"
+    echo "SUTRA_WEBAUTHN_RP_ID=$SUTRA_DOMAIN"
+    echo "SUTRA_WEBAUTHN_RP_NAME=${SUTRA_INSTITUTION_NAME:-SutraERP}"
+    echo "SUTRA_WEBAUTHN_ORIGINS=https://$SUTRA_DOMAIN"
+    echo "SUTRA_CSRF_KEY=$SUTRA_CSRF_KEY"
+    echo "SUTRA_MFA_ENCRYPTION_KEY=$SUTRA_MFA_ENCRYPTION_KEY"
+    echo "SUTRA_AUDIT_ANCHOR_KEY=$SUTRA_AUDIT_ANCHOR_KEY"
+    echo "SUTRA_APPROVAL_MODE=human"
+    echo "SUTRA_ENTITLEMENT_DEFAULT=$SUTRA_ENTITLEMENT_DEFAULT"
+    echo "SUTRA_WORKFLOW=flowable"
+    echo "SUTRA_FLOWABLE_URL=http://flowable:8080/flowable-rest"
+    echo "SUTRA_FLOWABLE_USER=rest-admin"
+    echo "SUTRA_FLOWABLE_PASSWORD=$SUTRA_FLOWABLE_PASSWORD"
+    echo "SUTRA_FLOWABLE_DEPLOY_ON_START=true"
+    echo "SUTRA_OUTBOX_RELAY=nats"
+    echo "SUTRA_NATS_URL=nats://nats:4222"
+    echo "SUTRA_NATS_STREAM=SUTRA_EVENTS"
+    echo "SUTRA_CACHE=valkey"
+    echo "SUTRA_VALKEY_URL=redis://:$VALKEY_PASSWORD@valkey:6379"
+    echo "SUTRA_INBOX_CONSUMER=true"
+    if [[ -n "${SUTRA_SMTP_HOST:-}" ]]; then
+      echo "SUTRA_NOTIFY_EMAIL=smtp"
+      echo "SUTRA_SMTP_HOST=$SUTRA_SMTP_HOST"
+      echo "SUTRA_SMTP_PORT=${SUTRA_SMTP_PORT:-587}"
+      echo "SUTRA_SMTP_TLS=${SUTRA_SMTP_TLS:-starttls}"
+      [[ -n "${SUTRA_SMTP_USER:-}" ]] && echo "SUTRA_SMTP_USER=$SUTRA_SMTP_USER"
+      [[ -n "${SUTRA_SMTP_PASSWORD:-}" ]] && echo "SUTRA_SMTP_PASSWORD=$SUTRA_SMTP_PASSWORD"
+      echo "SUTRA_MAIL_FROM=${SUTRA_MAIL_FROM:-SutraERP <no-reply@$SUTRA_DOMAIN>}"
+    else
+      echo "SUTRA_NOTIFY_EMAIL=off"
+    fi
+    if [[ "${SUTRA_BUNDLE_DOCUMENTS:-false}" == true ]]; then
+      echo "SUTRA_DOCUMENT_STORAGE=s3"
+      echo "SUTRA_S3_ENDPOINT=https://minio:9000"
+      echo "SUTRA_S3_BUCKET=$SUTRA_S3_BUCKET"
+      echo "SUTRA_S3_ACCESS_KEY_ID=$MINIO_ROOT_USER"
+      echo "SUTRA_S3_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD"
+      echo "SUTRA_S3_SSE=AES256"
+    fi
+    # Private CA trust (college CA of the public certificate + the internal CA of MinIO / PostgreSQL):
+    # SUTRA_TLS_CA_FILE is the documented setting (S5-capacity: extra roots added to every internal
+    # HTTP client at start-up, file checked at configuration load); SSL_CERT_FILE keeps the
+    # native-roots path of releases 2026.10.1+ (S5-deploy) working. Same bundle for both.
+    echo "SUTRA_TLS_CA_FILE=/etc/sutraerp/tls/trust.pem"
+    echo "SSL_CERT_FILE=/etc/sutraerp/tls/trust.pem"
+    if [[ -n "${SUTRA_EXTRA_API_ENV:-}" && -f "$SUTRA_EXTRA_API_ENV" ]]; then cat "$SUTRA_EXTRA_API_ENV"; fi
+  } >"$SUTRA_ETC/api.env"
+
+  sed -e "s/@ERP_HOST@/$SUTRA_DOMAIN/g" -e "s/@SSO_HOST@/$SUTRA_SSO_DOMAIN/g" \
+    "$rel/compose/edge.conf.template" >"$SUTRA_ETC/edge/default.conf"
+  chmod 644 "$SUTRA_ETC/edge/default.conf"
+
+  # Realm (first Keycloak start only): the production baseline with this server's host names and
+  # the generated client secrets. Keycloak runs as uid 1000, group 0.
+  python3 - "$rel/keycloak/realm-production-baseline.json" "$SUTRA_ETC/keycloak/realm-sutra.json" <<PY
+import json, sys
+src, dst = sys.argv[1], sys.argv[2]
+text = open(src).read().replace("erp.CHANGE-ME.example.edu", "$SUTRA_DOMAIN")
+realm = json.loads(text)
+secrets = {"sutra-web": "$SUTRA_OIDC_CLIENT_SECRET", "sutra-api": "$SUTRA_API_CLIENT_SECRET",
+           "sutra-idp-admin": "$SUTRA_IDP_CLIENT_SECRET"}
+for c in realm.get("clients", []):
+    if c.get("clientId") in secrets:
+        c["secret"] = secrets[c["clientId"]]
+assert "CHANGE-ME" not in json.dumps(realm), "unreplaced CHANGE-ME in the realm"
+json.dump(realm, open(dst, "w"), indent=1)
+PY
+  chown root:0 "$SUTRA_ETC/keycloak/realm-sutra.json"
+  chmod 640 "$SUTRA_ETC/keycloak/realm-sutra.json"
+  ok "rendered $SUTRA_ETC/{compose.env,api.env,edge/default.conf,keycloak/realm-sutra.json,tls/trust.pem} for $SUTRA_VERSION"
+}
+
+# ------------------------------------------------------------------ health
+
+# curl_erp|curl_sso <path> [extra curl args…] — the extra arguments (e.g. --data-urlencode for the
+# Keycloak token POST) are passed on; dropping them turned the token request into a GET (HTTP 405).
+curl_erp() {
+  local p=$1
+  shift
+  curl -fsS --max-time 5 --cacert "$SUTRA_ETC/tls/trust.pem" --resolve "$SUTRA_DOMAIN:$SUTRA_HTTPS_PORT:127.0.0.1" "$@" "https://$SUTRA_DOMAIN:$SUTRA_HTTPS_PORT$p"
+}
+curl_sso() {
+  local p=$1
+  shift
+  curl -fsS --max-time 15 --cacert "$SUTRA_ETC/tls/trust.pem" --resolve "$SUTRA_SSO_DOMAIN:$SUTRA_HTTPS_PORT:127.0.0.1" "$@" "https://$SUTRA_SSO_DOMAIN:$SUTRA_HTTPS_PORT$p"
+}
+
+# Health of every container that has a check + API readiness + SSO discovery + web shell.
+health_once() {
+  local bad=0 c st name
+  for c in $(dc ps -q); do
+    name=$(docker inspect -f '{{.Name}}' "$c" | sed 's#^/##')
+    st=$(docker inspect -f '{{.State.Status}}{{if .State.Health}}/{{.State.Health.Status}}{{end}}' "$c")
+    case "$st" in
+      running/healthy | running) ;;
+      *) bad=1; HEALTH_DETAIL+="$name=$st " ;;
+    esac
+  done
+  local r
+  r=$(curl_erp /health/ready 2>/dev/null) || { bad=1; HEALTH_DETAIL+="api-ready=down "; }
+  if [[ -n "$r" && "$r" != *'"status":"ok"'* ]]; then bad=1; HEALTH_DETAIL+="api-ready=$r "; fi
+  curl_sso /realms/sutra/.well-known/openid-configuration >/dev/null 2>&1 || { bad=1; HEALTH_DETAIL+="sso=down "; }
+  curl_erp / >/dev/null 2>&1 || { bad=1; HEALTH_DETAIL+="web=down "; }
+  return $bad
+}
+
+cmd_health() {
+  load_conf
+  local wait=0 t0
+  [[ "${1:-}" == --wait ]] && wait=${2:-600}
+  t0=$(now)
+  while :; do
+    HEALTH_DETAIL=""
+    if health_once; then
+      ok "health: every container running/healthy, API ready (status ok), SSO discovery, web ($(since "$t0")s)"
+      return 0
+    fi
+    if awk -v a="$(since "$t0")" -v w="$wait" 'BEGIN { exit !(a >= w) }'; then
+      log "unhealthy: $HEALTH_DETAIL"
+      return 1
+    fi
+    sleep 2
+  done
+}
+
+# Waits until the named services' containers report healthy (or running when they have no check).
+wait_services() { # timeout svc...
+  local timeout=$1 t0 s c st pending
+  shift
+  t0=$(now)
+  while :; do
+    pending=""
+    for s in "$@"; do
+      c=$(dc ps -q "$s" 2>/dev/null | head -1)
+      st=$( [[ -n "$c" ]] && docker inspect -f '{{.State.Status}}{{if .State.Health}}/{{.State.Health.Status}}{{end}}' "$c" || echo missing)
+      [[ "$st" == running/healthy || "$st" == running ]] || pending+="$s=$st "
+    done
+    [[ -z "$pending" ]] && return 0
+    if awk -v a="$(since "$t0")" -v w="$timeout" 'BEGIN { exit !(a >= w) }'; then
+      log "services not healthy after ${timeout}s: $pending"
+      return 1
+    fi
+    sleep 2
+  done
+}
+
+# Keycloak and Flowable keep pooled PostgreSQL connections. When `compose up` recreates postgres
+# (its init-script bind mount lives in the release directory, so upgrade and rollback do), their
+# pooled connections are dead and the next sign-in fails with "Database operation failed" (upgrade
+# drill run 38928531972). Restart them after a postgres recreate so every pool starts fresh.
+pg_id() { dc ps -q postgres 2>/dev/null | head -1; }
+refresh_db_clients() { # postgres container id before the `compose up`
+  if [[ "$(pg_id)" != "$1" ]]; then
+    log "postgres container was recreated: restarting keycloak + flowable (fresh connection pools)"
+    dc restart keycloak flowable
+    wait_services 600 keycloak flowable || die "keycloak / flowable not healthy after the postgres recreate"
+  fi
+}
+
+# ------------------------------------------------------------------ object storage
+
+s3() { # method path [curl args…]
+  local m=$1 p=$2
+  shift 2
+  curl -sS --max-time 15 --cacert "$SUTRA_ETC/tls/internal/ca.crt" --resolve "minio:$SUTRA_MINIO_PORT:127.0.0.1" \
+    --aws-sigv4 "aws:amz:us-east-1:s3" --user "$MINIO_ROOT_USER:$MINIO_ROOT_PASSWORD" \
+    -H "x-amz-content-sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" \
+    -X "$m" "https://minio:$SUTRA_MINIO_PORT$p" "$@"
+}
+
+# The private document bucket (production refuses SUTRA_S3_CREATE_BUCKET). Idempotent.
+cmd_bucket() {
+  load_conf
+  local code anon
+  # GET ?location, not HEAD: curl -X HEAD waits for a body that never comes and stalls until --max-time.
+  code=$(s3 GET "/$SUTRA_S3_BUCKET?location" -o /dev/null -w '%{http_code}' 2>/dev/null || true)
+  if [[ "$code" != 200 ]]; then
+    code=$(s3 PUT "/$SUTRA_S3_BUCKET" --data-binary '' -o /dev/null -w '%{http_code}')
+    [[ "$code" == 200 ]] || die "creating bucket $SUTRA_S3_BUCKET answered $code"
+  fi
+  anon=$(curl -sS --max-time 10 --cacert "$SUTRA_ETC/tls/internal/ca.crt" --resolve "minio:$SUTRA_MINIO_PORT:127.0.0.1" \
+    -o /dev/null -w '%{http_code}' "https://minio:$SUTRA_MINIO_PORT/$SUTRA_S3_BUCKET?list-type=2")
+  [[ "$anon" == 403 ]] || die "bucket $SUTRA_S3_BUCKET answers anonymous listing with $anon (must be 403)"
+  ok "bucket $SUTRA_S3_BUCKET (private: anonymous listing → 403, TLS with the internal CA)"
+}
+
+# ------------------------------------------------------------------ lifecycle
+
+cmd_migrate() {
+  local t0
+  t0=$(now)
+  dc --profile migrate run --rm -T migrate
+  timing migrate "$(since "$t0")"
+  ok "migrations applied ($(dc --profile migrate config --images migrate 2>/dev/null | head -1))"
+}
+
+INFRA="postgres keycloak valkey nats minio flowable edge"
+
+cmd_install() {
+  need_root
+  local domain="" sso="" cert="" key="" ca="" local_ca=false t_all
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --domain) domain=$2; shift 2 ;;
+      --sso-domain) sso=$2; shift 2 ;;
+      --cert) cert=$2; shift 2 ;;
+      --key) key=$2; shift 2 ;;
+      --ca) ca=$2; shift 2 ;;
+      --local-ca) local_ca=true; shift ;;
+      *) die "install: unknown argument $1" ;;
+    esac
+  done
+  t_all=$(now)
+  [[ -e "$SUTRA_ROOT/current" ]] && die "already installed ($(readlink -f "$SUTRA_ROOT/current")); use upgrade"
+  mkdir -p "$SUTRA_ETC"
+  chmod 755 "$SUTRA_ETC"
+  if [[ ! -f "$SUTRA_ETC/sutraerp.conf" ]]; then
+    [[ -n "$domain" && -n "$sso" ]] || die "install needs --domain and --sso-domain (or an existing $SUTRA_ETC/sutraerp.conf)"
+    install -m 644 "$BUNDLE_DIR/config/sutraerp.conf.example" "$SUTRA_ETC/sutraerp.conf"
+    conf_set SUTRA_DOMAIN "$domain"
+    conf_set SUTRA_SSO_DOMAIN "$sso"
+  fi
+  cmd_preflight
+  cmd_verify "$BUNDLE_DIR"
+  local rel
+  rel=$(stage_release "$BUNDLE_DIR")
+  cmd_load "$rel"
+  switch_current "$rel"
+  cmd_secrets
+  cmd_tls_internal
+  if [[ -n "$cert" ]]; then
+    conf_set SUTRA_TLS_CERT_FILE "$(readlink -f "$cert")"
+    conf_set SUTRA_TLS_KEY_FILE "$(readlink -f "$key")"
+    [[ -n "$ca" ]] && conf_set SUTRA_TLS_CA_FILE "$(readlink -f "$ca")"
+  elif $local_ca; then
+    cmd_tls_local_ca
+  fi
+  cmd_render
+  load_conf
+  local t0
+  t0=$(now)
+  # shellcheck disable=SC2086
+  dc up -d $INFRA
+  # shellcheck disable=SC2086
+  wait_services 600 $INFRA || { dc ps -a; die "infrastructure did not become healthy"; }
+  timing first_boot_infra "$(since "$t0")"
+  load_bundle "$rel"
+  if [[ "${SUTRA_BUNDLE_DOCUMENTS:-false}" == true ]]; then cmd_bucket; fi
+  cmd_migrate
+  t0=$(now)
+  dc up -d api web
+  cmd_health --wait 300 || { dc ps -a; die "stack did not become healthy"; }
+  timing first_boot_app "$(since "$t0")"
+  state_set SUTRA_CURRENT_VERSION "$SUTRA_VERSION"
+  timing install_total "$(since "$t_all")"
+  ok "SutraERP $SUTRA_VERSION installed: https://$SUTRA_DOMAIN (SSO https://$SUTRA_SSO_DOMAIN). Next: sutra-onprem create-tenant"
+}
+
+cmd_status() { dc ps -a; }
+cmd_logs() { dc logs --no-color --tail "${SUTRA_LOG_TAIL:-200}" "$@"; }
+cmd_stop() { dc stop; }
+cmd_start() { dc up -d; cmd_health --wait 600; }
+cmd_restart() {
+  local t0
+  t0=$(now)
+  dc restart "$@"
+  cmd_health --wait 600
+  timing "restart_${1:-all}" "$(since "$t0")"
+}
+
+# ------------------------------------------------------------------ Keycloak (tenant / users)
+
+kc_token() {
+  curl_sso /realms/master/protocol/openid-connect/token \
+    --data-urlencode grant_type=password --data-urlencode client_id=admin-cli \
+    --data-urlencode username=sutra-bootstrap-admin --data-urlencode "password=$KC_ADMIN_PASSWORD" |
+    python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])'
+}
+
+kc() { # method path [json]
+  local m=$1 p=$2 body=${3:-}
+  local args=(-X "$m" -H "authorization: Bearer $KC_TOKEN" -H 'content-type: application/json')
+  [[ -n "$body" ]] && args+=(--data "$body")
+  curl -sS --max-time 15 --cacert "$SUTRA_ETC/tls/trust.pem" --resolve "$SUTRA_SSO_DOMAIN:$SUTRA_HTTPS_PORT:127.0.0.1" \
+    -D "$KC_HDR" -o "$KC_OUT" -w '%{http_code}' "${args[@]}" "https://$SUTRA_SSO_DOMAIN:$SUTRA_HTTPS_PORT/admin/realms/sutra$p"
+}
+
+kc_init() {
+  load_conf
+  KC_HDR=$(mktemp)
+  KC_OUT=$(mktemp)
+  KC_TOKEN=$(kc_token) || die "Keycloak admin token (bootstrap admin) failed"
+}
+
+kc_group_id() { # name
+  kc GET "/groups?search=$1&exact=true" >/dev/null
+  python3 -c 'import json,sys
+n=sys.argv[1]
+def walk(gs):
+    for g in gs:
+        if g["name"]==n: print(g["id"]); sys.exit()
+        walk(g.get("subGroups",[]))
+walk(json.load(open(sys.argv[2])))' "$1" "$KC_OUT"
+}
+
+# A tenant = a UUID carried as the `tenant_id` claim (group attribute → token mapper).
+cmd_create_tenant() {
+  need_root
+  local name="" tid=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --name) name=$2; shift 2 ;;
+      --tenant-id) tid=$2; shift 2 ;;
+      *) die "create-tenant: unknown argument $1" ;;
+    esac
+  done
+  [[ -n "$name" ]] || die "create-tenant --name <institution name>"
+  [[ -n "$tid" ]] || tid=$(cat /proc/sys/kernel/random/uuid)
+  kc_init
+  local g="sutra-tenant-$tid" code
+  code=$(kc POST /groups "{\"name\":\"$g\",\"attributes\":{\"tenant_id\":[\"$tid\"],\"tenant_name\":[$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' "$name")]}}")
+  [[ "$code" == 201 || "$code" == 409 ]] || die "create group $g → $code $(cat "$KC_OUT")"
+  touch "$SUTRA_ETC/tenants.env"
+  grep -q "$tid" "$SUTRA_ETC/tenants.env" || printf '%s\t%s\n' "$tid" "$name" >>"$SUTRA_ETC/tenants.env"
+  ok "tenant $tid ($name): Keycloak group $g"
+  printf '%s\n' "$tid"
+}
+
+cmd_create_user() {
+  need_root
+  local tid="" email="" role="" first="" last="" pwfile="" temporary=true
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --tenant) tid=$2; shift 2 ;;
+      --email) email=$2; shift 2 ;;
+      --role) role=$2; shift 2 ;;
+      --first) first=$2; shift 2 ;;
+      --last) last=$2; shift 2 ;;
+      --password-file) pwfile=$2; shift 2 ;;
+      --no-temporary) temporary=false; shift ;;
+      *) die "create-user: unknown argument $1" ;;
+    esac
+  done
+  [[ -n "$tid" && -n "$email" && -n "$role" && -n "$first" && -n "$last" ]] ||
+    die "create-user --tenant <uuid> --email <e> --role <realm role> --first <f> --last <l>"
+  kc_init
+  local gid uid code pw actions="[]"
+  gid=$(kc_group_id "sutra-tenant-$tid")
+  [[ -n "$gid" ]] || die "tenant $tid has no Keycloak group (create-tenant first)"
+  [[ "$PRIVILEGED_ROLES" == *" $role "* ]] && actions='["CONFIGURE_TOTP"]'
+  code=$(kc POST /users "$(python3 -c 'import json,sys
+e,f,l,a=sys.argv[1:5]
+print(json.dumps({"username":e,"email":e,"enabled":True,"emailVerified":True,"firstName":f,"lastName":l,"requiredActions":json.loads(a)}))' "$email" "$first" "$last" "$actions")")
+  [[ "$code" == 201 ]] || die "create user $email → $code $(cat "$KC_OUT")"
+  uid=$(sed -n 's#^[Ll]ocation: .*/users/\([^[:space:]]*\).*#\1#p' "$KC_HDR" | tr -d '\r')
+  if [[ -n "$pwfile" ]]; then pw=$(<"$pwfile"); else pw="$(gen_hex 10)Aa1!"; fi
+  code=$(kc PUT "/users/$uid/reset-password" "$(python3 -c 'import json,sys;print(json.dumps({"type":"password","value":sys.argv[1],"temporary":sys.argv[2]=="true"}))' "$pw" "$temporary")")
+  [[ "$code" == 204 ]] || die "set password of $email → $code $(cat "$KC_OUT")"
+  code=$(kc GET "/roles/$role")
+  [[ "$code" == 200 ]] || die "realm role $role → $code"
+  code=$(kc POST "/users/$uid/role-mappings/realm" "[$(cat "$KC_OUT")]")
+  [[ "$code" == 204 ]] || die "assign role $role → $code $(cat "$KC_OUT")"
+  code=$(kc PUT "/users/$uid/groups/$gid")
+  [[ "$code" == 204 ]] || die "join tenant group → $code $(cat "$KC_OUT")"
+  ok "user $email ($role, tenant $tid, required actions $actions, temporary password $temporary)"
+  if [[ -z "$pwfile" ]]; then printf 'initial password for %s: %s\n' "$email" "$pw"; fi
+}
+
+# ------------------------------------------------------------------ backup / restore
+
+# Runs a command in a throw-away postgres:18 container on the stack network (PG 18 client tools).
+pgtool() { # extra docker args… -- command…
+  local args=()
+  while [[ "$1" != -- ]]; do args+=("$1"); shift; done
+  shift
+  docker run --rm --network "${PROJECT}_default" --pull never "${args[@]}" postgres:18 "$@"
+}
+
+cmd_backup() {
+  need_root
+  load_conf
+  local label=${2:-manual} t0 rel out name dir
+  [[ "${1:-}" == --label ]] || label=manual
+  t0=$(now)
+  rel=$(current_dir)
+  load_bundle "$rel"
+  out="$SUTRA_BACKUP_DIR"
+  mkdir -p "$out"
+  chmod 700 "$out"
+  local owner="postgres://sutra:$POSTGRES_PASSWORD@postgres:5432"
+  # sutra + flowable: the 9C format (deploy/backup/sutra-backup.sh; manifest with sha256, row
+  # counts and audit-chain heads read in the dump's own snapshot).
+  name=$(pgtool -v "$rel/backup:/backup:ro" -v "$out:/out" -e "SUTRA_ENV=production" -e "SUTRA_GIT_SHA=$SUTRA_GIT_SHA" \
+    -e "SUTRA_BACKUP_DATABASE_URL=$owner/sutra?sslmode=require" \
+    -e "SUTRA_BACKUP_FLOWABLE_DATABASE_URL=$owner/flowable?sslmode=require" \
+    -- bash /backup/sutra-backup.sh --out-dir /out | tail -1)
+  name=$(basename "$name")
+  dir="$out/$name"
+  [[ -d "$dir" ]] || die "backup directory $dir missing"
+  # Keycloak (users, credentials, realm) — plain pg_dump of its database.
+  pgtool -v "$dir:/out" -- pg_dump -Fc -f /out/keycloak.dump "$owner/keycloak?sslmode=require"
+  # Document objects: the MinIO volume (crash-consistent copy; objects are immutable once written).
+  docker run --rm --pull never -v "${PROJECT}_miniodata:/data:ro" -v "$dir:/out" postgres:18 \
+    tar -C /data -czf /out/minio-data.tar.gz .
+  # Server configuration incl. secrets (needed to restore onto a rebuilt server) — keep offline.
+  tar -C / -czf "$dir/etc-sutraerp.tar.gz" "${SUTRA_ETC#/}"
+  chmod 600 "$dir/etc-sutraerp.tar.gz"
+  (cd "$dir" && sha256sum keycloak.dump minio-data.tar.gz etc-sutraerp.tar.gz >onprem.sha256)
+  printf 'release=%s\ngitSha=%s\nlabel=%s\ncreated=%s\n' "$SUTRA_VERSION" "$SUTRA_GIT_SHA" "$label" "$(date -u +%FT%TZ)" >"$dir/onprem.release"
+  timing "backup_$label" "$(since "$t0")"
+  ok "backup $dir ($(du -sh "$dir" | cut -f1))"
+  # The encrypted, offsite-capable set with node_exporter textfile metrics (SutraBackupFailed /
+  # SutraBackupStale alerts) once the backup configuration exists. Its output goes to stderr: the
+  # last stdout line stays the restore-point directory (upgrade / rollback read it).
+  if [[ -f "$SUTRA_ETC/backup.env" ]]; then
+    cmd_fullbackup nightly >&2 || log "WARN encrypted full backup failed (restore point $dir kept; alert SutraBackupFailed)"
+  fi
+  printf '%s\n' "$dir"
+}
+
+# PostgreSQL client tools for the host-side backup scripts, run in postgres:18 on the stack network
+# (PostgreSQL is not published on the host). Paths under the backup directory are mounted 1:1.
+pg_shims() {
+  local d="$SUTRA_ETC/backup-tools" t
+  mkdir -p "$d"
+  for t in psql pg_dump pg_restore; do
+    cat >"$d/$t" <<EOF
+#!/usr/bin/env bash
+exec docker run --rm -i --network ${PROJECT}_default --pull never -v "$SUTRA_BACKUP_DIR:$SUTRA_BACKUP_DIR" \\
+  -v "$SUTRA_ETC/tls/internal:$SUTRA_ETC/tls/internal:ro" postgres:18 $t "\$@"
+EOF
+    chmod 700 "$d/$t"
+  done
+  printf '%s' "$d"
+}
+
+# deploy/backup/sutra-fullbackup.sh (nightly | base) through with-metrics.sh — the same jobs the
+# deploy/backup/systemd timer runs. Configuration: $SUTRA_ETC/backup.env
+# (deploy/backup/host/backup.env.example: age recipient, offsite target, S3 read key; database URLs
+# use the host name `postgres`, e.g. postgres://sutra:…@postgres:5432/sutra?sslmode=require).
+cmd_fullbackup() {
+  need_root
+  load_conf
+  local kind=${1:-nightly} rel
+  [[ "$kind" == nightly || "$kind" == base ]] || die "fullbackup nightly|base"
+  [[ -f "$SUTRA_ETC/backup.env" ]] || die "$SUTRA_ETC/backup.env missing (copy backup/host/backup.env.example from the bundle)"
+  rel=$(current_dir)
+  local t
+  for t in age jq; do command -v "$t" >/dev/null || die "fullbackup needs $t on the host"; done
+  SUTRA_BACKUP_ENV_FILE="$SUTRA_ETC/backup.env" SUTRA_BACKUP_DIR="$SUTRA_BACKUP_DIR" \
+    SUTRA_PG_CONTAINER="${PROJECT}-postgres-1" SUTRA_PG_STAGING_DIR="$SUTRA_PG_STAGING_DIR" \
+    SUTRA_WAL_ARCHIVE_DIR="$SUTRA_WAL_ARCHIVE_DIR" PG_BIN="$(pg_shims)" \
+    bash "$rel/backup/with-metrics.sh" "$kind" bash "$rel/backup/sutra-fullbackup.sh" "$kind"
+}
+
+cmd_restore() {
+  need_root
+  load_conf
+  local dir=${1:?restore <backup dir>} rel t0
+  [[ -f "$dir/manifest.json" && -f "$dir/onprem.sha256" ]] || die "$dir is not an on-prem backup"
+  (cd "$dir" && sha256sum --quiet -c onprem.sha256) || die "backup checksum mismatch ($dir)"
+  t0=$(now)
+  rel=$(current_dir)
+  load_bundle "$rel"
+  dc stop api web keycloak flowable minio
+  local owner="postgres://sutra:$POSTGRES_PASSWORD@postgres:5432"
+  # A restore REPLACES the data: the sutra and flowable databases are recreated empty first.
+  # `pg_restore --clean` alone cannot do it after an upgrade (rollback): tables created by later
+  # migrations reference the restored ones, so their DROPs fail and the COPYs hit duplicate keys
+  # (run 38922326019). The roles are cluster-wide and stay; sutra-restore.sh re-applies roles.sql.
+  pgtool -- psql -v ON_ERROR_STOP=1 -qAtX "$owner/postgres?sslmode=require" \
+    -c 'DROP DATABASE IF EXISTS sutra WITH (FORCE)' -c 'CREATE DATABASE sutra OWNER sutra' \
+    -c 'DROP DATABASE IF EXISTS flowable WITH (FORCE)' -c 'CREATE DATABASE flowable OWNER flowable' \
+    -c 'REVOKE ALL ON DATABASE flowable FROM PUBLIC'
+  log "databases sutra, flowable recreated empty for the restore"
+  local rlog rc=0
+  rlog=$(mktemp)
+  pgtool -v "$rel/backup:/backup:ro" -v "$dir:/in:ro" -e "SUTRA_BACKUP_DATABASE_URL=$owner/sutra?sslmode=require" \
+    -e "SUTRA_BACKUP_FLOWABLE_DATABASE_URL=$owner/flowable?sslmode=require" \
+    -- bash /backup/sutra-restore.sh /in --skip-migrate >"$rlog" 2>&1 || rc=$?
+  cat "$rlog" >&2
+  if [[ $rc -ne 0 ]]; then
+    # sutra-restore.sh of releases before 2026.10.1 exits 1 after a SUCCESSFUL restore of a backup
+    # directory (its EXIT trap `[[ -n "$work" ]] && …` sets the exit status). The script runs under
+    # `set -e` and dies on the first failed step, so reaching its final "restored" line after the
+    # last check ("ok audit grants") means every step passed; anything else is a real failure.
+    if grep -q '^ok audit grants' "$rlog" && tail -1 "$rlog" | grep -q '^restored '; then
+      log "WARN sutra-restore.sh exited $rc after completing every step (known exit-status bug of releases before 2026.10.1) — accepted"
+    else
+      rm -f "$rlog"
+      die "sutra-restore.sh failed (exit $rc)"
+    fi
+  fi
+  rm -f "$rlog"
+  pgtool -v "$dir:/in:ro" -- pg_restore --clean --if-exists --exit-on-error -d "$owner/keycloak?sslmode=require" /in/keycloak.dump
+  docker run --rm --pull never -v "${PROJECT}_miniodata:/data" -v "$dir:/in:ro" postgres:18 \
+    bash -c 'find /data -mindepth 1 -delete && tar -C /data -xzf /in/minio-data.tar.gz'
+  dc up -d minio keycloak flowable
+  wait_services 600 minio keycloak flowable || die "infrastructure did not come back after the restore"
+  cmd_migrate
+  dc up -d api web
+  cmd_health --wait 600
+  timing restore "$(since "$t0")"
+  ok "restored $dir onto $SUTRA_VERSION"
+}
+
+# ------------------------------------------------------------------ upgrade / rollback
+
+cmd_upgrade() {
+  need_root
+  local src=${1:?upgrade <new bundle dir | .tar>} t_all rel prev_dir prev_ver backup t0
+  t_all=$(now)
+  load_conf
+  prev_dir=$(current_dir)
+  load_bundle "$prev_dir"
+  prev_ver=$SUTRA_VERSION
+  if [[ -d "$src" ]]; then cmd_verify "$src"; fi
+  rel=$(stage_release "$src")
+  cmd_verify "$rel"
+  load_bundle "$rel"
+  [[ "$SUTRA_VERSION" != "$prev_ver" ]] || die "release $SUTRA_VERSION is already running"
+  log "upgrade $prev_ver → $SUTRA_VERSION"
+  cmd_load "$rel"
+  # Migrations are forward-only: the pre-upgrade backup is the rollback point for the data.
+  backup=$(cmd_backup --label "pre-upgrade-$prev_ver" | tail -1)
+  state_set SUTRA_PREVIOUS_VERSION "$prev_ver"
+  state_set SUTRA_PREVIOUS_RELEASE_DIR "$prev_dir"
+  state_set SUTRA_PRE_UPGRADE_BACKUP "$backup"
+  t0=$(now)
+  dc stop api web
+  switch_current "$rel"
+  cmd_secrets >/dev/null
+  cmd_render
+  load_conf
+  load_bundle "$rel"
+  local pg_before
+  pg_before=$(pg_id)
+  # shellcheck disable=SC2086
+  dc up -d $INFRA
+  # shellcheck disable=SC2086
+  wait_services 600 $INFRA
+  refresh_db_clients "$pg_before"
+  if [[ "${SUTRA_BUNDLE_DOCUMENTS:-false}" == true ]]; then cmd_bucket; fi
+  cmd_migrate
+  dc up -d --remove-orphans
+  cmd_health --wait 600 || die "upgraded stack is not healthy — run: sutra-onprem rollback"
+  timing upgrade_downtime "$(since "$t0")"
+  state_set SUTRA_CURRENT_VERSION "$SUTRA_VERSION"
+  timing upgrade_total "$(since "$t_all")"
+  ok "upgraded $prev_ver → $SUTRA_VERSION (pre-upgrade backup $backup)"
+}
+
+# Default: application AND data back to the pre-upgrade state (restore of the pre-upgrade backup —
+# the only safe way back, migrations are forward-only; data written after the upgrade is lost).
+# --app-only: switch the images back on the upgraded schema (diagnostic; not a supported state).
+cmd_rollback() {
+  need_root
+  local app_only=false t0 prev_dir backup
+  [[ "${1:-}" == --app-only ]] && app_only=true
+  load_conf
+  prev_dir=$(state_get SUTRA_PREVIOUS_RELEASE_DIR)
+  backup=$(state_get SUTRA_PRE_UPGRADE_BACKUP)
+  [[ -n "$prev_dir" && -d "$prev_dir" ]] || die "no previous release recorded in $SUTRA_ETC/state.env"
+  t0=$(now)
+  dc stop api web
+  switch_current "$prev_dir"
+  cmd_render
+  load_conf
+  load_bundle "$prev_dir"
+  if $app_only; then
+    local pg_before
+    pg_before=$(pg_id)
+    dc up -d --remove-orphans
+    # shellcheck disable=SC2086
+    wait_services 600 $INFRA || true
+    refresh_db_clients "$pg_before"
+    if cmd_health --wait 180; then ok "app-only rollback to $SUTRA_VERSION: healthy on the upgraded schema"; else log "app-only rollback to $SUTRA_VERSION: NOT healthy on the upgraded schema"; return 1; fi
+    timing rollback_app_only "$(since "$t0")"
+    return 0
+  fi
+  [[ -n "$backup" && -d "$backup" ]] || die "pre-upgrade backup missing ($backup)"
+  dc up -d --remove-orphans postgres
+  wait_services 300 postgres
+  cmd_restore "$backup"
+  state_set SUTRA_CURRENT_VERSION "$SUTRA_VERSION"
+  timing rollback_total "$(since "$t0")"
+  ok "rolled back to $SUTRA_VERSION with the data of $backup"
+}
+
+# ------------------------------------------------------------------ diagnostics
+
+# Row counts of the key business tables + payment total (as the schema owner; RLS does not apply).
+cmd_counts() {
+  load_conf
+  dc exec -T postgres psql -U sutra -d sutra -qAtX -c "
+    SELECT 'institutions=' || (SELECT count(*) FROM institution.institution)
+      || ' students=' || (SELECT count(*) FROM student.student)
+      || ' admissions=' || (SELECT count(*) FROM student.admission)
+      || ' charges=' || (SELECT count(*) FROM finance.charge)
+      || ' payments=' || (SELECT count(*) FROM finance.payment)
+      || ' payment_total=' || (SELECT coalesce(sum(amount), 0) FROM finance.payment)
+      || ' receipts=' || (SELECT count(*) FROM finance.receipt)
+      || ' journal_entries=' || (SELECT count(*) FROM finance.journal_entry)
+      || ' documents=' || coalesce((SELECT count(*) FROM student.student_document)::text, '0')
+      || ' document_objects=' || CASE WHEN to_regclass('platform.document_object') IS NULL THEN 'n/a'
+            ELSE (xpath('/row/n/text()', query_to_xml('SELECT count(*) AS n FROM platform.document_object', false, true, '')))[1]::text END
+      || ' audit_rows=' || (SELECT count(*) FROM platform.audit_log)"
+}
+
+usage() { sed -n '2,24p' "$SELF"; }
+
+cmd=${1:-help}
+shift || true
+case "$cmd" in
+  install) cmd_install "$@" ;;
+  preflight) cmd_preflight ;;
+  verify) cmd_verify "$@" ;;
+  load) cmd_load "$@" ;;
+  secrets) cmd_secrets ;;
+  tls-internal) cmd_tls_internal "$@" ;;
+  tls-local-ca) cmd_tls_local_ca ;;
+  render) cmd_render ;;
+  bucket) cmd_bucket ;;
+  migrate) load_conf; cmd_migrate ;;
+  health) cmd_health "$@" ;;
+  status) cmd_status ;;
+  logs) cmd_logs "$@" ;;
+  stop) cmd_stop ;;
+  start) load_conf; cmd_start ;;
+  restart) load_conf; cmd_restart "$@" ;;
+  create-tenant) cmd_create_tenant "$@" ;;
+  create-user) cmd_create_user "$@" ;;
+  backup) cmd_backup "$@" ;;
+  fullbackup) cmd_fullbackup "$@" ;;
+  restore) cmd_restore "$@" ;;
+  upgrade) cmd_upgrade "$@" ;;
+  rollback) cmd_rollback "$@" ;;
+  counts) cmd_counts ;;
+  help | -h | --help) usage ;;
+  *) usage; die "unknown command $cmd" ;;
+esac

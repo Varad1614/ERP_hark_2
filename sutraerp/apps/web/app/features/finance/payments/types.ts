@@ -2,6 +2,8 @@
  * Slice-5B wire types (payments, receipts, refunds, receivables). Amounts are decimal strings
  * (contract §3.1) — format them with `formatINR` (`../ui` money / ledger), never parse them to floats.
  */
+import type { components } from "@sutra/api-client";
+
 export type PaymentStatus = "initiated" | "pending" | "completed" | "failed" | "expired" | "cancelled" | "reversed" | "charged_back";
 export type PaymentChannel = "gateway" | "cash" | "cheque" | "bank_transfer" | "demand_draft" | "sponsor";
 export type RefundStatus = "requested" | "under_review" | "approved" | "rejected" | "processing" | "completed" | "failed" | "cancelled" | "reversed" | "closed";
@@ -36,6 +38,8 @@ export interface Payment {
   currency: string;
   status: PaymentStatus;
   statusReason?: string | null;
+  /** Adapter that created the order (`mock` | `razorpay`); null for counter payments. */
+  gateway?: string | null;
   gatewayOrderRef?: string | null;
   gatewayPaymentRef?: string | null;
   checkoutUrl?: string | null;
@@ -219,4 +223,20 @@ export interface RecordPayment {
   amount: string;
   externalRef?: string;
   payerName?: string;
+}
+
+/**
+ * Part 2 S4 (UI fees, DEF-F-007): the configured online gateway (`GET /me/payment-gateway`,
+ * generated schema `PaymentGatewayInfo`).
+ */
+export type PaymentGatewayInfo = components["schemas"]["PaymentGatewayInfo"];
+
+/**
+ * What Razorpay Checkout hands the browser after a payment (forwarded to `confirm`, verified
+ * server-side; it never marks anything paid by itself).
+ */
+export interface CheckoutCallback {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
 }

@@ -10,6 +10,7 @@ use crate::curriculum::support::{
     audit_transition, begin, expect_version, institution_of, Decision, Transition,
 };
 use crate::shared::approval::{self, process, ApprovalOutcome};
+use crate::shared::guard::lock_institution_for_change;
 use crate::shared::{publish, Actor, InstitutionState};
 use sqlx::postgres::PgRow;
 use sqlx::{PgConnection, PgPool, Row};
@@ -321,10 +322,24 @@ pub async fn register(
     cmd: RegisterCampus,
     actor: &Actor,
 ) -> Result<Campus, KernelError> {
+    let mut tx = pool.begin().await.map_err(map_db_error)?;
+    let c = register_in(&mut tx, scope, institution_id, cmd, actor).await?;
+    tx.commit().await.map_err(map_db_error)?;
+    Ok(c)
+}
+
+/// [`register`] inside the caller's transaction (Part 2 · S4-import runs it per row).
+pub async fn register_in(
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    institution_id: InstitutionId,
+    cmd: RegisterCampus,
+    actor: &Actor,
+) -> Result<Campus, KernelError> {
     cmd.validate()?;
-    let mut tx = begin(pool, scope, institution_id).await?;
+    lock_institution_for_change(&mut *conn, scope, institution_id).await?;
     if cmd.is_main {
-        ensure_single_main(&mut tx, scope, institution_id, None).await?;
+        ensure_single_main(&mut *conn, scope, institution_id, None).await?;
     }
     let a = &cmd.address;
     let row = sqlx::query(&format!(
@@ -356,13 +371,13 @@ pub async fn register(
     .bind(trimmed(cmd.contact_phone.as_ref()))
     .bind(trimmed(cmd.description.as_ref()))
     .bind(trimmed(cmd.working_hours.as_ref()))
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut *conn)
     .await
     .map_err(map_db_error)?;
     let c = from_row(&row).map_err(map_db_error)?.campus;
-    record_revision(&mut tx, scope, &c, "registered", &[], None, None, actor).await?;
+    record_revision(&mut *conn, scope, &c, "registered", &[], None, None, actor).await?;
     publish::event(
-        &mut tx,
+        &mut *conn,
         scope,
         CAMPUS_REGISTERED,
         CAMPUS_REGISTERED_SCHEMA,
@@ -379,7 +394,7 @@ pub async fn register(
     )
     .await?;
     publish::audit(
-        &mut tx,
+        &mut *conn,
         scope,
         "institution.campus.register",
         ENTITY,
@@ -391,7 +406,6 @@ pub async fn register(
         actor,
     )
     .await?;
-    tx.commit().await.map_err(map_db_error)?;
     Ok(c)
 }
 

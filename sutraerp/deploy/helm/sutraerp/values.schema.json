@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "title": "SutraERP chart values (docs/batch9-contracts.md \u00a710.1; 9B constrains its own sections only)",
+  "title": "SutraERP chart values (docs/batch9-contracts.md §10.1; 9B constrains its own sections only)",
   "type": "object",
   "required": [
     "global",
@@ -608,6 +608,23 @@
           "enum": [
             "human",
             "auto"
+          ]
+        }
+      }
+    },
+    "entitlements": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Part 2 · S7-entitle: SUTRA_ENTITLEMENT_DEFAULT (entitlement of a tenant without a stored licence); required when global.environment=production",
+      "properties": {
+        "default": {
+          "type": "string",
+          "enum": [
+            "core_academic",
+            "academic_plus",
+            "institution_operations",
+            "complete_erp",
+            "none"
           ]
         }
       }

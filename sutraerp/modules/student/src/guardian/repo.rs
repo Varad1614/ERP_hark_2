@@ -1874,6 +1874,108 @@ pub const TABLE_EMERGENCY: &str = EMERGENCY;
 pub const TABLE_FINANCIAL: &str = FINANCIAL;
 pub const TABLE_PICKUP: &str = PICKUP;
 
+// ---- Part 2 · S4-import: guardians migrated with their student ---------------------------------
+
+/// Registers a migrated guardian and proposes the relationship with the (just imported) student
+/// inside the caller's transaction — the same rows, event and audit as `create_guardian` +
+/// `propose`. The relationship starts `proposed`: verification stays a human step.
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn import_guardian(
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    institution_id: InstitutionId,
+    student_id: StudentId,
+    cmd: NewGuardian,
+    relationship_type: RelationshipType,
+    is_primary: bool,
+    actor: &Actor,
+) -> Result<GuardianRelationship, KernelError> {
+    let given = kit::required_text("guardian_name", Some(&cmd.given_name))?;
+    let (email, phone) = (trimmed(cmd.email), trimmed(cmd.phone));
+    if email.is_none() && phone.is_none() {
+        return Err(kit::invalid(
+            "guardian_phone",
+            "required",
+            "a guardian needs a phone number or an e-mail address",
+        ));
+    }
+    let tenant = scope.tenant_id;
+    let g: Guardian = kit::insert(
+        &mut *conn,
+        GUARDIAN,
+        json!({
+            "id": Uuid::now_v7(),
+            "tenant_id": tenant.as_uuid(),
+            "institution_id": institution_id.as_uuid(),
+            "given_name": given,
+            "family_name": trimmed(cmd.family_name),
+            "email": email,
+            "phone": phone,
+            "address": trimmed(cmd.address),
+            "occupation": trimmed(cmd.occupation),
+        }),
+    )
+    .await?;
+    kit::audit(
+        &mut *conn,
+        scope,
+        GUARDIAN,
+        "create",
+        g.id.as_uuid(),
+        json!({"givenName": g.given_name, "source": "data_migration"}),
+        actor,
+    )
+    .await?;
+    let r: GuardianRelationship = kit::insert(
+        &mut *conn,
+        REL,
+        json!({
+            "id": Uuid::now_v7(),
+            "tenant_id": tenant.as_uuid(),
+            "institution_id": institution_id.as_uuid(),
+            "guardian_id": g.id.as_uuid(),
+            "student_id": student_id.as_uuid(),
+            "relationship_type": relationship_type.as_str(),
+            "is_primary": is_primary,
+            "status": RelStatus::Proposed.as_str(),
+            "notes": "migrated from the legacy system",
+        }),
+    )
+    .await
+    .map_err(|e| {
+        unique_conflict(
+            e,
+            "the guardian already has a current relationship with this student, or a primary \
+             guardian exists",
+        )
+    })?;
+    crate::shared::publish::event(
+        &mut *conn,
+        scope,
+        GUARDIAN_RELATIONSHIP_PROPOSED,
+        GUARDIAN_RELATIONSHIP_PROPOSED_SCHEMA,
+        r.id.to_string(),
+        &rel_payload(&r),
+        actor,
+    )
+    .await?;
+    kit::audit(
+        &mut *conn,
+        scope,
+        REL,
+        "propose",
+        r.id.as_uuid(),
+        json!({
+            "guardianId": g.id,
+            "relationshipType": relationship_type,
+            "source": "data_migration",
+        }),
+        actor,
+    )
+    .await?;
+    Ok(r)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

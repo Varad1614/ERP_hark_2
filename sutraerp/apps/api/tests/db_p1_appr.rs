@@ -528,6 +528,17 @@ fn production(extra: &[(&'static str, &'static str)]) -> HashMap<&'static str, &
             "SUTRA_FLOWABLE_PASSWORD",
             "unit-test-only-flowable-password",
         ),
+        // Part 2 · S4-docs: production refuses to start without S3 document storage.
+        ("SUTRA_DOCUMENT_STORAGE", "s3"),
+        ("SUTRA_S3_ENDPOINT", "https://objects.example.edu"),
+        ("SUTRA_S3_BUCKET", "sutraerp-documents"),
+        ("SUTRA_S3_ACCESS_KEY_ID", "sutraerp-api"),
+        (
+            "SUTRA_S3_SECRET_ACCESS_KEY",
+            "unit-test-only-object-storage-secret",
+        ),
+        // Part 2 · S7-entitle: production states the default entitlement explicitly.
+        ("SUTRA_ENTITLEMENT_DEFAULT", "complete_erp"),
     ]);
     m.extend(extra.iter().copied());
     m

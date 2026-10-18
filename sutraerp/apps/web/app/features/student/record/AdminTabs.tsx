@@ -18,18 +18,20 @@ import {
   SidePanel,
   formatDate,
   humanize,
+  useToast,
   type ChipOption,
 } from "@sutra/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router";
 import { keys as instKeys, useInstitutionApi } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { student360Path } from "../index";
 import { DialogFrame, NoInstitution, REASON, rowProps, SpecField, useAsk, type FieldSpec, type FormValues, type RowAction } from "../ui";
-import { admissionActions, type Admission, type AdmissionApplication, type AdmissionCommand, type Student } from "./api";
+import { admissionActions, type Admission, type AdmissionApplication, type AdmissionCommand, type AdmissionDocument, type Student } from "./api";
 import { rkeys, useRecordApi, useRecordCommand } from "./hooks";
 import { AdmissionFunnelTile } from "../funnel/AdmissionFunnelTile";
+import { DocumentUploadDialog, useDownload } from "./files";
 import { FEE_LABEL, feeStatus, overallAttendance, useAttendanceIndex, useFeeAccounts, type FeeStatus } from "./insights";
 
 const ADMISSION_LABEL: Record<string, string> = {
@@ -446,6 +448,11 @@ function AdmissionDocumentsPanel({ admission, onClose }: { admission: Admission 
   const { ask, prompt } = useAsk();
   const id = admission?.id ?? "-";
   const docs = useQuery({ queryKey: rkeys.scoped("admission", id, "documents"), queryFn: () => api.admissionDocuments(admission!.id), enabled: !!admission });
+  // Part 2 · S4 (UI docs): file upload / replace / download on the admission documents.
+  const client = useQueryClient();
+  const toast = useToast();
+  const files = useDownload();
+  const [upload, setUpload] = useState<{ doc: AdmissionDocument; replace: boolean } | null>(null);
   if (!admission) return null;
   const canVerify = admission.status === "documents_submitted";
   const canAdd = ["initiated", "documents_submitted"].includes(admission.status);
@@ -499,21 +506,45 @@ function AdmissionDocumentsPanel({ admission, onClose }: { admission: Admission 
               key={d.id}
               data-admission-doc={d.documentType}
               title={humanize(d.documentType)}
-              meta={d.title}
+              data-file={d.documentObjectId ? "attached" : "none"}
+              meta={[d.title, d.documentObjectId ? "File attached" : d.status === "submitted" ? "No file yet" : null].filter(Boolean).join(" · ")}
               badge={{ label: humanize(d.status), kind: d.status === "verified" || d.status === "waived" ? "done" : d.status === "rejected" ? "attention" : "review" }}
-              {...(canVerify && d.status === "submitted"
-                ? rowProps(
-                    [
-                      { id: "doc-verify", label: "Verify", variant: "primary", onClick: () => void run(() => api.verifyAdmissionDocument(admission.id, d.id, d.version, "verified"), "Document verified") },
-                      { id: "doc-reject", label: "Reject", onClick: () => ask({ title: "Reject document", eyebrow: "Admissions · Documents", name: "doc-reject", submitLabel: "Reject", fields: [{ name: "note", label: "Why", required: true, wide: true, type: "textarea" }], onSubmit: (v) => submit(() => api.verifyAdmissionDocument(admission.id, d.id, d.version, "rejected", v.note), "Document rejected") }) },
-                      { id: "doc-waive", label: "Waive", onClick: () => ask({ title: "Waive document", eyebrow: "Admissions · Documents", name: "doc-waive", submitLabel: "Waive", fields: [{ name: "note", label: "Why", required: true, wide: true, type: "textarea" }], onSubmit: (v) => submit(() => api.verifyAdmissionDocument(admission.id, d.id, d.version, "waived", v.note), "Document waived") }) },
-                    ],
-                    busy,
-                  )
-                : {})}
+              {...rowProps(
+                [
+                  ...(canVerify && d.status === "submitted"
+                    ? [
+                        { id: "doc-verify", label: "Verify", variant: "primary" as const, onClick: () => void run(() => api.verifyAdmissionDocument(admission.id, d.id, d.version, "verified"), "Document verified") },
+                        { id: "doc-reject", label: "Reject", onClick: () => ask({ title: "Reject document", eyebrow: "Admissions · Documents", name: "doc-reject", submitLabel: "Reject", fields: [{ name: "note", label: "Why", required: true, wide: true, type: "textarea" }], onSubmit: (v) => submit(() => api.verifyAdmissionDocument(admission.id, d.id, d.version, "rejected", v.note), "Document rejected") }) },
+                        { id: "doc-waive", label: "Waive", onClick: () => ask({ title: "Waive document", eyebrow: "Admissions · Documents", name: "doc-waive", submitLabel: "Waive", fields: [{ name: "note", label: "Why", required: true, wide: true, type: "textarea" }], onSubmit: (v) => submit(() => api.verifyAdmissionDocument(admission.id, d.id, d.version, "waived", v.note), "Document waived") }) },
+                      ]
+                    : []),
+                  ...(canAdd && d.status === "submitted" && !d.documentObjectId ? [{ id: "doc-upload", label: "Upload file", variant: "primary" as const, onClick: () => setUpload({ doc: d, replace: false }) }] : []),
+                  ...(canAdd && d.status === "rejected" ? [{ id: "doc-replace", label: "Replace", variant: "primary" as const, onClick: () => setUpload({ doc: d, replace: true }) }] : []),
+                  ...(d.documentObjectId ? [{ id: "doc-download", label: "Download", onClick: () => void files.download(() => api.downloadAdmissionFile(admission.id, d.id)) }] : []),
+                ],
+                busy || files.busy,
+              )}
             />
           ))}
         </div>
+      )}
+      {upload && (
+        <DocumentUploadDialog
+          title={`${upload.replace ? "Replace" : "Upload"} ${humanize(upload.doc.documentType).toLowerCase()}`}
+          eyebrow={`Admissions · ${admission.displayName}`}
+          replace={upload.replace}
+          onUpload={async (file) => {
+            // Replace = hand in a new document of the same type (the server supersedes the rejected one), then attach the file.
+            const target = upload.replace ? await api.addAdmissionDocument(admission.id, { documentType: upload.doc.documentType, title: upload.doc.title }) : upload.doc;
+            return api.uploadAdmissionFile(admission.id, target.id, file);
+          }}
+          onClose={() => setUpload(null)}
+          onDone={() => {
+            setUpload(null);
+            toast("File uploaded");
+            void client.invalidateQueries({ queryKey: rkeys.all });
+          }}
+        />
       )}
       {prompt}
       {dialog}

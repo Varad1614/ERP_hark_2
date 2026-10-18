@@ -5692,64 +5692,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/campus/institutions/{id}/fleet-costs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Fuel, service and other costs per vehicle with usage and ₹ per km (`campus.read`),
-         *     costliest first.
-         */
-        get: operations["campus_transport_fleet_costs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/institutions/{id}/fleet-maintenance": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Service reminders and renewals of every vehicle (`campus.read`): overdue first, then due
-         *     soon, then snoozed, nearest first.
-         */
-        get: operations["campus_transport_maintenance_board"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/institutions/{id}/fleet-settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Fleet settings (`campus.read`; defaults until saved). */
-        get: operations["campus_transport_fleet_settings_get"];
-        /** Save fleet settings (`campus.transport.manage`; audited). */
-        put: operations["campus_transport_fleet_settings_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/campus/institutions/{id}/governance-cases": {
         parameters: {
             query?: never;
@@ -6201,114 +6143,6 @@ export interface paths {
         };
         /** Inspections of an institution (`campus.read`; `?status=`). */
         get: operations["campus_hostel_inspection_queue"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/institutions/{id}/service-desk/rules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The service-desk triggers of an institution, in run order (`campus.read`). */
-        get: operations["campus_servicedesk_rule_list"];
-        put?: never;
-        /** Add a trigger (`campus.facility.manage`). */
-        post: operations["campus_servicedesk_rule_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/institutions/{id}/service-desk/rules/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Which unsolved tickets a trigger would match now and what it would change (`campus.read`). */
-        post: operations["campus_servicedesk_rule_preview"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/institutions/{id}/service-desk/sla-board": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The SLA board: unsolved tickets by the target due soonest, breaches first (`campus.read`). */
-        get: operations["campus_servicedesk_sla_board"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/institutions/{id}/service-desk/sla-policy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The service desk's SLA targets (`campus.read`). */
-        get: operations["campus_servicedesk_sla_policy_get"];
-        /**
-         * Save the SLA targets (`campus.facility.manage`). New tickets and re-prioritised ones are
-         *     timed from them; existing due times stay.
-         */
-        put: operations["campus_servicedesk_sla_policy_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/institutions/{id}/service-desk/views": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Built-in and saved views (`campus.read`). */
-        get: operations["campus_servicedesk_view_list"];
-        put?: never;
-        /** Save a view (`campus.facility.manage`). */
-        post: operations["campus_servicedesk_view_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/institutions/{id}/service-desk/views/{viewId}/tickets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The tickets of a view, built-in (`sys-…`) or saved (`campus.read`). */
-        get: operations["campus_servicedesk_view_tickets"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7978,78 +7812,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/campus/service-desk/rules/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Replace a trigger (`campus.facility.manage`, `If-Match`). */
-        put: operations["campus_servicedesk_rule_update"];
-        post?: never;
-        /** Delete a trigger (`campus.facility.manage`). Its past firings stay in the log. */
-        delete: operations["campus_servicedesk_rule_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/service-desk/views/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete a saved view (`campus.facility.manage`). */
-        delete: operations["campus_servicedesk_view_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/service-reminders/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Change a service reminder (`campus.transport.manage`; If-Match). */
-        put: operations["campus_transport_service_reminder_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/service-reminders/{id}/snooze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Snooze a service reminder (`campus.transport.manage`): hides a due or overdue reminder
-         *     until the date; snoozing never makes the work on time.
-         */
-        post: operations["campus_transport_service_reminder_snooze"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/campus/spaces/{id}/availability": {
         parameters: {
             query?: never;
@@ -8098,23 +7860,6 @@ export interface paths {
         put?: never;
         /** Assign or reassign a technician / team (`campus.facility.manage`; `service_ticket.assigned`). */
         post: operations["campus_ticket_assign"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/tickets/{id}/automation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** What the service-desk triggers did to a ticket (`campus.read`). */
-        get: operations["campus_servicedesk_ticket_automation"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -8260,23 +8005,6 @@ export interface paths {
         put?: never;
         /** Start work on an assigned / on-hold / reopened ticket (`campus.facility.manage`). */
         post: operations["campus_ticket_start"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/tickets/{id}/tags": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Tag or untag a ticket (`campus.facility.manage`, `If-Match`); triggers run as on any change. */
-        post: operations["campus_servicedesk_ticket_tags"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8805,44 +8533,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/campus/vehicle-renewals/{id}/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Complete a renewal (`campus.transport.manage`; If-Match): it rolls forward by its repeat,
-         *     counted from where the series started; with no repeat and no next date it is done. A cost
-         *     is booked as a vehicle expense.
-         */
-        post: operations["campus_transport_vehicle_renewal_complete"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/vehicle-renewals/{id}/snooze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Snooze a renewal (`campus.transport.manage`). */
-        post: operations["campus_transport_vehicle_renewal_snooze"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/campus/vehicles/{id}/breakdown": {
         parameters: {
             query?: never;
@@ -8857,135 +8547,6 @@ export interface paths {
          *     open trips are flagged as needing a replacement vehicle (`/trips/{id}/replace-vehicle`).
          */
         post: operations["campus_transport_vehicle_breakdown"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/vehicles/{id}/expenses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Record a vehicle expense (`campus.transport.manage`; Idempotency-Key). */
-        post: operations["campus_transport_vehicle_expense_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/vehicles/{id}/fuel-entries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** A vehicle's fuel log with economy between full fills (`campus.read`). */
-        get: operations["campus_transport_fuel_entry_list"];
-        put?: never;
-        /**
-         * Record a fill-up (`campus.transport.manage`; Idempotency-Key): warns when the meter is
-         *     lower than an earlier entry or the volume is more than the tank holds; records the meter.
-         */
-        post: operations["campus_transport_fuel_entry_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/vehicles/{id}/maintenance": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** A vehicle's reminders, renewals and service history (`campus.read`). */
-        get: operations["campus_transport_vehicle_maintenance_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/vehicles/{id}/meter-readings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record a meter reading (`campus.transport.manage`; Idempotency-Key): the vehicle's meter
-         *     rises to it; a reading lower than the meter is kept but changes nothing.
-         */
-        post: operations["campus_transport_meter_reading_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/vehicles/{id}/renewals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add a renewal to a vehicle (`campus.transport.manage`; Idempotency-Key). */
-        post: operations["campus_transport_vehicle_renewal_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/vehicles/{id}/service-entries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record a service (`campus.transport.manage`; Idempotency-Key): completes the named
-         *     reminders (graded on time against the meter when the work was done), and records the meter.
-         */
-        post: operations["campus_transport_service_entry_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/campus/vehicles/{id}/service-reminders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add a service reminder to a vehicle (`campus.transport.manage`; Idempotency-Key). */
-        post: operations["campus_transport_service_reminder_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -12721,27 +12282,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/finance/bank-accounts/{id}/brs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Bank reconciliation statement (`finance.read`): balance as per cash book, plus cheques issued
-         *     not presented, less deposits not credited, plus / less bank credits / debits not yet booked,
-         *     gives the balance as per pass book; compared with an imported statement closing that day.
-         */
-        get: operations["finance_bank_recon_brs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/finance/bank-accounts/{id}/close": {
         parameters: {
             query?: never;
@@ -12773,86 +12313,6 @@ export interface paths {
          *     `active`, reject (reason required) → `closed`.
          */
         post: operations["finance_bank_account_decide"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/bank-accounts/{id}/reconciliation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Unreconciled entries on a bank account up to a statement date, the carried-forward balance
-         *     and the last reconciliation (`finance.read`).
-         */
-        get: operations["finance_bank_recon_workspace"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/bank-accounts/{id}/reconciliation/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Figures for ticked entries against an ending balance, without saving (`finance.read`). */
-        post: operations["finance_bank_recon_preview"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/bank-accounts/{id}/reconciliations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Reconciliation history of a bank account, newest first (`finance.read`). */
-        get: operations["finance_bank_recon_list"];
-        put?: never;
-        /**
-         * Finishes a reconciliation (`treasury.manage`): the ticked entries become reconciled once the
-         *     cleared balance equals the statement ending balance (difference zero). The statement date
-         *     cannot precede the last reconciliation's or be in the future; the bank account row is locked so
-         *     two finishes serialize.
-         */
-        post: operations["finance_bank_recon_finish"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/bank-accounts/{id}/reconciliations/undo-last": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Undoes the latest finished reconciliation (`treasury.manage`): its entries become
-         *     unreconciled again and the carried-forward balance steps back. The record stays as `undone`.
-         */
-        post: operations["finance_bank_recon_undo"];
         delete?: never;
         options?: never;
         head?: never;
@@ -12908,34 +12368,11 @@ export interface paths {
         get: operations["finance_statement_list"];
         put?: never;
         /**
-         * Imports a bank statement (`treasury.manage`, `Idempotency-Key`; L3-F-058): JSON lines, or the
-         *     bank's own CSV, OFX/QFX or MT940 file. The same content or statement reference is never
-         *     imported twice, and lines of a bank file that an earlier statement of the account already
-         *     holds are skipped (counted in `duplicateLines`). When both balances are known (given, or
-         *     stated in the file) they must agree with the file's lines.
+         * Imports a bank statement from JSON lines (`treasury.manage`, `Idempotency-Key`; L3-F-058).
+         *     The same content or statement reference is never imported twice; when both balances are
+         *     given they must agree with the lines.
          */
         post: operations["finance_statement_import"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/bank-accounts/{id}/statements/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reads a bank statement file and shows what importing it would do, without importing
-         *     (`treasury.manage`): the format and CSV mapping used, every line with whether an earlier
-         *     statement already holds it, and the rows that are not transactions.
-         */
-        post: operations["finance_statement_preview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -12968,28 +12405,6 @@ export interface paths {
         };
         /** One statement with its lines and reconciliation runs (`finance.read`). */
         get: operations["finance_statement_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/bank-statements/{id}/lines/{lineId}/suggestions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Up to 8 match suggestions for one statement line (`finance.read`): entries on the bank account
-         *     with the same amount and direction within the window that no line has taken and no
-         *     reconciliation has cleared (closest first), then open student charges of exactly the amount
-         *     for money in.
-         */
-        get: operations["finance_statement_line_suggestions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13036,78 +12451,6 @@ export interface paths {
          *     `bank_transaction.failed` raises a to-do for the finance office.
          */
         post: operations["finance_bank_transaction_return"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/billing-plans/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Changes a billing plan (`charge.manage`). */
-        patch: operations["finance_charge_billing_plan_update"];
-        trace?: never;
-    };
-    "/api/v1/finance/billing-plans/{id}/enrolments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Students on a plan (`finance.read`). */
-        get: operations["finance_charge_billing_enrolment_list"];
-        /**
-         * Enrols a student on a plan or changes their enrolment (`charge.manage`). The student must
-         *     have a live context in the plan's institution.
-         */
-        put: operations["finance_charge_billing_enrolment_upsert"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/billing-plans/{id}/enrolments/{studentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Takes a student off a plan (`charge.manage`); charges already raised stay. */
-        delete: operations["finance_charge_billing_enrolment_remove"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/billing-runs/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One billing run with the charges it raised (`finance.read`). */
-        get: operations["finance_charge_billing_run_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -13998,6 +13341,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/gateway-settlements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One settlement reconciliation import with its line results (`finance.read`). */
+        get: operations["finance_gateway_settlement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/gateway/webhook": {
         parameters: {
             query?: never;
@@ -14109,23 +13469,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/finance/institutions/{id}/bank-reconciliation-discrepancies": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Changes after reconciliation across an institution's bank accounts (`finance.read`). */
-        get: operations["finance_bank_recon_discrepancies"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/finance/institutions/{id}/bank-transactions": {
         parameters: {
             query?: never;
@@ -14136,96 +13479,6 @@ export interface paths {
         /** Bank transactions of an institution, newest first (`finance.read`). */
         get: operations["finance_bank_transaction_list"];
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/billing-plans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Billing plans of an institution (`finance.read`). */
-        get: operations["finance_charge_billing_plan_list"];
-        put?: never;
-        /** Creates a billing plan (`charge.manage`). */
-        post: operations["finance_charge_billing_plan_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/billing-runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Recent billing runs, newest first (`finance.read`). */
-        get: operations["finance_charge_billing_run_list"];
-        put?: never;
-        /**
-         * Runs billing for a period (`charge.manage`): one published charge per student not yet billed
-         *     for it. Safe to repeat.
-         */
-        post: operations["finance_charge_billing_run_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/billing-runs/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** What a billing run would charge, without charging (`charge.manage`). */
-        post: operations["finance_charge_billing_run_preview"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/billing-schedules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The automatic run of each frequency (`finance.read`). */
-        get: operations["finance_charge_billing_schedule_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/billing-schedules/{frequency}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Turns a frequency's automatic run on or off (`charge.manage`). */
-        put: operations["finance_charge_billing_schedule_set"];
         post?: never;
         delete?: never;
         options?: never;
@@ -14289,26 +13542,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/finance/institutions/{id}/counter-report": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * The counter's day close (`finance.read`): standing receipts by tender, cancellations and the
-         *     receipt-number range for one business day; `mine=true` limits it to the caller's receipts.
-         */
-        get: operations["finance_receipt_counter_report"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/finance/institutions/{id}/dunning-runs": {
         parameters: {
             query?: never;
@@ -14341,26 +13574,6 @@ export interface paths {
         put?: never;
         /** Create a fee head (`charge.manage`). */
         post: operations["finance_fee_head_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/fee-reminders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sends the reminders due today before due dates by the effective `reminder_schedule` rule
-         *     (`receivable.manage`); each charge, due date and offset is reminded once.
-         */
-        post: operations["finance_dunning_reminder_run"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14421,77 +13634,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/finance/institutions/{id}/financial-statements/balance-sheet": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Balance sheet as of a date (`finance.read`). */
-        get: operations["finance_ledger_balance_sheet"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/financial-statements/cash-flow": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Cash flow statement (indirect method) for a period (`finance.read`). */
-        get: operations["finance_ledger_cash_flow"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/financial-statements/general-ledger": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * General ledger for a period: opening balance, each journal entry with a running balance, and
-         *     the period total per account (`finance.read`).
-         */
-        get: operations["finance_ledger_general_ledger"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/financial-statements/income-expenditure": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Income & expenditure account (profit and loss) for a period (`finance.read`). */
-        get: operations["finance_ledger_income_expenditure"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/finance/institutions/{id}/financial-years": {
         parameters: {
             query?: never;
@@ -14513,6 +13655,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/institutions/{id}/gateway-settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Imports a gateway settlement report (CSV) and reconciles every line against captured
+         *     payments and processed refunds of the institution (`treasury.manage`). The same file again
+         *     returns the first import (200, `alreadyImported`); a new one is 201.
+         */
+        post: operations["finance_gateway_settlement_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/institutions/{id}/journal-entries": {
         parameters: {
             query?: never;
@@ -14524,43 +13687,6 @@ export interface paths {
         get: operations["finance_journal_list"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/late-fees": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Charges late fees by the effective `late_fee` rule (`receivable.manage`). Idempotent per day:
-         *     each charge is charged only the difference between the fee due today and fees already raised.
-         */
-        post: operations["finance_receivable_late_fee_run"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/late-fees/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** What a late-fee run would charge today, without charging (`receivable.manage`). */
-        post: operations["finance_receivable_late_fee_preview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14615,41 +13741,6 @@ export interface paths {
         };
         /** Payments of an institution, newest first (`finance.read`). */
         get: operations["finance_payment_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/receipt-print-settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The institution's slip settings (`finance.read`); defaults until it saves its own. */
-        get: operations["finance_receipt_print_settings_get"];
-        /** Replaces the institution's slip settings (`finance.config.manage`; audited). */
-        put: operations["finance_receipt_print_settings_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/institutions/{id}/receipt-test-slip": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** A test slip for a counter's printer (`finance.read`). */
-        get: operations["finance_receipt_test_slip"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14945,6 +14036,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/me/payment-gateway": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Part 2 S4 (UI fees, DEF-F-007): the configured online gateway and the public checkout key
+         *     (`finance.self`). Nothing tenant-specific is returned.
+         */
+        get: operations["finance_payment_self_gateway"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/me/payments": {
         parameters: {
             query?: never;
@@ -14993,8 +14104,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Return from the (mock) checkout: asks the gateway for the outcome and completes / fails the
-         *     caller's own payment (`finance.self`, `If-Match`). Still pending → unchanged.
+         * Return from checkout: asks the gateway for the outcome and completes / fails the caller's own
+         *     payment (`finance.self`, `If-Match`). Still pending → unchanged. Part 2 S4-pay: the optional
+         *     body carries the Checkout callback (`razorpay_payment_id`, `razorpay_order_id`,
+         *     `razorpay_signature`), verified server-side before the gateway is asked (422 when forged); the
+         *     fee is marked paid only on the gateway's own capture report.
          */
         post: operations["finance_payment_self_confirm"];
         delete?: never;
@@ -15172,26 +14286,6 @@ export interface paths {
         };
         /** One receipt (`finance.read`; students read their own through `/me/receipts`). */
         get: operations["finance_receipt_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/finance/receipts/{id}/slip": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * One fee receipt as a counter slip (`finance.read`). A cancelled receipt prints as VOID;
-         *     `copy=duplicate` marks a reprint; `kick=true` opens the cash drawer for a cash receipt.
-         */
-        get: operations["finance_receipt_slip"];
         put?: never;
         post?: never;
         delete?: never;
@@ -17829,23 +16923,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/people/candidate-interviews/{id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cancel an interview (`staff.manage`); a cancelled interview owes no feedback. */
-        post: operations["people_recruitment_candidate_interview_cancel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/people/candidates/{id}": {
         parameters: {
             query?: never;
@@ -17897,23 +16974,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/people/candidates/{id}/feedback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** A candidate's interviews, scorecards, panel summary and screening (`people.read`). */
-        get: operations["people_recruitment_candidate_feedback"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/people/candidates/{id}/interview": {
         parameters: {
             query?: never;
@@ -17925,23 +16985,6 @@ export interface paths {
         put?: never;
         /** Record the interview (`people.staff.manage`; optional notes). */
         post: operations["people_recruitment_candidate_interview"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/candidates/{id}/interviews": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Schedule an interview (`staff.manage`; Idempotency-Key). */
-        post: operations["people_recruitment_candidate_interview_schedule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -17999,43 +17042,6 @@ export interface paths {
         put?: never;
         /** Reject a candidate (`people.staff.manage`; reason required). */
         post: operations["people_recruitment_candidate_reject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/candidates/{id}/scorecards": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record interview feedback (`staff.manage`; Idempotency-Key). Ratings are 1–5 on the rubric
-         *     in force, which the scorecard snapshots.
-         */
-        post: operations["people_recruitment_candidate_scorecard_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/candidates/{id}/screening-answers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Record a candidate's screening answers (`staff.manage`); stored with the question text. */
-        put: operations["people_recruitment_candidate_screening_answers"];
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -18628,26 +17634,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/people/institutions/{id}/feedback-due": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Interviews held before yesterday (within 14 days) with no scorecard, for candidates still in
-         *     play, newest first (`people.read`).
-         */
-        get: operations["people_recruitment_feedback_due"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/people/institutions/{id}/final-settlements": {
         parameters: {
             query?: never;
@@ -18658,27 +17644,6 @@ export interface paths {
         /** Final settlements of an institution (`people.read`). */
         get: operations["people_settlement_list"];
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/institutions/{id}/hiring-settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Hiring settings (`people.read`). */
-        get: operations["people_recruitment_hiring_settings_get"];
-        /**
-         * Save hiring settings (`staff.manage`). Entries without a safe id or a label / question text
-         *     are dropped, as Everything does.
-         */
-        put: operations["people_recruitment_hiring_settings_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -18906,99 +17871,6 @@ export interface paths {
         put?: never;
         /** Create a requisition (`people.staff.manage`; Idempotency-Key). */
         post: operations["people_recruitment_requisition_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/institutions/{id}/roster": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * The roster (`people.read`): shifts in the range with their checks, coverage gaps against
-         *     the requirements, and each rosterable staff member's hours for the week of `from`.
-         */
-        get: operations["people_roster_board"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/institutions/{id}/roster/fill": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Propose staff for every open shift in a range (`staff.manage`): each proposal counts against
-         *     the next, so nobody is double-booked or pushed past their weekly max in one pass. With
-         *     `apply`, the proposals are written.
-         */
-        post: operations["people_roster_fill"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/institutions/{id}/roster/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Publish the draft shifts in a range (`staff.manage`): staff see published shifts only. */
-        post: operations["people_roster_publish"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/institutions/{id}/roster/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Roster settings (`people.read`). */
-        get: operations["people_roster_settings_get"];
-        /** Save roster settings (`staff.manage`): the limits, and the requirements replaced whole. */
-        put: operations["people_roster_settings_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/institutions/{id}/roster/shifts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Plan a shift (`staff.manage`; Idempotency-Key). An overlap on the staff member is 409. */
-        post: operations["people_roster_shift_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -19587,23 +18459,6 @@ export interface paths {
          *     empty lists (200, so My HR renders without an error).
          */
         get: operations["people_profile_self_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/me/roster": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** My duties (`people.self_service`): published shifts I hold in the range (default this week). */
-        get: operations["people_roster_me"];
         put?: never;
         post?: never;
         delete?: never;
@@ -20664,46 +19519,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/people/requisitions/{id}/hiring-form": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Set a requisition's rubric and screening questions (`staff.manage`). A key left out keeps
-         *     what is stored; null clears it.
-         */
-        put: operations["people_recruitment_requisition_hiring_form"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/requisitions/{id}/scorecards": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Compare a requisition's candidates on their feedback (`people.read`): leaning hire first,
-         *     then the higher average, then those with no feedback yet.
-         */
-        get: operations["people_recruitment_requisition_scorecards"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/people/requisitions/{id}/submit": {
         parameters: {
             query?: never;
@@ -20718,45 +19533,6 @@ export interface paths {
          *     opens it for candidates.
          */
         post: operations["people_recruitment_requisition_submit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/roster/shifts/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Change, move or (re)assign a shift (`staff.manage`; If-Match). An overlap is 409. */
-        put: operations["people_roster_shift_update"];
-        post?: never;
-        /** Remove a shift (`staff.manage`; If-Match). */
-        delete: operations["people_roster_shift_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/people/roster/shifts/{id}/suggestions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Who could take a shift (`people.read`): blockers excluded (time off, overlap, unavailable,
-         *     past the weekly max); the rest ranked clean of the limits first, then fully available,
-         *     then furthest below target, then role match.
-         */
-        get: operations["people_roster_shift_suggestions"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -21298,23 +20074,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/people/staff/{id}/roster-profile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Set a staff member's roster profile (`staff.manage`). */
-        put: operations["people_roster_profile_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/people/staff/{id}/submit-verification": {
         parameters: {
             query?: never;
@@ -21493,6 +20252,627 @@ export interface paths {
          *     first broken entry. The verification itself is audited.
          */
         post: operations["platform_audit_chain_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Metadata of one document of the session's tenant (records management). */
+        get: operations["platform_document_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/documents/{id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete a document whose retention ended and that is not on legal hold (else 409, audited
+         *     as rejected). The bytes are removed from object storage; the metadata row stays.
+         */
+        post: operations["platform_document_delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/documents/{id}/legal-hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Place or release a legal hold (a held document cannot be deleted, not even after its
+         *     retention ended). Audited.
+         */
+        post: operations["platform_document_legal_hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Active modules and licence state of the caller's institution (drives navigation and the
+         *     renewal / expiry banner).
+         */
+        get: operations["platform_entitlement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Entitlement change requests of the session tenant, newest first. */
+        get: operations["platform_entitlement_request_list"];
+        put?: never;
+        /**
+         * Requests an entitlement change (activation, package change, renewal, suspension,
+         *     reinstatement). Validated against the registry, dependencies included; waits for a second
+         *     administrator's decision.
+         */
+        post: operations["platform_entitlement_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a pending entitlement change. The decider must hold `platform.entitlement.approve`
+         *     and must not be the requester (separation of duties). Approval re-validates the request
+         *     against the registry and the current entitlement version and applies it at once.
+         */
+        post: operations["platform_entitlement_request_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement-requests/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraws one's own pending request. */
+        post: operations["platform_entitlement_request_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/entitlement/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The module / package registry (modules, dependencies, packages, always-available core). */
+        get: operations["platform_entitlement_catalogue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Identities of the session tenant (newest first). */
+        get: operations["platform_identity_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a platform administrator identity (no ERP record) and a role request for its roles:
+         *     privileged roles wait for another administrator's decision; until then the identity can sign
+         *     in to nothing (no role → `403` at sign-in).
+         */
+        post: operations["platform_identity_admin_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Provisions (or re-queues) the identity of a student or staff member from the owning record:
+         *     lifecycle state, institution, e-mail and base role come from the record. Existing identities
+         *     are matched first (one identity per subject; username / e-mail unique per IdP), so calling
+         *     it twice never creates a second account.
+         */
+        post: operations["platform_identity_provision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One identity. */
+        get: operations["platform_identity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lifts an administrative suspension. The account is re-enabled only when the ERP record is
+         *     active too (a suspended student stays suspended).
+         */
+        post: operations["platform_identity_reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/required-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Triggers required actions: `verifyEmail` + `updatePassword` (activation), `updatePassword`
+         *     (password recovery), `configureTotp` (MFA enrolment / re-enrolment). Applied by the next sync.
+         */
+        post: operations["platform_identity_required_actions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-queues a `failed` / `conflict` identity after the cause was fixed. */
+        post: operations["platform_identity_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/role-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Requests role changes. Revocations and non-privileged grants apply at once; a grant of a
+         *     privileged role (administrator, approver roles) waits for another administrator's decision.
+         */
+        post: operations["platform_identity_role_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identities/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Administrative suspension: the account is disabled and every session (IdP and SutraERP) is
+         *     ended at the next sync, whatever the ERP record says.
+         */
+        post: operations["platform_identity_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ERP-role → IdP mappings of the session tenant. */
+        get: operations["platform_identity_role_mapping_list"];
+        put?: never;
+        /**
+         * Adds an IdP target (realm role, client role or group) to an ERP role, optionally for one
+         *     institution. SutraERP's own role names and tenant groups are refused as targets (they are
+         *     managed 1:1 and carry the tenant scope).
+         */
+        post: operations["platform_identity_role_mapping_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-mappings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retires a mapping (the target is removed from every identity at the next sync). */
+        delete: operations["platform_identity_role_mapping_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Role requests of the session tenant (newest first). */
+        get: operations["platform_identity_role_request_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/identity-role-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a pending privileged role request. The decider must hold
+         *     `platform.identity.role.approve`, must not be the requester (separation of duties) and must
+         *     not be the identity concerned. Approval applies the roles (and triggers TOTP enrolment) at the
+         *     next sync.
+         */
+        post: operations["platform_identity_role_request_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import jobs of the tenant (optionally of one institution / entity), newest first. */
+        get: operations["platform_import_job_list"];
+        put?: never;
+        /**
+         * Uploads a CSV / XLSX file: parsed rows are stored and a mapping is suggested. Idempotent on
+         *     the job key (201 new job, 200 the job the key already created; 409 same key, other file).
+         */
+        post: operations["platform_import_job_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Importable entities with their columns, natural keys and the caller's access. */
+        get: operations["platform_import_entity_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities/{entity}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export of an institution's records in the import columns (formula-injection safe; audited). */
+        get: operations["platform_import_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/entities/{entity}/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Blank import template (canonical headers + one example row). */
+        get: operations["platform_import_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/mapping-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved mapping profiles. */
+        get: operations["platform_import_profile_list"];
+        put?: never;
+        /** Creates or replaces (by name) a mapping profile. */
+        post: operations["platform_import_profile_save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One import job with its counters and reconciliation summary. */
+        get: operations["platform_import_job_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commits a validated job (one transaction per batch), or — for opening balances — requests
+         *     the second person's approval (`pending_approval`).
+         */
+        post: operations["platform_import_job_commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides a commit awaiting approval (`platform.import.approve`). The job's maker cannot
+         *     decide it (separation of duties → 403); approval runs the commit, rejection needs a reason.
+         */
+        post: operations["platform_import_job_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dry run: validates every row with the owning module's domain rules (nothing is written). */
+        post: operations["platform_import_job_dry_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/errors.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Row-level error report (CSV: line, column, code, message + the row's source cells). */
+        get: operations["platform_import_job_error_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replaces the column mapping (and on-existing policy); the job returns to `uploaded`. */
+        put: operations["platform_import_job_mapping"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/imports/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rows of a job with their dry-run / commit outcome. */
+        get: operations["platform_import_job_rows"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -21696,251 +21076,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/resources/contract-activities/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Remove an activity (`resources.procurement.manage`). */
-        delete: operations["resources_contract_activity_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/contract-obligations/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Change an obligation (`resources.procurement.manage`; `version` required). A repeating one
-         *     keeps its anchor whenever it still puts the due date where it is.
-         */
-        put: operations["resources_contract_obligation_update"];
-        post?: never;
-        /** Remove an obligation (`resources.procurement.manage`). */
-        delete: operations["resources_contract_obligation_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/contract-obligations/{id}/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Tick off the live occurrence (`resources.procurement.manage`): a repeating obligation moves
-         *     to its next occurrence, or finishes when the series is over.
-         */
-        post: operations["resources_contract_obligation_complete"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/contract-obligations/{id}/undo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Undo the last completion (`resources.procurement.manage`). */
-        post: operations["resources_contract_obligation_undo"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/contracts/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** A contract with its obligations, terms and activities (`resources.read`). */
-        get: operations["resources_contract_get"];
-        /**
-         * Change a contract (`resources.procurement.manage`; `version` required). A recorded decision
-         *     stays with the term end it answered; a finished series the change gives room again resumes.
-         */
-        put: operations["resources_contract_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/contracts/{id}/activities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record an activity (`resources.procurement.manage`; Idempotency-Key). It cannot be dated in
-         *     the future, nor before the agreement started.
-         */
-        post: operations["resources_contract_activity_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/contracts/{id}/calendar.ics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One contract's deadlines as an iCalendar file (`resources.read`). */
-        get: operations["resources_contract_calendar_one"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/contracts/{id}/decision": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Record (or clear) the decision about the contract's next term end
-         *     (`resources.procurement.manage`). It answers that term end only; once the term is over it
-         *     stops applying.
-         */
-        put: operations["resources_contract_decision"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/contracts/{id}/obligations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add an obligation (`resources.procurement.manage`; Idempotency-Key). */
-        post: operations["resources_contract_obligation_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/expense-claims/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One claim with its lines (its claimant, or `resources.read`). */
-        get: operations["resources_expense_claim_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/expense-claims/{id}/decision": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Approve a submitted claim or send it back (`resources.approve`). The claimant never decides
-         *     their own claim. Approval books the claim payable to the staff member.
-         */
-        post: operations["resources_expense_claim_decide"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/expense-claims/{id}/reimburse": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record that an approved claim was paid to the staff member (`resources.procurement.manage`;
-         *     books the payment).
-         */
-        post: operations["resources_expense_claim_reimburse"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/expense-receipts/{id}/file": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The receipt file (its owner, or `resources.read`). */
-        get: operations["resources_expense_receipt_file"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/resources/goods-receipts/{id}": {
         parameters: {
             query?: never;
@@ -22034,152 +21169,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/resources/institutions/{id}/contract-dashboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Dashboard (`resources.read`). Values are totalled per currency, never across currencies. */
-        get: operations["resources_contract_dashboard"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/contract-settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Contract settings (`resources.read`; defaults until saved). */
-        get: operations["resources_contract_settings_get"];
-        /** Save contract settings (`resources.procurement.manage`; audited). */
-        put: operations["resources_contract_settings_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/contracts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Contracts and MoUs of an institution, soonest term end first (`resources.read`). */
-        get: operations["resources_contract_list"];
-        put?: never;
-        /** Add a contract or MoU (`resources.procurement.manage`; Idempotency-Key). */
-        post: operations["resources_contract_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/contracts/calendar.ics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Every deadline of the contract book as an iCalendar file (`resources.read`): notice
-         *     deadlines, term ends and the next renewals, and dated obligations, with reminders.
-         */
-        get: operations["resources_contract_calendar"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/contracts/reconcile-terms": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Bring the book up to date (`resources.procurement.manage`): finished terms are recorded once
-         *     each, a contract whose notice was given closes on that term end instead of rolling forward,
-         *     and a decision about a term the contract has moved past is cleared. Safe to repeat.
-         */
-        post: operations["resources_contract_reconcile_terms"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/expense-claims": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Claims of an institution (`resources.read`), newest first. */
-        get: operations["resources_expense_claim_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/expense-dashboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Expense dashboard (`resources.read`). */
-        get: operations["resources_expense_dashboard"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/expense-settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Expense-claim settings (`resources.read`; defaults until saved). */
-        get: operations["resources_expense_settings_get"];
-        /** Save expense-claim settings (`resources.procurement.manage`; audited). */
-        put: operations["resources_expense_settings_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/resources/institutions/{id}/goods-receipts": {
         parameters: {
             query?: never;
@@ -22212,27 +21201,6 @@ export interface paths {
          *     `draft`; duplicate code → 409.
          */
         post: operations["resources_item_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/mou-evidence": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Functional MoUs and their activities for an AQAR year (`resources.read`): the evidence NAAC
-         *     criterion 3.7 asks for (MoUs with institutions and industries, in India and abroad, for
-         *     internships, on-the-job training, project work, exchanges and collaborative research).
-         */
-        get: operations["resources_contract_mou_evidence"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -22333,84 +21301,6 @@ export interface paths {
          *     `STOCK_ADJUSTMENT_APPROVAL`, L3-J-059): auto-approval applies it at once.
          */
         post: operations["resources_stock_adjustment_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/stock-demand": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Demand, cover and reorder suggestions of every active consumable (`resources.read`):
-         *     most urgent first — out of stock, then fewest days of cover, unknown demand last.
-         */
-        get: operations["resources_stock_demand_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/stock-demand/apply-thresholds": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Set the reorder level of the chosen items to what demand suggests
-         *     (`resources.inventory.manage`; audited per item).
-         */
-        post: operations["resources_stock_demand_apply_thresholds"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/stock-demand/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Demand settings (`resources.read`; defaults until saved). */
-        get: operations["resources_stock_demand_settings_get"];
-        /** Save demand settings (`resources.inventory.manage`; audited). */
-        put: operations["resources_stock_demand_settings_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/institutions/{id}/stock-expiry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Items that track expiry with anything expired or expiring within the horizon
-         *     (`resources.read`): anything expired first, then by value at standard cost.
-         */
-        get: operations["resources_stock_expiry_list"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -22627,171 +21517,6 @@ export interface paths {
         /** Deactivate an item (`resources.inventory.manage`; If-Match): no new purchases or movements. */
         post: operations["resources_item_deactivate"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/items/{id}/lots": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** An item's dated lots (`resources.read`). */
-        get: operations["resources_stock_lot_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/items/{id}/planning": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Set an item's planning fields (`resources.inventory.manage`; audited). Switching expiry
-         *     tracking on starts undated lots for the stock already on hand.
-         */
-        put: operations["resources_item_planning_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/me/expense-claims": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start a claim (`people.self`; Idempotency-Key). */
-        post: operations["resources_expense_claim_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/me/expense-claims/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Change a draft claim's title, purpose and lines (`people.self`). */
-        put: operations["resources_expense_claim_update"];
-        post?: never;
-        /** Delete a draft claim (`people.self`); its expenses become unclaimed again. */
-        delete: operations["resources_expense_claim_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/me/expense-claims/{id}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Submit a draft claim (`people.self`). Every line must be in rupees, carry a receipt where
-         *     the policy needs one and be recent enough; the total is frozen.
-         */
-        post: operations["resources_expense_claim_submit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/me/expense-claims/{id}/withdraw": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Withdraw a submitted claim back to draft (`people.self`). */
-        post: operations["resources_expense_claim_withdraw"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/me/expense-receipts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload and read a receipt (`people.self`). The file is kept with the caller's staff record;
-         *     when a reader is configured its text pre-fills the expense form.
-         */
-        post: operations["resources_expense_receipt_upload"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/me/expenses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** My expenses and claims (`people.self`). */
-        get: operations["resources_expense_me"];
-        put?: never;
-        /** Record an expense (`people.self`; Idempotency-Key). Attach the receipt it came from. */
-        post: operations["resources_expense_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resources/me/expenses/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Change an expense (`people.self`; only while unclaimed or on a draft claim). */
-        put: operations["resources_expense_update"];
-        post?: never;
-        /** Delete an expense (`people.self`; only while unclaimed or on a draft claim). */
-        delete: operations["resources_expense_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -24953,44 +23678,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/student/admission-enquiries/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One enquiry (`student.read`). */
-        get: operations["admission_funnel_enquiry_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Edit or move an enquiry (`admission.manage`, `If-Match`). */
-        patch: operations["admission_funnel_enquiry_update"];
-        trace?: never;
-    };
-    "/api/v1/student/admission-enquiries/{id}/link-application": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Link the enquiry to its admission application (`admission.manage`, `If-Match`). The
-         *     enquiry moves to the applied stage when it is behind it, then follows the application.
-         */
-        post: operations["admission_funnel_enquiry_link_application"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/student/admissions/{id}": {
         parameters: {
             query?: never;
@@ -25125,6 +23812,50 @@ export interface paths {
          *     `documents_submitted`. Earlier rejected documents of the same type are superseded.
          */
         post: operations["admission_document_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/admissions/{id}/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the file of an admission document (`admission.manage` or `admission.decide`). The
+         *     SHA-256 is verified before a byte is sent (a mismatch quarantines the file: 409).
+         */
+        get: operations["admission_document_file_download"];
+        /**
+         * Attach the file of an admission document (`admission.manage`): the raw file is the body.
+         *     Type from the content (PDF / PNG / JPEG), size ≤ `SUTRA_DOCS_MAX_BYTES`, SHA-256 recorded.
+         */
+        put: operations["admission_document_file_upload"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/admissions/{id}/documents/{documentId}/file/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Short-lived presigned download link of an admission document's file (same permissions as
+         *     the download; 403 when `SUTRA_DOCS_PRESIGN_TTL_SECS` is 0). Audited.
+         */
+        post: operations["admission_document_file_link"];
         delete?: never;
         options?: never;
         head?: never;
@@ -26325,99 +25056,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/student/institutions/{id}/admission-duplicates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Possible duplicate enquirers across open enquiries and in-flight applications: same e-mail,
-         *     name or phone after normalisation (`student.read`).
-         */
-        get: operations["admission_funnel_duplicates"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/student/institutions/{id}/admission-enquiries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Enquiries of an institution (`student.read`). */
-        get: operations["admission_funnel_enquiry_list"];
-        put?: never;
-        /** Record a new enquiry (`admission.manage`). */
-        post: operations["admission_funnel_enquiry_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/student/institutions/{id}/admission-forecast": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Joining forecast, conversion by source and programme, velocity, stalled enquiries and seat
-         *     fill against intake targets (`student.read`).
-         */
-        get: operations["admission_funnel_forecast"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/student/institutions/{id}/admission-funnel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The admissions funnel (`student.read`): per stage entered, advanced, dropped, still open. */
-        get: operations["admission_funnel_report"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/student/institutions/{id}/admission-funnel-settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Funnel settings of an institution (`student.read`). */
-        get: operations["admission_funnel_settings_get"];
-        /** Replace the funnel settings and seat targets (`admission.manage`). */
-        put: operations["admission_funnel_settings_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/student/institutions/{id}/admissions": {
         parameters: {
             query?: never;
@@ -26666,6 +25304,46 @@ export interface paths {
         get: operations["student_self_documents"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/me/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the file of a document on the caller's own record (`student.self`; another
+         *     student's document is a 404).
+         */
+        get: operations["student_self_document_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/me/documents/{documentId}/file/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Presigned download link of a document on the caller's own record (`student.self`; 403 when
+         *     presigned links are disabled). Audited.
+         */
+        post: operations["student_self_document_file_link"];
         delete?: never;
         options?: never;
         head?: never;
@@ -28303,6 +26981,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/students/{id}/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the file of a document on a student's record (`student.manage`). */
+        get: operations["student_document_file_download"];
+        /**
+         * Attach the file of a document on the student's record (`student.manage`; the document must
+         *     be `submitted` and have no file yet).
+         */
+        put: operations["student_document_file_upload"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/students/{id}/documents/{documentId}/verify": {
         parameters: {
             query?: never;
@@ -29381,6 +28080,22 @@ export interface components {
          * @enum {string}
          */
         AccrualFrequency: "monthly" | "yearly" | "none";
+        /** @description Predicted (after a dry run) or actual (after a commit) row actions. */
+        ActionCounts: {
+            /** Format: int64 */
+            create: number;
+            /** Format: int64 */
+            error: number;
+            /**
+             * Format: int64
+             * @description Rows not checked yet.
+             */
+            pending: number;
+            /** Format: int64 */
+            skip: number;
+            /** Format: int64 */
+            update: number;
+        };
         /**
          * @description Outcome chosen by the Institution Activation Authority.
          * @enum {string}
@@ -29502,6 +28217,28 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Created administrator identity + its role request. */
+        AdminIdentityCreated: {
+            identity: components["schemas"]["IdentityView"];
+            roleRequest: components["schemas"]["RoleRequestView"];
+        };
+        /**
+         * @description Create a platform administrator identity. The roles are requested, not granted: privileged
+         *     roles wait for a second administrator's decision.
+         */
+        AdminIdentityRequest: {
+            email: string;
+            familyName?: string | null;
+            givenName: string;
+            /**
+             * Format: uuid
+             * @description Pin the identity to one institution (default: tenant-wide).
+             */
+            institutionId?: string | null;
+            reason: string;
+            /** @description Requested SutraERP roles (e.g. `administrator`, `registrar`). */
+            roles: string[];
+        };
         /** @description Admission Record (wire form; contract §5.3 minimum fields included). */
         Admission: {
             /** Format: uuid */
@@ -29615,6 +28352,12 @@ export interface components {
             admissionId: components["schemas"]["AdmissionId"];
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Part 2 · S4-docs: the stored file (platform document service), when one was uploaded
+             *     (`PUT …/documents/{documentId}/file`).
+             */
+            documentObjectId?: string | null;
             documentType: string;
             fileRef?: string | null;
             id: components["schemas"]["AdmissionDocumentId"];
@@ -29636,82 +28379,6 @@ export interface components {
         AdmissionDocumentList: {
             items: components["schemas"]["AdmissionDocument"][];
         };
-        /** @description One possible duplicate pair; `a` is the older record (the one to keep). */
-        AdmissionDuplicatePair: {
-            a: components["schemas"]["AdmissionFunnelDuplicateRef"];
-            b: components["schemas"]["AdmissionFunnelDuplicateRef"];
-            reasons: string[];
-        };
-        AdmissionDuplicates: {
-            /** @description At most this many pairs are listed. */
-            limit: number;
-            pairs: components["schemas"]["AdmissionDuplicatePair"][];
-        };
-        /** @description An admission enquiry (wire form). */
-        AdmissionEnquiry: {
-            /** Format: uuid */
-            applicationId?: string | null;
-            campaign?: string | null;
-            city?: string | null;
-            closeReason?: string | null;
-            /** Format: date-time */
-            closedAt?: string | null;
-            /**
-             * Format: double
-             * @description Own win probability (0..1); `null` uses the stage's.
-             */
-            confidence?: number | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: int64 */
-            daysInStage: number;
-            displayName: string;
-            email?: string | null;
-            enquiryNumber: string;
-            expectedFee: string;
-            /** Format: date */
-            expectedJoin?: string | null;
-            familyName?: string | null;
-            givenName: string;
-            guardianName?: string | null;
-            guardianPhone?: string | null;
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            institutionId: string;
-            /** @description `YYYY` or `YYYY-MM` intake the enquirer wants. */
-            intake?: string | null;
-            /** Format: date */
-            nextFollowUp?: string | null;
-            notes?: string | null;
-            ownerRef?: string | null;
-            phone?: string | null;
-            /**
-             * Format: double
-             * @description Effective win probability used by the forecast.
-             */
-            probability: number;
-            /** Format: uuid */
-            programmeId?: string | null;
-            source: string;
-            stage: string;
-            /** Format: date-time */
-            stageEnteredAt: string;
-            stageHistory: components["schemas"]["AdmissionFunnelStageMove"][];
-            stageLabel: string;
-            /** @description Open and unmoved for the institution's stale threshold. */
-            stalled: boolean;
-            /** Format: date-time */
-            updatedAt: string;
-            /** Format: int64 */
-            version: number;
-        };
-        AdmissionEnquiryList: {
-            items: components["schemas"]["AdmissionEnquiry"][];
-            stages: components["schemas"]["AdmissionFunnelStage"][];
-            /** Format: int64 */
-            staleDays: number;
-        };
         /** @description Result of an expiry sweep. */
         AdmissionExpirySweep: {
             /**
@@ -29720,245 +28387,6 @@ export interface components {
              */
             asOf: string;
             expired: components["schemas"]["AdmissionId"][];
-        };
-        AdmissionForecast: {
-            avgClosed: components["schemas"]["AdmissionFunnelClosedValues"];
-            /** Format: int64 */
-            avgCycleDays?: number | null;
-            byProgramme: components["schemas"]["AdmissionFunnelGroupRate"][];
-            bySource: components["schemas"]["AdmissionFunnelGroupRate"][];
-            months: components["schemas"]["AdmissionFunnelForecastRow"][];
-            pipeline: string;
-            reasonsAdmitted: components["schemas"]["AdmissionFunnelReasonBreakdown"];
-            reasonsLost: components["schemas"]["AdmissionFunnelReasonBreakdown"];
-            seats: components["schemas"]["AdmissionFunnelSeatFill"][];
-            /** Format: int64 */
-            staleDays: number;
-            stalled: components["schemas"]["AdmissionFunnelStalledRef"][];
-            velocity: components["schemas"]["AdmissionFunnelStageVelocity"][];
-            weighted: string;
-            winRate: components["schemas"]["AdmissionFunnelWinRate"];
-        };
-        AdmissionFunnel: {
-            /** Format: date-time */
-            generatedAt: string;
-            report: components["schemas"]["AdmissionFunnelReport"];
-            stages: components["schemas"]["AdmissionFunnelStage"][];
-            summary: components["schemas"]["AdmissionFunnelStageSummary"][];
-            window: string;
-        };
-        /** @description Average fee value of what closed, admitted vs lost. */
-        AdmissionFunnelClosedValues: {
-            /** Format: double */
-            admitted?: number | null;
-            /** Format: double */
-            lost?: number | null;
-        };
-        /** @description A record the new enquiry may duplicate. */
-        AdmissionFunnelDuplicateRef: {
-            /** Format: uuid */
-            id: string;
-            /** @description `enquiry` or `application`. */
-            kind: string;
-            name: string;
-            number?: string | null;
-            /** @description `email`, `name`, `phone`. */
-            reasons: string[];
-        };
-        /** @description One month of the joining forecast (amounts in rupees, to paise). */
-        AdmissionFunnelForecastRow: {
-            admitted: string;
-            best: string;
-            /** Format: int32 */
-            count: number;
-            /** Format: double */
-            expectedJoiners: number;
-            key: string;
-            weighted: string;
-        };
-        /** @description Win rate of one group (a lead source, a programme…). */
-        AdmissionFunnelGroupRate: {
-            /** Format: int32 */
-            admitted: number;
-            /** Format: double */
-            admittedValue: number;
-            key: string;
-            /** Format: int32 */
-            lost: number;
-            /** Format: double */
-            rate: number;
-            /** Format: int32 */
-            total: number;
-        };
-        /** @description A seat target for one programme and intake. */
-        AdmissionFunnelIntakeTarget: {
-            /** @description `YYYY` or `YYYY-MM`. */
-            intake: string;
-            /** Format: uuid */
-            programmeId: string;
-            /** Format: int32 */
-            seats: number;
-        };
-        /** @description Replaces the funnel settings. `stages` empty restores the default funnel. */
-        AdmissionFunnelPutFunnelSettings: {
-            appliedStage?: string | null;
-            offeredStage?: string | null;
-            stages: components["schemas"]["AdmissionFunnelStage"][];
-            /** Format: int64 */
-            staleDays: number;
-            targets?: components["schemas"]["AdmissionFunnelIntakeTarget"][];
-            /**
-             * Format: int64
-             * @description The version read (0 before anything was saved).
-             */
-            version: number;
-        };
-        /** @description Closed enquiries of one stage grouped by recorded reason, plus how many have none. */
-        AdmissionFunnelReasonBreakdown: {
-            rows: components["schemas"]["AdmissionFunnelReasonRow"][];
-            /** Format: int32 */
-            total: number;
-            /** Format: int32 */
-            unrecorded: number;
-        };
-        AdmissionFunnelReasonRow: {
-            /** Format: int32 */
-            count: number;
-            reason: string;
-            /** Format: double */
-            value: number;
-        };
-        AdmissionFunnelReport: {
-            rows: components["schemas"]["AdmissionFunnelRow"][];
-            totals: components["schemas"]["AdmissionFunnelTotals"];
-            /**
-             * Format: int32
-             * @description Enquiries closed with no recorded journey through the open stages (left out).
-             */
-            untracked: number;
-        };
-        /** @description One stage row of the funnel. */
-        AdmissionFunnelRow: {
-            /** Format: double */
-            advanceRate?: number | null;
-            /** Format: int32 */
-            advanced: number;
-            /** Format: int32 */
-            entered: number;
-            /** @description A stage only the history remembers (removed from the funnel since). */
-            gone: boolean;
-            label: string;
-            /** Format: double */
-            lossShare?: number | null;
-            /** Format: int32 */
-            lostHere: number;
-            /** Format: int32 */
-            open: number;
-            stage: string;
-        };
-        /** @description Seat fill of one programme and intake. */
-        AdmissionFunnelSeatFill: {
-            /** Format: int32 */
-            admitted: number;
-            /**
-             * Format: double
-             * @description Expected joiners over remaining seats (`null` when the intake is full).
-             */
-            coverage?: number | null;
-            /**
-             * Format: double
-             * @description Probability-weighted joiners among the open enquiries.
-             */
-            expected: number;
-            intake: string;
-            /** Format: int32 */
-            open: number;
-            /** Format: uuid */
-            programmeId: string;
-            /** Format: int32 */
-            remaining: number;
-            /** Format: int32 */
-            seats: number;
-        };
-        AdmissionFunnelSettings: {
-            appliedStage?: string | null;
-            /** @description Whether the open stages are the institution's own (else the defaults). */
-            customised: boolean;
-            offeredStage?: string | null;
-            /** @description The effective stage list (open stages, then Admitted and Lost). */
-            stages: components["schemas"]["AdmissionFunnelStage"][];
-            /** Format: int64 */
-            staleDays: number;
-            targets: components["schemas"]["AdmissionFunnelIntakeTarget"][];
-            /** Format: int64 */
-            version: number;
-        };
-        /** @description One funnel stage with its win probability. */
-        AdmissionFunnelStage: {
-            id: string;
-            label: string;
-            /** Format: double */
-            probability: number;
-        };
-        /** @description One recorded stage move (wire form). */
-        AdmissionFunnelStageMove: {
-            /** Format: date-time */
-            at: string;
-            stage: string;
-        };
-        /** @description Expected admissions (fee value) per stage, in configured order. */
-        AdmissionFunnelStageSummary: {
-            /** Format: int32 */
-            count: number;
-            label: string;
-            stage: string;
-            /** Format: double */
-            value: number;
-            /** Format: double */
-            weighted: number;
-        };
-        /** @description Average days spent in a stage, over completed transitions only. */
-        AdmissionFunnelStageVelocity: {
-            /** Format: int32 */
-            count: number;
-            /** Format: int64 */
-            days?: number | null;
-            label: string;
-            stage: string;
-        };
-        /** @description An enquiry that has not moved for the stale threshold. */
-        AdmissionFunnelStalledRef: {
-            /** Format: int64 */
-            daysInStage: number;
-            enquiryNumber: string;
-            /** Format: uuid */
-            id: string;
-            name: string;
-            stage: string;
-        };
-        /** @description Totals over the tracked enquiries. */
-        AdmissionFunnelTotals: {
-            /** Format: int32 */
-            admitted: number;
-            /** Format: double */
-            admittedRate?: number | null;
-            /** Format: int32 */
-            enquiries: number;
-            /** Format: int32 */
-            lost: number;
-            /** Format: int32 */
-            lostShareBase: number;
-            /** Format: int32 */
-            open: number;
-        };
-        /** @description Admitted / lost counts and the rate (`None` until something has closed). */
-        AdmissionFunnelWinRate: {
-            /** Format: int32 */
-            admitted: number;
-            /** Format: int32 */
-            lost: number;
-            /** Format: double */
-            rate?: number | null;
         };
         /** @description Admission history. */
         AdmissionHistory: {
@@ -30366,16 +28794,6 @@ export interface components {
             /** Format: uuid */
             reversesEntryId?: string | null;
         };
-        /** @description Items whose reorder level should take the demand suggestion. */
-        ApplyThresholds: {
-            itemIds: string[];
-        };
-        /** @description What applying suggestions changed. */
-        ApplyThresholdsResult: {
-            /** @description Items with no suggestion (unknown demand), already at it, or not found. */
-            skipped: number;
-            updatedIds: string[];
-        };
         /**
          * @description Decision on a blueprint publication / restructure awaiting approval.
          * @enum {string}
@@ -30762,6 +29180,17 @@ export interface components {
             supersedesId?: string | null;
             /** Format: int64 */
             version: number;
+        };
+        /** @description Result of an upload: the document's new version and the stored file. */
+        AttachedFile: {
+            /** Format: uuid */
+            documentId: string;
+            /**
+             * Format: int64
+             * @description New version (ETag) of the admission / record document.
+             */
+            documentVersion: number;
+            file: components["schemas"]["StoredDocument"];
         };
         /**
          * @description Attempt kind of a registered paper (L2-I12).
@@ -31157,120 +29586,6 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        /** @description A reconciled entry whose amount on the bank account changed afterwards. */
-        BankReconDiscrepancy: {
-            /** Format: uuid */
-            bankAccountId: string;
-            bankAccountName: string;
-            change: string;
-            currentAmount: string;
-            entryNumber?: string | null;
-            /** Format: uuid */
-            journalEntryId: string;
-            /** Format: date */
-            postingDate?: string | null;
-            reconciledAmount: string;
-            /** Format: uuid */
-            reconciliationId: string;
-            /** Format: date */
-            statementDate: string;
-        };
-        BankReconDiscrepancyList: {
-            items: components["schemas"]["BankReconDiscrepancy"][];
-        };
-        /** @description Ticked entries against a statement ending balance. */
-        BankReconInput: {
-            /** @description Statement ending balance (decimal string; an overdraft is negative). */
-            endingBalance: string;
-            /** @description The ticked journal entries (unreconciled entries on the account up to the date). */
-            journalEntryIds?: string[];
-            note?: string | null;
-            /** @description `YYYY-MM-DD`, the statement's closing date. */
-            statementDate: string;
-        };
-        /** @description An unreconciled entry on the bank account. */
-        BankReconItem: {
-            /**
-             * @description Money into the bank positive, out negative.
-             * @example -2500.00
-             */
-            amount: string;
-            /** @description The bank has shown it on an imported statement (matched line): pre-ticked. */
-            cleared: boolean;
-            description: string;
-            entryNumber: string;
-            /** Format: uuid */
-            journalEntryId: string;
-            /** Format: date */
-            postingDate: string;
-        };
-        BankReconList: {
-            items: components["schemas"]["BankReconView"][];
-        };
-        /** @description The reconcile screen's figures. */
-        BankReconSummary: {
-            balanced: boolean;
-            beginningBalance: string;
-            clearedBalance: string;
-            /** Format: int64 */
-            decreaseCount: number;
-            /** @description Σ ticked money out. */
-            decreases: string;
-            /** @description Ending − cleared; a reconciliation can finish only at zero. */
-            difference: string;
-            endingBalance: string;
-            /** Format: int64 */
-            increaseCount: number;
-            /** @description Σ ticked money in. */
-            increases: string;
-            /** Format: date */
-            statementDate: string;
-        };
-        /** @description Which reconciliation to undo (must be the latest finished one). */
-        BankReconUndo: {
-            /** Format: uuid */
-            reconciliationId: string;
-        };
-        /** @description One reconciliation of a bank account. */
-        BankReconView: {
-            /** Format: uuid */
-            bankAccountId: string;
-            /** @example 97500.00 */
-            beginningBalance: string;
-            /** Format: int32 */
-            clearedCount: number;
-            /** @example 97500.00 */
-            endingBalance: string;
-            /** Format: date-time */
-            finishedAt: string;
-            finishedBy?: string | null;
-            /** Format: uuid */
-            id: string;
-            note?: string | null;
-            /** Format: date */
-            statementDate: string;
-            /** @description `done` or `undone`. */
-            status: string;
-            /** Format: date-time */
-            undoneAt?: string | null;
-            undoneBy?: string | null;
-        };
-        /** @description What reconciling a bank account up to a statement date starts from. */
-        BankReconWorkspace: {
-            /** Format: uuid */
-            bankAccountId: string;
-            /**
-             * @description Balance carried forward from finished reconciliations.
-             * @example 97500.00
-             */
-            beginningBalance: string;
-            items: components["schemas"]["BankReconItem"][];
-            lastReconciliation?: null | components["schemas"]["BankReconView"];
-            /** @description Closing balance of an imported statement ending on the statement date, if any. */
-            statementClosingBalance?: string | null;
-            /** Format: date */
-            statementDate: string;
-        };
         /**
          * Format: uuid
          * @description Bank reconciliation of a statement (L3-F-058).
@@ -31371,260 +29686,6 @@ export interface components {
         };
         /** @enum {string} */
         BenefitType: "fixed_amount" | "fee_percentage" | "fee_waiver" | "stipend";
-        BillingEnrolmentList: {
-            items: components["schemas"]["BillingEnrolmentView"][];
-        };
-        /** @description Enrols a student on the plan, or changes their enrolment. */
-        BillingEnrolmentUpsert: {
-            /** @description The student's own amount (`"0.00"` bills nothing); absent / null uses the plan's. */
-            amount?: string | null;
-            /** Format: date */
-            endDate?: string | null;
-            onHold?: boolean;
-            /** Format: date */
-            startDate?: string | null;
-            /** Format: uuid */
-            studentId: string;
-        };
-        /** @description A student on a plan. */
-        BillingEnrolmentView: {
-            /**
-             * @description The student's own amount (else the plan's).
-             * @example 4000.00
-             */
-            amount?: string | null;
-            /** Format: date */
-            endDate?: string | null;
-            /** Format: uuid */
-            id: string;
-            onHold: boolean;
-            /** Format: uuid */
-            planId: string;
-            /** Format: date */
-            startDate?: string | null;
-            /** Format: uuid */
-            studentId: string;
-            studentName: string;
-            studentNumber?: string | null;
-        };
-        /** @description One plan line billed (or to bill). */
-        BillingLineView: {
-            /** @example 4500.00 */
-            amount: string;
-            description: string;
-            /** Format: int64 */
-            periodDays?: number | null;
-            /** Format: uuid */
-            planId: string;
-            /**
-             * Format: int64
-             * @description Days billed of the period when the line was prorated.
-             */
-            proratedDays?: number | null;
-        };
-        /** @description New billing plan. */
-        BillingPlanCreate: {
-            /** @example 4500.00 */
-            amount: string;
-            /** @description `^[A-Z0-9][A-Z0-9_-]{1,31}$`, unique in the institution. */
-            code: string;
-            description?: string | null;
-            /**
-             * Format: uuid
-             * @description An active fee head of the institution: the plan's income.
-             */
-            feeHeadId: string;
-            frequency: string;
-            name: string;
-            /** @description Defaults to `none`. */
-            proration?: string | null;
-        };
-        BillingPlanList: {
-            items: components["schemas"]["BillingPlanView"][];
-        };
-        /** @description Billing plan changes (absent fields stay). A new amount applies to later runs. */
-        BillingPlanUpdate: {
-            amount?: string | null;
-            description?: string | null;
-            name?: string | null;
-            proration?: string | null;
-            /** @description `active | retired` (a retired plan is not billed). */
-            status?: string | null;
-        };
-        /** @description A billing plan. */
-        BillingPlanView: {
-            /** @example 4500.00 */
-            amount: string;
-            code: string;
-            description?: string | null;
-            /**
-             * Format: int64
-             * @description Students enrolled.
-             */
-            enrolled: number;
-            feeHeadCode: string;
-            /** Format: uuid */
-            feeHeadId: string;
-            /**
-             * @description `weekly | monthly | quarterly | half_yearly | annual` (quarters, halves and years follow
-             *     the institution's financial year).
-             */
-            frequency: string;
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            institutionId: string;
-            name: string;
-            /** @description `none | daily` — how a part period is billed. */
-            proration: string;
-            /** @description `active | retired`. */
-            status: string;
-            /** Format: int32 */
-            version: number;
-        };
-        /** @description A past run with its charges. */
-        BillingRunDetail: {
-            items: components["schemas"]["BillingRunItemView"][];
-            run: components["schemas"]["BillingRunSummary"];
-        };
-        /** @description One student's charge in a run. */
-        BillingRunItemView: {
-            /** Format: uuid */
-            chargeId?: string | null;
-            chargeNumber?: string | null;
-            /** Format: date */
-            dueDate: string;
-            /** @description Why the student could not be billed (the run went on). */
-            error?: string | null;
-            lines: components["schemas"]["BillingLineView"][];
-            /** Format: uuid */
-            studentId: string;
-            studentName: string;
-            studentNumber?: string | null;
-            /** @example 4500.00 */
-            total: string;
-        };
-        BillingRunList: {
-            items: components["schemas"]["BillingRunSummary"][];
-        };
-        /** @description A billing run (or its preview). */
-        BillingRunRequest: {
-            /**
-             * Format: date
-             * @description A day in the period to bill (default: today). At most 62 days ahead.
-             */
-            day?: string | null;
-            /**
-             * Format: int64
-             * @description Days from the later of the period's start and the run day to the due date (0–365,
-             *     default 7).
-             */
-            dueDays?: number | null;
-            /** @description Students to leave out of this run. */
-            excludeStudentIds?: string[];
-            frequency: string;
-            /**
-             * Format: int32
-             * @description Weekly periods start on 0 = Sunday … 6 = Saturday (default 1, Monday).
-             */
-            weekStart?: number | null;
-        };
-        /** @description A student with plans of the frequency that the run leaves out. */
-        BillingRunSkipView: {
-            /** @description `inactive | already_billed | not_started | ended | on_hold | excluded | nothing_to_bill`. */
-            reason: string;
-            /** Format: uuid */
-            studentId: string;
-            studentName: string;
-        };
-        /** @description A past run. */
-        BillingRunSummary: {
-            /** Format: int64 */
-            billed: number;
-            /** Format: date-time */
-            createdAt: string;
-            createdBy?: string | null;
-            /** Format: int64 */
-            failed: number;
-            frequency: string;
-            /** Format: uuid */
-            id: string;
-            periodKey: string;
-            periodLabel: string;
-            /** Format: date */
-            runDate: string;
-            /** Format: int64 */
-            skipped: number;
-            /** @example 90000.00 */
-            total: string;
-            trigger: string;
-        };
-        /** @description What a run did (or, as a preview, would do). */
-        BillingRunView: {
-            /** Format: int64 */
-            billed: number;
-            /** Format: int64 */
-            dueDays: number;
-            /** Format: int64 */
-            failed: number;
-            frequency: string;
-            /**
-             * Format: uuid
-             * @description The run (none for a preview).
-             */
-            id?: string | null;
-            items: components["schemas"]["BillingRunItemView"][];
-            /** Format: date */
-            periodEnd: string;
-            periodKey: string;
-            periodLabel: string;
-            /** Format: date */
-            periodStart: string;
-            preview: boolean;
-            /** Format: date */
-            runDate: string;
-            /** Format: int64 */
-            skipped: number;
-            skips: components["schemas"]["BillingRunSkipView"][];
-            /** @example 90000.00 */
-            total: string;
-            /** @description `manual | schedule`. */
-            trigger: string;
-        };
-        BillingScheduleList: {
-            items: components["schemas"]["BillingScheduleView"][];
-        };
-        /** @description Sets a frequency's automatic run. */
-        BillingScheduleUpdate: {
-            /**
-             * Format: int32
-             * @description 0–365.
-             */
-            dueDays: number;
-            enabled: boolean;
-            /**
-             * Format: int32
-             * @description 1–31.
-             */
-            runDay: number;
-        };
-        /** @description The automatic run of one frequency. */
-        BillingScheduleView: {
-            /** @description The period the current one would bill. */
-            currentPeriodLabel: string;
-            /** Format: int32 */
-            dueDays: number;
-            enabled: boolean;
-            frequency: string;
-            lastPeriodKey?: string | null;
-            /** Format: uuid */
-            lastRunId?: string | null;
-            /**
-             * Format: int32
-             * @description The day of each period it runs on (1 = the first; past a short period's end, its last).
-             */
-            runDay: number;
-        };
         /** @description One weighted blueprint component. */
         BlueprintComponent: {
             /** @description Stable key windows refer to (e.g. `assign1`). */
@@ -31643,41 +29704,6 @@ export interface components {
             allowLateSubmission?: boolean;
             /** @description Every marked submission needs an approved moderation before finalisation. */
             moderationRequired?: boolean;
-        };
-        /** @description One item of the bank reconciliation statement. */
-        BrsItem: {
-            amount: string;
-            /** Format: date */
-            date: string;
-            description?: string | null;
-            /** Format: uuid */
-            journalEntryId?: string | null;
-            /** @description Entry number or statement reference. */
-            reference?: string | null;
-            /** Format: uuid */
-            statementLineId?: string | null;
-        };
-        /** @description Bank reconciliation statement as of a date. */
-        BrsView: {
-            /** Format: date */
-            asOf: string;
-            /** Format: uuid */
-            bankAccountId: string;
-            /** @description Balance as per pass book (bank) the adjustments arrive at. */
-            bankBalance: string;
-            bankCredits: components["schemas"]["BrsItem"][];
-            bankCreditsNotBooked: string;
-            bankDebits: components["schemas"]["BrsItem"][];
-            bankDebitsNotBooked: string;
-            /** @description Balance as per cash book (the bank's ledger account). */
-            bookBalance: string;
-            deposited: components["schemas"]["BrsItem"][];
-            depositedNotCredited: string;
-            difference?: string | null;
-            /** @description The items behind each adjustment (at most 500 per list). */
-            issued: components["schemas"]["BrsItem"][];
-            issuedNotPresented: string;
-            statementBalance?: string | null;
         };
         /**
          * @description 7C: how a component amount is computed.
@@ -32061,62 +30087,8 @@ export interface components {
             phone?: string | null;
             source?: string | null;
         };
-        /** @description A candidate's feedback file. */
-        CandidateFeedback: {
-            /** Format: uuid */
-            candidateId: string;
-            interviews: components["schemas"]["CandidateInterviewView"][];
-            name: string;
-            requisitionTitle: string;
-            rubric: components["schemas"]["HiringRatingField"][];
-            scorecards: components["schemas"]["ScorecardView"][];
-            screening: components["schemas"]["CandidateScreening"];
-            status: string;
-            summary: components["schemas"]["HiringScorecardSummary"];
-        };
-        /** @description Schedule an interview. */
-        CandidateInterviewInput: {
-            /** Format: date */
-            date: string;
-            /** @example 11:45 */
-            end: string;
-            /** @description A guide id; default: the best guide for the format and the candidate's stage. */
-            guideId?: string | null;
-            interviewers?: string[];
-            location?: string | null;
-            /** @example 11:00 */
-            start: string;
-            /** @description `phone | video | onsite`. */
-            type: string;
-        };
-        /** @description An interview. */
-        CandidateInterviewView: {
-            /** Format: uuid */
-            candidateId: string;
-            /** Format: date */
-            date: string;
-            end: string;
-            guide?: null | components["schemas"]["HiringGuide"];
-            /** @description Whether a scorecard is linked to it. */
-            hasScorecard: boolean;
-            /** Format: uuid */
-            id: string;
-            interviewers: string[];
-            location?: string | null;
-            start: string;
-            /** @description `scheduled | cancelled`. */
-            status: string;
-            type: string;
-        };
         CandidateList: {
             items: components["schemas"]["CandidateView"][];
-        };
-        /** @description Screening on a candidate. */
-        CandidateScreening: {
-            answers: components["schemas"]["HiringScreeningAnswer"][];
-            /** @description Must-have questions answered with something other than yes. */
-            mismatches: string[];
-            questions: components["schemas"]["HiringScreeningQuestion"][];
         };
         /**
          * @description 7A: candidate of a requisition.
@@ -32275,12 +30247,6 @@ export interface components {
             email: boolean;
             /** @description Show in the in-app inbox (security notifications cannot be muted). */
             inApp: boolean;
-        };
-        /** @description Spend in one category. */
-        CategorySpend: {
-            amount: string;
-            categoryId?: string | null;
-            name: string;
         };
         /** @description Verification checks (absent = not yet established). */
         CertificateChecks: {
@@ -32594,7 +30560,7 @@ export interface components {
          * @description Where a charge came from.
          * @enum {string}
          */
-        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge" | "billing_run";
+        ChargeSourceType: "fee_structure" | "manual" | "admission" | "debit_note" | "aid_recovery" | "fine" | "exam_fee" | "campus_charge" | "opening_balance";
         /**
          * @description Student charge lifecycle (L2-F01 §18–19 canonical states and transitions).
          * @enum {string}
@@ -32628,46 +30594,6 @@ export interface components {
             detail?: string | null;
             name: string;
             ok: boolean;
-        };
-        /** @description Create a claim from unclaimed expenses. */
-        ClaimCreate: {
-            expenseIds?: string[];
-            purpose?: string | null;
-            /** @description Default "<Month YYYY> expenses". */
-            title?: string | null;
-        };
-        /** @description An approver's decision. */
-        ClaimDecision: {
-            /** @description `approve`, or `return` to send the claim back to the claimant (reason required). */
-            decision: string;
-            reason?: string | null;
-            /** Format: int64 */
-            version: number;
-        };
-        /** @description Replace the lines of a draft claim. */
-        ClaimLines: {
-            expenseIds: string[];
-            purpose?: string | null;
-            title?: string | null;
-            /** Format: int64 */
-            version: number;
-        };
-        /** @description Recording the reimbursement. */
-        ClaimReimburse: {
-            /**
-             * Format: date
-             * @description Payment date (default today).
-             */
-            paidOn?: string | null;
-            /** @description UTR, cheque or payroll reference. */
-            reference?: string | null;
-            /** Format: int64 */
-            version: number;
-        };
-        /** @description A step of the claim's lifecycle (optimistic concurrency by `version`). */
-        ClaimStep: {
-            /** Format: int64 */
-            version: number;
         };
         ClearanceBody: {
             items: components["schemas"]["SeparationClearanceItem"][];
@@ -32776,47 +30702,11 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        /** @description A statement column (a period, or an as-of date). */
-        Column: {
-            /** Format: date */
-            from?: string | null;
-            key: string;
-            label: string;
-            /** Format: date */
-            to?: string | null;
-        };
-        /** @description CSV column positions (0-based). An omitted column is absent from the file. */
-        ColumnMapping: {
-            /**
-             * Format: int32
-             * @description One signed amount column (or unsigned, signed by `indicator`).
-             */
-            amount?: number | null;
-            /**
-             * Format: int32
-             * @description Money into the account (`Deposit Amt.`).
-             */
-            credit?: number | null;
-            /** Format: int32 */
-            date?: number | null;
-            /**
-             * Format: int32
-             * @description Money out of the account (`Withdrawal Amt.`), used with `credit` instead of `amount`.
-             */
-            debit?: number | null;
-            /** Format: int32 */
-            description?: number | null;
-            /**
-             * Format: int32
-             * @description A `Dr` / `Cr` column that signs `amount`.
-             */
-            indicator?: number | null;
-            /**
-             * Format: int32
-             * @description Cheque number, UTR or other reference.
-             */
-            reference?: number | null;
-        };
+        /**
+         * @description Value type of a column (drives template examples, the mapping screen and pre-validation).
+         * @enum {string}
+         */
+        ColumnKind: "text" | "code" | "date" | "decimal" | "integer" | "email" | "phone" | "boolean" | "choice";
         /** @description Optional body of a state command (`{ "reason": "…" }`). */
         CommandBody: {
             /** @description Business reason / decision note. */
@@ -33041,6 +30931,18 @@ export interface components {
          * @enum {string}
          */
         ConfigStatus: "draft" | "effective" | "superseded" | "withdrawn";
+        /**
+         * @description Part 2 S4-pay: what Razorpay Checkout hands the browser after a successful payment
+         *     (`razorpay_payment_id`, `razorpay_order_id`, `razorpay_signature`), forwarded to `confirm`.
+         *     Optional: without it `confirm` only polls the gateway. With it the signature is verified
+         *     server-side first (422 `invalid_signature` otherwise); the payment is still marked paid only
+         *     when the gateway itself reports the capture (never on the browser's word).
+         */
+        ConfirmPaymentRequest: {
+            gatewayOrderId?: string | null;
+            gatewayPaymentId?: string | null;
+            gatewaySignature?: string | null;
+        };
         /** @description One validation finding. */
         Conflict: {
             /**
@@ -33058,285 +30960,11 @@ export interface components {
          * @enum {string}
          */
         ConsentType: "data_sharing" | "medical_treatment" | "field_trip" | "photography" | "extracurricular" | "research" | "other";
-        /** @description An activity under an MoU or contract. */
-        ContractActivityInput: {
-            /** @description Where the evidence is kept (a document reference or link). */
-            evidenceRef?: string | null;
-            /** Format: date */
-            heldOn: string;
-            /**
-             * @description `internship`, `on_job_training`, `project_work`, `student_exchange`, `faculty_exchange`,
-             *     `collaborative_research`, `workshop`, `training`, `consultancy`, `placement`,
-             *     `publication`, `other`.
-             */
-            kind: string;
-            outcome?: string | null;
-            /** Format: int32 */
-            staff?: number;
-            /** Format: int32 */
-            students?: number;
-            title: string;
-        };
-        /** @description Something that happened under a contract or MoU. */
-        ContractActivityView: {
-            /** Format: uuid */
-            contractId: string;
-            evidenceRef?: string | null;
-            /** Format: date */
-            heldOn: string;
-            /** Format: uuid */
-            id: string;
-            kind: string;
-            outcome?: string | null;
-            /** Format: int32 */
-            staff: number;
-            /** Format: int32 */
-            students: number;
-            title: string;
-        };
-        /** @description The contract book at a glance. */
-        ContractDashboard: {
-            /** @description Waiting on a decision (notice window open or past the end), soonest first. */
-            attention: components["schemas"]["ContractView"][];
-            /** @description Open obligations overdue or due within the obligation horizon, most urgent first. */
-            dueObligations: components["schemas"]["ContractDueObligation"][];
-            stats: components["schemas"]["ContractStats"];
-            /** Format: date */
-            today: string;
-            /** @description Term ends within the "soon" horizon. */
-            upcoming: components["schemas"]["ContractView"][];
-        };
-        /** @description A renewal decision. */
-        ContractDecisionInput: {
-            /** @description `notice-given`, `renewing`, `not-renewing`, `snoozed`; null clears the decision. */
-            kind?: string | null;
-            note?: string | null;
-            /**
-             * Format: date
-             * @description Required for `snoozed`: the day the snooze stops holding.
-             */
-            until?: string | null;
-        };
-        /** @description A contract with its obligations, term history and activities. */
-        ContractDetail: {
-            activities: components["schemas"]["ContractActivityView"][];
-            contract: components["schemas"]["ContractView"];
-            obligations: components["schemas"]["ContractObligationView"][];
-            terms: components["schemas"]["ContractTermView"][];
-        };
-        /** @description An obligation due soon, with its contract. */
-        ContractDueObligation: {
-            contractTitle: string;
-            counterpartyName: string;
-            obligation: components["schemas"]["ContractObligationView"];
-        };
-        /** @description A contract or MoU as written. */
-        ContractInput: {
-            autoRenew?: boolean;
-            billing?: string | null;
-            contactEmail?: string | null;
-            contactName?: string | null;
-            contactPhone?: string | null;
-            counterpartyName?: string | null;
-            /** @description `national` (default) or `international`. */
-            counterpartyScope?: string | null;
-            /** @description ISO code, default `INR`. */
-            currency?: string | null;
-            /** Format: date */
-            endOn?: string | null;
-            kind: string;
-            notes?: string | null;
-            /**
-             * Format: int32
-             * @description Days of notice to cancel before a term end (default from settings).
-             */
-            noticeDays?: number | null;
-            purposes?: string[];
-            /** Format: date */
-            startOn?: string | null;
-            /** @description Default `active`. */
-            status?: string | null;
-            /**
-             * Format: uuid
-             * @description A registered supplier (its legal name is the counterparty unless one is given).
-             */
-            supplierId?: string | null;
-            tags?: string[];
-            /**
-             * Format: int32
-             * @description Renewal term (1…120 months; default 12).
-             */
-            termMonths?: number | null;
-            title: string;
-            /** @description Money as a string (`"120000.00"`). */
-            value?: string | null;
-            /**
-             * Format: int64
-             * @description Required on update.
-             */
-            version?: number | null;
-        };
-        /** @description An obligation as written. */
-        ContractObligationInput: {
-            /** Format: date */
-            dueOn?: string | null;
-            /** @description `us` (default), `them` or `mutual`. */
-            owner?: string | null;
-            repeat?: null | components["schemas"]["RepeatInput"];
-            text: string;
-            /**
-             * Format: int64
-             * @description Required on update.
-             */
-            version?: number | null;
-        };
-        /** @description An obligation: who owes what, when. */
-        ContractObligationView: {
-            /** @description Occurrences completed so far. */
-            completed: number;
-            /** Format: uuid */
-            contractId: string;
-            /**
-             * Format: int64
-             * @description Days until due (negative = overdue; null = undated).
-             */
-            daysLeft?: number | null;
-            done: boolean;
-            /**
-             * Format: date
-             * @description The live occurrence (the last one completed once a series is finished).
-             */
-            dueOn?: string | null;
-            /** Format: uuid */
-            id: string;
-            /** @description `us`, `them` or `mutual`. */
-            owner: string;
-            repeat?: null | components["schemas"]["Repeat"];
-            text: string;
-            /** Format: int64 */
-            version: number;
-        };
-        /** @description What a term reconciliation did. */
-        ContractReconcileResult: {
-            /** Format: int64 */
-            contractsUpdated: number;
-            /** Format: int64 */
-            decisionsCleared: number;
-            /**
-             * Format: int64
-             * @description Closed out on the term end their notice was given for.
-             */
-            terminated: number;
-            /** Format: int64 */
-            termsRecorded: number;
-        };
-        /** @description Contract settings of an institution. */
-        ContractSettings: {
-            /** @description Calendar reminders before each deadline, in days (default 7 and 1). */
-            alarmDays: number[];
-            /**
-             * Format: int32
-             * @description Notice period a new contract starts with (default 30).
-             */
-            defaultNoticeDays: number;
-            /**
-             * Format: int32
-             * @description Obligations due within this many days show as due (default 30).
-             */
-            obligationDays: number;
-            /**
-             * Format: int32
-             * @description "Term ends soon" horizon (1…365 days; default 60).
-             */
-            soonDays: number;
-        };
-        /** @description Dashboard numbers. Values are never summed across currencies. */
-        ContractStats: {
-            /** Format: int64 */
-            active: number;
-            /** @description Yearly value by currency. */
-            annualByCurrency: {
-                [key: string]: number;
-            };
-            /** Format: int64 */
-            expired: number;
-            /** Format: int64 */
-            expiring60: number;
-            /** Format: int64 */
-            openObligations: number;
-        };
-        /** @description A recorded term. */
-        ContractTermView: {
-            currency: string;
-            /** Format: date */
-            endOn: string;
-            /** @description `renewed`, `notice-given`, `expired`, `terminated`. */
-            ended: string;
-            note: string;
-            /** Format: date */
-            startOn?: string | null;
-            value?: string | null;
-        };
-        /** @description A contract or MoU with its clock. */
-        ContractView: {
-            /**
-             * Format: date
-             * @description When the agreement itself stops (null = no known end).
-             */
-            agreementEnd?: string | null;
-            /**
-             * Format: double
-             * @description Value as a yearly figure (0 for one-time or unpriced).
-             */
-            annualValue: number;
-            /** @description Waiting on a decision: in the notice window or past its end with nothing recorded. */
-            attention: boolean;
-            autoRenew: boolean;
-            /** @description `one-time`, `monthly`, `quarterly`, `annual`. */
-            billing: string;
-            contactEmail?: string | null;
-            contactName?: string | null;
-            contactPhone?: string | null;
-            counterpartyName: string;
-            /** @description `national` or `international`. */
-            counterpartyScope: string;
-            currency: string;
-            /**
-             * Format: date
-             * @description End of the first term: every renewal is counted from it.
-             */
-            endOn?: string | null;
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            institutionId: string;
-            /**
-             * @description `vendor`, `service`, `amc`, `lease`, `license`, `nda`, `mou_academic`, `mou_industry`,
-             *     `mou_research`, `other`.
-             */
-            kind: string;
-            notes?: string | null;
-            /** Format: int32 */
-            noticeDays: number;
-            /** Format: int64 */
-            openObligations: number;
-            /** @description What an MoU is for (internship, research…). */
-            purposes: string[];
-            renewal: components["schemas"]["RenewalInfo"];
-            /** Format: date */
-            startOn?: string | null;
-            /** @description `active`, `draft`, `terminated`. */
-            status: string;
-            /** Format: uuid */
-            supplierId?: string | null;
-            tags: string[];
-            /** Format: int32 */
-            termMonths: number;
-            title: string;
-            /** @example 120000.00 */
-            value?: string | null;
-            /** Format: int64 */
-            version: number;
+        /** @description An always-available part of the product (never gated). */
+        CoreSpec: {
+            description?: string;
+            key: string;
+            name: string;
         };
         CorrectAlumniTransition: {
             alumniEmail?: string | null;
@@ -33398,17 +31026,6 @@ export interface components {
             reason: string;
             /** Format: int64 */
             staffVersion: number;
-        };
-        /** @description One report row: a section heading when `section` is set, else a label/value line. */
-        CounterReportRow: {
-            /** @description Left-hand label. */
-            label: string;
-            /** @description Section heading (printed upper-case after a rule); the row's label/value are ignored. */
-            section?: string | null;
-            /** @description Printed bold. */
-            strong?: boolean;
-            /** @description Right-hand value. */
-            value: string;
         };
         /**
          * @description Course Offering lifecycle (L2-D01 §10 + §71 state transition matrix).
@@ -33543,36 +31160,6 @@ export interface components {
             /** Format: double */
             sgpa?: number | null;
         };
-        /** @description A new enquiry. */
-        CreateEnquiry: {
-            campaign?: string | null;
-            city?: string | null;
-            /** Format: double */
-            confidence?: number | null;
-            email?: string | null;
-            expectedFee?: string | null;
-            /** Format: date */
-            expectedJoin?: string | null;
-            familyName?: string | null;
-            givenName: string;
-            guardianName?: string | null;
-            guardianPhone?: string | null;
-            intake?: string | null;
-            /** Format: date */
-            nextFollowUp?: string | null;
-            notes?: string | null;
-            ownerRef?: string | null;
-            phone?: string | null;
-            /** Format: uuid */
-            programmeId?: string | null;
-            /**
-             * @description One of `walk_in` (default), `website`, `phone`, `referral`, `campaign`,
-             *     `education_fair`, `social`, `agent`, `school_visit`, `other`.
-             */
-            source?: string | null;
-            /** @description An open stage (default: the first). */
-            stage?: string | null;
-        };
         CreateMigration: {
             creditMapping?: components["schemas"]["CreditMappingItem"][];
             reason: string;
@@ -33675,11 +31262,6 @@ export interface components {
             name?: string | null;
             /** Format: date */
             opensOn?: string | null;
-        };
-        /** @description The created enquiry and records that look like the same person. */
-        CreatedEnquiry: {
-            enquiry: components["schemas"]["AdmissionEnquiry"];
-            possibleDuplicates: components["schemas"]["AdmissionFunnelDuplicateRef"][];
         };
         /**
          * @description Academic Credit Ledger entry kind (L3-C-028; ledger is append-only).
@@ -34267,6 +31849,11 @@ export interface components {
             /** Format: date */
             until?: string | null;
         };
+        /** @description Body of `…/delete`. */
+        DeleteDocumentBody: {
+            /** @description Why the document is deleted; 1–500 characters. */
+            reason: string;
+        };
         /** @description Body of an approval decision endpoint. */
         DeliveryDecision: {
             decision: components["schemas"]["DeliveryDecisionValue"];
@@ -34383,6 +31970,12 @@ export interface components {
             title: string;
             /** Format: date */
             validUntil?: string | null;
+        };
+        /** @description A short-lived presigned download link (issued only after authorisation). */
+        DocumentLink: {
+            /** Format: date-time */
+            expiresAt: string;
+            url: string;
         };
         DocumentList: {
             items: components["schemas"]["DocumentView"][];
@@ -34602,65 +32195,37 @@ export interface components {
             candidateId: string;
             reason: string;
         };
-        /** @description Plan or change a shift. */
-        DutyShiftInput: {
+        /** @description What a tenant may use right now (served by `GET /api/v1/platform/entitlement`). */
+        EffectiveEntitlement: {
+            addOnModules: string[];
+            /** Format: date-time */
+            asOf: string;
+            /**
+             * Format: int64
+             * @description Whole days until the licence (status `active`) or its grace period (status `grace`) ends.
+             */
+            daysRemaining?: number | null;
             /** Format: int32 */
-            breakMinutes?: number | null;
-            /** Format: date */
-            date: string;
+            graceDays: number;
             /**
-             * @description `HH:MM`; before `start` runs past midnight.
-             * @example 06:00
+             * Format: date-time
+             * @description End of the grace period (`validUntil + graceDays`), when the licence has an end.
              */
-            end: string;
-            location?: string | null;
-            note?: string | null;
-            /** @example Hostel night warden */
-            role: string;
-            /**
-             * Format: uuid
-             * @description The staff member; null leaves it open.
-             */
-            staffId?: string | null;
-            /**
-             * @description `HH:MM`.
-             * @example 22:00
-             */
-            start: string;
-        };
-        /** @description A saved shift and the warnings to show. */
-        DutyShiftResult: {
-            shift: components["schemas"]["DutyShiftView"];
-            warnings: string[];
-        };
-        /** @description A duty shift with its checks. */
-        DutyShiftView: {
-            /** @description `available | partial | unavailable` against the holder's week and time off. */
-            availability: string;
-            /** Format: double */
-            breakMinutes: number;
-            /** @description Other shifts of the same person that overlap (should be none). */
-            conflicts: string[];
-            date: string;
-            end: string;
-            /** Format: uuid */
-            id: string;
-            location?: string | null;
-            /**
-             * Format: double
-             * @description Paid minutes.
-             */
-            netMinutes: number;
-            note?: string | null;
-            overnight: boolean;
-            role: string;
-            ruleWarnings: components["schemas"]["RosterRuleWarning"][];
-            /** Format: uuid */
-            staffId?: string | null;
-            staffName?: string | null;
-            start: string;
-            /** @description `draft | published`. */
-            status: string;
+            graceEndsAt?: string | null;
+            /** @description Active module keys (sorted). */
+            modules: string[];
+            origin: components["schemas"]["EntitlementOrigin"];
+            package?: string | null;
+            /** @description Writes are refused (`expired` / `suspended`). */
+            readOnly: boolean;
+            /** @description Effective licence status at `asOf`. */
+            status: components["schemas"]["LicenceStatus"];
+            /** @description Status as stored (before the validity window is applied). */
+            storedStatus: components["schemas"]["LicenceStatus"];
+            /** Format: date-time */
+            validFrom: string;
+            /** Format: date-time */
+            validUntil?: string | null;
             /** Format: int64 */
             version: number;
         };
@@ -35002,6 +32567,93 @@ export interface components {
          * @enum {string}
          */
         EnrolmentWindowStatus: "scheduled" | "open" | "suspended" | "closed" | "closed_permanently";
+        /** @description The registry: licensable modules (with dependencies), the always-available core, packages. */
+        EntitlementCatalogue: {
+            core: components["schemas"]["CoreSpec"][];
+            defaultPackage: string;
+            modules: components["schemas"]["ModuleSpec"][];
+            packages: components["schemas"]["PackageSpec"][];
+            /** Format: int32 */
+            version: number;
+        };
+        /** @description Request a change of the tenant's entitlement: the full desired state. */
+        EntitlementChangeRequest: {
+            /** @description Modules added on top of the package. */
+            addOnModules?: string[];
+            /**
+             * Format: int32
+             * @description Days of full access after `validUntil` (0–365, default 0).
+             */
+            graceDays?: number | null;
+            /** @description `activate` · `change` · `renew` · `suspend` · `reinstate`. */
+            kind: string;
+            /** @description `active` (default) · `grace` · `expired` · `suspended` (only with kind `suspend`). */
+            licenceStatus?: string | null;
+            /** @description Package key (`core_academic`, `academic_plus`, `institution_operations`, `complete_erp`). */
+            package: string;
+            reason: string;
+            /**
+             * Format: date-time
+             * @description Start of validity (default: now).
+             */
+            validFrom?: string | null;
+            /**
+             * Format: date-time
+             * @description End of validity (`null` = perpetual).
+             */
+            validUntil?: string | null;
+        };
+        /** @description A decided request and the tenant's entitlement after it. */
+        EntitlementDecided: {
+            entitlement: components["schemas"]["EffectiveEntitlement"];
+            request: components["schemas"]["EntitlementRequestView"];
+        };
+        /** @description Decision on a pending request. */
+        EntitlementDecision: {
+            /** @description `approve` or `reject`. */
+            decision: string;
+            reason: string;
+        };
+        /**
+         * @description Where an entitlement came from.
+         * @enum {string}
+         */
+        EntitlementOrigin: "stored" | "default";
+        /** @description Entitlement change requests of the tenant, newest first. */
+        EntitlementRequestPage: {
+            items: components["schemas"]["EntitlementRequestView"][];
+            total: number;
+        };
+        /** @description One entitlement change request. */
+        EntitlementRequestView: {
+            addOnModules: string[];
+            /**
+             * Format: int64
+             * @description Entitlement version the request was made against (0 = none stored yet).
+             */
+            baseVersion: number;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            /** Format: int32 */
+            graceDays: number;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            licenceStatus: string;
+            package?: string | null;
+            reason: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            /** @description `pending` · `approved` · `rejected` · `withdrawn`. */
+            status: string;
+            /** Format: date-time */
+            validFrom: string;
+            /** Format: date-time */
+            validUntil?: string | null;
+        };
         /**
          * @description Laboratory equipment status (L3-G-060).
          * @enum {string}
@@ -36190,190 +33842,6 @@ export interface components {
          * @enum {string}
          */
         ExitClearanceStatus: "pending" | "cleared" | "waived" | "blocked";
-        /** @description An expense category with its policy. */
-        ExpenseCategory: {
-            /** @description Stable key (`travel`, `local_conveyance`…; lowercase letters, digits, `_`). */
-            id: string;
-            /**
-             * @description Most one expense of this category may claim (₹; none when absent).
-             * @example 1500.00
-             */
-            limit?: string | null;
-            name: string;
-            /**
-             * @description A receipt is required above this amount (₹; the institution's threshold when absent).
-             * @example 0.00
-             */
-            receiptAbove?: string | null;
-        };
-        /** @description A claim in a list (no lines). */
-        ExpenseClaimSummary: {
-            /** Format: uuid */
-            id: string;
-            /** Format: int64 */
-            lineCount: number;
-            number: string;
-            returnedReason?: string | null;
-            /** Format: uuid */
-            staffId: string;
-            staffLabel: string;
-            status: string;
-            /** Format: date-time */
-            submittedAt?: string | null;
-            title: string;
-            total: string;
-            /** Format: date-time */
-            updatedAt: string;
-            /** Format: int64 */
-            version: number;
-        };
-        /** @description A claim with its lines. */
-        ExpenseClaimView: {
-            approvalEntry?: string | null;
-            /** Format: date-time */
-            approvedAt?: string | null;
-            canSubmit: boolean;
-            currency: string;
-            decidedBy?: string | null;
-            decisionNote?: string | null;
-            /** @description Flags on any line; blocking ones must be fixed before submitting. */
-            flags: string[];
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            institutionId: string;
-            lineCount: number;
-            lines: components["schemas"]["ExpenseView"][];
-            /** @description Label of the next step (`Submit claim`, `Approve`, `Mark reimbursed`), none at the end. */
-            nextStep?: string | null;
-            number: string;
-            paymentEntry?: string | null;
-            paymentReference?: string | null;
-            purpose?: string | null;
-            /** Format: date-time */
-            reimbursedAt?: string | null;
-            /** @description Why an approver sent the claim back (until it is submitted again). */
-            returnedReason?: string | null;
-            /** Format: uuid */
-            staffId: string;
-            staffLabel: string;
-            /** @description `draft`, `submitted`, `approved`, `reimbursed`. */
-            status: string;
-            /** Format: date-time */
-            submittedAt?: string | null;
-            taxTotal: string;
-            title: string;
-            /** @example 1250.00 */
-            total: string;
-            /** Format: date-time */
-            updatedAt: string;
-            /** Format: int64 */
-            version: number;
-            withReceipt: number;
-        };
-        /** @description The expense dashboard of an institution. */
-        ExpenseDashboard: {
-            /** Format: int64 */
-            awaitingApproval: number;
-            awaitingApprovalAmount: string;
-            /** Format: int64 */
-            awaitingReimbursement: number;
-            awaitingReimbursementAmount: string;
-            /** @description Approved or reimbursed this financial year (April–March), by category. */
-            byCategory: components["schemas"]["CategorySpend"][];
-            /**
-             * Format: int64
-             * @description Lines of claims awaiting approval whose amount differs from what OCR read off the receipt.
-             */
-            ocrMismatches: number;
-            /** @description Approved spend of the last six months, by approval month. */
-            trend: components["schemas"]["MonthSpend"][];
-        };
-        /** @description Record or change an expense (amounts as decimal strings). */
-        ExpenseInput: {
-            /** @example 378.00 */
-            amount: string;
-            categoryId?: string | null;
-            /** @description ISO code (default `INR`). Only rupee expenses can be claimed. */
-            currency?: string | null;
-            gstin?: string | null;
-            items?: components["schemas"]["OcrItem"][];
-            merchant: string;
-            notes?: string | null;
-            /** @description `Card`, `Cash`, `Bank transfer`, `Mobile payment`, `Other`. */
-            paymentMethod?: string | null;
-            /** Format: uuid */
-            receiptId?: string | null;
-            /** Format: date */
-            spentOn: string;
-            /** @description GST paid (`CGST + SGST` or `IGST`), ₹. */
-            tax?: string | null;
-            /**
-             * Format: int64
-             * @description Required on update (optimistic concurrency).
-             */
-            version?: number | null;
-        };
-        /** @description A stored receipt. */
-        ExpenseReceiptView: {
-            /** Format: int32 */
-            byteSize: number;
-            contentType: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** @description `true` when this exact file had been uploaded before (the stored copy is returned). */
-            duplicate: boolean;
-            fileName: string;
-            /** Format: uuid */
-            id: string;
-            reading: components["schemas"]["ReceiptReading"];
-        };
-        /** @description Expense-claim settings of an institution. */
-        ExpenseSettings: {
-            categories: components["schemas"]["ExpenseCategory"][];
-            /**
-             * Format: int32
-             * @description Expenses older than this many days cannot be claimed (0 = no limit; default 90).
-             */
-            maxAgeDays: number;
-            /**
-             * @description A receipt is required for any expense above this amount (₹; default 250).
-             * @example 250.00
-             */
-            receiptRequiredAbove: string;
-        };
-        /** @description One expense. */
-        ExpenseView: {
-            /** @example 378.00 */
-            amount: string;
-            categoryId?: string | null;
-            categoryName?: string | null;
-            /** Format: uuid */
-            claimId?: string | null;
-            currency: string;
-            /**
-             * @description Policy findings: `over_limit`, `receipt_missing`, `too_old`, `future_date`,
-             *     `uncategorised`, `foreign_currency`. `receipt_missing`, `too_old`, `future_date` and
-             *     `foreign_currency` stop a submission.
-             */
-            flags: string[];
-            gstin?: string | null;
-            /** Format: uuid */
-            id: string;
-            items: components["schemas"]["OcrItem"][];
-            merchant: string;
-            notes?: string | null;
-            /** @description What OCR read from the receipt when the expense was created from it. */
-            ocr?: unknown;
-            paymentMethod?: string | null;
-            /** Format: uuid */
-            receiptId?: string | null;
-            /** Format: date */
-            spentOn: string;
-            tax?: string | null;
-            /** Format: int64 */
-            version: number;
-        };
         ExtendWindow: {
             /** Format: date-time */
             dueAt: string;
@@ -36646,30 +34114,6 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        /** @description One reminder sent before a due date. */
-        FeeReminderItem: {
-            /** @example 25000.00 */
-            amountDue: string;
-            /** Format: uuid */
-            chargeId: string;
-            chargeNumber: string;
-            /** Format: int64 */
-            daysBefore: number;
-            /** Format: date */
-            dueDate: string;
-            message: string;
-            studentName: string;
-        };
-        /** @description A pre-due reminder run. */
-        FeeReminderRun: {
-            /** Format: date */
-            asOf: string;
-            items: components["schemas"]["FeeReminderItem"][];
-            /** Format: int32 */
-            ruleVersion: number;
-            /** Format: int64 */
-            sent: number;
-        };
         FeeStructureCreate: {
             /** Format: uuid */
             academicTermId?: string | null;
@@ -36741,23 +34185,6 @@ export interface components {
             /** Format: int32 */
             versionNo: number;
         };
-        /** @description Feedback due. */
-        FeedbackDue: {
-            items: components["schemas"]["FeedbackDueRow"][];
-        };
-        /** @description An interview still owed feedback. */
-        FeedbackDueRow: {
-            /** Format: uuid */
-            candidateId: string;
-            candidateName: string;
-            /** Format: date */
-            date: string;
-            /** Format: uuid */
-            interviewId: string;
-            interviewers: string[];
-            requisitionTitle: string;
-            type: string;
-        };
         /** @description A single field-level validation failure (`validationErrors[]` in problem+json). */
         FieldViolation: {
             /** @description Stable machine-readable reason code. */
@@ -36767,6 +34194,11 @@ export interface components {
             /** @description Human readable explanation. */
             message: string;
         };
+        /**
+         * @description File format of an upload / export.
+         * @enum {string}
+         */
+        FileFormat: "csv" | "xlsx";
         FinalSettlementCreate: {
             notes?: string | null;
             recoveries?: components["schemas"]["SettlementRecovery"][] | null;
@@ -36877,140 +34309,6 @@ export interface components {
          * @enum {string}
          */
         FinancialYearStatus: "draft" | "open" | "closing" | "closed" | "archived";
-        /** @description Operating cost of one vehicle. */
-        FleetCostRow: {
-            /** @description ₹ per km (or hour), when usage is known. */
-            costPerMeter?: string | null;
-            fuel: string;
-            meterUnit: string;
-            other: string;
-            registrationNo: string;
-            service: string;
-            total: string;
-            /**
-             * Format: double
-             * @description Meter distance (or hours) in the range.
-             */
-            usage?: number | null;
-            /** Format: uuid */
-            vehicleId: string;
-        };
-        /** @description The fleet cost report. */
-        FleetCosts: {
-            /** Format: date */
-            from: string;
-            items: components["schemas"]["FleetCostRow"][];
-            /** Format: date */
-            to: string;
-            total: string;
-        };
-        /** @description The id of a created record. */
-        FleetCreated: {
-            /** Format: uuid */
-            id: string;
-        };
-        /** @description Per-entry derived values. */
-        FleetFuelDerived: {
-            /**
-             * Format: double
-             * @description Paise per meter unit.
-             */
-            costPerMeter?: number | null;
-            /** Format: double */
-            economy?: number | null;
-            measured?: null | components["schemas"]["FleetFuelMeasure"];
-            /**
-             * Format: double
-             * @description Meter distance since the previous entry.
-             */
-            usage?: number | null;
-        };
-        /** @description A measured stretch between full fill-ups. */
-        FleetFuelMeasure: {
-            /** Format: double */
-            distance: number;
-            /** Format: double */
-            volume: number;
-        };
-        /** @description Totals and averages over a set of entries. */
-        FleetFuelSummary: {
-            /**
-             * Format: double
-             * @description Total measured distance over total measured volume.
-             */
-            avgEconomy?: number | null;
-            /**
-             * Format: double
-             * @description Rupees per unit of volume.
-             */
-            avgPrice?: number | null;
-            /**
-             * Format: double
-             * @description Paise.
-             */
-            cost: number;
-            /**
-             * Format: double
-             * @description Paise per meter unit.
-             */
-            costPerMeter?: number | null;
-            count: number;
-            /** Format: double */
-            distance: number;
-            /** Format: double */
-            volume: number;
-        };
-        /** @description An `{ every, unit }` interval: `days | weeks | months | years` (anything else = months). */
-        FleetInterval: {
-            /** Format: double */
-            every?: number;
-            unit?: string;
-        };
-        /** @description One completion of a service reminder. */
-        FleetReminderCompletion: {
-            date: string;
-            entryId?: string | null;
-            /** Format: double */
-            meter?: number | null;
-            onTime: boolean;
-        };
-        /** @description Where a reminder stands on `today`. */
-        FleetReminderState: {
-            /** Format: int64 */
-            daysLeft?: number | null;
-            /** Format: double */
-            meterLeft?: number | null;
-            nextDate?: string | null;
-            /** Format: double */
-            nextMeter?: number | null;
-            /** @description `overdue | due_soon | upcoming | snoozed`. */
-            status: string;
-        };
-        /** @description One completed renewal. */
-        FleetRenewalCompletion: {
-            /**
-             * Format: double
-             * @description Paise.
-             */
-            cost?: number | null;
-            date: string;
-            dueDate?: string | null;
-        };
-        /** @description Fleet settings of an institution. */
-        FleetSettings: {
-            /**
-             * Format: int32
-             * @description A reminder or renewal is "due soon" this many days ahead (default 14).
-             */
-            dueSoonDays: number;
-            /**
-             * @description …or this close on the meter (default 500 km).
-             * @example 500
-             */
-            dueSoonMeter: string;
-            /** @description `L | gal` (default litres). */
-            volumeUnit: string;
-        };
         /** @description Body of an approval decision endpoint. */
         FlexibleDecision: {
             decision: components["schemas"]["FlexibleDecisionValue"];
@@ -37198,65 +34496,6 @@ export interface components {
          * @enum {string}
          */
         FrameworkStatus: "draft" | "active" | "superseded";
-        /** @description A fill-up or charging session. */
-        FuelEntryCreate: {
-            /** Format: date */
-            filledOn?: string | null;
-            /** @description `HH:MM`. */
-            filledTime?: string | null;
-            /** @description `fuel | charge`. */
-            kind?: string | null;
-            /** @example 48250 */
-            meter?: string | null;
-            /** @description The tank was not filled. */
-            partial?: boolean;
-            /**
-             * @description ₹ per unit; the total is volume × price unless `total` is given.
-             * @example 94.72
-             */
-            price?: string | null;
-            /** @description A fill-up was missed before this one: start a new measurement. */
-            reset?: boolean;
-            /** @example 4025.60 */
-            total?: string | null;
-            vendor?: string | null;
-            /** @example 42.5 */
-            volume: string;
-        };
-        /** @description A fuel entry with its derived values. */
-        FuelEntryView: {
-            derived: components["schemas"]["FleetFuelDerived"];
-            /** Format: date */
-            filledOn: string;
-            filledTime?: string | null;
-            /** Format: uuid */
-            id: string;
-            kind: string;
-            /** Format: double */
-            meter?: number | null;
-            partial: boolean;
-            reset: boolean;
-            /** @description ₹. */
-            total: string;
-            /** Format: double */
-            unitPrice?: number | null;
-            vendor?: string | null;
-            /** Format: double */
-            volume: number;
-        };
-        /** @description A vehicle's fuel log. */
-        FuelLog: {
-            charge: components["schemas"]["FleetFuelSummary"];
-            /** @description `L/100 km` for km with litres; distance per volume otherwise. */
-            economyUnit: string;
-            fuel: components["schemas"]["FleetFuelSummary"];
-            /** @description Newest first. */
-            items: components["schemas"]["FuelEntryView"][];
-            meterUnit: string;
-            volumeUnit: string;
-            /** @description Checks on the entry just recorded (create only). */
-            warnings: string[];
-        };
         /**
          * @description Gender as recorded on the profile (optional).
          * @enum {string}
@@ -37330,11 +34569,6 @@ export interface components {
         /** @description One delivered order line. */
         GoodsReceiptLineInput: {
             /**
-             * Format: date
-             * @description Expiry date of the delivered lot, for items that track expiry (ERP_EXTENSIONS 2C).
-             */
-            expiryOn?: string | null;
-            /**
              * Format: int32
              * @description Purchase order line number.
              */
@@ -37352,11 +34586,6 @@ export interface components {
              */
             assetsRegistered: number;
             description: string;
-            /**
-             * Format: date
-             * @description Expiry date of the delivered lot (items that track expiry; ERP_EXTENSIONS 2C).
-             */
-            expiryOn?: string | null;
             /** Format: uuid */
             id: string;
             itemCode?: string | null;
@@ -37994,90 +35223,6 @@ export interface components {
             /** @description `ok`, `degraded` (some check failed; 503 only if a critical one did) or `draining`. */
             status: string;
         };
-        /** @description A requisition's hiring form. */
-        HiringForm: {
-            /** @description The requisition's own rubric (null = the institution's or the default). */
-            ratingFields?: components["schemas"]["HiringRatingField"][] | null;
-            /** Format: uuid */
-            requisitionId: string;
-            /** @description The rubric in force. */
-            rubric: components["schemas"]["HiringRatingField"][];
-            screeningQuestions: components["schemas"]["HiringScreeningQuestion"][];
-        };
-        /** @description The body of a hiring form (entries without a safe id or label are dropped). */
-        HiringFormInput: {
-            ratingFields?: components["schemas"]["HiringRatingField"][] | null;
-            screeningQuestions?: components["schemas"]["HiringScreeningQuestion"][] | null;
-        };
-        /** @description An interview guide. */
-        HiringGuide: {
-            id: string;
-            name: string;
-            questions: components["schemas"]["HiringGuideQuestion"][];
-            /** @description Pipeline stages it opens for. */
-            stages: string[];
-            /** @description Interview formats it opens for. */
-            types: string[];
-        };
-        /** @description An answer to a guide question, snapshotted with its text. */
-        HiringGuideAnswer: {
-            answer: string;
-            field?: string | null;
-            question: string;
-        };
-        /** @description A guide question. */
-        HiringGuideQuestion: {
-            /** @description The rubric key it feeds. */
-            field?: string | null;
-            id: string;
-            text: string;
-        };
-        /** @description A rating dimension. */
-        HiringRatingField: {
-            key: string;
-            label: string;
-        };
-        /** @description A panel's feedback rolled up. */
-        HiringScorecardSummary: {
-            /** Format: double */
-            average?: number | null;
-            /** @description Average per rubric key (null when nobody rated it). */
-            byField: {
-                [key: string]: number | null;
-            };
-            count: number;
-            /** @description `hire | no_hire | split`, null without scorecards. */
-            leaning?: string | null;
-            /** @description Count per recommendation. */
-            recommendations: {
-                [key: string]: number;
-            };
-        };
-        /** @description A candidate's answer, stored with the question's label. */
-        HiringScreeningAnswer: {
-            answer: string;
-            label: string;
-        };
-        /** @description A screening question on the application form. */
-        HiringScreeningQuestion: {
-            id: string;
-            /** @description `short | long | yesno | choice`. */
-            kind: string;
-            label: string;
-            /** @description A yes/no question that should be answered yes (a flag, never a filter). */
-            mustHave?: boolean;
-            options?: string[];
-            required: boolean;
-        };
-        /** @description Institution hiring settings: the default rubric and the interview guides. */
-        HiringSettings: {
-            guides: components["schemas"]["HiringGuide"][];
-            /**
-             * @description The institution's rubric; null = the default four (role skills, experience,
-             *     communication, collaboration).
-             */
-            ratingFields?: components["schemas"]["HiringRatingField"][] | null;
-        };
         /** @description One status history entry (historical reconstruction, L3-F-019). */
         HistoryView: {
             actor?: string | null;
@@ -38092,6 +35237,10 @@ export interface components {
         HoldList: {
             financeEvidence: components["schemas"]["FinanceEvidence"];
             items: components["schemas"]["RegistrationHold"][];
+        };
+        /** @description Reason of an administrative suspension / re-enabling. */
+        HoldRequest: {
+            reason: string;
         };
         /**
          * @description Who placed a hold.
@@ -38351,6 +35500,57 @@ export interface components {
         IdentityCorrectionList: {
             items: components["schemas"]["IdentityCorrection"][];
         };
+        /** @description Page of identities. */
+        IdentityPage: {
+            items: components["schemas"]["IdentityView"][];
+        };
+        /** @description One identity (link between an ERP subject and its IdP account). */
+        IdentityView: {
+            adminHold: boolean;
+            appliedState?: string | null;
+            /** Format: int32 */
+            attempts: number;
+            baseRoles: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description State the IdP account is driven to. */
+            desiredState: string;
+            email?: string | null;
+            /** @description State the ERP record calls for: `active` | `suspended` | `disabled`. */
+            erpState: string;
+            familyName?: string | null;
+            givenName: string;
+            grantedRoles: string[];
+            holdReason?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `keycloak` | `memory`. */
+            idp: string;
+            /** @description IdP user id (the OIDC `sub`), once provisioned. */
+            idpUserId?: string | null;
+            /** Format: uuid */
+            institutionId?: string | null;
+            lastError?: string | null;
+            /** Format: date-time */
+            nextAttemptAt: string;
+            /** @description Keycloak required actions still to be triggered. */
+            pendingActions: string[];
+            /** @description Effective SutraERP roles (record roles + granted roles). */
+            roles: string[];
+            /** Format: uuid */
+            subjectId: string;
+            /** @description `student` | `staff` | `admin`. */
+            subjectType: string;
+            /** @description `pending` | `synced` | `failed` | `conflict`. */
+            syncStatus: string;
+            /** Format: date-time */
+            syncedAt?: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+            username: string;
+            /** Format: int64 */
+            version: number;
+        };
         /** @description A statement line explained outside the ledger (e.g. a bank-side reversal pair). */
         IgnoreLine: {
             /** Format: uuid */
@@ -38379,6 +35579,168 @@ export interface components {
         };
         /** @enum {string} */
         ImpactSeverity: "info" | "warning" | "uncertain" | "blocking";
+        /** @description One column of an importable entity. */
+        ImportColumnView: {
+            choices: string[];
+            example: string;
+            help: string;
+            kind: components["schemas"]["ColumnKind"];
+            label: string;
+            name: string;
+            required: boolean;
+        };
+        /** @description Decision on a commit awaiting approval. */
+        ImportDecision: {
+            approve: boolean;
+            /** @description Required for a rejection. */
+            reason?: string | null;
+        };
+        ImportEntityList: {
+            items: components["schemas"]["ImportEntityView"][];
+        };
+        /** @description An importable / exportable entity. */
+        ImportEntityView: {
+            /** @description `true` when the caller holds that permission. */
+            allowed: boolean;
+            amountColumn?: string | null;
+            columns: components["schemas"]["ImportColumnView"][];
+            entity: string;
+            groupBy?: string | null;
+            label: string;
+            naturalKey: string[];
+            owner: string;
+            /** @description The owning domain's manage permission (needed in addition to `platform.import.manage`). */
+            permission: string;
+            /** @description A commit needs a second person's approval. */
+            requiresApproval: boolean;
+            supportsUpdate: boolean;
+        };
+        /** @description An import job. */
+        ImportJob: {
+            actions: components["schemas"]["ActionCounts"];
+            /** Format: int32 */
+            batchSize: number;
+            commitRequestedBy?: string | null;
+            /** Format: date-time */
+            committedAt?: string | null;
+            committedBy?: string | null;
+            /**
+             * Format: int32
+             * @description Duration of the commit.
+             */
+            committedMs?: number | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            entity: string;
+            failureReason?: string | null;
+            /** Format: int32 */
+            fileBytes: number;
+            fileFormat: components["schemas"]["FileFormat"];
+            fileName: string;
+            fileSha256: string;
+            /** @description Header cells of the file, in order. */
+            headers: string[];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId: string;
+            jobKey: string;
+            /** @description Source header → canonical column. */
+            mapping: {
+                [key: string]: string;
+            };
+            /** Format: uuid */
+            mappingProfileId?: string | null;
+            onExisting: components["schemas"]["OnExisting"];
+            processInstanceId?: string | null;
+            requiresApproval: boolean;
+            status: components["schemas"]["JobStatus"];
+            summary: components["schemas"]["Reconciliation"];
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            validatedAt?: string | null;
+            /**
+             * Format: int32
+             * @description Duration of the last dry run.
+             */
+            validatedMs?: number | null;
+            /** Format: int64 */
+            version: number;
+        };
+        ImportJobList: {
+            items: components["schemas"]["ImportJob"][];
+        };
+        /** @description One row of a job. */
+        ImportJobRow: {
+            action?: null | components["schemas"]["RowAction"];
+            amount?: string | null;
+            /** @description Source cells by header. */
+            cells: {
+                [key: string]: string;
+            };
+            committed: boolean;
+            errors: components["schemas"]["FieldViolation"][];
+            /** Format: int32 */
+            line: number;
+            naturalKey?: string | null;
+            /** Format: uuid */
+            recordId?: string | null;
+        };
+        ImportJobRowList: {
+            items: components["schemas"]["ImportJobRow"][];
+        };
+        ImportMappingProfileList: {
+            items: components["schemas"]["MappingProfile"][];
+        };
+        /** @description Saves (creates or replaces by name) a mapping profile. */
+        ImportMappingProfileSave: {
+            entity: string;
+            mapping: {
+                [key: string]: string;
+            };
+            name: string;
+        };
+        /** @description New column mapping of a job. */
+        ImportMappingUpdate: {
+            /** @description Source header → canonical column. */
+            mapping: {
+                [key: string]: string;
+            };
+            onExisting?: null | components["schemas"]["OnExisting"];
+            /** @description Also save the mapping as a reusable profile with this name. */
+            saveAsProfile?: string | null;
+        };
+        /** @description Upload of one CSV / XLSX file. */
+        ImportUpload: {
+            /**
+             * Format: int32
+             * @description Rows per commit transaction (1–5000, default 500).
+             */
+            batchSize?: number | null;
+            /** @description The file, base64 encoded (≤ 8 MiB decoded; the request body limit applies). */
+            contentBase64: string;
+            /** @example students */
+            entity: string;
+            /**
+             * @description `.csv` or `.xlsx`.
+             * @example students-2026.csv
+             */
+            fileName: string;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description Idempotency of the upload (default `<entity>:<institution>:<sha256 of the file>`). */
+            jobKey?: string | null;
+            /**
+             * Format: uuid
+             * @description Saved mapping to apply (default: headers matched to column names / labels).
+             */
+            mappingProfileId?: string | null;
+            onExisting?: null | components["schemas"]["OnExisting"];
+        };
         /** @description Change the capacity (seats / beds / persons). */
         InfrastructureCapacityBody: {
             /** Format: int32 */
@@ -38683,29 +36045,6 @@ export interface components {
          * @enum {string}
          */
         InterventionStatus: "planned" | "triggered" | "in_progress" | "completed" | "cancelled";
-        /** @description Demand settings of an institution. */
-        InventoryDemandSettings: {
-            /**
-             * Format: int32
-             * @description Days of demand an order should carry (0 = order back up to twice the reorder level).
-             */
-            coverageDays: number;
-            /**
-             * Format: int32
-             * @description Window demand is measured over (7…365 days; default 30).
-             */
-            demandDays: number;
-            /**
-             * Format: int32
-             * @description "Expiring soon" horizon (default 30 days).
-             */
-            expiryDays: number;
-            /**
-             * Format: int32
-             * @description Days of cover on top of a supplier's lead time (default 3; an item may override).
-             */
-            safetyDays: number;
-        };
         /** @description Create an item. */
         InventoryItemCreate: {
             category?: string | null;
@@ -38771,31 +36110,16 @@ export interface components {
          * @enum {string}
          */
         ItemKind: "criterion" | "recommendation" | "action" | "corrective_action";
-        /** @description Planning fields of an item. */
-        ItemPlanning: {
-            /**
-             * Format: int32
-             * @description Supplier lead time in days (0…365).
-             */
-            leadTimeDays?: number | null;
-            /**
-             * @description Bought in packs of this many (> 1 rounds orders up to whole packs).
-             * @example 12
-             */
-            packSize?: string | null;
-            /**
-             * Format: int32
-             * @description Override of the institution's safety days.
-             */
-            safetyDays?: number | null;
-            /** @description Keep dated lots (expiry) for this item. */
-            trackExpiry: boolean;
-        };
         /**
          * @description Item lifecycle: open → in_progress → done → verified; cancelled.
          * @enum {string}
          */
         ItemStatus: "open" | "in_progress" | "done" | "verified" | "cancelled";
+        /**
+         * @description Lifecycle of an import job.
+         * @enum {string}
+         */
+        JobStatus: "uploaded" | "validated" | "invalid" | "pending_approval" | "committing" | "committed" | "failed" | "rejected";
         /**
          * Format: uuid
          * @description Posted, balanced, append-only journal entry of the general ledger (L2-F05).
@@ -39006,65 +36330,6 @@ export interface components {
             statusReason?: string | null;
             /** Format: int64 */
             version: number;
-        };
-        /** @description One charge priced by a late-fee run. */
-        LateFeeItem: {
-            /** @example 250.00 */
-            alreadyCharged: string;
-            /** Format: uuid */
-            chargeId: string;
-            chargeNumber: string;
-            /** Format: int64 */
-            daysLate: number;
-            description: string;
-            /**
-             * Format: date
-             * @description The date it is late against (the earliest open instalment, or the charge's due date).
-             */
-            dueDate: string;
-            /**
-             * Format: uuid
-             * @description The fee charge raised by this run.
-             */
-            feeChargeId?: string | null;
-            feeChargeNumber?: string | null;
-            /**
-             * @description The fee the rule asks for as of today.
-             * @example 500.00
-             */
-            feeToDate: string;
-            /**
-             * @description The late part (on a schedule only the instalments past due).
-             * @example 25000.00
-             */
-            overdueAmount: string;
-            studentName: string;
-            studentNumber?: string | null;
-            /**
-             * @description What the run charges (fee to date − already charged).
-             * @example 250.00
-             */
-            toCharge: string;
-        };
-        /** @description A late-fee preview or run. */
-        LateFeeRun: {
-            /** Format: date */
-            asOf: string;
-            /**
-             * Format: int64
-             * @description Charges with a fee to charge now (preview) or charged (run).
-             */
-            charged: number;
-            items: components["schemas"]["LateFeeItem"][];
-            /** @description `true` for a preview (nothing charged). */
-            preview: boolean;
-            /**
-             * Format: int32
-             * @description The effective `late_fee` rule version that priced the run.
-             */
-            ruleVersion: number;
-            /** @example 750.00 */
-            total: string;
         };
         LearningCompletion: {
             /** @description `passed` | `failed` | `not_applicable`. */
@@ -39736,7 +37001,6 @@ export interface components {
             name: string;
             /** Format: uuid */
             parentId?: string | null;
-            statementGroup?: null | components["schemas"]["StatementGroup"];
         };
         /**
          * Format: uuid
@@ -39760,7 +37024,6 @@ export interface components {
         LedgerAccountUpdate: {
             isPostable?: boolean | null;
             name?: string | null;
-            statementGroup?: null | components["schemas"]["StatementGroup"];
             status?: null | components["schemas"]["LedgerAccountStatus"];
         };
         /** @description A ledger account with its current balance (normal side). */
@@ -39784,31 +37047,24 @@ export interface components {
             parentId?: string | null;
             /** Format: int64 */
             postingCount: number;
-            /**
-             * @description Where the account sits on the financial statements (ERP_EXTENSIONS 1C); derived from the
-             *     role / type unless set.
-             */
-            statementGroup: components["schemas"]["StatementGroup"];
             status: components["schemas"]["LedgerAccountStatus"];
             /** @description Seeded role (`student_receivables`, `bank_main`, …); `null` for user accounts. */
             systemKey?: string | null;
             /** Format: int64 */
             version: number;
         };
-        LedgerLine: {
-            /** Format: date */
-            date: string;
-            description: string;
-            /** Format: uuid */
-            entryId: string;
-            entryNumber: string;
-            sourceType: string;
-        };
         /**
          * Format: uuid
          * @description Source-to-ledger reconciliation run (L3-F-029).
          */
         LedgerReconciliationId: string;
+        /** @description Body of `…/legal-hold`. */
+        LegalHoldBody: {
+            /** @description `true` places a hold, `false` releases it. */
+            hold: boolean;
+            /** @description Why (court order, investigation, …); 1–500 characters. */
+            reason: string;
+        };
         /**
          * @description Approval state of a governed draft (`LIBRARY_POLICY_APPROVAL`).
          *     9E: approvalState — wire `not_requested` (contract batch9 §6.4); the stored value stays `none`.
@@ -40270,6 +37526,11 @@ export interface components {
             /** @description `true` to restrict borrowing, `false` to resolve the restriction. */
             restricted: boolean;
         };
+        /**
+         * @description Licence status: stored ([`TenantEntitlement::status`]) or effective ([`effective_status`]).
+         * @enum {string}
+         */
+        LicenceStatus: "active" | "grace" | "expired" | "suspended";
         /** @description Body of an approval decision endpoint. */
         LifecycleDecision: {
             decision: components["schemas"]["LifecycleDecisionValue"];
@@ -40289,11 +37550,6 @@ export interface components {
             /** Format: uuid */
             curriculumComponentId: string;
             kind?: null | components["schemas"]["RegistrationLineKind"];
-        };
-        /** @description The application an enquiry turned into. */
-        LinkApplication: {
-            /** Format: uuid */
-            applicationId: string;
         };
         /** @enum {string} */
         LoginOutcome: "authenticated" | "mfaRequired";
@@ -40373,36 +37629,6 @@ export interface components {
             staffId: string;
             /** @description `planned`, `active`, `ended`, `cancelled`. */
             status: string;
-            /** Format: int64 */
-            version: number;
-        };
-        /** @description The maintenance board. */
-        MaintenanceBoard: {
-            /** Format: date */
-            asOf: string;
-            dueSoon: number;
-            items: components["schemas"]["MaintenanceBoardRow"][];
-            overdue: number;
-        };
-        /** @description One line of the maintenance board. */
-        MaintenanceBoardRow: {
-            /** Format: int64 */
-            daysLeft?: number | null;
-            /** Format: uuid */
-            id: string;
-            /** @description `service | renewal`. */
-            kind: string;
-            /** Format: double */
-            meterLeft?: number | null;
-            nextDate?: string | null;
-            /** Format: double */
-            nextMeter?: number | null;
-            registrationNo: string;
-            status: string;
-            /** @description The task, or the renewal's label / type. */
-            title: string;
-            /** Format: uuid */
-            vehicleId: string;
             /** Format: int64 */
             version: number;
         };
@@ -40722,6 +37948,21 @@ export interface components {
             /** Format: uuid */
             lineId: string;
         };
+        /** @description A saved column mapping. */
+        MappingProfile: {
+            createdBy?: string | null;
+            entity: string;
+            /** Format: uuid */
+            id: string;
+            mapping: {
+                [key: string]: string;
+            };
+            name: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
         MarkInput: {
             mark: components["schemas"]["AttendanceMark"];
             remarks?: string | null;
@@ -41008,14 +38249,6 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        /** @description A meter reading. */
-        MeterReadingCreate: {
-            /** Format: date */
-            readOn?: string | null;
-            setup?: null | components["schemas"]["VehicleMeterSetup"];
-            /** @example 48250 */
-            value: string;
-        };
         /** @description One operational figure (decimal string). */
         MetricValueView: {
             /** @example campus */
@@ -41183,6 +38416,19 @@ export interface components {
             schema: string;
             status: components["schemas"]["ModuleStatus"];
         };
+        /** @description One licensable module. */
+        ModuleSpec: {
+            /** @description `false` = defined commercially but not implemented in this build (cannot be activated). */
+            activatable: boolean;
+            /** @description Crate that implements it (`sutra-exams`). */
+            crate: string;
+            description?: string;
+            /** @description Stable module key (`examinations`). */
+            key: string;
+            name: string;
+            /** @description Modules that must be active as well. */
+            requires?: string[];
+        };
         /** @enum {string} */
         ModuleStatus: "scaffolded" | "active";
         MonitoringCase: {
@@ -41319,75 +38565,6 @@ export interface components {
             resolutionNotes?: string | null;
             resolutionPlan?: string | null;
         };
-        /** @description Approved spend of one month. */
-        MonthSpend: {
-            amount: string;
-            /** @description `YYYY-MM`. */
-            month: string;
-        };
-        /** @description MoU evidence for one AQAR year. */
-        MouEvidence: {
-            /** Format: date */
-            from: string;
-            /** @description MoUs in force during the year. */
-            mous: components["schemas"]["MouEvidenceRow"][];
-            /** Format: date */
-            to: string;
-            totals: components["schemas"]["MouTotals"];
-            year: string;
-        };
-        /** @description One MoU in the evidence. */
-        MouEvidenceRow: {
-            /** @description Activities in the year, newest first. */
-            activities: components["schemas"]["ContractActivityView"][];
-            /** Format: uuid */
-            contractId: string;
-            /**
-             * Format: date
-             * @description When the agreement stops or stopped (null = still running).
-             */
-            endsOn?: string | null;
-            /** @description In force for some of the year and with an activity in it. */
-            functional: boolean;
-            kind: string;
-            partner: string;
-            purposes: string[];
-            scope: string;
-            /** Format: date */
-            startOn?: string | null;
-            status: string;
-            title: string;
-        };
-        MouTotals: {
-            /** Format: int64 */
-            activities: number;
-            /** @description Activities in the year by kind. */
-            activitiesByKind: {
-                [key: string]: number;
-            };
-            /**
-             * Format: int64
-             * @description … of which had an activity in the year.
-             */
-            functional: number;
-            /** @description Functional MoUs by kind (`mou_academic`…). */
-            functionalByKind: {
-                [key: string]: number;
-            };
-            /** @description Functional MoUs by scope (`national`, `international`). */
-            functionalByScope: {
-                [key: string]: number;
-            };
-            /**
-             * Format: int64
-             * @description MoUs in force during the year.
-             */
-            inForce: number;
-            /** Format: int64 */
-            staff: number;
-            /** Format: int64 */
-            students: number;
-        };
         /** @description One coursework item as the student sees it (contract §5.3). */
         MyAssignment: {
             courseTitle: string;
@@ -41488,20 +38665,6 @@ export interface components {
             items: components["schemas"]["SectionEnrolment"][];
             waitlist: components["schemas"]["OfferingWaitlistEntry"][];
         };
-        /** @description My expenses and claims, with the policy I claim under. */
-        MyExpenses: {
-            claims: components["schemas"]["ExpenseClaimSummary"][];
-            /** Format: uuid */
-            institutionId: string;
-            /** @description Whether uploaded receipts are read (a reader is configured). */
-            ocrEnabled: boolean;
-            ocrEngine: string;
-            settings: components["schemas"]["ExpenseSettings"];
-            staffLabel: string;
-            /** @description Expenses on no claim yet. */
-            unclaimed: components["schemas"]["ExpenseView"][];
-            unclaimedTotal: string;
-        };
         /** @description The caller's flexible-learning view: open opportunities of their institutions and their own enrolments. */
         MyFlexibleLearning: {
             enrolments: components["schemas"]["FlexibleEnrolment"][];
@@ -41568,16 +38731,6 @@ export interface components {
         MyResources: {
             items: components["schemas"]["CourseResource"][];
             sections: components["schemas"]["ResourceSection"][];
-        };
-        /** @description The caller's published duties. */
-        MyRoster: {
-            /** Format: date */
-            from: string;
-            items: components["schemas"]["DutyShiftView"][];
-            /** Format: double */
-            minutes: number;
-            /** Format: date */
-            to: string;
         };
         /** @description A student seated in one of the faculty member's sections. */
         MyStudent: {
@@ -42157,6 +39310,18 @@ export interface components {
             rationale?: string | null;
             sourceKey?: string | null;
         };
+        /** @description New ERP-role → IdP mapping. */
+        NewRoleMapping: {
+            /** @description Required for `client_role`. */
+            clientId?: string | null;
+            erpRole: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            /** @description Realm role, client role or group path (`/lms/teachers`). */
+            target: string;
+            /** @description `realm_role` | `client_role` | `group`. */
+            targetKind: string;
+        };
         NewSchedulingRequirement: {
             notes?: string | null;
             preferredDays?: number[];
@@ -42380,34 +39545,6 @@ export interface components {
             nextCursor?: string | null;
             /** Format: int64 */
             unreadCount: number;
-        };
-        /** @description What a receipt read pre-fills (`normalizeOcrResult`); the claimant confirms every field. */
-        OcrFields: {
-            cardLast4?: string | null;
-            categoryId?: string | null;
-            /**
-             * Format: double
-             * @description 0…1.
-             */
-            confidence: number;
-            currency: string;
-            date?: string | null;
-            items: components["schemas"]["OcrItem"][];
-            merchant?: string | null;
-            notes?: string | null;
-            paymentMethod?: string | null;
-            /** Format: double */
-            tax?: number | null;
-            /** Format: double */
-            tip?: number | null;
-            /** Format: double */
-            total?: number | null;
-        };
-        /** @description A receipt line item read by OCR. */
-        OcrItem: {
-            /** Format: double */
-            amount?: number | null;
-            name: string;
         };
         /** @description Offer terms. */
         OfferBody: {
@@ -42851,6 +39988,11 @@ export interface components {
         OfferingWindowList: {
             items: components["schemas"]["OfferingEnrolmentWindow"][];
         };
+        /**
+         * @description What to do with a row whose natural key already exists.
+         * @enum {string}
+         */
+        OnExisting: "skip" | "update";
         /** @description Opens an onboarding case. */
         OnboardingCreate: {
             /** Format: uuid */
@@ -43075,6 +40217,13 @@ export interface components {
          * @enum {string}
          */
         OrgUnitStatus: "draft" | "active" | "suspended" | "decommissioned" | "archived";
+        /** @description A commercial package: a dependency-closed set of modules. */
+        PackageSpec: {
+            description?: string;
+            key: string;
+            modules: string[];
+            name: string;
+        };
         /**
          * Format: uuid
          * @description The candidate's marks for one registered paper (internal + external + grace; L2-I08).
@@ -43142,6 +40291,21 @@ export interface components {
          * @enum {string}
          */
         PaymentChannel: "gateway" | "cash" | "cheque" | "bank_transfer" | "demand_draft" | "sponsor";
+        /** @description Part 2 S4 (UI fees, DEF-F-007): which online checkout the student's browser opens. */
+        PaymentGatewayInfo: {
+            /**
+             * @description Public key id Razorpay Checkout is opened with (`rzp_test_…` / `rzp_live_…`); absent for
+             *     the mock / disabled adapters. Never a secret.
+             */
+            checkoutKeyId?: string | null;
+            /** @description Configured adapter: `disabled | mock | razorpay`. */
+            gateway: string;
+            /**
+             * @description `false` when online payment is switched off (`SUTRA_PAYMENT_GATEWAY=disabled`): the UI
+             *     hides "Pay now" and points to the finance office.
+             */
+            onlinePayments: boolean;
+        };
         /**
          * Format: uuid
          * @description A payment attempt / received payment (L3-F-007…013).
@@ -43754,11 +40918,6 @@ export interface components {
          * @enum {string}
          */
         PersonKind: "student" | "staff";
-        /**
-         * @description Where a contract's clock stands.
-         * @enum {string}
-         */
-        Phase: "none" | "evergreen" | "expired" | "notice" | "soon" | "ok";
         PickupAuthorisation: {
             /** Format: date-time */
             createdAt: string;
@@ -43951,10 +41110,7 @@ export interface components {
             institutionId: string;
             processInstanceId?: string | null;
             rollbackReason?: string | null;
-            /**
-             * @description Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`,
-             *     `reminder_schedule`).
-             */
+            /** @description Rules only (`late_fee`, `rounding`, `instalment_policy`, `refund_window`, `write_off_threshold`). */
             ruleKey?: string | null;
             status: components["schemas"]["FinancePolicyStatus"];
             statusReason?: string | null;
@@ -44561,6 +41717,13 @@ export interface components {
             providerReference?: string | null;
             studentNumber: string;
         };
+        /** @description Provision the identity of a student or staff member. */
+        ProvisionRequest: {
+            /** Format: uuid */
+            subjectId: string;
+            /** @description `student` | `staff`. */
+            subjectType: string;
+        };
         /** @description New publication. */
         PublicationCreate: {
             /**
@@ -45118,38 +42281,6 @@ export interface components {
             studentId: components["schemas"]["StudentId"];
             toStatus: components["schemas"]["ScholarshipEligibilityStatus"];
         };
-        /** @description One tender's share of the counter's day. */
-        ReceiptCounterChannel: {
-            /** @example 12500.00 */
-            amount: string;
-            channel: string;
-            /** Format: int64 */
-            count: number;
-        };
-        /** @description The counter's day close. */
-        ReceiptCounterReport: {
-            byChannel: components["schemas"]["ReceiptCounterChannel"][];
-            /** Format: int64 */
-            cancelledCount: number;
-            /** Format: date */
-            date: string;
-            escposBase64: string;
-            /** Format: uuid */
-            institutionId: string;
-            /** @description `true` when limited to the caller's own receipts. */
-            mine: boolean;
-            preview: string;
-            /**
-             * Format: int64
-             * @description Receipts issued that day and still standing.
-             */
-            receiptCount: number;
-            rows: components["schemas"]["CounterReportRow"][];
-            /** @example 62500.00 */
-            total: string;
-            /** @description `₹62,500.00`. */
-            totalDisplay: string;
-        };
         /**
          * Format: uuid
          * @description Receipt issued for a completed payment.
@@ -45157,47 +42288,6 @@ export interface components {
         ReceiptId: string;
         ReceiptList: {
             items: components["schemas"]["ReceiptView"][];
-        };
-        /** @description One registration printed under the header (GSTIN, PAN, trust registration …). */
-        ReceiptPrintRegistration: {
-            label: string;
-            number: string;
-        };
-        /** @description What an institution prints on its counter slips. */
-        ReceiptPrintSettings: {
-            address: string;
-            footer: string;
-            /** Format: uuid */
-            institutionId: string;
-            /** @description At most two (GSTIN, PAN, trust registration). */
-            registrations: components["schemas"]["ReceiptPrintRegistration"][];
-            showAmountInWords: boolean;
-            /** @description Empty means the institution's own name. */
-            title: string;
-            /**
-             * Format: date-time
-             * @description `null` until the institution saves its own settings.
-             */
-            updatedAt?: string | null;
-        };
-        /** @description New print settings (the whole set; the server keeps nothing it is not sent). */
-        ReceiptPrintSettingsInput: {
-            address?: string;
-            footer?: string;
-            registrations?: components["schemas"]["ReceiptPrintRegistration"][];
-            showAmountInWords?: boolean;
-            title?: string;
-        };
-        /** @description What reading a receipt pre-filled (every field is a suggestion). */
-        ReceiptReading: {
-            engine: string;
-            error?: string | null;
-            fields?: null | components["schemas"]["OcrFields"];
-            /** @description The merchant's GSTIN when one with a valid checksum was printed. */
-            gstin?: string | null;
-            lineCount: number;
-            /** @description `read`, `failed` (the reader errored; type the fields) or `disabled` (no reader set up). */
-            status: string;
         };
         /** @description Receipt reference on a payment. */
         ReceiptRef: {
@@ -45207,85 +42297,11 @@ export interface components {
             receiptNumber: string;
             status: components["schemas"]["ReceiptStatus"];
         };
-        /** @description A slip ready for the counter's printer. */
-        ReceiptSlip: {
-            /** @description 32 (58 mm paper) or 48 (80 mm paper). */
-            columns: number;
-            doc: components["schemas"]["ReceiptSlipDoc"];
-            /** @description ESC/POS bytes, base64 (standard alphabet, padded). */
-            escposBase64: string;
-            /** @description `true` when the bytes end with the cash-drawer pulse (asked for, and a cash receipt). */
-            kickDrawer: boolean;
-            /** @description The slip as plain text, for the browser's own print dialog. */
-            preview: string;
-            /**
-             * Format: uuid
-             * @description `null` on a test slip.
-             */
-            receiptId?: string | null;
-            receiptNumber?: string | null;
-        };
-        /** @description A receipt as the slip shows it: header, meta lines, items, totals, payments, footer. */
-        ReceiptSlipDoc: {
-            /** @description Postal address under the name (omitted when empty). */
-            address: string;
-            /** @description Centered footer (omitted when empty). */
-            footer: string;
-            /** @description Line items. */
-            items: components["schemas"]["ReceiptSlipItem"][];
-            /** @description Prints `*** {kind} ***` (e.g. `DUPLICATE`) when present and non-empty. */
-            kind?: string | null;
-            /** @description Centered bold line (omitted when empty). */
-            loyalty: string;
-            /** @description Receipt number, date, student and similar lines. */
-            meta: string[];
-            /** @description Free note (omitted when empty). */
-            note: string;
-            /** @description Payment rows (a rule is printed above them only when there are some). */
-            payments: components["schemas"]["ReceiptSlipRow"][];
-            /** @description Registration lines, e.g. `GSTIN 27AAAAA0000A1Z5`. */
-            registrations: string[];
-            /** @description Centered line (omitted when empty). */
-            reward: string;
-            /** @description Institution name, printed double size. */
-            storeName: string;
-            /** @description Total rows. */
-            totals: components["schemas"]["ReceiptSlipRow"][];
-            /** @description Prints `*** VOID ***` under the header. */
-            voided: boolean;
-        };
-        /** @description One item line: quantity and name on the left, amount on the right, sub-lines indented. */
-        ReceiptSlipItem: {
-            /** @description Amount text, never shortened. */
-            amount: string;
-            /** @description Item name; shortened with `~` when the paper is narrow. */
-            name: string;
-            /** @description Quantity text, e.g. `1x`. */
-            qty: string;
-            /** @description Indented detail lines. */
-            subs: string[];
-        };
-        /** @description A label/value row (totals and payments). */
-        ReceiptSlipRow: {
-            /** @description Left-hand label. */
-            label: string;
-            /** @description Printed bold. */
-            strong?: boolean;
-            /** @description Right-hand value. */
-            value: string;
-        };
         /**
          * @description Receipt.
          * @enum {string}
          */
         ReceiptStatus: "issued" | "cancelled";
-        /** @description Upload a receipt (JPEG, PNG, WebP or PDF; at most 1.5 MB decoded). */
-        ReceiptUpload: {
-            contentType: string;
-            /** @description The file, base64. */
-            dataBase64: string;
-            fileName: string;
-        };
         /** @description One receipt with its allocations (printable). */
         ReceiptView: {
             accountName?: string | null;
@@ -45378,6 +42394,36 @@ export interface components {
             autoMatch?: boolean | null;
             ignore?: components["schemas"]["IgnoreLine"][];
             matches?: components["schemas"]["ManualMatch"][];
+        };
+        /** @description Reconciliation summary. */
+        Reconciliation: {
+            /** Format: int32 */
+            batchesCommitted: number;
+            /** @description Σ amounts this job posted. */
+            committedTotal?: string | null;
+            /** Format: int32 */
+            created: number;
+            /** Format: int32 */
+            duplicatesInFile: number;
+            /** Format: int32 */
+            errors: number;
+            /**
+             * Format: int32
+             * @description Rows whose natural key already existed (skipped or updated).
+             */
+            existingInDatabase: number;
+            /** @description Σ amount column of the file (entities with money). */
+            fileTotal?: string | null;
+            /** @description Σ the ledger holds for the job's records. */
+            ledgerTotal?: string | null;
+            /** @description `ledgerTotal == fileTotal` and the job committed (entities with money). */
+            reconciled?: boolean | null;
+            /** Format: int32 */
+            rowsInFile: number;
+            /** Format: int32 */
+            skipped: number;
+            /** Format: int32 */
+            updated: number;
         };
         ReconciliationDiscrepancy: {
             institutional?: string | null;
@@ -45946,70 +42992,9 @@ export interface components {
             /** Format: uuid */
             widgetId: string;
         };
-        /** @description Mark a renewal done. */
-        RenewalComplete: {
-            /**
-             * @description What the renewal cost, ₹ (goes to the vehicle's other costs).
-             * @example 12450.00
-             */
-            cost?: string | null;
-            /**
-             * Format: date
-             * @description Default today.
-             */
-            date?: string | null;
-            /**
-             * Format: date
-             * @description The new due date when it is not the repeat (e.g. a 3-year policy this time).
-             */
-            nextDue?: string | null;
-        };
-        RenewalInfo: {
-            /**
-             * Format: date
-             * @description Next term end (renewal or expiry).
-             */
-            date?: string | null;
-            /** Format: int64 */
-            daysLeft?: number | null;
-            decision?: null | components["schemas"]["Decision"];
-            /** @description The decision answers the deadline. */
-            handled: boolean;
-            /**
-             * Format: date
-             * @description Cancellation-notice deadline.
-             */
-            noticeDate?: string | null;
-            /** Format: int64 */
-            noticeDaysLeft?: number | null;
-            phase: components["schemas"]["Phase"];
-        };
         ReopenCase: {
             evidence?: string | null;
             reason: string;
-        };
-        /**
-         * @description A repeating schedule: one live occurrence, completed ones kept as history. Exactly one end
-         *     condition: a date, a count, or the contract's own end (or none).
-         */
-        Repeat: {
-            /** Format: date */
-            anchor: string;
-            contractEnd?: boolean;
-            /** Format: int32 */
-            count?: number | null;
-            every: string;
-            /** Format: date */
-            until?: string | null;
-        };
-        /** @description Repeat input as a client sends it. */
-        RepeatInput: {
-            anchor?: string | null;
-            contractEnd?: boolean;
-            /** Format: double */
-            count?: number | null;
-            every?: string | null;
-            until?: string | null;
         };
         ReplaceTopics: {
             summary?: string | null;
@@ -46237,6 +43222,18 @@ export interface components {
         RequestedMove: {
             orgUnitId: components["schemas"]["OrgUnitId"];
             toParentId: components["schemas"]["OrgUnitId"];
+        };
+        /**
+         * @description Keycloak required action triggered for an account (the user performs it at next sign-in, or
+         *     through the "execute actions" e-mail).
+         * @enum {string}
+         */
+        RequiredAction: "verifyEmail" | "updatePassword" | "configureTotp";
+        /** @description Trigger required actions (activation, password recovery, MFA enrolment). */
+        RequiredActionsRequest: {
+            actions: components["schemas"]["RequiredAction"][];
+            /** @description Also e-mail the user an "execute actions" link (needs SMTP in the realm). */
+            sendEmail?: boolean;
         };
         /** @description A new requisition (`draft`). */
         RequisitionCreate: {
@@ -46788,6 +43785,60 @@ export interface components {
          * @enum {string}
          */
         Role: "administrator" | "faculty" | "student" | "finance_approver" | "exam_controller" | "registrar" | "payroll_approver" | "procurement_approver";
+        /** @description Grant and / or revoke SutraERP roles of an identity. */
+        RoleChangeRequest: {
+            grant?: string[];
+            reason: string;
+            revoke?: string[];
+        };
+        /** @description Decision on a pending role request. */
+        RoleDecision: {
+            /** @description `approve` | `reject`. */
+            decision: string;
+            reason: string;
+        };
+        RoleMappingPage: {
+            items: components["schemas"]["RoleMappingView"][];
+        };
+        /** @description Extra IdP target of an ERP role. */
+        RoleMappingView: {
+            clientId?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            erpRole: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            target: string;
+            /** @description `realm_role` | `client_role` | `group`. */
+            targetKind: string;
+        };
+        RoleRequestPage: {
+            items: components["schemas"]["RoleRequestView"][];
+        };
+        /** @description One role request. */
+        RoleRequestView: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string | null;
+            decidedBy?: string | null;
+            decisionReason?: string | null;
+            grantRoles: string[];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            identityId: string;
+            /** @description A privileged role is granted: another administrator must decide. */
+            privileged: boolean;
+            reason: string;
+            requestedBy: string;
+            revokeRoles: string[];
+            /** @description `pending` | `approved` | `rejected` | `applied` (non-privileged, no decision needed). */
+            status: string;
+        };
         /** @description Inspection outcome. */
         RoomInspectionComplete: {
             /**
@@ -46881,186 +43932,6 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        /** @description The roster for a range. */
-        RosterBoard: {
-            /** Format: date */
-            from: string;
-            gaps: components["schemas"]["RosterCoverageGap"][];
-            openShifts: number;
-            shifts: components["schemas"]["DutyShiftView"][];
-            staff: components["schemas"]["RosterStaffRow"][];
-            /** Format: date */
-            to: string;
-            /**
-             * Format: date
-             * @description Monday of the week the staff hours are counted for.
-             */
-            weekStart: string;
-        };
-        /** @description A ranked candidate for a shift. */
-        RosterCandidate: {
-            /** Format: double */
-            deficitMinutes: number;
-            employeeId: string;
-            name: string;
-            /** Format: double */
-            projectedMinutes: number;
-            reasons: string[];
-            roleMatch: boolean;
-            ruleWarnings: components["schemas"]["RosterRuleWarning"][];
-            /** @description `available | partial`. */
-            status: string;
-        };
-        /** @description A staffing gap. */
-        RosterCoverageGap: {
-            date: string;
-            /** Format: int64 */
-            missing: number;
-            requirementId: string;
-            role: string;
-            /** Format: int64 */
-            scheduled: number;
-        };
-        /** @description One weekday's available window. */
-        RosterDayWindow: {
-            end?: string;
-            off?: boolean;
-            start?: string;
-        };
-        /** @description Fill open shifts in a range. */
-        RosterFillBody: {
-            /** @description Write the proposals (default false: preview). */
-            apply?: boolean;
-            /** @description Pin a shift to a staff member, or to null to leave it open. */
-            choices?: {
-                [key: string]: string | null;
-            };
-            /** Format: date */
-            from: string;
-            /** Format: date */
-            to: string;
-        };
-        /** @description A fill plan. */
-        RosterFillPlan: {
-            /** @description Shifts assigned (apply only). */
-            applied: number;
-            filling: number;
-            nobody: number;
-            rows: components["schemas"]["RosterFillRow"][];
-            skipped: number;
-            total: number;
-        };
-        /** @description One row of a fill plan. */
-        RosterFillRow: {
-            candidates: components["schemas"]["RosterCandidate"][];
-            pinned: boolean;
-            /** @description The employee to assign, or null when nobody is a clean fit (or the row is skipped). */
-            proposal?: string | null;
-            shiftId: string;
-            skipped: boolean;
-            /** @description A pinned pick an earlier row made impossible. */
-            stale: boolean;
-        };
-        /** @description A staff member's roster profile. */
-        RosterProfile: {
-            /** @description Seven windows, Sunday first; null = available any time. */
-            days?: (null | components["schemas"]["RosterDayWindow"])[] | null;
-            /** Format: double */
-            maxHours?: number | null;
-            /** @description Their usual duty (matched against shift roles when suggesting). */
-            role?: string | null;
-            /** @description False keeps them off the roster. */
-            rosterable?: boolean;
-            /** Format: double */
-            targetHours?: number | null;
-        };
-        /** @description How many shifts were published. */
-        RosterPublished: {
-            /** Format: int64 */
-            published: number;
-        };
-        /** @description A date range (inclusive). */
-        RosterRange: {
-            /**
-             * Format: date
-             * @description Default: Monday of this week.
-             */
-            from?: string | null;
-            /**
-             * Format: date
-             * @description Default: six days after `from`; at most 62 days.
-             */
-            to?: string | null;
-        };
-        /** @description A coverage requirement. */
-        RosterRequirementInput: {
-            /** Format: int64 */
-            count: number;
-            /** @description Weekdays, 0 = Sunday. */
-            days: number[];
-            end?: string | null;
-            /** @example Security */
-            role: string;
-            /** @description Optional window (`HH:MM`); the whole day without one. */
-            start?: string | null;
-        };
-        /** @description A broken working-time limit. */
-        RosterRuleWarning: {
-            message: string;
-            /** @description `rest | daily | consecutive`. */
-            rule: string;
-            short: string;
-        };
-        /** @description Optional working-time limits (all off by default; warnings, never blockers). */
-        RosterRules: {
-            /**
-             * Format: double
-             * @default null
-             */
-            maxConsecutiveDays: number | null;
-            /**
-             * Format: double
-             * @default null
-             */
-            maxDailyHours: number | null;
-            /**
-             * Format: double
-             * @default null
-             */
-            minRestHours: number | null;
-        };
-        /** @description Roster settings: working-time limits and coverage requirements. */
-        RosterSettings: {
-            requirements: components["schemas"]["RosterRequirementInput"][];
-            rules: components["schemas"]["RosterRules"];
-        };
-        /** @description A staff member's week on the roster. */
-        RosterStaffRow: {
-            /** @description `over | under | ok`. */
-            hoursStatus: string;
-            /** Format: double */
-            maxHours?: number | null;
-            name: string;
-            role: string;
-            rosterable: boolean;
-            /** @description One per broken working-time limit in the range. */
-            ruleWarnings: components["schemas"]["RosterRuleWarning"][];
-            /** Format: uuid */
-            staffId: string;
-            /** Format: double */
-            targetHours?: number | null;
-            /**
-             * Format: double
-             * @description Paid minutes in the week starting `weekStart`.
-             */
-            weekMinutes: number;
-        };
-        /** @description Ranked staff for a shift. */
-        RosterSuggestions: {
-            items: components["schemas"]["RosterCandidate"][];
-            /** Format: uuid */
-            shiftId: string;
-        };
         /** @description One stop in a draft version. */
         RouteStopInput: {
             /** @example 07:45 */
@@ -47130,17 +44001,15 @@ export interface components {
             /** Format: int32 */
             versionNo: number;
         };
-        /** @enum {string} */
-        RowKind: "section" | "account" | "subtotal" | "total" | "grand" | "row";
         /**
-         * @description A new rule version; decimals as strings:
-         *     * `late_fee` {`mode` flat | percent | per_day | slabs | none, `amount`, `percent`,
-         *       `frequency` once | monthly, `graceDays`, `cap`, `capPercent`, `slabs` [{`fromDay`, `amount`}],
-         *       `roundToRupee`, `minOverdue`, `feeHeadCode`} (the 5A shape {percent, graceDays, cap} is a
-         *       one-off percentage);
-         *     * `reminder_schedule` {`beforeDays` [7, 1], `afterDays` [1, 15, 30], `lateFromDays`};
-         *     * `rounding` {mode}, `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
-         *       `write_off_threshold` {amount}.
+         * @description What happened (or, in a dry run, would happen) to a row.
+         * @enum {string}
+         */
+        RowAction: "create" | "update" | "skip" | "error";
+        /**
+         * @description A new rule version (`late_fee` {percent, graceDays, cap}, `rounding` {mode},
+         *     `instalment_policy` {maxInstalments, minAmount}, `refund_window` {days},
+         *     `write_off_threshold` {amount}; decimals as strings).
          */
         RuleCreate: {
             changeNote?: string | null;
@@ -47495,63 +44364,6 @@ export interface components {
          * @enum {string}
          */
         ScopeKind: "institution" | "campus" | "org_unit" | "programme";
-        /** @description Candidates of a requisition side by side. */
-        ScorecardCompare: {
-            items: components["schemas"]["ScorecardCompareRow"][];
-            /** Format: uuid */
-            requisitionId: string;
-            rubric: components["schemas"]["HiringRatingField"][];
-        };
-        /** @description One candidate in a comparison. */
-        ScorecardCompareRow: {
-            /** Format: uuid */
-            candidateId: string;
-            name: string;
-            /** @description Must-have screening questions not answered yes. */
-            screeningFlags: number;
-            status: string;
-            summary: components["schemas"]["HiringScorecardSummary"];
-        };
-        /** @description Write a scorecard. */
-        ScorecardInput: {
-            /** @description The reviewer's name as it should read. */
-            authorName: string;
-            guideAnswers?: components["schemas"]["HiringGuideAnswer"][];
-            /**
-             * Format: uuid
-             * @description The interview it is for (optional).
-             */
-            interviewId?: string | null;
-            notes?: string | null;
-            /** @description Rubric key → 1–5 (or null when not rated). */
-            ratings?: Record<string, never>;
-            /** @description `strong_yes | yes | no | strong_no`. */
-            recommendation: string;
-        };
-        /** @description A scorecard. */
-        ScorecardView: {
-            authorName: string;
-            /** Format: double */
-            average?: number | null;
-            /** Format: uuid */
-            candidateId: string;
-            /** Format: date */
-            createdOn: string;
-            /** @description The rubric it was written with. */
-            fields: components["schemas"]["HiringRatingField"][];
-            guideAnswers: components["schemas"]["HiringGuideAnswer"][];
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            interviewId?: string | null;
-            notes?: string | null;
-            ratings: Record<string, never>;
-            recommendation: string;
-        };
-        /** @description Screening answers. */
-        ScreeningAnswersInput: {
-            answers: components["schemas"]["HiringScreeningAnswer"][];
-        };
         /** @description One search hit. */
         SearchHit: {
             /** @description The projected document (`_source`). */
@@ -47721,284 +44533,6 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        /** @description One action: `{ field, value }` (+ `to`, `subject`, `body` for notifications). */
-        ServiceDeskAction: {
-            body?: string | null;
-            field: string;
-            subject?: string | null;
-            to?: string | null;
-            value?: unknown;
-        };
-        /** @description One condition: `{ field, op, value }`. */
-        ServiceDeskCondition: {
-            field: string;
-            op: string;
-            value?: unknown;
-        };
-        /** @description All of `all`, and at least one of `any` when it is not empty. */
-        ServiceDeskConditions: {
-            /** @default [] */
-            all: components["schemas"]["ServiceDeskCondition"][];
-            /** @default [] */
-            any: components["schemas"]["ServiceDeskCondition"][];
-        };
-        /** @description Tickets of a view or the SLA board. */
-        ServiceDeskQueue: {
-            /**
-             * Format: int32
-             * @description How many listed tickets are past a target.
-             */
-            breached: number;
-            items: components["schemas"]["ServiceDeskTicketRow"][];
-            title: string;
-        };
-        /** @description A service-desk trigger. */
-        ServiceDeskRule: {
-            actions: components["schemas"]["ServiceDeskAction"][];
-            active: boolean;
-            conditions: components["schemas"]["ServiceDeskConditions"];
-            /** @description `created`, `updated` or `any`. */
-            event: string;
-            /** Format: uuid */
-            id: string;
-            /** Format: int32 */
-            position: number;
-            title: string;
-            /** Format: date-time */
-            updatedAt: string;
-            /** Format: int64 */
-            version: number;
-        };
-        /** @description A trigger to save (create, or replace with `If-Match`). */
-        ServiceDeskRuleInput: {
-            actions: components["schemas"]["ServiceDeskAction"][];
-            active?: boolean | null;
-            conditions?: components["schemas"]["ServiceDeskConditions"];
-            /** @description `created`, `updated` or `any` (default). */
-            event?: string | null;
-            /** Format: int32 */
-            position?: number | null;
-            title: string;
-        };
-        ServiceDeskRuleList: {
-            items: components["schemas"]["ServiceDeskRule"][];
-        };
-        ServiceDeskRulePreview: {
-            hits: components["schemas"]["ServiceDeskRulePreviewHit"][];
-            /**
-             * Format: int32
-             * @description Unsolved tickets the conditions match now.
-             */
-            matched: number;
-        };
-        ServiceDeskRulePreviewHit: {
-            changes: unknown;
-            number: string;
-            /** Format: uuid */
-            ticketId: string;
-            title: string;
-        };
-        /** @description A trigger to try against current tickets without saving it. */
-        ServiceDeskRulePreviewInput: {
-            actions: components["schemas"]["ServiceDeskAction"][];
-            conditions?: components["schemas"]["ServiceDeskConditions"];
-        };
-        /** @description One trigger firing on a ticket. */
-        ServiceDeskRuleRun: {
-            changes: unknown;
-            /** Format: date-time */
-            createdAt: string;
-            event: string;
-            /** Format: uuid */
-            ruleId?: string | null;
-            ruleTitle: string;
-        };
-        ServiceDeskRuleRunList: {
-            items: components["schemas"]["ServiceDeskRuleRun"][];
-        };
-        /** @description The SLA policy (effective: the defaults until the institution saves one). */
-        ServiceDeskSlaPolicy: {
-            /** @description `false` while the defaults apply. */
-            customised: boolean;
-            enabled: boolean;
-            /** @description Minutes per priority (`low`, `medium`, `high`, `critical`). */
-            targets: {
-                [key: string]: components["schemas"]["ServiceDeskSlaTarget"];
-            };
-            /** Format: int64 */
-            version: number;
-        };
-        ServiceDeskSlaPolicyInput: {
-            enabled: boolean;
-            targets: {
-                [key: string]: components["schemas"]["ServiceDeskSlaTarget"];
-            };
-            /**
-             * Format: int64
-             * @description The version read (0 before anything was saved).
-             */
-            version: number;
-        };
-        /** @description The target due soonest. */
-        ServiceDeskSlaState: {
-            breached: boolean;
-            /** Format: double */
-            dueAt: number;
-            /** @description `first`, `next` or `resolve`. */
-            metric: string;
-            /** Format: double */
-            remaining: number;
-        };
-        /** @description Targets of one priority, in minutes (`0` = none). */
-        ServiceDeskSlaTarget: {
-            /**
-             * Format: int64
-             * @description First reply / first response.
-             * @default 0
-             */
-            first: number;
-            /**
-             * Format: int64
-             * @description Next reply after the requester writes again.
-             * @default 0
-             */
-            next: number;
-            /**
-             * Format: int64
-             * @description Resolution.
-             * @default 0
-             */
-            resolve: number;
-        };
-        /** @description Tags to add and remove. */
-        ServiceDeskTagChange: {
-            add?: string[];
-            remove?: string[];
-        };
-        /** @description A ticket on a queue or the SLA board. */
-        ServiceDeskTicketRow: {
-            /** Format: date-time */
-            firstResponseAt?: string | null;
-            sla?: null | components["schemas"]["ServiceDeskSlaState"];
-            /** @description `3h`, `-2d` … until that target. */
-            slaIn?: string | null;
-            tags: string[];
-            ticket: components["schemas"]["TicketView"];
-        };
-        /** @description A saved queue: conditions over tickets. */
-        ServiceDeskView: {
-            conditions: components["schemas"]["ServiceDeskConditions"];
-            /** @description `sys-…` for the built-in views. */
-            id: string;
-            /** @description `updated_desc`, `created_asc`, `created_desc` or `sla_asc`. */
-            sort: string;
-            system: boolean;
-            title: string;
-        };
-        ServiceDeskViewInput: {
-            conditions?: components["schemas"]["ServiceDeskConditions"];
-            sort?: string | null;
-            title: string;
-        };
-        ServiceDeskViewList: {
-            items: components["schemas"]["ServiceDeskView"][];
-        };
-        /** @description Record a service. */
-        ServiceEntryCreate: {
-            /**
-             * @description ₹.
-             * @example 3450.00
-             */
-            amount: string;
-            /** @example Oil change, air filter */
-            description: string;
-            /** @example 48250 */
-            meter?: string | null;
-            /** @description Service reminders of this vehicle the work completes. */
-            reminderIds?: string[];
-            /**
-             * Format: date
-             * @description Default today.
-             */
-            servicedOn?: string | null;
-            vendor?: string | null;
-        };
-        /** @description One service done. */
-        ServiceEntryView: {
-            /** @example 3450.00 */
-            amount: string;
-            description: string;
-            /** Format: uuid */
-            id: string;
-            meter?: string | null;
-            reminderIds: string[];
-            /** Format: date */
-            servicedOn: string;
-            vendor?: string | null;
-        };
-        /** @description Create or change a service reminder. */
-        ServiceReminderInput: {
-            /** @description Update only (default true). */
-            active?: boolean | null;
-            /** Format: int32 */
-            dueSoonDays?: number | null;
-            /** Format: double */
-            dueSoonMeter?: number | null;
-            interval?: null | components["schemas"]["FleetInterval"];
-            /**
-             * Format: double
-             * @description Repeat by meter (km / mi / hours).
-             */
-            meterInterval?: number | null;
-            /**
-             * Format: date
-             * @description Manual override of the next due date / meter (cleared by a completion).
-             */
-            nextDate?: string | null;
-            /** Format: double */
-            nextMeter?: number | null;
-            /**
-             * Format: date
-             * @description Where the schedule starts (default today, and the vehicle's meter).
-             */
-            startDate?: string | null;
-            /** Format: double */
-            startMeter?: number | null;
-            /** @example Engine oil and filter */
-            task: string;
-        };
-        /** @description A service reminder and where it stands. */
-        ServiceReminderView: {
-            active: boolean;
-            /**
-             * Format: double
-             * @description Share of completions done on time (null without history).
-             */
-            compliance?: number | null;
-            /** Format: double */
-            dueSoonDays?: number | null;
-            /** Format: double */
-            dueSoonMeter?: number | null;
-            history: components["schemas"]["FleetReminderCompletion"][];
-            /** Format: uuid */
-            id: string;
-            interval?: null | components["schemas"]["FleetInterval"];
-            lastDate?: string | null;
-            /** Format: double */
-            lastMeter?: number | null;
-            /** Format: double */
-            meterInterval?: number | null;
-            registrationNo: string;
-            /** @description "Every 6 months or 10000 km", "One time". */
-            schedule: string;
-            snoozedUntil?: string | null;
-            state: components["schemas"]["FleetReminderState"];
-            task: string;
-            /** Format: uuid */
-            vehicleId: string;
-            /** Format: int64 */
-            version: number;
-        };
         /**
          * Format: uuid
          * @description Service desk ticket: service request or complaint from any campus service (L2-G01 / G03 / G04 / G05).
@@ -48066,6 +44600,34 @@ export interface components {
             lastSeenAt: string;
             mfaLevel: components["schemas"]["MfaLevel"];
         };
+        SettlementImportView: {
+            /** @description `true` when this exact file had been imported before (nothing new recorded). */
+            alreadyImported: boolean;
+            amountUnit: string;
+            feeTotal: string;
+            fileName?: string | null;
+            gateway: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            importedAt: string;
+            importedBy?: string | null;
+            /** Format: uuid */
+            institutionId: string;
+            /** Format: int32 */
+            lineCount: number;
+            lines: components["schemas"]["SettlementLineView"][];
+            /** Format: int32 */
+            matchedCount: number;
+            /**
+             * Format: int32
+             * @description Lines that need attention (everything but matches and ignored types).
+             */
+            mismatchCount: number;
+            /** @description Σ credit − Σ debit of the report. */
+            settledTotal: string;
+            taxTotal: string;
+        };
         /** @description A gateway settlement credited to the bank account. */
         SettlementInput: {
             items: components["schemas"]["SettlementItemInput"][];
@@ -48098,6 +44660,29 @@ export interface components {
             paymentId: string;
             /** Format: uuid */
             reversalEntryId?: string | null;
+        };
+        SettlementLineView: {
+            amount: string;
+            detail?: string | null;
+            entityId: string;
+            entityType: string;
+            fee: string;
+            /** Format: int32 */
+            lineNo: number;
+            orderId?: string | null;
+            /** Format: uuid */
+            paymentId?: string | null;
+            /** Format: uuid */
+            refundId?: string | null;
+            /**
+             * @description `matched | amount_mismatch | order_mismatch | unknown_payment | payment_not_completed |
+             *     already_settled | duplicate_line | refund_matched | refund_amount_mismatch |
+             *     unknown_refund | ignored`.
+             */
+            result: string;
+            settlementId?: string | null;
+            settlementUtr?: string | null;
+            tax: string;
         };
         SettlementRecovery: {
             /** @example 5000.00 */
@@ -48156,11 +44741,6 @@ export interface components {
          * @enum {string}
          */
         SimulationStatus: "draft" | "evaluated" | "accepted" | "discarded";
-        /** @description Snooze until a date (null clears). */
-        SnoozeBody: {
-            /** Format: date */
-            until?: string | null;
-        };
         /** @description Award the event to one quotation. */
         SourcingAward: {
             /** Format: uuid */
@@ -48406,80 +44986,22 @@ export interface components {
         StateCommand: {
             reason?: string | null;
         };
-        /** @description A computed statement. */
-        Statement: {
-            /** @description Balance sheet: assets = funds + liabilities in every column. */
-            balanced?: boolean | null;
-            columns: components["schemas"]["Column"][];
-            id: string;
-            /**
-             * @description Surplus of the period (income & expenditure, first column when comparing) or the net
-             *     cash change (cash flow).
-             */
-            net?: string | null;
-            /** @description Cash flow: the net cash change equals the movement on cash and bank accounts. */
-            reconciled?: boolean | null;
-            rows: components["schemas"]["StatementRow"][];
-            subtitle: string;
-            title: string;
-        };
-        /**
-         * @description Where an account sits on the statements (Everything's account type).
-         * @enum {string}
-         */
-        StatementGroup: "bank" | "receivable" | "other_current_asset" | "fixed_asset" | "other_asset" | "payable" | "credit_card" | "other_current_liability" | "long_term_liability" | "fund" | "income" | "other_income" | "direct_cost" | "expense" | "other_expense";
         /** @description A statement to import. */
         StatementImport: {
             /** @example 99000.00 */
             closingBalance?: string | null;
             /**
-             * @description The statement: JSON lines (`format` `jsonl`, one object per line:
-             *     `{"valueDate":"2026-07-03","direction":"credit","amount":"99000.00","reference":"UTR123","description":"…"}`),
-             *     or the bank's CSV, OFX/QFX or MT940 file as text.
+             * @description JSON lines, one object per statement line:
+             *     `{"valueDate":"2026-07-03","direction":"credit","amount":"99000.00","reference":"UTR123","description":"…"}`.
              */
             content: string;
-            /** @description `dmy` (default, as Indian banks write dates) or `mdy`, for numeric CSV dates like 03/04/2026. */
-            dateStyle?: string | null;
-            /** @description `jsonl` (default), `csv`, `ofx`, `mt940`, or `auto` to detect it from the content. */
-            format?: string | null;
-            /** @description Flip every sign (card statements that show charges as positive numbers). */
-            invert?: boolean | null;
-            mapping?: null | components["schemas"]["ColumnMapping"];
             /** @example 0.00 */
             openingBalance?: string | null;
-            /**
-             * Format: date
-             * @description Required for `jsonl`; for bank files it defaults to the first and last line dates, and
-             *     when given every line must fall inside it.
-             */
-            periodFrom?: string | null;
             /** Format: date */
-            periodTo?: string | null;
-            /** @description Defaults to the file's own statement reference (MT940 `:20:`) or the period. */
-            statementRef?: string | null;
-        };
-        /** @description A match suggestion for a statement line. */
-        StatementLineSuggestion: {
-            amount: string;
+            periodFrom: string;
             /** Format: date */
-            date: string;
-            /**
-             * Format: int64
-             * @description Days between the line and the entry date (or the charge's due date).
-             */
-            daysApart: number;
-            description: string;
-            /** Format: uuid */
-            id: string;
-            /**
-             * @description `entry` (a ledger entry on the bank account) or `charge` (an open student charge of
-             *     exactly this amount, probably being paid).
-             */
-            kind: string;
-            number: string;
-        };
-        StatementLineSuggestionList: {
-            items: components["schemas"]["StatementLineSuggestion"][];
+            periodTo: string;
+            statementRef: string;
         };
         /** @description One imported statement line. */
         StatementLineView: {
@@ -48506,92 +45028,12 @@ export interface components {
         StatementList: {
             items: components["schemas"]["StatementView"][];
         };
-        /** @description What importing a file would do. */
-        StatementPreview: {
-            closingBalance?: string | null;
-            /** Format: int32 */
-            duplicateLines: number;
-            /** @description The format read (`csv`, `ofx`, `mt940`, `jsonl`). */
-            format: string;
-            /** @description CSV header row (or `Column 1…` when the file has none). */
-            headers: string[];
-            lines: components["schemas"]["StatementPreviewLine"][];
-            mapping?: null | components["schemas"]["ColumnMapping"];
-            /** Format: int32 */
-            newLines: number;
-            openingBalance?: string | null;
-            /** Format: date */
-            periodFrom: string;
-            /** Format: date */
-            periodTo: string;
-            skipped: components["schemas"]["StatementPreviewSkip"][];
-            statementRef?: string | null;
-            /** @description Totals of the lines that would be imported (duplicates excluded). */
-            totalCredits: string;
-            totalDebits: string;
-        };
-        /** @description A bank file to read without importing it. */
-        StatementPreviewInput: {
-            content: string;
-            /** @description `dmy` (default) or `mdy`. */
-            dateStyle?: string | null;
-            /** @description `auto` (default), `csv`, `ofx`, `mt940` or `jsonl`. */
-            format?: string | null;
-            invert?: boolean | null;
-            mapping?: null | components["schemas"]["ColumnMapping"];
-            /** Format: date */
-            periodFrom?: string | null;
-            /** Format: date */
-            periodTo?: string | null;
-        };
-        /** @description One line of a previewed file. */
-        StatementPreviewLine: {
-            /** @example 99000.00 */
-            amount: string;
-            description?: string | null;
-            /** @description `credit` (into the account) or `debit` (out of it). */
-            direction: string;
-            /** @description An earlier statement of this account already holds this line; import skips it. */
-            duplicate: boolean;
-            reference?: string | null;
-            /** Format: date */
-            valueDate: string;
-        };
-        /** @description A row of the file that is not a transaction (a total, a blank, an unreadable date). */
-        StatementPreviewSkip: {
-            reason: string;
-            /**
-             * Format: int32
-             * @description 1-based row (CSV) or line (MT940) of the file.
-             */
-            row: number;
-        };
-        /** @description One statement line. */
-        StatementRow: {
-            /** Format: uuid */
-            accountId?: string | null;
-            /** Format: int32 */
-            depth: number;
-            detail?: null | components["schemas"]["LedgerLine"];
-            emphasis: boolean;
-            /** @description Stable structure key (Everything's English label) for headings and totals. */
-            key?: string | null;
-            kind: components["schemas"]["RowKind"];
-            label: string;
-            /** @description One cell per column; `null` = blank. Decimal strings (percent cells: basis points). */
-            values: (string | null)[];
-        };
         /** @description An imported bank statement. */
         StatementView: {
             bankAccountId: components["schemas"]["BankAccountId"];
             closingBalance?: string | null;
             /** Format: date-time */
             createdAt: string;
-            /**
-             * Format: int32
-             * @description Lines of the file an earlier statement of this account already held (not imported again).
-             */
-            duplicateLines: number;
             id: components["schemas"]["BankStatementId"];
             /** Format: int32 */
             lineCount: number;
@@ -48604,8 +45046,6 @@ export interface components {
             /** Format: date-time */
             reconciledAt?: string | null;
             reconciliations: components["schemas"]["BankReconciliationView"][];
-            /** @description `jsonl`, `csv`, `ofx` or `mt940`. */
-            sourceFormat: string;
             statementRef: string;
             status: components["schemas"]["BankStatementStatus"];
             totalCredits: string;
@@ -48701,122 +45141,6 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
-        /** @description Demand of an institution's stock items. */
-        StockDemandReport: {
-            /** @description Under seven days of ledger: no rates, and no suggestions from them. */
-            enough: boolean;
-            items: components["schemas"]["StockDemandRow"][];
-            /**
-             * Format: double
-             * @description The ledger's reach inside the window (days).
-             */
-            measuredDays: number;
-            /** Format: int32 */
-            windowDays: number;
-        };
-        /** @description Demand and reorder suggestion of one item. */
-        StockDemandRow: {
-            /**
-             * @description On hand − reserved: what demand and cover are judged on.
-             * @example 40.000
-             */
-            available: string;
-            /**
-             * Format: double
-             * @description Days of stock left at that rate (null when unknown).
-             */
-            coverDays?: number | null;
-            coverLabel: string;
-            itemCode: string;
-            /** Format: uuid */
-            itemId: string;
-            itemName: string;
-            /** Format: int32 */
-            leadTimeDays?: number | null;
-            /** @example 40.000 */
-            onHand: string;
-            /**
-             * @description Still due on issued / acknowledged / partially received purchase orders.
-             * @example 0.000
-             */
-            onOrder: string;
-            packSize?: string | null;
-            /**
-             * Format: double
-             * @description Units issued per day over the measured span (0 when unknown).
-             */
-            perDay: number;
-            /** @description "≈1.4 units a day" (blank when unknown). */
-            rateLabel: string;
-            reorderLevel?: string | null;
-            /** @example 0.000 */
-            reserved: string;
-            /**
-             * Format: int64
-             * @description Lead time + safety days.
-             */
-            restockDays: number;
-            /** @description Runs out before a restock could land. */
-            runningOut: boolean;
-            /**
-             * Format: int32
-             * @description The safety days used (item override or the institution default).
-             */
-            safetyDays: number;
-            /** @description `out | low | ok` against the reorder level (no level = never low). */
-            status: string;
-            /**
-             * @description How many to order now (0 = nothing; whole packs; less what is on order).
-             * @example 24.000
-             */
-            suggestedOrderQuantity: string;
-            /** @description The reorder level demand implies (null when there is no arithmetic to show). */
-            suggestedReorderLevel?: string | null;
-            trackExpiry: boolean;
-            unit: string;
-        };
-        /** @description Expiry report. */
-        StockExpiryReport: {
-            /** Format: date */
-            asOf: string;
-            /** Format: int32 */
-            horizonDays: number;
-            items: components["schemas"]["StockExpiryRow"][];
-        };
-        /** @description An item with stock expired or expiring. */
-        StockExpiryRow: {
-            /** @example 4.000 */
-            expired: string;
-            itemCode: string;
-            /** Format: uuid */
-            itemId: string;
-            itemName: string;
-            /** @example 6.000 */
-            soon: string;
-            /** Format: date */
-            soonest?: string | null;
-            unit: string;
-            /**
-             * @description (expired + soon) × standard cost, ₹.
-             * @example 480.00
-             */
-            value: string;
-        };
-        /** @description How dated stock stands against the calendar. */
-        StockExpiryStatus: {
-            /**
-             * Format: double
-             * @description Units already past their date.
-             */
-            expired: number;
-            /**
-             * Format: double
-             * @description Units expiring within the horizon (expired excluded).
-             */
-            soon: number;
-            /** @description The earliest date on hand (`""` when none is dated). */
-            soonest: string;
-        };
         /** @description Request stock from a store. */
         StockIssueCreate: {
             /**
@@ -48876,29 +45200,6 @@ export interface components {
             statusReason?: string | null;
             /** Format: int64 */
             version: number;
-        };
-        /** @description An item's lots, first-expired-first-out, with how it stands against the calendar. */
-        StockLotList: {
-            /** Format: int32 */
-            horizonDays: number;
-            /** Format: uuid */
-            itemId: string;
-            items: components["schemas"]["StockLotView"][];
-            status: components["schemas"]["StockExpiryStatus"];
-            trackExpiry: boolean;
-        };
-        /** @description One dated lot at a location. */
-        StockLotView: {
-            /**
-             * Format: date
-             * @description Null = date unknown.
-             */
-            expiryOn?: string | null;
-            locationCode: string;
-            /** Format: uuid */
-            locationId: string;
-            /** @example 12.000 */
-            quantity: string;
         };
         StockMovementList: {
             items: components["schemas"]["StockMovementView"][];
@@ -49048,6 +45349,47 @@ export interface components {
             parentId?: string | null;
             /** @description `active | inactive`. */
             status: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description Metadata of a stored document (`platform.document_object`). The storage key never leaves
+         *     the server.
+         */
+        StoredDocument: {
+            /** @description `application/pdf` | `image/png` | `image/jpeg` (detected from the content). */
+            contentType: string;
+            /** Format: date-time */
+            deletedAt?: string | null;
+            /** @description Sanitised file name. */
+            filename: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            institutionId?: string | null;
+            legalHold: boolean;
+            legalHoldReason?: string | null;
+            /** Format: uuid */
+            ownerId: string;
+            /** @description `admission_document` | `student_document`. */
+            ownerType: string;
+            /**
+             * Format: date-time
+             * @description Set when a read found the stored bytes changed or missing; downloads are refused.
+             */
+            quarantinedAt?: string | null;
+            /**
+             * Format: date-time
+             * @description The document cannot be deleted before this instant.
+             */
+            retentionUntil: string;
+            /** @description Lower-case hex SHA-256 of the content, verified on every read. */
+            sha256: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy?: string | null;
             /** Format: int64 */
             version: number;
         };
@@ -49241,6 +45583,12 @@ export interface components {
         StudentDocument: {
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Part 2 · S4-docs: the stored file (platform document service), when one was uploaded or
+             *     moved over from the admission.
+             */
+            documentObjectId?: string | null;
             documentType: string;
             fileRef?: string | null;
             id: components["schemas"]["StudentDocumentId"];
@@ -50631,32 +46979,6 @@ export interface components {
             orgUnitId?: null | components["schemas"]["OrgUnitId"];
             title?: string | null;
         };
-        /** @description Changes to an enquiry; `stage` moves it (Lost needs `closeReason`). `null` clears a field. */
-        UpdateEnquiry: {
-            campaign?: string | null;
-            city?: string | null;
-            closeReason?: string | null;
-            /** Format: double */
-            confidence?: number | null;
-            email?: string | null;
-            expectedFee?: string | null;
-            /** Format: date */
-            expectedJoin?: string | null;
-            familyName?: string | null;
-            givenName?: string | null;
-            guardianName?: string | null;
-            guardianPhone?: string | null;
-            intake?: string | null;
-            /** Format: date */
-            nextFollowUp?: string | null;
-            notes?: string | null;
-            ownerRef?: string | null;
-            phone?: string | null;
-            /** Format: uuid */
-            programmeId?: string | null;
-            source?: string | null;
-            stage?: string | null;
-        };
         UpdateFacultyAssignment: {
             /** Format: date */
             effectiveFrom?: string | null;
@@ -50760,80 +47082,9 @@ export interface components {
             label: string;
             registrationNo: string;
         };
-        /** @description Another operating cost (tolls, parking, cleaning, fines…). */
-        VehicleExpenseCreate: {
-            /**
-             * @description ₹.
-             * @example 450.00
-             */
-            amount: string;
-            /** @example Tolls */
-            expenseType: string;
-            note?: string | null;
-            /** Format: date */
-            spentOn?: string | null;
-        };
         /** @description Vehicles of an institution. */
         VehicleList: {
             items: components["schemas"]["VehicleView"][];
-        };
-        /** @description A vehicle's maintenance file. */
-        VehicleMaintenance: {
-            /** Format: double */
-            fuelCapacity?: number | null;
-            /** Format: double */
-            meter?: number | null;
-            meterUnit: string;
-            registrationNo: string;
-            reminders: components["schemas"]["ServiceReminderView"][];
-            renewals: components["schemas"]["VehicleRenewalView"][];
-            /** @description Latest 50 services, newest first. */
-            services: components["schemas"]["ServiceEntryView"][];
-            /** Format: uuid */
-            vehicleId: string;
-        };
-        /** @description Set a vehicle's meter details. */
-        VehicleMeterSetup: {
-            /**
-             * @description Tank size in the fleet's volume unit (warns on over-full fills).
-             * @example 60
-             */
-            fuelCapacity?: string | null;
-            /** @description `km | mi | hr`. */
-            meterUnit: string;
-        };
-        /** @description A new renewal. */
-        VehicleRenewalCreate: {
-            /** Format: date */
-            dueDate: string;
-            /** Format: int32 */
-            dueSoonDays?: number | null;
-            label?: string | null;
-            /** @description `registration | insurance | fitness | pollution | permit | road_tax | other`. */
-            renewalType: string;
-            repeat?: null | components["schemas"]["FleetInterval"];
-        };
-        /** @description A renewal and where it stands. */
-        VehicleRenewalView: {
-            /** Format: int64 */
-            daysLeft?: number | null;
-            done: boolean;
-            dueDate?: string | null;
-            history: components["schemas"]["FleetRenewalCompletion"][];
-            /** Format: uuid */
-            id: string;
-            label?: string | null;
-            registrationNo: string;
-            /** @description `registration | insurance | fitness | pollution | permit | road_tax | other`. */
-            renewalType: string;
-            repeat?: null | components["schemas"]["FleetInterval"];
-            snoozedUntil?: string | null;
-            /** @description `overdue | due_soon | upcoming | snoozed` (a renewal with no next date is `upcoming`). */
-            status: string;
-            /** Format: uuid */
-            vehicleId: string;
-            /** Format: int64 */
-            version: number;
         };
         /** @description A manual vehicle status change (`available | under_maintenance | retired`). */
         VehicleStatusBody: {
@@ -66582,134 +62833,6 @@ export interface operations {
             };
         };
     };
-    campus_transport_fleet_costs: {
-        parameters: {
-            query?: {
-                /** @description Inclusive; default the first of this month a year ago. */
-                from?: string;
-                /** @description Inclusive; default today. */
-                to?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FleetCosts"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_maintenance_board: {
-        parameters: {
-            query?: {
-                /** @description `overdue | due_soon | upcoming | snoozed`; default every status but upcoming. */
-                status?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MaintenanceBoard"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_fleet_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FleetSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_fleet_settings_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FleetSettings"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FleetSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     campus_governance_case_list: {
         parameters: {
             query?: {
@@ -67993,291 +64116,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomInspectionList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_rule_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskRuleList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_rule_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceDeskRuleInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskRule"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_rule_preview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceDeskRulePreviewInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskRulePreview"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_sla_board: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskQueue"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_sla_policy_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskSlaPolicy"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_sla_policy_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceDeskSlaPolicyInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskSlaPolicy"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_view_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskViewList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_view_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceDeskViewInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_view_tickets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                viewId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskQueue"];
                 };
             };
             "4XX": {
@@ -71825,167 +67663,6 @@ export interface operations {
             };
         };
     };
-    campus_servicedesk_rule_update: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description ETag of the rule */
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceDeskRuleInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskRule"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_rule_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_view_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_service_reminder_update: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceReminderInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceReminderView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_service_reminder_snooze: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnoozeBody"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceReminderView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     campus_space_calendar: {
         parameters: {
             query?: {
@@ -72073,35 +67750,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TicketView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_ticket_automation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskRuleRunList"];
                 };
             };
             "4XX": {
@@ -72398,43 +68046,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TicketView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_servicedesk_ticket_tags: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description ETag of the ticket */
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceDeskTagChange"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceDeskTicketRow"];
                 };
             };
             "4XX": {
@@ -73605,76 +69216,6 @@ export interface operations {
             };
         };
     };
-    campus_transport_vehicle_renewal_complete: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RenewalComplete"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VehicleRenewalView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_vehicle_renewal_snooze: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnoozeBody"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VehicleRenewalView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     campus_transport_vehicle_breakdown: {
         parameters: {
             query?: never;
@@ -73700,282 +69241,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VehicleView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_vehicle_expense_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VehicleExpenseCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FleetCreated"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_fuel_entry_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FuelLog"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_fuel_entry_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FuelEntryCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FuelLog"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_vehicle_maintenance_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VehicleMaintenance"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_meter_reading_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MeterReadingCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VehicleMaintenance"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_vehicle_renewal_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VehicleRenewalCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VehicleRenewalView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_service_entry_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceEntryCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VehicleMaintenance"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    campus_transport_service_reminder_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceReminderInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServiceReminderView"];
                 };
             };
             "4XX": {
@@ -82086,38 +77351,6 @@ export interface operations {
             };
         };
     };
-    finance_bank_recon_brs: {
-        parameters: {
-            query?: {
-                /** @description `YYYY-MM-DD`; defaults to today. */
-                asOf?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BrsView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     finance_bank_account_close: {
         parameters: {
             query?: never;
@@ -82178,166 +77411,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankAccountView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_bank_recon_workspace: {
-        parameters: {
-            query?: {
-                /** @description `YYYY-MM-DD`; defaults to the period end of the latest imported statement, else today. */
-                statementDate?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BankReconWorkspace"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_bank_recon_preview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BankReconInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BankReconSummary"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_bank_recon_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BankReconList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_bank_recon_finish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BankReconInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BankReconView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_bank_recon_undo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BankReconUndo"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BankReconView"];
                 };
             };
             "4XX": {
@@ -82487,39 +77560,6 @@ export interface operations {
             };
         };
     };
-    finance_statement_preview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StatementPreviewInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StatementPreview"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     finance_bank_account_suspend: {
         parameters: {
             query?: never;
@@ -82574,39 +77614,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatementView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_statement_line_suggestions: {
-        parameters: {
-            query?: {
-                /** @description Days either side of the value date (default 10, at most 60). */
-                window?: number;
-            };
-            header?: never;
-            path: {
-                id: string;
-                lineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StatementLineSuggestionList"];
                 };
             };
             "4XX": {
@@ -82680,158 +77687,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankTransactionView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_plan_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BillingPlanUpdate"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingPlanView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_enrolment_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingEnrolmentList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_enrolment_upsert: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BillingEnrolmentUpsert"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingEnrolmentView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_enrolment_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                studentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_run_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingRunDetail"];
                 };
             };
             "4XX": {
@@ -84757,6 +79612,35 @@ export interface operations {
             };
         };
     };
+    finance_gateway_settlement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_gateway_webhook: {
         parameters: {
             query?: never;
@@ -85058,35 +79942,6 @@ export interface operations {
             };
         };
     };
-    finance_bank_recon_discrepancies: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BankReconDiscrepancyList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     finance_bank_transaction_list: {
         parameters: {
             query?: never;
@@ -85104,226 +79959,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankTransactionList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_plan_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingPlanList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_plan_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BillingPlanCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingPlanView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_run_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingRunList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_run_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BillingRunRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingRunView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_run_preview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BillingRunRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingRunView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_schedule_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingScheduleList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_charge_billing_schedule_set: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                frequency: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BillingScheduleUpdate"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingScheduleView"];
                 };
             };
             "4XX": {
@@ -85503,40 +80138,6 @@ export interface operations {
             };
         };
     };
-    finance_receipt_counter_report: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                /** @description The business day (default today, institution time). */
-                date: string | null;
-                columns: number | null;
-                /** @description Only the receipts the caller recorded. */
-                mine: boolean | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReceiptCounterReport"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     finance_dunning_run: {
         parameters: {
             query?: never;
@@ -85620,35 +80221,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeeHeadView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_dunning_reminder_run: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeeReminderRun"];
                 };
             };
             "4XX": {
@@ -85861,144 +80433,6 @@ export interface operations {
             };
         };
     };
-    finance_ledger_balance_sheet: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                /** @description Default: today. */
-                asOf: string | null;
-                /** @description `total` (default), `month` or `quarter` (six period ends). */
-                columns: string | null;
-                /** @description Add the same date a year earlier. */
-                comparePreviousYear: boolean | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Statement"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_ledger_cash_flow: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                from: string | null;
-                to: string | null;
-                /** @description General ledger only: one account (default: every account with activity). */
-                ledgerAccountId: string | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Statement"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_ledger_general_ledger: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                from: string | null;
-                to: string | null;
-                /** @description General ledger only: one account (default: every account with activity). */
-                ledgerAccountId: string | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Statement"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_ledger_income_expenditure: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                /** @description First day (default: start of the fiscal year of `to`). */
-                from: string | null;
-                /** @description Last day (default: today). */
-                to: string | null;
-                /** @description `total` (default), `month`, `quarter` or `year` (fiscal years). */
-                columns: string | null;
-                /** @description `previous_period` or `previous_year`: two columns with ₹ and % change. */
-                compare: string | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Statement"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     finance_year_list: {
         parameters: {
             query?: never;
@@ -86064,6 +80498,51 @@ export interface operations {
             };
         };
     };
+    finance_gateway_settlement_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description `rupees` (dashboard export, default) or `paise` (recon API). */
+                amountUnit: string | null;
+                /** @description Original file name (recorded only). */
+                fileName: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementImportView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_journal_list: {
         parameters: {
             query?: never;
@@ -86092,64 +80571,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JournalEntryList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_receivable_late_fee_run: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LateFeeRun"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_receivable_late_fee_preview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LateFeeRun"];
                 };
             };
             "4XX": {
@@ -86315,99 +80736,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_receipt_print_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReceiptPrintSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_receipt_print_settings_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReceiptPrintSettingsInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReceiptPrintSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_receipt_test_slip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                /** @description 32 or 48 (anything else prints at 48). */
-                columns: number | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReceiptSlip"];
                 };
             };
             "4XX": {
@@ -87054,6 +81382,33 @@ export interface operations {
             };
         };
     };
+    finance_payment_self_gateway: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentGatewayInfo"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_payment_self_list: {
         parameters: {
             query?: never;
@@ -87162,7 +81517,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ConfirmPaymentRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -87528,41 +81887,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReceiptView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    finance_receipt_slip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                /** @description 32 or 48 (anything else prints at 48). */
-                columns: number | null;
-                /** @description End with the cash-drawer pulse (only a cash receipt opens the drawer). */
-                kick: boolean | null;
-                /** @description `duplicate` marks a reprint. */
-                copy: string | null;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReceiptSlip"];
                 };
             };
             "4XX": {
@@ -96973,33 +91297,6 @@ export interface operations {
             };
         };
     };
-    people_recruitment_candidate_interview_cancel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     people_recruitment_candidate_get: {
         parameters: {
             query?: never;
@@ -97104,35 +91401,6 @@ export interface operations {
             };
         };
     };
-    people_recruitment_candidate_feedback: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CandidateFeedback"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     people_recruitment_candidate_interview: {
         parameters: {
             query?: never;
@@ -97158,42 +91426,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CandidateView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_recruitment_candidate_interview_schedule: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CandidateInterviewInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CandidateInterviewView"];
                 };
             };
             "4XX": {
@@ -97305,73 +91537,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CandidateView"];
                 };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_recruitment_candidate_scorecard_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ScorecardInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ScorecardView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_recruitment_candidate_screening_answers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ScreeningAnswersInput"];
-            };
-        };
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             "4XX": {
                 headers: {
@@ -98660,35 +92825,6 @@ export interface operations {
             };
         };
     };
-    people_recruitment_feedback_due: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeedbackDue"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     people_settlement_list: {
         parameters: {
             query?: never;
@@ -98706,68 +92842,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FinalSettlementList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_recruitment_hiring_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HiringSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_recruitment_hiring_settings_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HiringSettings"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HiringSettings"];
                 };
             };
             "4XX": {
@@ -99478,205 +93552,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RequisitionView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_board: {
-        parameters: {
-            query?: {
-                /** @description Default: Monday of this week. */
-                from?: string;
-                /** @description Default: six days after `from`; at most 62 days. */
-                to?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RosterBoard"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_fill: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RosterFillBody"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RosterFillPlan"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_publish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RosterRange"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RosterPublished"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RosterSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_settings_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RosterSettings"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RosterSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_shift_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DutyShiftInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DutyShiftResult"];
                 };
             };
             "4XX": {
@@ -100932,38 +94807,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MyProfileView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_me: {
-        parameters: {
-            query?: {
-                /** @description Default: Monday of this week. */
-                from?: string;
-                /** @description Default: six days after `from`; at most 62 days. */
-                to?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MyRoster"];
                 };
             };
             "4XX": {
@@ -103187,68 +97030,6 @@ export interface operations {
             };
         };
     };
-    people_recruitment_requisition_hiring_form: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HiringFormInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HiringForm"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_recruitment_requisition_scorecards: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ScorecardCompare"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     people_recruitment_requisition_submit: {
         parameters: {
             query?: never;
@@ -103274,103 +97055,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RequisitionView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_shift_update: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DutyShiftInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DutyShiftResult"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_shift_delete: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    people_roster_shift_suggestions: {
-        parameters: {
-            query?: {
-                /** @description 1–20, default 5. */
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RosterSuggestions"];
                 };
             };
             "4XX": {
@@ -104721,39 +98405,6 @@ export interface operations {
             };
         };
     };
-    people_roster_profile_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RosterProfile"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RosterProfile"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     people_staff_submit_verification: {
         parameters: {
             query?: never;
@@ -105151,6 +98802,1744 @@ export interface operations {
                 };
             };
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_document_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.audit.verify` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Document storage is not configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_document_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteDocumentBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Under retention or legal hold */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_document_legal_hold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalHoldBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredDocument"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Already in the requested state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffectiveEntitlement"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitlementChangeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A request is already pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unknown package / module, missing dependency, invalid validity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitlementDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementDecided"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, or the requester */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not pending, or the entitlement changed since the request */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_request_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not the requester */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_entitlement_catalogue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementCatalogue"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_list: {
+        parameters: {
+            query?: {
+                /** @description `student` | `staff` | `admin`. */
+                subjectType?: string;
+                /** @description `pending` | `synced` | `failed` | `conflict`. */
+                syncStatus?: string;
+                /** @description 1–500 (default 100), newest first. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing `platform.identity.read` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_admin_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIdentityRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminIdentityCreated"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate identity */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_provision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProvisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Identity already existed (re-queued when its facts changed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            /** @description Identity created and queued */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No such student / staff member in the session tenant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Duplicate identity (username / e-mail already used) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Provisioning is off */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_reactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_required_actions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequiredActionsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleChangeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A request is already pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMappingPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewRoleMapping"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMappingView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Mapping exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_mapping_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_list: {
+        parameters: {
+            query?: {
+                /** @description `pending` | `approved` | `rejected` | `applied`. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestPage"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_identity_role_request_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleRequestView"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission / step-up, the requester, or your own identity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not pending */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_list: {
+        parameters: {
+            query?: {
+                institutionId?: string;
+                entity?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJobList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_upload: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportUpload"];
+            };
+        };
+        responses: {
+            /** @description Existing job of the job key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_entity_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportEntityList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_export: {
+        parameters: {
+            query: {
+                institutionId: string;
+                /** @description `csv` (default) or `xlsx`. */
+                format?: string;
+            };
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV or XLSX file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_template: {
+        parameters: {
+            query?: {
+                /** @description `csv` (default) or `xlsx`. */
+                format?: string;
+            };
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV or XLSX file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_profile_list: {
+        parameters: {
+            query?: {
+                entity?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportMappingProfileList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_profile_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMappingProfileSave"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MappingProfile"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_commit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_dry_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_error_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_mapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMappingUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJob"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    platform_import_job_rows: {
+        parameters: {
+            query?: {
+                /** @description Only rows with errors. */
+                errorsOnly?: boolean;
+                /** @description 1–5000 (default 500). */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportJobRowList"];
+                };
+            };
+            "4XX": {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -105596,472 +100985,6 @@ export interface operations {
             };
         };
     };
-    resources_contract_activity_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_obligation_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContractObligationInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractObligationView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_obligation_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_obligation_complete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractObligationView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_obligation_undo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractObligationView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractDetail"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContractInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractDetail"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_activity_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContractActivityInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractActivityView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_calendar_one: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/calendar": string;
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_decision: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContractDecisionInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractDetail"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_obligation_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContractObligationInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractObligationView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseClaimView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_decide: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClaimDecision"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseClaimView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_reimburse: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClaimReimburse"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseClaimView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_receipt_file: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The receipt file */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/octet-stream": unknown;
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     resources_receipt_get: {
         parameters: {
             query?: never;
@@ -106270,351 +101193,6 @@ export interface operations {
             };
         };
     };
-    resources_contract_dashboard: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractDashboard"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_settings_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContractSettings"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_list: {
-        parameters: {
-            query?: {
-                /** @description A kind, or `mou` for every MoU. */
-                kind?: string;
-                status?: string;
-                /** @description Only the contracts waiting on a decision. */
-                attention?: boolean;
-                /** @description Matches title, counterparty, tags and notes. */
-                q?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractView"][];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContractInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractDetail"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_calendar: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/calendar": string;
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_reconcile_terms: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractReconcileResult"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_list: {
-        parameters: {
-            query?: {
-                /** @description `draft`, `submitted`, `approved`, `reimbursed`. */
-                status?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseClaimSummary"][];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_dashboard: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseDashboard"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_settings_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExpenseSettings"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     resources_receipt_list_all: {
         parameters: {
             query?: {
@@ -106701,38 +101279,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InventoryItemView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_contract_mou_evidence: {
-        parameters: {
-            query?: {
-                /** @description AQAR year, e.g. `2025-26` (1 July – 30 June); default the year containing today. */
-                year?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MouEvidence"];
                 };
             };
             "4XX": {
@@ -107067,167 +101613,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StockAdjustmentView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_stock_demand_list: {
-        parameters: {
-            query?: {
-                /** @description Override the window (7…365 days). */
-                days?: number;
-                /** @description Only items that are out, low, running out, or have something to order. */
-                attention?: boolean;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StockDemandReport"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_stock_demand_apply_thresholds: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApplyThresholds"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApplyThresholdsResult"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_stock_demand_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InventoryDemandSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_stock_demand_settings_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InventoryDemandSettings"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InventoryDemandSettings"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_stock_expiry_list: {
-        parameters: {
-            query?: {
-                /** @description Horizon override (1…365 days). */
-                days?: number;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StockExpiryReport"];
                 };
             };
             "4XX": {
@@ -107838,389 +102223,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InventoryItemView"];
                 };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_stock_lot_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StockLotList"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_item_planning_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ItemPlanning"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ItemPlanning"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_create: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClaimCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseClaimView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClaimLines"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseClaimView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_delete: {
-        parameters: {
-            query: {
-                version: number;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_submit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClaimStep"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseClaimView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_claim_withdraw: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClaimStep"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseClaimView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_receipt_upload: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReceiptUpload"];
-            };
-        };
-        responses: {
-            /** @description This file had been uploaded before */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseReceiptView"];
-                };
-            };
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseReceiptView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_me: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MyExpenses"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_create: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExpenseInput"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExpenseInput"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpenseView"];
-                };
-            };
-            "4XX": {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    resources_expense_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             "4XX": {
                 headers: {
@@ -113199,257 +107201,6 @@ export interface operations {
             };
         };
     };
-    admission_funnel_enquiry_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionEnquiry"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing permission. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    admission_funnel_enquiry_update: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description ETag of the version being changed */
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateEnquiry"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionEnquiry"];
-                };
-            };
-            /** @description Malformed `If-Match` or request. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description CSRF failure, missing permission or missing MFA step-up. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description `If-Match` is stale. */
-            412: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Validation failed. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description `If-Match` missing. */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    admission_funnel_enquiry_link_application: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description ETag of the version being changed */
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LinkApplication"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionEnquiry"];
-                };
-            };
-            /** @description Malformed `If-Match` or request. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description CSRF failure, missing permission or missing MFA step-up. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description `If-Match` is stale. */
-            412: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Validation failed. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description `If-Match` missing. */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     admission_get: {
         parameters: {
             query?: never;
@@ -114129,6 +107880,226 @@ export interface operations {
             };
             /** @description Validation failed. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_document_file_download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Integrity check failed (quarantined) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_document_file_upload: {
+        parameters: {
+            query: {
+                /**
+                 * @description Original file name (sanitised; its extension must match the content: `.pdf`, `.png`,
+                 *     `.jpg` / `.jpeg`).
+                 */
+                filename: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The file (PDF, PNG or JPEG); `Content-Type` its media type */
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachedFile"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not awaiting verification, or a file is already attached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Body above the upload limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Empty, too large, type not allowed or name / type mismatch */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Document storage is not configured or unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admission_document_file_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLink"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not permitted, or presigned links are disabled */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -118336,450 +112307,6 @@ export interface operations {
             };
         };
     };
-    admission_funnel_duplicates: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionDuplicates"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing permission. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    admission_funnel_enquiry_list: {
-        parameters: {
-            query?: {
-                stage?: string;
-                source?: string;
-                programmeId?: string;
-                /** @description Name, number, e-mail or phone contains. */
-                q?: string;
-                /** @description Only open enquiries past the stale threshold. */
-                stalled?: boolean;
-                /** @description Only open enquiries (not admitted / lost). */
-                open?: boolean;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionEnquiryList"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing permission. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    admission_funnel_enquiry_create: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Required. Retry-safe key. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateEnquiry"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreatedEnquiry"];
-                };
-            };
-            /** @description Missing `Idempotency-Key` or malformed request. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description CSRF failure, missing permission or missing MFA step-up. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Parent resource missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Duplicate, illegal state or read-only institution. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Validation failed. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    admission_funnel_forecast: {
-        parameters: {
-            query?: {
-                /** @description Months to forecast (1–24, default 6). */
-                months?: number;
-                /** @description First month `YYYY-MM` (default: this month). */
-                from?: string;
-                programmeId?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionForecast"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing permission. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    admission_funnel_report: {
-        parameters: {
-            query?: {
-                programmeId?: string;
-                source?: string;
-                /**
-                 * @description Cohort by first contact: `all` (default), `quarter`, `last_quarter`, `year` (calendar)
-                 *     or `fy` (the April–March financial year).
-                 */
-                window?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionFunnel"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing permission. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    admission_funnel_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionFunnelSettings"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing permission. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    admission_funnel_settings_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdmissionFunnelPutFunnelSettings"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdmissionFunnelSettings"];
-                };
-            };
-            /** @description Malformed `If-Match` or request. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description No live session. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description CSRF failure, missing permission or missing MFA step-up. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Missing, or owned by another tenant. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Illegal lifecycle transition, unmet precondition or read-only institution. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description `If-Match` is stale. */
-            412: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description Validation failed. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description `If-Match` missing. */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     admission_list: {
         parameters: {
             query?: {
@@ -119888,6 +113415,129 @@ export interface operations {
             };
             /** @description Missing, or owned by another tenant. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_self_document_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_self_document_file_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLink"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -125399,6 +119049,158 @@ export interface operations {
             };
             /** @description Validation failed. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_document_file_download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file (attachment; `X-Document-SHA256`) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    student_document_file_upload: {
+        parameters: {
+            query: {
+                /**
+                 * @description Original file name (sanitised; its extension must match the content: `.pdf`, `.png`,
+                 *     `.jpg` / `.jpeg`).
+                 */
+                filename: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The file (PDF, PNG or JPEG); `Content-Type` its media type */
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachedFile"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

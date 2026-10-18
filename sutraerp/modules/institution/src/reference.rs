@@ -258,6 +258,48 @@ impl InstitutionReferencePort for PgInstitutionReferences {
         .await
     }
 
+    async fn programme_by_code(
+        &self,
+        scope: &ExecutionScope,
+        institution_id: InstitutionId,
+        code: &str,
+    ) -> Result<Option<ProgrammeRef>, KernelError> {
+        let row = sqlx::query(
+            "SELECT id, institution_id, org_unit_id, code, name, level, duration_terms, \
+             campus_ids, status FROM institution.programme \
+             WHERE tenant_id = $1 AND institution_id = $2 AND upper(code) = upper($3)",
+        )
+        .bind(scope.tenant_id.as_uuid())
+        .bind(institution_id.as_uuid())
+        .bind(code.trim())
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_db_error)?;
+        row.as_ref()
+            .map(programme)
+            .transpose()
+            .map_err(map_db_error)
+    }
+
+    async fn campus_by_code(
+        &self,
+        scope: &ExecutionScope,
+        institution_id: InstitutionId,
+        code: &str,
+    ) -> Result<Option<CampusRef>, KernelError> {
+        let row = sqlx::query(
+            "SELECT id, institution_id, code, name, status, timezone FROM institution.campus \
+             WHERE tenant_id = $1 AND institution_id = $2 AND upper(code) = upper($3)",
+        )
+        .bind(scope.tenant_id.as_uuid())
+        .bind(institution_id.as_uuid())
+        .bind(code.trim())
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_db_error)?;
+        row.as_ref().map(campus).transpose().map_err(map_db_error)
+    }
+
     async fn curriculum_version(
         &self,
         scope: &ExecutionScope,

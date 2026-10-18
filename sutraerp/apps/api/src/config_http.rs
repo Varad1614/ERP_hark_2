@@ -28,6 +28,7 @@ pub const KNOWN_DEV_SECRETS: &[&str] = &[
     "sutra",
     "sutra-api-dev-only",
     "dev-only-change-me",
+    "dev-only-idp-admin-secret", // Part 2 · S4-idp: compose realm's identity admin client
     "sutra-dev-gateway-secret",
     "change-me",
     "changeme",
@@ -461,7 +462,13 @@ pub(crate) mod tests {
                 "SUTRA_FLOWABLE_PASSWORD",
                 "unit-test-only-flowable-password",
             ),
+            // Part 2 · S7-entitle: production states the default entitlement explicitly.
+            ("SUTRA_ENTITLEMENT_DEFAULT", "complete_erp"),
         ])
+        .into_iter()
+        // Part 2 · S4-docs: production needs S3 document storage.
+        .chain(crate::config_docs::tests::PROD)
+        .collect()
     }
 
     fn load(m: &HashMap<&'static str, &'static str>) -> Result<Config, ConfigError> {

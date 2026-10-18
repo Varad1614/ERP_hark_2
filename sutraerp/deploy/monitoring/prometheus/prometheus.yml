@@ -1,0 +1,41 @@
+# SutraERP on-prem Prometheus (Part 2 S5-monitor). Mounted at /etc/prometheus/prometheus.yml by
+# deploy/monitoring/compose.yaml. Targets that depend on the host layout (API, node) are file-SD
+# files in prometheus/targets/ — edit those, not this file (Prometheus re-reads them live).
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+  external_labels:
+    site: sutraerp-onprem
+
+rule_files:
+  - /etc/prometheus/rules/*.yaml        # deploy/monitoring/prometheus/rules (on-prem, generated)
+  - /etc/prometheus/rules-9a/*.yaml     # deploy/observability/alerts (slice 9A: RED, pool, outbox, audit)
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: sutra-api           # the API's separate metrics listener (SUTRA_METRICS_ADDR, never public)
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/sutra-api.yml"]
+  - job_name: postgres            # postgres_exporter (pg_monitor role)
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+  - job_name: node                # node_exporter (+ textfile: backup metrics)
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/node.yml"]
+  - job_name: nats                # prometheus-nats-exporter (varz, connz, JetStream)
+    static_configs:
+      - targets: ["nats-exporter:7777"]
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["alertmanager:9093"]
+  - job_name: grafana
+    static_configs:
+      - targets: ["grafana:3000"]

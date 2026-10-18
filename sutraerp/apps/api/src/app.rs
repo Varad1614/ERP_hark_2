@@ -3,6 +3,7 @@
 use crate::config::{
     AuthProvider, CacheBackend, Config, MailMode, OutboxRelayMode, SmtpTlsMode, StoreBackend,
 };
+use crate::entitlement_ports::{EntitledExamFees, EntitledFinanceClearance};
 use crate::openapi::ApiDoc;
 use axum::routing::get;
 use axum::{Json, Router};
@@ -57,7 +58,6 @@ use sutra_web::{OriginPolicy, PreSessionCsrf, SessionAuth};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tower_http::catch_panic::CatchPanicLayer;
-use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
@@ -109,6 +109,15 @@ pub struct AppContext {
     /// Part 1 · Stage 3 (S3-config): transport hardening (headers, CORS, body limit, ops
     /// endpoints) and the public-endpoint rate limiter.
     pub http: HttpLayers,
+    /// Part 2 · S4-idp: identity provisioning admin API state (`SUTRA_IDP_PROVISIONING`).
+    pub identity: sutra_platform::identity::http::IdentityState,
+    /// Part 2 · S4-idp: provisioning runtime (start-up check in `main`), `None` when off.
+    pub identity_runtime: Option<sutra_platform::identity::IdentityRuntime>,
+    /// Part 2 · S4-docs: platform document service (S3-compatible storage, `SUTRA_DOCUMENT_STORAGE`).
+    pub documents: Arc<dyn sutra_contracts::platform::documents::DocumentVault>,
+    /// Part 2 · S7-entitle: server-side module entitlement / licence gate (and the policy the
+    /// entitlement API serves). Tests swap the clock with [`AppContext::with_entitlement_clock`].
+    pub entitlement: sutra_web::entitlement::EntitlementGate,
 }
 
 /// Part 1 · Stage 3 (S3-config): settings of the transport layers built in [`router`].
@@ -120,6 +129,8 @@ pub struct HttpLayers {
     pub max_body_bytes: usize,
     /// Serve `GET /api/openapi.json` (off in production).
     pub api_docs: bool,
+    /// Part 2 · S4-docs: body limits per route (document uploads up to `SUTRA_DOCS_MAX_BYTES`).
+    pub body_limits: crate::storage::BodyLimits,
 }
 
 impl HttpLayers {
@@ -134,6 +145,7 @@ impl HttpLayers {
             )),
             max_body_bytes: cfg.http.max_body_bytes,
             api_docs: cfg.http.api_docs,
+            body_limits: crate::storage::BodyLimits::from_config(cfg), // Part 2 · S4-docs
         }
     }
 }
@@ -208,10 +220,18 @@ pub enum BuildError {
     Mail(String),
     #[error("data platform configuration: {0}")]
     DataPlatform(String), // 9C
+    #[error("payment gateway configuration: {0}")]
+    Payments(String), // Part 2 S4-pay
+    #[error("document storage configuration: {0}")]
+    Documents(String), // Part 2 · S4-docs
+    #[error("TLS trust configuration: {0}")]
+    Tls(String), // Part 2 · S5-capacity (SUTRA_TLS_CA_FILE)
 }
 
 impl AppContext {
     pub fn from_config(cfg: &Config) -> Result<Self, BuildError> {
+        // Part 2 · S5-capacity: the institution's CA roots, before any HTTP adapter is built.
+        cfg.tls.install().map_err(BuildError::Tls)?;
         let pool = pool::connect_lazy(&pool::PoolSettings {
             url: cfg.database_url.clone(),
             max_connections: cfg.db_max_connections,
@@ -225,8 +245,23 @@ impl AppContext {
         checks.extend(cache_check);
         let (relay, relay_check) = build_relay(cfg, &pool)?;
         checks.extend(relay_check);
+        // Part 2 · S4-docs: document service (+ non-critical storage readiness, retention sweeper).
+        let docs = crate::storage::build(cfg, &pool).map_err(BuildError::Documents)?;
+        checks.extend(docs.readiness.clone());
         let readiness = Readiness::new(checks).with_detail(cfg.http.health_detail); // Part 1 · S3
-        let scheduler = cfg.sweepers.enabled.then(|| build_scheduler(cfg, &pool));
+        let scheduler = cfg.sweepers.enabled.then(|| {
+            let s = build_scheduler(cfg, &pool);
+            match &docs.store {
+                Some(store) if !cfg.documents.sweep_interval.is_zero() => s.with(Arc::new(
+                    sutra_platform::documents::DocumentRetentionSweep {
+                        store: store.clone(),
+                        interval: cfg.documents.sweep_interval,
+                        batch_limit: cfg.sweepers.batch_limit,
+                    },
+                )),
+                _ => s,
+            }
+        });
         let mailer = build_mailer(cfg)?;
         let consumers = cfg
             .inbox
@@ -235,16 +270,26 @@ impl AppContext {
         // ---- 9C ---- workflow adapter + decision sync, search projector / rebuild (see wire_9c)
         let (workflow, search, consumers) = wire_9c(cfg, &pool, consumers)?;
         // ---- end 9C ----
+        // Part 2 S4-pay: the configured gateway and its recovery job (runs with the sweepers).
+        let payment_gateway = payment_gateway(cfg)?;
+        let scheduler =
+            scheduler.map(
+                |s| match payment_recovery(cfg, &pool, &workflow, &payment_gateway) {
+                    Some(job) => s.with(job),
+                    None => s,
+                },
+            );
         // ERP_EXTENSIONS 1E: scheduled billing runs ride the sweeper scheduler (hourly check;
         // each enabled schedule runs once per period from its run day).
         let scheduler = scheduler.map(|s| {
+            let mut deps = finance_deps_with(
+                pool.clone(),
+                workflow.clone(),
+                cfg.hardening.workflow.approvals,
+            );
+            deps.gateway = payment_gateway.clone();
             s.with(Arc::new(sutra_finance::BillingScheduleJob {
-                state: finance_deps_with(
-                    pool.clone(),
-                    workflow.clone(),
-                    cfg.hardening.workflow.approvals,
-                )
-                .into_state(),
+                state: deps.into_state(),
                 interval: Duration::from_secs(3600),
             }))
         });
@@ -378,6 +423,11 @@ impl AppContext {
             cfg.privileged_mfa,
         );
         let observability = Some(build_observability(cfg, &pool)); // 9A
+                                                                   // Part 2 · S4-idp: identity provisioning (admin API + idp-events / idp-sync jobs).
+        let (identity, identity_runtime, consumers) =
+            crate::idp_wiring::wire(cfg, &pool, sessions.clone(), consumers)
+                .map_err(BuildError::Auth)?;
+        let entitlement = entitlement_gate(cfg, &pool); // Part 2 · S7-entitle
         Ok(Self {
             pool,
             readiness,
@@ -417,9 +467,25 @@ impl AppContext {
                 consumers,
                 observability, // 9A
             },
-            search,                                // 9C
-            payment_gateway: payment_gateway(cfg), // INT: SEC-9D-003
+            search,                // 9C
+            payment_gateway,       // INT: SEC-9D-003 (+ Part 2 S4-pay: razorpay)
+            identity,              // Part 2 · S4-idp
+            identity_runtime,      // Part 2 · S4-idp
+            documents: docs.vault, // Part 2 · S4-docs
+            entitlement,           // Part 2 · S7-entitle
         })
+    }
+
+    /// Part 2 · S7-entitle: the same context with another entitlement clock (expiry / grace /
+    /// renewal tests).
+    pub fn with_entitlement_clock(
+        mut self,
+        clock: Arc<dyn sutra_kernel::entitlement::Clock>,
+    ) -> Self {
+        self.entitlement = sutra_web::entitlement::EntitlementGate::new(
+            self.entitlement.policy().clone().with_clock(clock),
+        );
+        self
     }
 
     /// Moves the background workers out (the rest of the context becomes the router).
@@ -440,6 +506,22 @@ impl AppContext {
         #[allow(clippy::expect_used)]
         Self::from_config(&cfg).expect("static test context builds")
     }
+}
+
+/// Part 2 · S7-entitle: entitlement policy (`SUTRA_ENTITLEMENT_STORE` / `_DEFAULT`) on the wall
+/// clock.
+fn entitlement_gate(cfg: &Config, pool: &PgPool) -> sutra_web::entitlement::EntitlementGate {
+    let store: Arc<dyn sutra_kernel::entitlement::EntitlementStore> = match cfg.entitlement.store {
+        StoreBackend::Postgres => Arc::new(sutra_platform::entitlement::PgEntitlementStore::new(
+            pool.clone(),
+        )),
+        StoreBackend::Memory => Arc::new(sutra_platform::entitlement::NoStoredEntitlements),
+    };
+    sutra_web::entitlement::EntitlementGate::new(sutra_kernel::entitlement::EntitlementPolicy::new(
+        store,
+        Arc::new(sutra_kernel::entitlement::SystemClock),
+        cfg.entitlement.default.clone(),
+    ))
 }
 
 /// A built adapter plus its optional readiness check.
@@ -658,10 +740,13 @@ impl ObservabilityTasks {
 
 /// `SUTRA_AUDIT_ANCHOR_KEY` / `_KEY_ID` as the persistence anchor key.
 /// INT: SEC-9D-003 — `SUTRA_PAYMENT_GATEWAY` → adapter (production default: disabled → 503).
-fn payment_gateway(cfg: &Config) -> Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort> {
+/// Part 2 S4-pay: `razorpay` → `payment_gateway::RazorpayGateway` (keys from `SUTRA_RAZORPAY_*`).
+pub fn payment_gateway(
+    cfg: &Config,
+) -> Result<Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort>, BuildError> {
     use crate::config_b9::PaymentGatewayMode;
     let p = &cfg.hardening.payments;
-    match p.gateway {
+    Ok(match p.gateway {
         PaymentGatewayMode::Disabled => {
             tracing::info!("payments: online gateway disabled (checkout + webhook answer 503)");
             Arc::new(sutra_finance::DisabledPaymentGateway)
@@ -675,7 +760,64 @@ fn payment_gateway(cfg: &Config) -> Arc<dyn sutra_contracts::finance::ports::Pay
                 None => Arc::new(sutra_finance::MockPaymentGateway::default()),
             }
         }
+        PaymentGatewayMode::Razorpay => {
+            let (Some(r), Some(hook)) = (&p.razorpay, &p.webhook_secret) else {
+                return Err(BuildError::Payments(
+                    "razorpay needs SUTRA_RAZORPAY_KEY_ID / _KEY_SECRET and the webhook secret"
+                        .into(),
+                ));
+            };
+            tracing::info!(
+                key_id = %r.key_id,
+                base_url = %r.base_url,
+                "payments: Razorpay gateway"
+            );
+            Arc::new(
+                crate::payment_gateway::RazorpayGateway::new(
+                    sutra_infra::razorpay::RazorpaySettings {
+                        base_url: r.base_url.clone(),
+                        key_id: r.key_id.clone(),
+                        key_secret: r.key_secret.0.clone(),
+                        webhook_secret: hook.0.clone(),
+                        timeout: r.timeout,
+                        max_retries: r.max_retries,
+                        retry_backoff: Duration::from_millis(250),
+                    },
+                )
+                .map_err(BuildError::Payments)?,
+            )
+        }
+    })
+}
+
+/// Part 2 S4-pay: the `payment_gateway_recovery` sweeper (none when the gateway is disabled or
+/// `SUTRA_PAYMENT_RECOVERY_INTERVAL_SECS=0`).
+fn payment_recovery(
+    cfg: &Config,
+    pool: &PgPool,
+    workflow: &Arc<dyn WorkflowPort>,
+    gateway: &Arc<dyn sutra_contracts::finance::ports::PaymentGatewayPort>,
+) -> Option<Arc<dyn sutra_persistence::jobs::SweepJob>> {
+    let r = &cfg.hardening.payments.recovery;
+    if r.interval.is_zero() || gateway.name() == sutra_finance::payments::gateway::DISABLED_GATEWAY
+    {
+        return None;
     }
+    let mut deps = finance_deps_with(
+        pool.clone(),
+        workflow.clone(),
+        cfg.hardening.workflow.approvals,
+    );
+    deps.gateway = gateway.clone();
+    Some(Arc::new(
+        sutra_finance::payments::recovery::GatewayRecovery {
+            state: deps.into_state(),
+            interval: r.interval,
+            min_age: r.min_age,
+            expire_after: r.expire_after,
+            batch_size: r.batch_size,
+        },
+    ))
 }
 
 fn anchor_key(cfg: &Config) -> Option<sutra_persistence::audit_chain::AnchorKey> {
@@ -751,6 +893,8 @@ pub fn student_deps_with(
         results: Arc::new(sutra_exams::PgResultsPort::new(pool.clone())),
         abc: Arc::new(sutra_student::adapters::NoopAbcRegistry),
         external_scholarships: Arc::new(sutra_student::adapters::NoopExternalScholarships),
+        // Part 2 · S4-docs: `build` hands in the configured document service.
+        documents: Arc::new(sutra_platform::documents::DisabledDocumentVault),
         workflow,
         approvals,
         pool,
@@ -987,17 +1131,57 @@ pub fn resources_deps_with(
     }
 }
 
+/// Part 2 · S4-import: the data-migration job state with the import targets of every owning
+/// module (Domain B campuses / org units / programmes / curricula, Domain E staff, Domain C
+/// students + guardians / historical results, Domain F fee heads / opening balances). Platform
+/// never writes another domain's tables; each target runs its own module's writers. Tests reuse it.
+pub fn import_state(
+    pool: PgPool,
+    workflow: Arc<dyn WorkflowPort>,
+    approvals: ApprovalMode,
+) -> sutra_platform::dataimport::ImportState {
+    use sutra_contracts::platform::dataimport::ImportTargetPort;
+    let student = student_deps_with(pool.clone(), workflow.clone(), approvals).into_state();
+    let people = people_deps_with(pool.clone(), workflow.clone(), approvals).into_state();
+    let finance = finance_deps_with(pool.clone(), workflow.clone(), approvals).into_state();
+    let targets: Vec<Arc<dyn ImportTargetPort>> = vec![
+        Arc::new(sutra_institution::PgCampusImport::new(pool.clone())),
+        Arc::new(sutra_institution::PgOrgUnitImport::new(pool.clone())),
+        Arc::new(sutra_institution::PgProgrammeImport::new(pool.clone())),
+        Arc::new(sutra_institution::PgCurriculumImport::new(pool.clone())),
+        Arc::new(sutra_people::PgStaffImport::new(people)),
+        Arc::new(sutra_student::PgStudentImport::new(student.clone())),
+        Arc::new(sutra_finance::PgFeeHeadImport::new(finance.clone())),
+        Arc::new(sutra_finance::PgOpeningBalanceImport::new(finance)),
+        Arc::new(sutra_student::PgHistoricalResultImport::new(student)),
+    ];
+    let institutions = Arc::new(sutra_institution::PgInstitutionDirectory::new(pool.clone()));
+    sutra_platform::dataimport::ImportState::new(pool, targets, workflow, institutions)
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
-/// idempotency → handlers. The
+/// rate limit → entitlement gate (Part 2 · S7) → idempotency → handlers. The
 /// idempotency middleware keys its records by the authenticated owner, so it must run inside
 /// the authentication layer.
 pub fn build(ctx: AppContext) -> OpenApiRouter {
+    // Part 2 · S7-entitle: Finance facts read / written through ports follow the `fees`
+    // entitlement (see `crate::entitlement_ports`).
+    let policy = ctx.entitlement.policy().clone();
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
         .merge(sutra_platform::search::router(ctx.search.clone())) // 9C
+        .merge(sutra_platform::identity::http::router(ctx.identity.clone())) // Part 2 · S4-idp
+        .merge(sutra_platform::documents::router(ctx.documents.clone())) // Part 2 · S4-docs
+        // Part 2 · S7-entitle: active modules + licence state, maker-checker licence changes.
+        .merge(sutra_platform::entitlement::router(
+            sutra_platform::entitlement::EntitlementState {
+                pool: ctx.pool.clone(),
+                policy: ctx.entitlement.policy().clone(),
+            },
+        ))
         .merge(sutra_institution::router(
             sutra_institution::InstitutionDeps {
                 pool: ctx.pool.clone(),
@@ -1006,11 +1190,12 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
                 approvals: ctx.approvals,
             },
         ))
-        .merge(sutra_student::router(student_deps_with(
-            ctx.pool.clone(),
-            ctx.workflow.clone(),
-            ctx.approvals,
-        )))
+        .merge(sutra_student::router({
+            let mut deps = student_deps_with(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals);
+            deps.documents = ctx.documents.clone(); // Part 2 · S4-docs
+            deps.finance = EntitledFinanceClearance::wrap(deps.finance, &policy); // Part 2 · S7
+            deps
+        }))
         .merge(sutra_academic::router(academic_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
@@ -1037,19 +1222,35 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
             ctx.workflow.clone(),
             ctx.approvals,
         )))
-        .merge(sutra_exams::router(exams_deps_with(
-            ctx.pool.clone(),
-            ctx.workflow.clone(),
-            ctx.approvals,
-        )))
+        .merge(sutra_exams::router({
+            let mut deps = exams_deps_with(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals);
+            // Part 2 · S7-entitle: hall-ticket dues and exam fees follow the `fees` entitlement.
+            deps.finance = EntitledFinanceClearance::wrap(deps.finance, &policy);
+            deps.fees = EntitledExamFees::wrap(deps.fees, &policy);
+            deps
+        }))
         .merge(sutra_resources::router(resources_deps_with(
             ctx.pool.clone(),
             ctx.workflow.clone(),
             ctx.approvals,
         )))
+        // Part 2 · S4-import: data migration jobs over every module's import targets.
+        // Part 2 · S7-entitle: each entity is gated on the module it writes into.
+        .merge(sutra_platform::dataimport::router(
+            import_state(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals)
+                .with_entitlement(policy),
+        ))
         .layer(axum::middleware::from_fn_with_state(
             ctx.idempotency,
             sutra_web::idempotency::idempotency,
+        ))
+        // Part 2 · S7-entitle: inside the session layer (it needs the session's tenant and runs
+        // its lookup under the session's RLS scope): inactive modules, expired (read-only) and
+        // suspended licences are refused before any handler runs; outside the idempotency layer
+        // so a refusal is never stored as the replay of an Idempotency-Key.
+        .layer(axum::middleware::from_fn_with_state(
+            ctx.entitlement,
+            sutra_web::entitlement::enforce,
         ))
         // Part 1 · Stage 3 (S3-config): inside the session layer, so it knows who is signed in
         // (credential endpoints always, other requests only without a live session).
@@ -1098,7 +1299,12 @@ pub fn router(ctx: AppContext) -> Router {
             http::StatusCode::GATEWAY_TIMEOUT,
             timeout,
         ))
-        .layer(RequestBodyLimitLayer::new(layers.max_body_bytes)) // Part 1 · S3: SUTRA_MAX_BODY_BYTES
+        // Part 1 · S3: SUTRA_MAX_BODY_BYTES on every route; Part 2 · S4-docs: document uploads
+        // (`PUT /api/v1/…/file`) up to SUTRA_DOCS_MAX_BYTES.
+        .layer(axum::middleware::from_fn_with_state(
+            layers.body_limits,
+            crate::storage::body_limit,
+        ))
         .layer(axum::extract::DefaultBodyLimit::max(layers.max_body_bytes))
         .layer(CatchPanicLayer::new())
         .layer(axum::middleware::from_fn(crate::metrics::track_http)) // 9A

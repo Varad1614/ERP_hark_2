@@ -6,6 +6,7 @@ use std::sync::Arc;
 use sutra_contracts::exams::ResultsPort;
 use sutra_contracts::finance::FinanceClearancePort;
 use sutra_contracts::institution::reference::InstitutionReferencePort;
+use sutra_contracts::platform::documents::DocumentVault;
 use sutra_contracts::platform::workflow::WorkflowPort;
 use sutra_contracts::student::ports::{AbcRegistryPort, ExternalScholarshipPort};
 
@@ -26,4 +27,6 @@ pub struct StudentState {
     pub abc: Arc<dyn AbcRegistryPort>,
     /// External scholarship ecosystems (no-op adapter).
     pub external_scholarships: Arc<dyn ExternalScholarshipPort>,
+    /// Part 2 · S4-docs: platform document service (files of admission / record documents).
+    pub documents: Arc<dyn DocumentVault>,
 }

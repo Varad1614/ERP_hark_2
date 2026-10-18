@@ -1,5 +1,5 @@
 # Local development dependencies for SutraERP.
-#   docker compose up -d                    # infra only (postgres, keycloak, valkey, nats, mailpit)
+#   docker compose up -d                    # infra only (postgres, keycloak, valkey, nats, mailpit, minio)
 #   docker compose --profile app up --build # + migrate (owner) → api (runtime role) and web
 #   docker compose --profile demo run --rm --build demo-seed   # Batch 3 + 4 demo data (README)
 #   SUTRA_COMPOSE_OCR_URL=http://ocr:8866 docker compose --profile app --profile ocr up -d --build
@@ -102,6 +102,24 @@ services:
       interval: 5s
       retries: 10
 
+  # Part 2 · S4-docs: S3-compatible document storage (student admission / record files). Built from
+  # MinIO's archived upstream source (deploy/docker/minio.Dockerfile; no mirror images). Private
+  # bucket, created by the API (SUTRA_S3_CREATE_BUCKET, development only). S3 API localhost:9000.
+  minio:
+    restart: unless-stopped
+    build: { context: ., dockerfile: deploy/docker/minio.Dockerfile }
+    image: sutraerp-minio:local
+    environment:
+      MINIO_ROOT_USER: ${SUTRA_COMPOSE_S3_ACCESS_KEY:-sutra}
+      MINIO_ROOT_PASSWORD: ${SUTRA_COMPOSE_S3_SECRET_KEY:-sutra-minio-dev-only}
+    ports: ["9000:9000"]
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/minio-healthcheck"]
+      interval: 5s
+      retries: 20
+
   # ADR-L5-0008 / ADR-L5-0005: migrations run as the schema OWNER (`sutra`) and provision the
   # API's runtime LOGIN role (member of `sutra_app`, owns nothing, DML only).
   migrate:
@@ -177,12 +195,21 @@ services:
       # when the `ocr` profile is up.
       SUTRA_OCR_URL: ${SUTRA_COMPOSE_OCR_URL:-}
       SUTRA_OCR_TIMEOUT_SECS: ${SUTRA_COMPOSE_OCR_TIMEOUT_SECS:-30}
+      # Part 2 · S4-docs: document storage on the compose MinIO (development values; production
+      # needs https, SSE and non-development credentials — see .env.example "Document storage").
+      SUTRA_DOCUMENT_STORAGE: s3
+      SUTRA_S3_ENDPOINT: http://minio:9000
+      SUTRA_S3_BUCKET: sutraerp-documents
+      SUTRA_S3_ACCESS_KEY_ID: ${SUTRA_COMPOSE_S3_ACCESS_KEY:-sutra}
+      SUTRA_S3_SECRET_ACCESS_KEY: ${SUTRA_COMPOSE_S3_SECRET_KEY:-sutra-minio-dev-only}
+      SUTRA_S3_CREATE_BUCKET: "true"
     ports: ["8080:8080"]
     depends_on:
       migrate: { condition: service_completed_successfully }
       nats: { condition: service_healthy }
       valkey: { condition: service_healthy }
       mailpit: { condition: service_healthy }
+      minio: { condition: service_healthy }
 
   web:
     restart: unless-stopped
@@ -231,3 +258,4 @@ services:
 volumes:
   pgdata:
   natsdata:
+  miniodata:

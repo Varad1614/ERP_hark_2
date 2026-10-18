@@ -81,7 +81,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"]
 dotenvy = "0.15"
 
 # Auth: OIDC back-channel (ADR-L5-0024), ID-token validation, TOTP/AES-GCM (ADR-L5-0038)
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# Part 2 · S5-deploy: + rustls-tls-native-roots — outbound HTTPS (S3 / MinIO, Keycloak, Flowable,
+# Razorpay, OpenSearch) also trusts the OS store, so an on-prem install with a private CA works:
+# set SSL_CERT_FILE to a PEM bundle holding the college / internal CA (rustls-native-certs reads it).
+# The bundled webpki roots stay on for public CAs. docs/readiness/DEPLOYMENT_RUNBOOK.md "TLS".
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "rustls-tls-native-roots"] }
 jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
 ring = "0.17"
 base64 = "0.22"
@@ -111,6 +115,11 @@ tracing-opentelemetry = { version = "0.34", default-features = false }
 prometheus-client = "0.25"
 # 9C: metrics facade for sutra_workflow_calls_total / sutra_search_projection_lag_seconds
 metrics = "0.24"
+
+# Part 2 · S4-import: XLSX import / export files (zip container; deflate through flate2 + zlib-rs).
+# calamine / rust_xlsxwriter cannot be used: every release of both depends on zip 7.x / 8.x, all
+# of which are yanked (cargo-deny `yanked = "deny"`); see docs/readiness/part2/s4-import.md.
+zip = { version = "9.0.4", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

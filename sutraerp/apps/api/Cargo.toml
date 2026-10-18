@@ -63,13 +63,22 @@ prometheus-client.workspace = true
 metrics.workspace = true
 # 9C: SearchIndex adapter over sutra_infra::opensearch
 async-trait.workspace = true
+# Part 2 S4-pay: Razorpay adapter of the finance gateway port (decimal rupees ↔ paise)
+rust_decimal.workspace = true
+# Part 2 · S4-docs: per-route request-body limit (document uploads)
+http-body-util.workspace = true
 
 [dev-dependencies]
-http-body-util.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
 async-nats.workspace = true
 rust_decimal.workspace = true
+# Part 2 S4-pay: local Razorpay contract stub for the adapter / db_p2_pay tests
+sutra-infra = { workspace = true, features = ["razorpay-stub"] }
+# Part 2 · S4-idp: drives the Keycloak login form and admin API in live_keycloak_idp.rs
+reqwest.workspace = true
+# Part 2 · S4-idp: the TCP outage proxy in live_keycloak_idp.rs
+tokio = { workspace = true, features = ["net", "io-util"] }
 
 [features]
 # End-to-end tests against a live PostgreSQL 18 (set DATABASE_URL). Off by default.
@@ -79,3 +88,7 @@ nats-tests = []
 # 9C: with db-tests, live Flowable REST (SUTRA_TEST_FLOWABLE_URL) / OpenSearch (SUTRA_TEST_OPENSEARCH_URL).
 flowable-tests = []
 opensearch-tests = []
+# Part 2 · S4-idp: with db-tests, live Keycloak (SUTRA_TEST_KEYCLOAK_URL, compose dev realm).
+keycloak-tests = []
+# Part 2 · S4-docs: with db-tests, real S3-compatible storage (MinIO; SUTRA_TEST_S3_ENDPOINT).
+s3-tests = []

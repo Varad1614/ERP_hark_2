@@ -1,0 +1,10 @@
+{
+  "_comment": "Part 2 · S5-capacity pass criteria (fixed BEFORE the first measured run; a breach fails the workflow; never loosened to pass — docs/readiness/CAPACITY_TEST_REPORT.md §Thresholds). Per phase (steady college day, results-day spike, fee-deadline spike) and per endpoint (every endpoint with >= minSamples requests in a phase).",
+  "minSamples": 50,
+  "read": { "p95": 500, "p99": 1500 },
+  "write": { "p95": 800, "p99": 2000 },
+  "file": { "p95": 1000, "p99": 2500 },
+  "loginFlow": { "steady": { "p95": 2500 }, "results": { "p95": 5000 }, "fees": { "p95": 5000 } },
+  "errorRate": 0.005,
+  "checksRate": 0.995
+}

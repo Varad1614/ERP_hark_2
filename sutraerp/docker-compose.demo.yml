@@ -18,3 +18,8 @@ services:
     build: { context: ., dockerfile: deploy/docker/api-prebuilt.Dockerfile }
     environment:
       RUST_LOG: info,sutra=debug,tower_http=info,sqlx=warn
+  # Part 2 · S4-docs: MinIO built from source on the host (cached per release tag), same runtime
+  # as deploy/docker/minio.Dockerfile.
+  minio:
+    image: sutraerp-minio:demo
+    build: { context: ., dockerfile: deploy/docker/minio-prebuilt.Dockerfile }

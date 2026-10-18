@@ -169,10 +169,23 @@ pub async fn register(
     cmd: &RegisterOrgUnit,
     actor: &Actor,
 ) -> Result<OrgUnit, KernelError> {
-    cmd.validate()?;
     let mut tx = pool.begin().await.map_err(map_db_error)?;
-    lock_institution_for_change(&mut tx, scope, institution_id).await?;
-    let bp = blueprint::current_published(&mut tx, scope, institution_id)
+    let unit = register_in(&mut tx, scope, institution_id, cmd, actor).await?;
+    tx.commit().await.map_err(map_db_error)?;
+    Ok(unit)
+}
+
+/// [`register`] inside the caller's transaction (Part 2 · S4-import runs it per row).
+pub async fn register_in(
+    conn: &mut PgConnection,
+    scope: &ExecutionScope,
+    institution_id: InstitutionId,
+    cmd: &RegisterOrgUnit,
+    actor: &Actor,
+) -> Result<OrgUnit, KernelError> {
+    cmd.validate()?;
+    lock_institution_for_change(&mut *conn, scope, institution_id).await?;
+    let bp = blueprint::current_published(&mut *conn, scope, institution_id)
         .await?
         .ok_or_else(|| {
             KernelError::Conflict(
@@ -181,14 +194,16 @@ pub async fn register(
         })?;
     let parent = match cmd.parent_id {
         Some(pid) => {
-            let p = load(&mut tx, scope, pid, true).await.map_err(|e| match e {
-                KernelError::NotFound { .. } => invalid(
-                    "parentId",
-                    "unknown",
-                    "parentId is not a unit of this institution",
-                ),
-                e => e,
-            })?;
+            let p = load(&mut *conn, scope, pid, true)
+                .await
+                .map_err(|e| match e {
+                    KernelError::NotFound { .. } => invalid(
+                        "parentId",
+                        "unknown",
+                        "parentId is not a unit of this institution",
+                    ),
+                    e => e,
+                })?;
             if p.institution_id != institution_id {
                 return Err(invalid(
                     "parentId",
@@ -232,7 +247,7 @@ pub async fn register(
     .bind(cmd.code.trim())
     .bind(cmd.name.trim())
     .bind(crate::lifecycle::common::norm(cmd.description.as_deref()))
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut *conn)
     .await
     .map_err(|e| match &e {
         sqlx::Error::Database(db) if db.constraint() == Some("org_unit_one_live_root") => {
@@ -241,9 +256,9 @@ pub async fn register(
         _ => map_db_error(e),
     })?;
     let unit = from_row(&row)?;
-    let today = business_today(&mut *tx, scope, institution_id).await?;
+    let today = business_today(&mut *conn, scope, institution_id).await?;
     record_history(
-        &mut tx,
+        &mut *conn,
         scope,
         &unit,
         "registered",
@@ -255,7 +270,7 @@ pub async fn register(
     .await?;
     let es = inst_scope(scope, institution_id);
     event(
-        &mut tx,
+        &mut *conn,
         &es,
         ORG_UNIT_REGISTERED,
         ORG_UNIT_REGISTERED_SCHEMA,
@@ -272,7 +287,7 @@ pub async fn register(
     )
     .await?;
     audit(
-        &mut tx,
+        &mut *conn,
         &es,
         "institution.org_unit.register",
         "org_unit",
@@ -281,7 +296,6 @@ pub async fn register(
         actor,
     )
     .await?;
-    tx.commit().await.map_err(map_db_error)?;
     Ok(unit)
 }
 

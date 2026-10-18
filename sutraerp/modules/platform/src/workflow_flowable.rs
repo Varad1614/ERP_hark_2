@@ -155,6 +155,7 @@ pub const PROCESS_KEYS: &[&str] = &[
     "people.requisition_approval",
     "people.separation_approval",
     "people.workload_plan_approval",
+    "platform.import_commit_approval",
     "resources.asset_retirement",
     "resources.award_approval",
     "resources.purchase_order_approval",
@@ -345,11 +346,13 @@ impl FlowableWorkflowAdapter {
     /// Builds the HTTP client; does not connect.
     pub fn new(settings: FlowableSettings) -> Result<Self, String> {
         url::Url::parse(&settings.url).map_err(|e| format!("invalid SUTRA_FLOWABLE_URL: {e}"))?;
-        let http = reqwest::Client::builder()
-            .timeout(settings.timeout)
-            .connect_timeout(settings.timeout.min(Duration::from_secs(5)))
-            .build()
-            .map_err(|e| format!("flowable client: {e}"))?;
+        let http = crate::tls::with_extra_roots(
+            reqwest::Client::builder()
+                .timeout(settings.timeout)
+                .connect_timeout(settings.timeout.min(Duration::from_secs(5))),
+        )?
+        .build()
+        .map_err(|e| format!("flowable client: {e}"))?;
         Ok(Self {
             http,
             settings,

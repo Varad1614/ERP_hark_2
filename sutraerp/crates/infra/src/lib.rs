@@ -10,8 +10,15 @@
 //!   connection manager, short timeouts, connect cool-down, rustls for `rediss://`.
 //! * [`smtp`] – SMTP [`MailSender`](sutra_kernel::mail::MailSender) for the notification
 //!   e-mail channel (lettre, rustls; Mailpit in development).
+//! * [`razorpay`] – Razorpay REST client (orders, payments, refunds, webhook / checkout
+//!   signatures); wrapped as the finance `PaymentGatewayPort` by the composition root.
+//! * [`s3`] – S3-compatible object storage client (SigV4, MinIO / AWS S3) behind the document
+//!   storage port (Part 2 · S4-docs).
 
 pub mod nats;
 pub mod opensearch; // 9C
+pub mod razorpay; // Part 2 S4-pay
+pub mod s3; // Part 2 · S4-docs
 pub mod smtp;
+pub mod tls; // Part 2 · S5-capacity: SUTRA_TLS_CA_FILE
 pub mod valkey;

@@ -21,13 +21,22 @@
 //! * **Self-service** (Batch 1D, [`inbox`]) — profile, notifications (in-app + e-mail channel),
 //!   notices, to-do inbox, the outbox-driven inbox consumer and their sweepers; dev-mode
 //!   WebAuthn ([`auth::webauthn`]), session list / revoke, OIDC back-channel logout.
+//! * **Documents** (Part 2 · S4-docs, [`documents`]) — the document service over S3-compatible
+//!   object storage: metadata, integrity, audit, retention / legal hold and its sweeper.
+//! * **Entitlements** (Part 2 · S7-entitle, [`entitlement`]) — active modules + licence state of
+//!   the tenant, maker-checker entitlement / licence changes, the PostgreSQL entitlement store.
 
 pub mod audit; // 9A
 pub mod auth;
 pub mod catalog;
+pub mod dataimport; // Part 2 · S4-import
+pub mod documents; // Part 2 · S4-docs
+pub mod entitlement; // Part 2 · S7-entitle
+pub mod identity; // Part 2 · S4-idp
 pub mod inbox;
 pub mod search; // 9C
 pub mod sweep;
+pub mod tls; // Part 2 · S5-capacity: SUTRA_TLS_CA_FILE
 pub mod workflow;
 pub mod workflow_flowable; // 9C
 

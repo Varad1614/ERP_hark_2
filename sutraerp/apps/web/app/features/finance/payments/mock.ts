@@ -188,9 +188,11 @@ export function createMockPaymentsApi(): PaymentsApi {
     },
     myAccounts: async (): Promise<MyAccount[]> => [{ account, charges: [{ id: charge.id, chargeNumber: charge.chargeNumber, description: charge.description, outstandingAmount: fromPaise(charge.outstanding), dueDate: charge.dueDate, status: charge.status }] }],
     myPayments: async () => payments,
+    gatewayInfo: async () => ({ gateway: "mock", onlinePayments: true, checkoutKeyId: null }),
     initiate: async (amount) => {
       if (toPaise(amount) > charge.outstanding) throw new ApiProblem({ type: "about:blank", title: "Validation failed", status: 422, errorCode: "validation-failed", validationErrors: [{ field: "amount", code: "exceeds_outstanding", message: "cannot exceed what is outstanding on the selected charges" }] });
       const p = newPayment("gateway", amount, "pending");
+      p.gateway = "mock";
       p.gatewayOrderRef = `order_mock_${p.id.slice(-12)}`;
       p.checkoutUrl = `/fees?mockOrder=${p.gatewayOrderRef}`;
       return p;

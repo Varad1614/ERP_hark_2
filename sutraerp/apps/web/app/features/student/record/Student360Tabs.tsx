@@ -19,8 +19,9 @@ import {
   formatINR,
   formatNumber,
   humanize,
+  useToast,
 } from "@sutra/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { useSession } from "../../../lib/auth";
 import { useInstitutionApi, useInstitutions, keys as instKeys } from "../../institution/hooks";
@@ -28,7 +29,8 @@ import { rkeys as regKeys, useRegistrationApi } from "../registration/hooks";
 import { Actions, DialogFrame, REASON, rowProps, SpecForm, useAsk, type RowAction } from "../ui";
 import { PrintSlipButton } from "../../finance/printing/PrintSlipButton";
 import { AttendanceBadge, FeeBadge, useProgrammeNames } from "./AdminTabs";
-import type { Student } from "./api";
+import type { Student, StudentDocument } from "./api";
+import { DocumentUploadDialog, useDownload } from "./files";
 import { rkeys, useRecordApi, useRecordCommand } from "./hooks";
 import { feeStatus, overallAttendance, useAttendanceIndex, useFeeAccounts, useFeeDetail } from "./insights";
 
@@ -689,6 +691,11 @@ export function Student360Documents({ studentId }: { studentId: string }) {
   const { run, submit, busy, dialog } = useRecordCommand();
   const { ask, prompt } = useAsk();
   const docList = docs.data ?? [];
+  // Part 2 · S4 (UI docs): attach / download the stored file of a record document.
+  const client = useQueryClient();
+  const toast = useToast();
+  const files = useDownload();
+  const [uploadFor, setUploadFor] = useState<StudentDocument | null>(null);
   const reqList = requests.data ?? [];
   const raiseButton = admin ? (
     <button
@@ -761,17 +768,22 @@ export function Student360Documents({ studentId }: { studentId: string }) {
                 icon={FileText}
                 tone={d.status === "verified" ? "green" : d.status === "rejected" ? "rose" : "amber"}
                 title={humanize(d.documentType)}
-                meta={[d.title, d.status === "verified" ? "Verified by the registrar’s office" : humanize(d.source)].filter(Boolean).join(" · ")}
+                data-file={d.documentObjectId ? "attached" : "none"}
+                meta={[d.title, d.status === "verified" ? "Verified by the registrar’s office" : humanize(d.source), d.documentObjectId ? "File attached" : null].filter(Boolean).join(" · ")}
                 badge={{ label: humanize(d.status), kind: d.status === "verified" ? "done" : d.status === "rejected" ? "attention" : "review" }}
-                {...(admin && d.status === "submitted"
-                  ? rowProps(
-                      [
-                        { id: "student-doc-verify", label: "Verify", variant: "primary", onClick: () => void run(() => api.verifyDocument(studentId, d.id, d.version, "verified"), "Document verified") },
-                        { id: "student-doc-reject", label: "Reject", onClick: () => ask({ title: "Reject document", eyebrow: "Students · Documents", name: "student-doc-reject", submitLabel: "Reject", fields: [{ name: "note", label: "Why", required: true, wide: true, type: "textarea" }], onSubmit: (v) => submit(() => api.verifyDocument(studentId, d.id, d.version, "rejected", v.note), "Document rejected") }) },
-                      ],
-                      busy,
-                    )
-                  : {})}
+                {...rowProps(
+                  [
+                    ...(admin && d.status === "submitted"
+                      ? [
+                          { id: "student-doc-verify", label: "Verify", variant: "primary" as const, onClick: () => void run(() => api.verifyDocument(studentId, d.id, d.version, "verified"), "Document verified") },
+                          { id: "student-doc-reject", label: "Reject", onClick: () => ask({ title: "Reject document", eyebrow: "Students · Documents", name: "student-doc-reject", submitLabel: "Reject", fields: [{ name: "note", label: "Why", required: true, wide: true, type: "textarea" }], onSubmit: (v) => submit(() => api.verifyDocument(studentId, d.id, d.version, "rejected", v.note), "Document rejected") }) },
+                        ]
+                      : []),
+                    ...(admin && d.status === "submitted" && !d.documentObjectId ? [{ id: "student-doc-upload", label: "Upload file", onClick: () => setUploadFor(d) }] : []),
+                    ...(admin && d.documentObjectId ? [{ id: "student-doc-download", label: "Download", onClick: () => void files.download(() => api.downloadDocumentFile(studentId, d.id)) }] : []),
+                  ],
+                  busy || files.busy,
+                )}
               />
             ))}
           </div>
@@ -808,6 +820,19 @@ export function Student360Documents({ studentId }: { studentId: string }) {
           </div>
         )}
       </BentoTile>
+      )}
+      {uploadFor && (
+        <DocumentUploadDialog
+          title={`Upload ${humanize(uploadFor.documentType).toLowerCase()}`}
+          eyebrow="Students · Documents"
+          onUpload={(file) => api.uploadDocumentFile(studentId, uploadFor.id, file)}
+          onClose={() => setUploadFor(null)}
+          onDone={() => {
+            setUploadFor(null);
+            toast("File uploaded");
+            void client.invalidateQueries({ queryKey: rkeys.all });
+          }}
+        />
       )}
       {prompt}
       {dialog}

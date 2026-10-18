@@ -151,6 +151,9 @@ status_enum!(
         CampusCharge => "campus_charge",
         /// Periodic billing run (ERP_EXTENSIONS 1E); `source_id` = the billing run item.
         BillingRun => "billing_run",
+        /// Part 2 · S4-import: a student balance migrated from the legacy system (one per
+        /// student finance account; Dr receivables / Cr accumulated fund).
+        OpeningBalance => "opening_balance",
     }
 );
 
