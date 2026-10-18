@@ -10,6 +10,7 @@ import { MyPayslipsPanel } from "../../features/people/payroll";
 import { MyProfilePanel } from "../../features/people/workforce";
 import { MyExpensesTile } from "../../features/campus/resources/expenses/MyExpensesTile";
 import { MyTimePanel } from "../../features/people/timetrack/MyTimePanel"; // ERP_EXTENSIONS 5C
+import { MyDutyRoster } from "../../features/people/roster/MyDutyRoster"; // ERP_EXTENSIONS 5B
 
 export function meta() {
   return [{ title: "Leave · SutraERP" }];
@@ -62,7 +63,10 @@ export default function Leave() {
           {current.key === "profile" ? (
             <MyProfilePanel />
           ) : current.key === "attendance" ? (
-            <MyAttendancePanel />
+            <>
+              <MyAttendancePanel />
+              <MyDutyRoster />
+            </>
           ) : current.key === "workload" ? (
             <>
               <MyWorkloadPanel />
