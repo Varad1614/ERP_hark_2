@@ -6,6 +6,7 @@
 pub mod careers; // ERP_EXTENSIONS 5A
 pub mod certificate;
 pub mod hiring_analytics; // ERP_EXTENSIONS 5A
+pub mod hiring_insights_http; // ERP_EXTENSIONS 5A
 pub mod offers; // ERP_EXTENSIONS 5A
 pub mod offers_http; // ERP_EXTENSIONS 5A
 pub mod onboarding;
@@ -24,6 +25,7 @@ pub fn router(state: PeopleState) -> OpenApiRouter {
         .merge(recruitment::router(state.clone()))
         .merge(scorecards_http::router(state.clone())) // ERP_EXTENSIONS 3B
         .merge(offers_http::router(state.clone())) // ERP_EXTENSIONS 5A
+        .merge(hiring_insights_http::router(state.clone())) // ERP_EXTENSIONS 5A
         .merge(onboarding::router(state.clone()))
         .merge(probation::router(state.clone()))
         .merge(separation::router(state.clone()))

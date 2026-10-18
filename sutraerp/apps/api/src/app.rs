@@ -293,6 +293,19 @@ impl AppContext {
                 interval: Duration::from_secs(3600),
             }))
         });
+        // ERP_EXTENSIONS 5A: hourly hiring reminders (lapsed offers expire; offer / follow-up /
+        // onboarding reminders recorded once per key).
+        let scheduler = scheduler.map(|s| {
+            s.with(Arc::new(sutra_people::HiringReminderJob {
+                state: people_deps_with(
+                    pool.clone(),
+                    workflow.clone(),
+                    cfg.hardening.workflow.approvals,
+                )
+                .into_state(),
+                interval: Duration::from_secs(3600),
+            }))
+        });
         // SEC-P1-AUTH-001: privileged-role MFA also drives dev-mode challenges / enrolment.
         let mfa = PrivilegedRoleMfaPolicy {
             enforce: cfg.dev_mfa_enforced || cfg.privileged_mfa,

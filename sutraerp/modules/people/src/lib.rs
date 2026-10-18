@@ -54,6 +54,7 @@ use utoipa_axum::router::OpenApiRouter;
 
 pub use dataimport::PgStaffImport; // Part 2 · S4-import
 pub use directory::{PgLeaveReader, PgWorkforceDirectory};
+pub use hr::hiring_insights_http::HiringReminderJob; // ERP_EXTENSIONS 5A
 pub use metrics::PgPeopleMetrics;
 pub use shared::PeopleState;
 pub use staff::SubjectOnlyStaff;
