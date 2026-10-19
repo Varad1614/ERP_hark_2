@@ -23,4 +23,19 @@ describe("financial statements (ERP_EXTENSIONS 1C)", () => {
     });
     expect(csv).toBe(',Total\nIncome,\n"  Tuition, term 1",1000.00');
   });
+  it("neutralises spreadsheet formulas in user-entered labels (audit 2026-10 A2)", () => {
+    const csv = statementCsv({
+      id: "income_expenditure",
+      title: "Income & expenditure",
+      subtitle: "",
+      columns: [{ key: "total", label: "Total" }],
+      rows: [
+        { kind: "account", label: '=HYPERLINK("https://evil.example","x")', depth: 0, values: ["-2227.00"], emphasis: false },
+        { kind: "account", label: "@SUM(A1)", depth: 0, values: ["10.00"], emphasis: false },
+      ],
+    });
+    const [, first, second] = csv.split("\n");
+    expect(first).toBe(`"'=HYPERLINK(""https://evil.example"",""x"")",-2227.00`);
+    expect(second).toBe("'@SUM(A1),10.00");
+  });
 });

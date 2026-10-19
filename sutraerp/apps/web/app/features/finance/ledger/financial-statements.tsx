@@ -8,6 +8,7 @@ import { FileSpreadsheet } from "lucide-react";
 import { Badge, BentoTile, Button, DataTable, EmptyState, FormGrid, FormSelect, TextField } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { csvRow } from "../../../lib/csv";
 import { todayIso } from "../../institution/forms";
 import { ledger } from "../ui";
 import { lkeys, useLedgerApi } from "./hooks";
@@ -38,10 +39,11 @@ const STRONG = new Set(["total", "grand", "subtotal"]);
 
 /** CSV of a statement exactly as served (one row per line, label indented by depth). */
 export function statementCsv(s: FinancialStatement): string {
-  const q = (x: string) => (/[",\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x);
+  // Audit 2026-10 A2: account / group labels are user-entered, so cells go through lib/csv
+  // (quoting + spreadsheet formula neutralisation; plain numbers such as -2227.00 stay numbers).
   const head = ["", ...s.columns.map((c) => c.label)];
   const lines = s.rows.map((r) => [`${"  ".repeat(r.depth)}${r.label}`, ...r.values.map((v) => v ?? "")]);
-  return [head, ...lines].map((l) => l.map(q).join(",")).join("\n");
+  return [head, ...lines].map(csvRow).join("\n");
 }
 
 export function FinancialStatementsTile({ institutionId }: { institutionId: string }) {
