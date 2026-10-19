@@ -5,12 +5,21 @@ import type { Role } from "./roles";
 
 /**
  * `mock`: everything resolved in the browser. `api`: sutra-api (same origin) with the dev
- * authenticator (password + TOTP). `oidc`: sutra-api in Keycloak mode — sign-in is a redirect to
- * `GET /api/v1/auth/oidc/start`.
+ * authenticator (login id + password, then TOTP). `oidc`: sutra-api in Keycloak mode — sign-in is
+ * a redirect to `GET /api/v1/auth/oidc/start`.
+ *
+ * Audit 2026-10 (C1/M10): a build without `VITE_AUTH_MODE` is `oidc` (real sign-in); only the
+ * dev server / Vitest (`import.meta.env.DEV`) fall back to `mock`.
  */
 export type AuthMode = "mock" | "api" | "oidc";
 export const AUTH_MODE: AuthMode =
-  import.meta.env.VITE_AUTH_MODE === "api" ? "api" : import.meta.env.VITE_AUTH_MODE === "oidc" ? "oidc" : "mock";
+  import.meta.env.VITE_AUTH_MODE === "api"
+    ? "api"
+    : import.meta.env.VITE_AUTH_MODE === "oidc"
+      ? "oidc"
+      : import.meta.env.VITE_AUTH_MODE === "mock" || import.meta.env.DEV
+        ? "mock"
+        : "oidc";
 /** True when the API (not the in-browser mock) is the source of truth. */
 export const USES_API = AUTH_MODE !== "mock";
 
@@ -43,9 +52,19 @@ export async function bootstrapLoginCsrf(opts: FetchOptions = {}): Promise<strin
   return res.csrfToken;
 }
 
+/**
+ * A same-origin path to return to after sign-in, else `/` (no protocol-relative `//host`, no
+ * absolute URLs, no backslash tricks; the API re-validates `returnTo` too).
+ */
+export function safeReturnTo(raw: string | null | undefined): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\") || raw.includes("\\")) return "/";
+  if (raw.startsWith("/sign-in")) return "/";
+  return raw;
+}
+
 /** URL that starts the Keycloak (OIDC) sign-in for `returnTo` (same-origin path). */
 export function oidcStartUrl(returnTo = "/", stepUp = false): string {
-  const q = new URLSearchParams({ returnTo });
+  const q = new URLSearchParams({ returnTo: safeReturnTo(returnTo) });
   if (stepUp) q.set("stepUp", "true");
   return `${import.meta.env.VITE_API_BASE ?? ""}/api/v1/auth/oidc/start?${q.toString()}`;
 }

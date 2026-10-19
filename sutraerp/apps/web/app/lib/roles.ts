@@ -63,7 +63,6 @@ export interface RoleConfig {
   name: string;
   first: string;
   initials: string;
-  loginId: string;
   blurb: string;
   nav: NavEntry[];
   hero: { sub: string; cta: string; to: string };
@@ -82,7 +81,6 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     name: "Dhruv Naik",
     first: "Dhruv",
     initials: "DN",
-    loginId: "admin@sutra.dev",
     blurb: "Institution overview, approvals, finance and people.",
     nav: [
       nav("home", "Home", I.House), nav("students", "Students", I.GraduationCap), nav("academics", "Academics", I.BookOpen, ["/academic-delivery"]),
@@ -121,7 +119,6 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     name: "Dr. Meera Shah",
     first: "Meera",
     initials: "MS",
-    loginId: "meera.shah@sutra.dev",
     blurb: "Classes, attendance, assessments and mentoring.",
     nav: [
       nav("home", "Home", I.House), nav("classes", "My classes", I.Presentation), nav("attendance", "Attendance", I.UserCheck),
@@ -160,7 +157,6 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     name: "Aarav Desai",
     first: "Aarav",
     initials: "AD",
-    loginId: "aarav.desai@sutra.dev",
     blurb: "Timetable, coursework, results and fees.",
     nav: [
       nav("home", "Home", I.House), nav("timetable", "Timetable", I.CalendarDays), nav("courses", "Courses", I.BookOpen, ["/registration"]),

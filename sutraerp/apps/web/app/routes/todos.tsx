@@ -70,7 +70,7 @@ function TodoForm({ canAssign, onDone }: { canAssign: boolean; onDone: () => voi
           <Input
             label="Assign to (login, optional)"
             name="assignee"
-            placeholder="aarav.desai@sutra.dev"
+            placeholder="name@college.edu"
             value={assignee}
             error={errors.assigneeLoginId}
             onChange={(e) => setAssignee(e.target.value)}

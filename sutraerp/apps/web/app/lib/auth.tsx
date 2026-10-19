@@ -3,14 +3,17 @@
  * `oidc` mode the browser only ever learns the principal (and the session's CSRF token) through
  * the login / MFA responses and `GET /api/v1/auth/session`.
  *
- * Sign-in in `api` mode: `GET /auth/csrf` (login-CSRF bootstrap) → `POST /auth/login` → either a
- * session, or `mfaRequired` + `challengeId` → `POST /auth/mfa/verify` with a TOTP code (same
- * pre-session token). In `oidc` mode the sign-in page links to `GET /auth/oidc/start` instead.
- * In `mock` mode (default for UI work) the chosen dev persona is kept in sessionStorage.
+ * Sign-in in `api` mode: `GET /auth/csrf` (login-CSRF bootstrap) → `POST /auth/login` with the
+ * login id and the password the user typed → either a session, or `mfaRequired` + `challengeId`
+ * → `POST /auth/mfa/verify` with a TOTP code (same pre-session token). No password is ever
+ * embedded in the client (audit 2026-10, D1/SEC-7). In `oidc` mode the sign-in page links to
+ * `GET /auth/oidc/start` instead. In `mock` mode (dev server / UI work) the chosen dev persona is
+ * kept in sessionStorage.
  */
 import type { LoginResponse, MfaLevel, MfaMethod } from "@sutra/api-client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AUTH_MODE, api, bootstrapLoginCsrf, setCsrfToken, unwrap } from "./api";
+import { devPersonaLoginId } from "./dev-personas";
 import { isRole, ROLE_CONFIG, type ApiRole, type Role, uiRole } from "./roles";
 import { getPasskeyAssertion } from "./webauthn";
 
@@ -32,6 +35,12 @@ export interface ClientSession {
   apiRoles?: ApiRole[];
 }
 
+/**
+ * What the sign-in page submits: a persona in `mock` mode, or a login id + typed password in
+ * `api` mode (`role` is only the UI persona to fall back on before the server answers).
+ */
+export type SignInCredentials = { role: Role; loginId?: undefined; password?: undefined } | { loginId: string; password: string; role?: Role };
+
 export type SignInResult =
   | { status: "authenticated"; session: ClientSession }
   | { status: "mfaRequired"; challengeId: string; methods: MfaMethod[] };
@@ -39,7 +48,7 @@ export type SignInResult =
 interface AuthContextValue {
   ready: boolean;
   session: ClientSession | null;
-  signIn: (role: Role) => Promise<SignInResult>;
+  signIn: (credentials: SignInCredentials) => Promise<SignInResult>;
   verifyMfa: (challengeId: string, code: string) => Promise<ClientSession>;
   /**
    * Answers a sign-in challenge with a passkey. The server consumes `challengeId` and issues a
@@ -57,7 +66,8 @@ const STORAGE_KEY = "sutra.devRole";
 
 function personaSession(role: Role): ClientSession {
   const c = ROLE_CONFIG[role];
-  return { role, displayName: c.name, loginId: c.loginId, mfaLevel: "none", mfaEnrollmentRequired: false, subject: `dev|${c.loginId}`, apiRoles: [role] };
+  const loginId = devPersonaLoginId(role) ?? role;
+  return { role, displayName: c.name, loginId, mfaLevel: "none", mfaEnrollmentRequired: false, subject: `dev|${loginId}`, apiRoles: [role] };
 }
 
 /** Maps an authenticated login/MFA response onto the client session (and stores its CSRF token). */
@@ -110,24 +120,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback(async (role: Role): Promise<SignInResult> => {
+  const signIn = useCallback(async (credentials: SignInCredentials): Promise<SignInResult> => {
     if (AUTH_MODE === "mock") {
+      const role = credentials.role ?? "administrator";
       window.sessionStorage.setItem(STORAGE_KEY, role);
       const s = personaSession(role);
       setSession(s);
       return { status: "authenticated", session: s };
     }
     if (AUTH_MODE === "oidc") throw new Error("Use single sign-on to continue.");
+    const loginId = credentials.loginId?.trim();
+    const password = credentials.password ?? "";
+    if (!loginId || !password) throw new Error("Enter your login id and password.");
     // Login CSRF: the pre-session token is sent on login and on the MFA step that follows.
     await bootstrapLoginCsrf();
-    const res = unwrap(
-      await api.POST("/api/v1/auth/login", {
-        body: { loginId: ROLE_CONFIG[role].loginId, password: import.meta.env.VITE_DEV_PASSWORD ?? "sutra" },
-      }),
-    );
+    const res = unwrap(await api.POST("/api/v1/auth/login", { body: { loginId, password } }));
     if (res.outcome === "mfaRequired" && res.challengeId)
       return { status: "mfaRequired", challengeId: res.challengeId, methods: res.mfaMethods ?? ["totp"] };
-    const s = sessionFromLogin(res, role);
+    const s = sessionFromLogin(res, credentials.role ?? "administrator");
     setSession(s);
     return { status: "authenticated", session: s };
   }, []);

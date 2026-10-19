@@ -1,11 +1,19 @@
 import { index, layout, route, type RouteConfig } from "@react-router/dev/routes";
 
+/**
+ * Evaluated by the React Router build (Node): the catalogue route exists under `react-router dev`
+ * and in builds made with VITE_UI_CATALOGUE=1 (CI E2E builds) only.
+ */
+const CATALOGUE_ROUTE =
+  process.env.VITE_UI_CATALOGUE === "1" || (process.env.NODE_ENV !== "production" && !process.argv.some((a) => a === "build"));
+
 export default [
   route("sign-in", "routes/sign-in.tsx"),
   // 5A public careers page: outside `app-shell`, so it renders without a session.
   route("careers/:slug", "routes/careers.tsx"),
   // Re-skin v2 component catalogue (dev / VITE_UI_CATALOGUE=1 builds only; docs/reskin2-contracts.md §6).
-  route("dev/catalogue", "routes/dev/catalogue.tsx"),
+  // Audit 2026-10 (SEC-7): not even registered in other builds, so its chunk is not emitted.
+  ...(CATALOGUE_ROUTE ? [route("dev/catalogue", "routes/dev/catalogue.tsx")] : []),
   layout("routes/app-shell.tsx", [
     index("routes/home.tsx"),
     route("workspaces", "routes/workspaces.tsx"),

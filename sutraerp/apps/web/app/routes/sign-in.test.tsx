@@ -72,6 +72,7 @@ async function mount(methods: string[]) {
       </AuthProvider>
     </QueryClientProvider>,
   );
+  fireEvent.change(await screen.findByLabelText("Password"), { target: { value: "typed-dev-password" } });
   fireEvent.click(await screen.findByRole("button", { name: /Continue as administrator/ }));
   await screen.findByText("Verify it’s you");
   return { router, get, paths };

@@ -27,6 +27,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { api, unwrap, USES_API } from "./api";
 import { useSession } from "./auth";
+import { devPersonaLoginId } from "./dev-personas";
 import { ANNOUNCEMENT, ROLE_CONFIG, type Role } from "./roles";
 
 export type TodoFilter = "open" | "completed" | "dismissed" | "all";
@@ -163,8 +164,8 @@ export function mockInbox(role: Role): InboxApi {
     dismissedAt: null,
   }));
   let profile: Profile = {
-    subject: `dev|${cfg.loginId}`,
-    loginId: cfg.loginId,
+    subject: `dev|${devPersonaLoginId(role) ?? role}`,
+    loginId: devPersonaLoginId(role) ?? role,
     displayName: cfg.name,
     roles: [role],
     locale: "en-IN",

@@ -12,6 +12,7 @@
  * - `FacultyClassesScreen` — faculty `/classes` (My classes).
  * - `FacultyStudentsScreen` — faculty `/my-students` (rosters of taught sections → read-only Student 360).
  */
+import { devPersonaSubject } from "../../../lib/dev-personas";
 import { BookOpen, GraduationCap, Layers, Plus, Presentation, ShieldCheck, Users } from "lucide-react";
 import { BentoTile, Button, DataTable, EmptyState } from "@sutra/ui";
 import { useQueries, useQuery } from "@tanstack/react-query";
@@ -416,7 +417,7 @@ export function FacultyAssignmentsAdminTab({ institution }: { institution: Insti
                           title: `Assign faculty to ${r.o.offeringCode} · ${r.s.sectionCode}`,
                           name: "assignment-create",
                           fields: [
-                            { name: "facultySubjectRef", label: "Faculty login", required: true, placeholder: "dev|meera.shah@sutra.dev", wide: true },
+                            { name: "facultySubjectRef", label: "Faculty login", required: true, placeholder: devPersonaSubject("faculty") || "Login subject of the faculty member", wide: true },
                             { name: "facultyName", label: "Name", placeholder: "Dr. Meera Shah" },
                             { name: "role", label: "Role", type: "select", initial: "primary_instructor", options: ROLES.map((x) => ({ value: x, label: roleLabel(x) })) },
                             { name: "weeklyHours", label: "Weekly hours", type: "number" },

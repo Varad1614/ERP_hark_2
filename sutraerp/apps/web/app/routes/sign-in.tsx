@@ -1,12 +1,13 @@
 import { ArrowUpRight, KeyRound } from "lucide-react";
 import { ApiProblem, type MfaMethod } from "@sutra/api-client";
-import { Button, Logo, ROLE_ACCENTS, RoleTheme, useToast } from "@sutra/ui";
-import type { CSSProperties } from "react";
+import { Button, Logo, ROLE_ACCENTS, RoleTheme, TextField, useToast } from "@sutra/ui";
+import type { CSSProperties, FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router";
 import { TotpChallenge } from "../components/TotpChallenge";
-import { AUTH_MODE, oidcStartUrl } from "../lib/api";
-import { useAuth, type ClientSession } from "../lib/auth";
+import { AUTH_MODE, oidcStartUrl, safeReturnTo } from "../lib/api";
+import { useAuth, type ClientSession, type SignInCredentials } from "../lib/auth";
+import { devPersonaLoginId, devPersonasEnabled } from "../lib/dev-personas";
 import { ROLE_CONFIG, ROLES, type Role } from "../lib/roles";
 import { PasskeyCancelled, passkeyErrorMessage, webauthnSupported } from "../lib/webauthn";
 
@@ -21,6 +22,9 @@ const AUTH_ERRORS: Record<string, string> = {
   "token-invalid": "The identity provider’s response could not be verified.",
   "access-denied": "Your account has no SutraERP access for this institution.",
   unavailable: "The sign-in service is unavailable right now. Try again shortly.",
+  "idp-error": "The sign-in service reported an error. Please start again.",
+  "code-missing": "The sign-in service did not complete the sign-in. Please start again.",
+  "oidc-disabled": "Single sign-on is not enabled on this server.",
 };
 
 function describe(e: unknown): string {
@@ -35,33 +39,61 @@ export default function SignIn() {
   const navigate = useNavigate();
   const toast = useToast();
   const [params] = useSearchParams();
-  const [busy, setBusy] = useState<Role | null>(null);
-  const [challenge, setChallenge] = useState<{ role: Role; id: string; methods: MfaMethod[] } | null>(null);
+  // "form" = the login id + password form; a Role = that dev persona card.
+  const [busy, setBusy] = useState<Role | "form" | null>(null);
+  const [challenge, setChallenge] = useState<{ role?: Role; id: string; methods: MfaMethod[] } | null>(null);
+  const [loginId, setLoginId] = useState("");
+  const [password, setPassword] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const returnTo = safeReturnTo(params.get("returnTo"));
+  // Audit 2026-10 (SEC-2/SEC-7/M-3): personas only in dev-persona builds; never with a password.
+  const personas = devPersonasEnabled();
   const [mfaBusy, setMfaBusy] = useState(false);
   const [mfaError, setMfaError] = useState<string | null>(null);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   const passkeyAbort = useRef<AbortController | null>(null);
   useEffect(() => () => passkeyAbort.current?.abort(), []);
-  if (ready && session && !challenge) return <Navigate to="/" replace />;
+  if (ready && session && !challenge) return <Navigate to={returnTo} replace />;
 
   const finish = (s: ClientSession) => {
     toast(`Signed in as ${s.displayName}`);
-    navigate(s.mfaEnrollmentRequired ? "/account/mfa" : "/", { replace: true });
+    navigate(s.mfaEnrollmentRequired ? "/account/mfa" : returnTo, { replace: true });
   };
 
-  const choose = async (role: Role) => {
-    setBusy(role);
+  const attempt = async (key: Role | "form", credentials: SignInCredentials) => {
+    setBusy(key);
+    setFormError(null);
     try {
-      const result = await signIn(role);
+      const result = await signIn(credentials);
       if (result.status === "mfaRequired") {
         setMfaError(null);
-        setChallenge({ role, id: result.challengeId, methods: result.methods });
+        setChallenge({ role: credentials.role, id: result.challengeId, methods: result.methods });
       } else finish(result.session);
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Sign-in failed");
+      const msg = e instanceof ApiProblem && e.problem.status === 401 ? "Login id or password is incorrect." : e instanceof Error ? e.message : "Sign-in failed";
+      if (AUTH_MODE === "api") setFormError(msg);
+      else toast(msg);
     } finally {
       setBusy(null);
     }
+  };
+
+  /** Mock mode: sign in as the persona. API mode: the persona's dev login id + the typed password. */
+  const choose = (role: Role) => {
+    if (AUTH_MODE === "mock") return attempt(role, { role });
+    const id = devPersonaLoginId(role);
+    if (!id) return;
+    if (!password) {
+      setLoginId(id);
+      setFormError("Type the development password first.");
+      return;
+    }
+    return attempt(role, { loginId: id, password, role });
+  };
+
+  const submitPassword = (e: FormEvent) => {
+    e.preventDefault();
+    void attempt("form", { loginId, password });
   };
 
   const verify = async (code: string) => {
@@ -104,6 +136,33 @@ export default function SignIn() {
   const offersPasskey = challenge?.methods.includes("webauthn") ?? false;
   const offersTotp = challenge ? challenge.methods.length === 0 || challenge.methods.includes("totp") : false;
 
+  const personaCards = (
+    <div className="sb-role-cards">
+      {ROLES.map((role) => {
+        const r = ROLE_CONFIG[role];
+        return (
+          <button
+            key={role}
+            type="button"
+            className="sb-tile sb-role-card"
+            data-role-card={role}
+            disabled={busy !== null}
+            onClick={() => choose(role)}
+            style={{ "--ac": ROLE_ACCENTS[role].ac, "--acs": ROLE_ACCENTS[role].acs, "--act": ROLE_ACCENTS[role].act } as CSSProperties}
+          >
+            <span className="sb-avatar">{r.initials}</span>
+            <small>{r.title}</small>
+            <h3>{r.name}</h3>
+            <small>{r.blurb}</small>
+            <span className="sb-btn">
+              {busy === role ? "Signing in…" : `Continue as ${r.title.toLowerCase()}`} <ArrowUpRight strokeWidth={1.75} />
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="sb-signin">
       <RoleTheme role={challenge?.role ?? null} />
@@ -111,7 +170,7 @@ export default function SignIn() {
       {challenge ? (
         <>
           <h1>Verify it’s you</h1>
-          <p>{ROLE_CONFIG[challenge.role].name} · second factor required</p>
+          <p>{challenge.role ? `${ROLE_CONFIG[challenge.role].name} · ` : ""}second factor required</p>
           <div className="sb-mfa-wrap">
             {offersPasskey && (
               <div className="sb-actions-row sb-signin-passkey">
@@ -175,52 +234,63 @@ export default function SignIn() {
           )}
           {AUTH_MODE === "oidc" ? (
             <>
-              <p>Sutra Institute of Technology · single sign-on</p>
+              <p>Sutra Institute of Technology · sign in with your institution account</p>
               <div className="sb-actions-row sb-signin-sso">
                 <Button
                   icon={<KeyRound strokeWidth={1.75} />}
                   iconPosition="start"
-                  onClick={() => window.location.assign(oidcStartUrl("/"))}
+                  onClick={() => window.location.assign(oidcStartUrl(returnTo))}
                   data-oidc-start
                 >
-                  Continue with SutraERP SSO
+                  Sign in
                 </Button>
               </div>
+              <small>You continue on the institution’s single sign-on page and come back here.</small>
+            </>
+          ) : AUTH_MODE === "api" ? (
+            <>
+              <p>Sutra Institute of Technology · development sign-in</p>
+              <form className="sb-signin-form" onSubmit={submitPassword} data-password-form noValidate>
+                <TextField label="Login id" name="username" autoComplete="username" value={loginId} onChange={(e) => setLoginId(e.target.value)} data-login-id required />
+                <TextField
+                  label="Password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  data-password
+                  required
+                />
+                {formError && (
+                  <p className="sb-field-error" role="alert" data-signin-error>
+                    {formError}
+                  </p>
+                )}
+                <div className="sb-actions-row">
+                  <Button type="submit" disabled={busy !== null || !loginId.trim() || !password} data-password-submit>
+                    {busy === "form" ? "Signing in…" : "Sign in"}
+                  </Button>
+                </div>
+              </form>
+              {personas && (
+                <>
+                  <p>Development personas — type the password above, then pick a role</p>
+                  {personaCards}
+                </>
+              )}
             </>
           ) : (
             <>
               <p>Sutra Institute of Technology · development sign-in — choose a role</p>
-              <div className="sb-role-cards">
-                {ROLES.map((role) => {
-                  const r = ROLE_CONFIG[role];
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      className="sb-tile sb-role-card"
-                      data-role-card={role}
-                      disabled={busy !== null}
-                      onClick={() => choose(role)}
-                      style={{ "--ac": ROLE_ACCENTS[role].ac, "--acs": ROLE_ACCENTS[role].acs, "--act": ROLE_ACCENTS[role].act } as CSSProperties}
-                    >
-                      <span className="sb-avatar">{r.initials}</span>
-                      <small>{r.title}</small>
-                      <h3>{r.name}</h3>
-                      <small>{r.blurb}</small>
-                      <span className="sb-btn">
-                        {busy === role ? "Signing in…" : `Continue as ${r.title.toLowerCase()}`} <ArrowUpRight strokeWidth={1.75} />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              {personaCards}
             </>
           )}
         </>
       )}
       <div className="sb-env-tag">
         <i />
-        {AUTH_MODE === "oidc" ? "Keycloak · OIDC" : AUTH_MODE === "api" ? "Dev authenticator · API" : "Dev personas · mock data"}
+        {AUTH_MODE === "oidc" ? "Single sign-on · OIDC" : AUTH_MODE === "api" ? "Dev authenticator · API" : "Dev personas · mock data"}
       </div>
     </div>
   );

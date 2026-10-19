@@ -46,7 +46,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { AUTH_MODE, useWorkspaces } from "../lib/api";
-import { useAuth, type SignInResult } from "../lib/auth";
+import { useAuth, type SignInCredentials, type SignInResult } from "../lib/auth";
 import { can } from "../lib/permissions";
 import { LicenceBanner } from "../components/LicenceBanner";
 import { NotificationRow } from "../components/NotificationRow";
@@ -54,6 +54,7 @@ import { isModuleActive, licenceBanner, moduleForRoute, moduleName, useEntitleme
 import { Palette, type PaletteEntry } from "../components/Palette";
 import { groupMeta } from "../lib/icons";
 import { inboxKeys, useInbox, useInboxRefresh, useUnreadCount } from "../lib/inbox";
+import { devPersonasEnabled } from "../lib/dev-personas";
 import { ROLE_CONFIG, ROLES, routeFor, type Role } from "../lib/roles";
 import { ThemeDrawer } from "../features/home/Customize";
 import { PRESETS, presetLayout } from "../features/home/model";
@@ -74,8 +75,13 @@ function RouterLink({ to, className, end, match, children }: NavLinkLikeProps) {
 
 export default function AppShell() {
   const { ready, session, signIn, signOut } = useAuth();
+  const location = useLocation();
   if (!ready) return null;
-  if (!session) return <Navigate to="/sign-in" replace />;
+  if (!session) {
+    // Come back to the requested page after sign-in (the sign-in page re-validates the path).
+    const back = `${location.pathname}${location.search}`;
+    return <Navigate to={back === "/" ? "/sign-in" : `/sign-in?returnTo=${encodeURIComponent(back)}`} replace />;
+  }
   return <AuthenticatedShell role={session.role} signIn={signIn} signOut={signOut} />;
 }
 
@@ -95,7 +101,7 @@ function isTyping(e: KeyboardEvent): boolean {
   return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 }
 
-function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r: Role) => Promise<SignInResult>; signOut: () => Promise<void> }) {
+function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (c: SignInCredentials) => Promise<SignInResult>; signOut: () => Promise<void> }) {
   const cfg = ROLE_CONFIG[role];
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -308,8 +314,15 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
   const switchRole = async (next: Role) => {
     setPop(null);
     if (next === role) return;
+    // API mode: a persona needs the typed dev password, so switching means signing in again.
+    if (AUTH_MODE !== "mock") {
+      await signOut();
+      toast(`Sign in as ${ROLE_CONFIG[next].name} with the development password`);
+      navigate("/sign-in", { replace: true });
+      return;
+    }
     try {
-      const result = await signIn(next);
+      const result = await signIn({ role: next });
       if (result.status === "mfaRequired") {
         toast(`${ROLE_CONFIG[next].name} needs two-step verification — sign out and sign in again.`);
         return;
@@ -460,9 +473,10 @@ function AuthenticatedShell({ role, signIn, signOut }: { role: Role; signIn: (r:
             </div>
           </button>
         )}
-        <div className="sb-pop-sep" />
-        <p className="sb-pop-label">Switch role</p>
-        {ROLES.map((r) => {
+        {/* Audit 2026-10 (SEC-2/M-3): the role switcher exists only in dev-persona builds, never with OIDC. */}
+        {devPersonasEnabled() && AUTH_MODE !== "oidc" && <div className="sb-pop-sep" />}
+        {devPersonasEnabled() && AUTH_MODE !== "oidc" && <p className="sb-pop-label">Switch role</p>}
+        {(devPersonasEnabled() && AUTH_MODE !== "oidc" ? ROLES : []).map((r) => {
           const x = ROLE_CONFIG[r];
           return (
             <button key={r} type="button" className="sb-pop-item" data-switch-role={r} onClick={() => switchRole(r)}>

@@ -63,13 +63,15 @@ describe("API-mode sign-in with MFA", () => {
 
     let result: Awaited<ReturnType<NonNullable<typeof ctx>["signIn"]>> | undefined;
     await act(async () => {
-      result = await ctx!.signIn("administrator");
+      result = await ctx!.signIn({ loginId: "admin@sutra.dev", password: "typed-dev-password" });
     });
     expect(result).toEqual({ status: "mfaRequired", challengeId: "ch-1", methods: ["totp"] });
     expect(screen.getByTestId("who").textContent).toBe("anon");
     const login = seen.find((r) => r.path === "/api/v1/auth/login");
     expect(seen.findIndex((r) => r.path === "/api/v1/auth/csrf")).toBeLessThan(seen.indexOf(login!));
     expect(login?.csrf).toBe("pre-session");
+    // Audit 2026-10 (D1/SEC-7): the typed password is sent; nothing is embedded in the client.
+    expect(JSON.parse(login!.body)).toEqual({ loginId: "admin@sutra.dev", password: "typed-dev-password" });
 
     await act(async () => {
       await ctx!.verifyMfa("ch-1", "123456");
@@ -136,7 +138,7 @@ describe("API-mode sign-in with MFA", () => {
     await waitFor(() => expect(ctx?.ready).toBe(true));
     let result: Awaited<ReturnType<NonNullable<typeof ctx>["signIn"]>> | undefined;
     await act(async () => {
-      result = await ctx!.signIn("administrator");
+      result = await ctx!.signIn({ loginId: "admin@sutra.dev", password: "typed-dev-password" });
     });
     expect(result).toEqual({ status: "mfaRequired", challengeId: "ch-1", methods: ["webauthn", "totp"] });
     const renewed: string[] = [];

@@ -8,6 +8,7 @@
  * - `StudentAssignmentsScreen` — student `/assignments`.
  * - `FacultyAttendanceScreen` — faculty `/attendance`.
  */
+import { devPersonaSubject } from "../../../lib/dev-personas";
 import { BookOpenCheck, CalendarDays, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
 import { Badge, BentoTile, Button, DataTable, EmptyState, FormSelect, WeekGrid as Week } from "@sutra/ui";
 import { useQueries, useQuery } from "@tanstack/react-query";
@@ -438,7 +439,7 @@ export function MonitoringAdminTab({ institution }: { institution: Institution |
                     wide: true,
                   },
                   { name: "title", label: "Title", required: true, initial: "Attendance watch", wide: true },
-                  { name: "reviewerSubject", label: "Independent reviewer (login)", initial: "dev|meera.shah@sutra.dev", wide: true },
+                  { name: "reviewerSubject", label: "Independent reviewer (login)", initial: devPersonaSubject("faculty"), wide: true },
                 ],
                 onSubmit: (v) => submit(() => api.openCase(institution.id, { scopeKind: "section", sectionId: v.sectionId!, title: v.title!, reviewerSubject: v.reviewerSubject || null }), "Case opened"),
               })
@@ -502,7 +503,7 @@ export function MonitoringAdminTab({ institution }: { institution: Institution |
                         ask({
                           title: "Assign intervention owner",
                           name: "iv-assign",
-                          fields: [{ name: "ownerSubject", label: "Owner (login)", required: true, initial: "dev|meera.shah@sutra.dev", wide: true }],
+                          fields: [{ name: "ownerSubject", label: "Owner (login)", required: true, initial: devPersonaSubject("faculty"), wide: true }],
                           submitLabel: "Assign",
                           onSubmit: (v) => submit(() => api.interventionCommand(c.id, iv.id, iv.version, "assign", { ownerSubject: v.ownerSubject! }), "Owner assigned"),
                         }),
