@@ -378,7 +378,10 @@ async fn gst_invoices_credit_notes_and_summary() {
     );
     let res = app
         .clone()
-        .oneshot(get(&admin, &format!("{F}/institutions/{inst}/gst-summary/csv")))
+        .oneshot(get(
+            &admin,
+            &format!("{F}/institutions/{inst}/gst-summary/csv"),
+        ))
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
