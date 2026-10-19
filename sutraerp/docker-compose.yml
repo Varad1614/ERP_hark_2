@@ -30,7 +30,11 @@ services:
 
   keycloak:
     restart: unless-stopped
-    image: quay.io/keycloak/keycloak:26.7
+    # Audit 2026-10 (A1): the realm is copied into the image (deploy/docker/keycloak.Dockerfile)
+    # instead of bind-mounted — a non-world-readable checkout made Keycloak (UID 1000) unable to
+    # read the mounted realm file and crash-loop.
+    build: { context: ., dockerfile: deploy/docker/keycloak.Dockerfile }
+    image: sutraerp-keycloak:local
     command: ["start-dev", "--import-realm", "--http-port=8180"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
@@ -53,8 +57,6 @@ services:
     # Back-channel logout POSTs go to http://api:8080 (compose); host.docker.internal lets an
     # API started on the host (`make api`) be registered instead.
     extra_hosts: ["host.docker.internal:host-gateway"]
-    volumes:
-      - ./deploy/keycloak/realm-sutra-dev.json:/opt/keycloak/data/import/realm-sutra-dev.json:ro
     # KC_HEALTH_ENABLED serves /health/ready on the management port 9000 (not published). The
     # image has no curl/wget, so bash's /dev/tcp asks it; `docker compose ps` then shows healthy.
     healthcheck:
@@ -150,6 +152,11 @@ services:
       # through the compose network).
       # Switch with `SUTRA_COMPOSE_AUTH_MODE=keycloak SUTRA_COMPOSE_WEB_AUTH_MODE=oidc docker compose …`.
       SUTRA_AUTH_MODE: ${SUTRA_COMPOSE_AUTH_MODE:-dev}
+      # Audit 2026-10 (D1/C1): the dev authenticator has no default password and refuses to start
+      # without one. Export SUTRA_DEV_AUTH_PASSWORD (>= 12 characters, not `sutra`/`change-me`/…)
+      # before `docker compose --profile app up`; it is the password typed on the sign-in page.
+      # Ignored in Keycloak mode.
+      SUTRA_DEV_AUTH_PASSWORD: ${SUTRA_DEV_AUTH_PASSWORD:-}
       # true = administrators must answer a second factor (TOTP or passkey) at dev sign-in.
       SUTRA_DEV_MFA: ${SUTRA_COMPOSE_DEV_MFA:-false}
       # Part 1 (DEF-X-001): governed decisions wait for a human approver by default. The demo seed
@@ -217,7 +224,13 @@ services:
     build:
       context: .
       dockerfile: deploy/docker/web.Dockerfile
-      args: { VITE_AUTH_MODE: "${SUTRA_COMPOSE_WEB_AUTH_MODE:-api}" }
+      # api = login id + password form against the dev authenticator. SUTRA_COMPOSE_WEB_DEV_PERSONAS=true
+      # adds the dev persona picker (login id prefilled, password still typed) and the account-menu
+      # role switcher — local development / CI only, never on a public host.
+      # SUTRA_COMPOSE_WEB_AUTH_MODE=oidc pairs with SUTRA_COMPOSE_AUTH_MODE=keycloak.
+      args:
+        VITE_AUTH_MODE: "${SUTRA_COMPOSE_WEB_AUTH_MODE:-api}"
+        VITE_DEV_PERSONAS: "${SUTRA_COMPOSE_WEB_DEV_PERSONAS:-false}"
     ports: ["3000:8080"]
     depends_on: [api]
 
@@ -254,6 +267,13 @@ services:
       DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
       DEMO_CODE: ${DEMO_CODE:-DEMO}
       DEMO_NAME: ${DEMO_NAME:-Sutra Demo College}
+      # The seed signs in as admin@sutra.dev through the dev authenticator (same password as api).
+      SUTRA_DEV_AUTH_PASSWORD: ${SUTRA_DEV_AUTH_PASSWORD:-}
+      # Login subjects linked to Aarav (student) and Dr. Meera Shah (faculty). Default: the dev
+      # personas (dev|<login id>). For the OIDC demo (docker-compose.oidc-demo.yml) pass the fixed
+      # Keycloak user ids of deploy/keycloak/realm-sutra-demo.json.
+      DEMO_STUDENT_SUBJECT: ${DEMO_STUDENT_SUBJECT:-dev|aarav.desai@sutra.dev}
+      DEMO_FACULTY_SUBJECT: ${DEMO_FACULTY_SUBJECT:-dev|meera.shah@sutra.dev}
 
 volumes:
   pgdata:

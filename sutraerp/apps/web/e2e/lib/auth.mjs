@@ -14,10 +14,13 @@
  * are computed from the secret Keycloak itself issues on the configuration page (RFC 6238).
  */
 import { createHmac, randomUUID } from "node:crypto";
+import { clickDevPersona, DEV_PASSWORD } from "./dev-password.mjs";
 
 export const AUTH = process.env.E2E_AUTH === "oidc" ? "oidc" : "dev";
 export const BASE = (process.env.E2E_BASE ?? "http://localhost:3000").replace(/\/$/, "");
-export const PASSWORD = process.env.E2E_PASSWORD ?? "sutra";
+// Keycloak mode: the compose dev realm's user password (deploy/keycloak/realm-sutra-dev.json,
+// local/CI only). Dev mode: the dev authenticator's password — no default (audit 2026-10, A1).
+export const PASSWORD = process.env.E2E_PASSWORD ?? (AUTH === "oidc" ? "sutra" : DEV_PASSWORD);
 export const LOGINS = {
   administrator: process.env.E2E_ADMIN_LOGIN ?? "admin@sutra.dev",
   faculty: process.env.E2E_FACULTY_LOGIN ?? "meera.shah@sutra.dev",
@@ -306,7 +309,7 @@ export async function browserSignIn(page, role) {
   await page.goto(`${BASE}/sign-in`);
   await page.waitForLoadState("networkidle").catch(() => {});
   if (AUTH === "dev") {
-    await page.click(`[data-role-card="${role}"]`);
+    await clickDevPersona(page, role);
   } else {
     await page.click("[data-oidc-start]");
     await page.locator("#username").waitFor({ timeout: 30000 });

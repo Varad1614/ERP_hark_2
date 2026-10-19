@@ -13,6 +13,9 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { clickDevPersona, DEV_PASSWORD } from "./dev-password.mjs";
+
+export { clickDevPersona, DEV_PASSWORD };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const webDir = path.resolve(here, "../..");
@@ -122,6 +125,7 @@ export async function startApi() {
     // The app connects as the runtime role (RLS applies); see provisionRuntimeRole().
     DATABASE_URL: runtimeDatabaseUrl(),
     SUTRA_AUTH_MODE: "dev",
+    SUTRA_DEV_AUTH_PASSWORD: process.env.SUTRA_DEV_AUTH_PASSWORD,
     SUTRA_DEV_MFA: "false",
     SUTRA_DEV_TENANT_ID: TENANT,
     SUTRA_SESSION_COOKIE_SECURE: "false",
@@ -159,7 +163,7 @@ export async function apiLogin(loginId) {
   r = await fetch(`${API}/api/v1/auth/login`, {
     method: "POST",
     headers: { "content-type": "application/json", cookie, "x-csrf-token": csrf },
-    body: JSON.stringify({ loginId, password: "sutra" }),
+    body: JSON.stringify({ loginId, password: DEV_PASSWORD }),
   });
   const body = await r.json();
   if (r.status !== 200) throw new Error(`login ${loginId}: ${r.status} ${JSON.stringify(body)}`);
@@ -448,7 +452,7 @@ export async function step(page, name, fn) {
 export async function signIn(page, role) {
   await page.goto(`${BASE}/sign-in`);
   await settle(page);
-  await page.click(`[data-role-card="${role}"]`);
+  await clickDevPersona(page, role);
   await page.waitForURL(`${BASE}/`, { timeout: 20000 });
   await settle(page);
 }

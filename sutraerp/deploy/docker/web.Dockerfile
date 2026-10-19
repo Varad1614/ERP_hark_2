@@ -12,8 +12,12 @@ COPY catalog catalog
 COPY openapi openapi
 COPY packages packages
 COPY apps/web apps/web
-ARG VITE_AUTH_MODE=api
-ENV VITE_AUTH_MODE=$VITE_AUTH_MODE
+# Audit 2026-10 (A1 · C1/M10): images default to real OIDC sign-in. `api` (dev authenticator,
+# login id + typed password) is for development stacks only; VITE_DEV_PERSONAS=true adds the dev
+# persona picker / role switcher and must never be set for a public image.
+ARG VITE_AUTH_MODE=oidc
+ARG VITE_DEV_PERSONAS=false
+ENV VITE_AUTH_MODE=$VITE_AUTH_MODE VITE_DEV_PERSONAS=$VITE_DEV_PERSONAS
 RUN pnpm --filter @sutra/web build
 # Part 1 · Stage 3 (S3-config): SHA-256 of the SPA's inline bootstrap scripts → nginx CSP snippet
 # (replaces script-src 'unsafe-inline'); fails the build on inline event handlers.

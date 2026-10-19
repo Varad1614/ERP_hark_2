@@ -110,7 +110,8 @@ login() { # admin dev login → cookie jar + $csrf
   rm -f "$jar"
   t=$(curl -fsS -c "$jar" -b "$jar" "$api/api/v1/auth/csrf" | jq -r .csrfToken)
   body=$(curl -fsS -c "$jar" -b "$jar" -H 'content-type: application/json' -H "x-csrf-token: $t" \
-    -d '{"loginId":"admin@sutra.dev","password":"sutra"}' "$api/api/v1/auth/login") \
+    -d "$(jq -cn --arg p "${SUTRA_DEV_AUTH_PASSWORD:?set SUTRA_DEV_AUTH_PASSWORD}" '{loginId:"admin@sutra.dev",password:$p}')" \
+    "$api/api/v1/auth/login") \
     || die "admin login failed"
   csrf=$(jq -r .csrfToken <<<"$body")
   [[ -n "$csrf" && "$csrf" != null ]] || die "login returned no csrfToken: $body"

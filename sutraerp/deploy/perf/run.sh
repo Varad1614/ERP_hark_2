@@ -54,7 +54,8 @@ echo "ok migrate"
 if ! curl -fsS "$API_URL/health/live" >/dev/null 2>&1; then
   hostport="${API_URL#http://}"
   SUTRA_ENV=development SUTRA_HTTP_ADDR="$hostport" SUTRA_LOG_FORMAT=json RUST_LOG="${RUST_LOG:-warn}" \
-    SUTRA_AUTH_MODE=dev SUTRA_DEV_MFA=false SUTRA_SESSION_COOKIE_SECURE=false \
+    SUTRA_AUTH_MODE=dev SUTRA_DEV_AUTH_PASSWORD="${SUTRA_DEV_AUTH_PASSWORD:?set SUTRA_DEV_AUTH_PASSWORD (no default dev password)}" \
+    SUTRA_DEV_MFA=false SUTRA_SESSION_COOKIE_SECURE=false \
     SUTRA_OUTBOX_RELAY=off SUTRA_CACHE=memory SUTRA_INBOX_CONSUMER=false \
     SUTRA_APPROVAL_MODE=auto \
     SUTRA_WEBAUTHN_RP_ID=localhost SUTRA_WEBAUTHN_ORIGINS=http://localhost:3000 \

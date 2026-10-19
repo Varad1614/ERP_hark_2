@@ -9,7 +9,8 @@
 #   api + migrate and no Kubernetes Secret in the namespace carries an app credential (§5).
 # Inputs: SUTRA_CI_MODE=kind|compose, SUTRA_CI_API_URL (http://localhost:8080), SUTRA_CI_WEB_URL
 #   (http://localhost:8081 kind / http://localhost:3000 compose), SUTRA_CI_NS (sutraerp), KUBECONFIG,
-#   SUTRA_CI_LOGIN (admin@sutra.dev), SUTRA_CI_PASSWORD (sutra = dev auth default).
+#   SUTRA_CI_LOGIN (admin@sutra.dev), SUTRA_CI_PASSWORD (default: $SUTRA_DEV_AUTH_PASSWORD — dev auth has no
+#   built-in password, audit 2026-10 D1/C1).
 # Runs from sutraerp/. Needs curl + jq (+ kubectl in kind mode, docker compose in compose mode).
 set -euo pipefail
 
@@ -18,7 +19,7 @@ API=${SUTRA_CI_API_URL:-http://localhost:8080}
 if [[ "$MODE" == compose ]]; then WEB=${SUTRA_CI_WEB_URL:-http://localhost:3000}; else WEB=${SUTRA_CI_WEB_URL:-http://localhost:8081}; fi
 NS=${SUTRA_CI_NS:-sutraerp}
 LOGIN=${SUTRA_CI_LOGIN:-admin@sutra.dev}
-PASSWORD=${SUTRA_CI_PASSWORD:-sutra}
+PASSWORD=${SUTRA_CI_PASSWORD:-${SUTRA_DEV_AUTH_PASSWORD:?set SUTRA_CI_PASSWORD or SUTRA_DEV_AUTH_PASSWORD}}
 CODE=${SUTRA_CI_SMOKE_CODE:-SMOKE}
 
 if [[ "${1:-}" == "--dry-run" ]]; then

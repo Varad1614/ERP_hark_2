@@ -34,6 +34,7 @@
  *   E2E_HEADED=1        show the browser
  * Requires `psql` on PATH to clear the administrator's passkeys / TOTP factor before and after.
  */
+import { clickDevPersona, DEV_PASSWORD } from "./lib/dev-password.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -162,6 +163,7 @@ async function startApi(mfa) {
     // The app connects as the runtime role (RLS applies); see provisionRuntimeRole().
     DATABASE_URL: runtimeDatabaseUrl(),
     SUTRA_AUTH_MODE: "dev",
+    SUTRA_DEV_AUTH_PASSWORD: process.env.SUTRA_DEV_AUTH_PASSWORD,
     SUTRA_DEV_MFA: mfa ? "true" : "false",
     SUTRA_SESSION_COOKIE_SECURE: "false",
     SUTRA_OUTBOX_RELAY: "off",
@@ -219,7 +221,7 @@ function watch(page) {
 async function signIn(page) {
   await page.goto(`${BASE}/sign-in`);
   await page.waitForLoadState("networkidle");
-  await page.click('[data-role-card="administrator"]');
+  await clickDevPersona(page, "administrator");
 }
 
 async function signOut(page) {

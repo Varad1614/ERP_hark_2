@@ -41,6 +41,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  # Audit 2026-10 (A1, D1/C1): the dev authenticator has no default password. CI-only value, used
+  # by every API started in dev auth mode, the E2E sign-in and the scripts that log in.
+  SUTRA_DEV_AUTH_PASSWORD: ci-only-dev-signin-6d2f9b
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   SQLX_OFFLINE: "true"

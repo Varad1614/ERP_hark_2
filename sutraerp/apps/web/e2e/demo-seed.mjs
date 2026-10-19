@@ -27,15 +27,19 @@
  *
  * Environment: E2E_API_URL (default http://127.0.0.1:8080), DATABASE_URL (schema owner, default
  * postgres://sutra:sutra@localhost:5432/sutra), DEMO_CODE (default DEMO), DEMO_NAME
- * (default "Sutra Demo College"). Needs `psql` on PATH (the Docker image has it).
+ * (default "Sutra Demo College"), SUTRA_DEV_AUTH_PASSWORD (the API's dev password — required, no
+ * default), DEMO_STUDENT_SUBJECT / DEMO_FACULTY_SUBJECT (login subjects to link; default the dev
+ * personas). Needs `psql` on PATH (the Docker image has it).
  */
 process.env.DATABASE_URL ??= "postgres://sutra:sutra@localhost:5432/sutra";
 const { API, apiLogin, check, I, log, psql, seedInstitution } = await import("./lib/harness.mjs");
 
 const CODE = (process.env.DEMO_CODE || "DEMO").toUpperCase();
 const NAME = process.env.DEMO_NAME || "Sutra Demo College";
-const STUDENT_SUBJECT = "dev|aarav.desai@sutra.dev";
-const FACULTY_SUBJECT = "dev|meera.shah@sutra.dev";
+// Audit 2026-10 (A1): overridable so the OIDC demo can link the Keycloak user ids
+// (deploy/keycloak/realm-sutra-demo.json) instead of the dev-authenticator subjects.
+const STUDENT_SUBJECT = process.env.DEMO_STUDENT_SUBJECT || "dev|aarav.desai@sutra.dev";
+const FACULTY_SUBJECT = process.env.DEMO_FACULTY_SUBJECT || "dev|meera.shah@sutra.dev";
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
 async function waitForApi(ms = 180000) {
@@ -189,7 +193,7 @@ try {
   log("— course offering CS101-T1 / section A, Dr. Meera Shah, seats (Batch 4 foundation tables)");
   const d = ensureDelivery(tenant, setup, [aarav, isha]);
   const seats = psql(`SELECT count(*) FROM academic.section_enrolment WHERE section_id = ${q(d.sectionId)} AND status = 'enrolled'`);
-  check(Number(seats) >= 2, `CS101-T1 / A has ${seats} seated students, faculty dev|meera.shah@sutra.dev`);
+  check(Number(seats) >= 2, `CS101-T1 / A has ${seats} seated students, faculty ${FACULTY_SUBJECT}`);
 
   const inst = await admin.get(`${I}/institutions/${setup.id}`);
   check(inst.status === "active", `${inst.code} “${inst.name}” is ${inst.status}`);

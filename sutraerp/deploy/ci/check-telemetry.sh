@@ -28,7 +28,7 @@ NS="${SUTRA_CI_NS:-sutraerp}"
 RELEASE="${SUTRA_CI_RELEASE:-sutraerp}"
 TIMEOUT="${SUTRA_CI_TELEMETRY_TIMEOUT:-180}"
 LOGIN="${SUTRA_CI_LOGIN:-admin@sutra.dev}"
-PASSWORD="${SUTRA_CI_PASSWORD:-sutra}"
+PASSWORD="${SUTRA_CI_PASSWORD:-${SUTRA_DEV_AUTH_PASSWORD:?set SUTRA_CI_PASSWORD or SUTRA_DEV_AUTH_PASSWORD}}"
 DASHBOARDS=(sutra-api-red sutra-database sutra-outbox-jobs sutra-audit-chain sutra-workflow-search)
 METRICS=(sutra_http_requests sutra_http_request_duration_seconds sutra_http_requests_in_flight
   sutra_db_pool_connections sutra_outbox_pending sutra_outbox_published sutra_outbox_failed

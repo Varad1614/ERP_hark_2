@@ -81,7 +81,8 @@ echo "ok seed-idempotent (second run: changes=0)"
 JAR="$WORK/cookies"
 CSRF="$(curl -fsS -c "$JAR" "$API_URL/api/v1/auth/csrf" | jq -r .csrfToken)"
 LOGIN="$(curl -fsS -b "$JAR" -c "$JAR" -H 'content-type: application/json' -H "x-csrf-token: $CSRF" \
-  -d '{"loginId":"admin@sutra.dev","password":"sutra"}' "$API_URL/api/v1/auth/login")"
+  -d "$(jq -cn --arg p "${SUTRA_DEV_AUTH_PASSWORD:?set SUTRA_DEV_AUTH_PASSWORD}" '{loginId:"admin@sutra.dev",password:$p}')" \
+  "$API_URL/api/v1/auth/login")"
 TENANT="$(echo "$LOGIN" | jq -r '.principal.scope.tenantId // empty')"
 get() { curl -fsS -b "$JAR" "$API_URL$1"; }
 

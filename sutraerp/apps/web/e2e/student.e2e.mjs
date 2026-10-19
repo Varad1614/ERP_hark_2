@@ -35,6 +35,7 @@
  *   E2E_HEADED=1     show the browser
  * Requires `psql` on PATH (student seed rows).
  */
+import { clickDevPersona, DEV_PASSWORD } from "./lib/dev-password.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
 import path from "node:path";
@@ -148,6 +149,7 @@ async function startApi() {
     // The app connects as the runtime role (RLS applies); see provisionRuntimeRole().
     DATABASE_URL: runtimeDatabaseUrl(),
     SUTRA_AUTH_MODE: "dev",
+    SUTRA_DEV_AUTH_PASSWORD: process.env.SUTRA_DEV_AUTH_PASSWORD,
     SUTRA_DEV_MFA: "false",
     SUTRA_DEV_TENANT_ID: TENANT,
     SUTRA_SESSION_COOKIE_SECURE: "false",
@@ -185,7 +187,7 @@ async function apiLogin(loginId) {
   r = await fetch(`${API}/api/v1/auth/login`, {
     method: "POST",
     headers: { "content-type": "application/json", cookie, "x-csrf-token": csrf },
-    body: JSON.stringify({ loginId, password: "sutra" }),
+    body: JSON.stringify({ loginId, password: DEV_PASSWORD }),
   });
   const body = await r.json();
   if (r.status !== 200) throw new Error(`login ${loginId}: ${r.status} ${JSON.stringify(body)}`);
@@ -440,7 +442,7 @@ async function step(page, name, fn) {
 async function signIn(page, role) {
   await page.goto(`${BASE}/sign-in`);
   await settle(page);
-  await page.click(`[data-role-card="${role}"]`);
+  await clickDevPersona(page, role);
   await page.waitForURL(`${BASE}/`, { timeout: 20000 });
   await settle(page);
 }

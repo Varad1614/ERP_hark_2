@@ -12,6 +12,9 @@ api:
   # 9B: plain-http port-forwards in CI.
   extraEnv:
     SUTRA_SESSION_COOKIE_SECURE: "false"
+    # Audit 2026-10 (D1/C1): dev auth has no default password; CI-only value (deploy workflow
+    # exports the same SUTRA_DEV_AUTH_PASSWORD for smoke.sh / check-telemetry.sh / seed-pilot.sh).
+    SUTRA_DEV_AUTH_PASSWORD: "ci-only-dev-signin-6d2f9b"
   resources:
     requests: { cpu: 100m, memory: 128Mi }
     limits: { memory: 768Mi }

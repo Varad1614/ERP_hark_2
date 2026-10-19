@@ -28,6 +28,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Audit 2026-10 (A1, D1/C1): the dev authenticator has no default password. CI-only value, used
+  # by every API started in dev auth mode, the E2E sign-in and the scripts that log in.
+  SUTRA_DEV_AUTH_PASSWORD: ci-only-dev-signin-6d2f9b
+  # Transitional: web builds before the typed-password sign-in still read VITE_DEV_PASSWORD.
+  VITE_DEV_PASSWORD: ci-only-dev-signin-6d2f9b
+  # Dev persona picker + role switcher in the CI web builds (never in a public build).
+  VITE_DEV_PERSONAS: "true"
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   SQLX_OFFLINE: "true"
@@ -67,6 +74,7 @@ jobs:
           else
             echo "SUTRA_COMPOSE_AUTH_MODE=dev" >> "$GITHUB_ENV"
             echo "SUTRA_COMPOSE_WEB_AUTH_MODE=api" >> "$GITHUB_ENV"
+            echo "SUTRA_COMPOSE_WEB_DEV_PERSONAS=true" >> "$GITHUB_ENV"
             echo "E2E_AUTH=dev" >> "$GITHUB_ENV"
           fi
 
@@ -125,7 +133,7 @@ jobs:
           docker compose config -q
           docker compose config > "$DEMO_OUT/logs/compose.resolved.yml"
           # .env.example parses as a complete configuration (exactly what `serve` would read).
-          env -i PATH="$PATH" SUTRA_ENV_FILE=.env.example target/debug/sutra-api check-config
+          env -i PATH="$PATH" SUTRA_DEV_AUTH_PASSWORD="$SUTRA_DEV_AUTH_PASSWORD" SUTRA_ENV_FILE=.env.example target/debug/sutra-api check-config
           docker compose build
           # The api service's own environment (compose interpolation included), in its container.
           docker compose run --rm --no-deps api check-config | tee "$DEMO_OUT/logs/api-check-config.txt"

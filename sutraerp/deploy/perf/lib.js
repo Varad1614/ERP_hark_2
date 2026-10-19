@@ -46,11 +46,13 @@ function cookieHeader(res) {
 /** Dev sign-in: returns { cookie, csrf } shared by every VU (one administrator session). */
 export function signIn() {
   const login = __ENV.SUTRA_PERF_LOGIN || "admin@sutra.dev";
+  // Audit 2026-10 (D1/C1): no default dev password — the same value the API under test got.
+  if (!__ENV.SUTRA_DEV_AUTH_PASSWORD) throw new Error("set SUTRA_DEV_AUTH_PASSWORD (the dev API's password)");
   let r = http.get(`${API}/api/v1/auth/csrf`, { tags: { name: "auth.csrf", kind: "setup" } });
   if (r.status !== 200) throw new Error(`GET /auth/csrf → ${r.status}`);
   const pre = cookieHeader(r);
   const loginCsrf = r.json("csrfToken");
-  r = http.post(`${API}/api/v1/auth/login`, JSON.stringify({ loginId: login, password: "sutra" }), {
+  r = http.post(`${API}/api/v1/auth/login`, JSON.stringify({ loginId: login, password: __ENV.SUTRA_DEV_AUTH_PASSWORD }), {
     headers: { "content-type": "application/json", cookie: pre, "x-csrf-token": loginCsrf },
     tags: { name: "auth.login", kind: "setup" },
   });
