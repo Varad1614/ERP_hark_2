@@ -86,6 +86,7 @@ pub async fn app(tenant: &'static str) -> (Router, sqlx::PgPool) {
     let url: &'static str = Box::leak(runtime_url(database_url()).into_boxed_str());
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", url),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),
@@ -154,7 +155,7 @@ pub async fn login(app: &Router, login_id: &str) -> Login {
             .header("cookie", &cookie)
             .header("x-csrf-token", &token)
             .body(Body::from(
-                serde_json::json!({"loginId": login_id, "password": "sutra"}).to_string(),
+                serde_json::json!({"loginId": login_id, "password": sutra_api::app::SPEC_DEV_PASSWORD}).to_string(),
             ))
             .unwrap(),
     )

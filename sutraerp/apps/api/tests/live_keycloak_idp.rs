@@ -91,6 +91,7 @@ async fn admin_app(
     let owner = owner_pool().await;
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", runtime_db_url()),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),
@@ -129,6 +130,7 @@ fn oidc_app() -> Router {
     let issuer = leak(format!("{}/realms/{REALM}", kc_url()));
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", runtime_db_url()),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),

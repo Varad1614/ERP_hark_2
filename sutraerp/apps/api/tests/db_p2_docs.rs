@@ -85,6 +85,7 @@ async fn docs_app(
     let owner = owner_pool().await;
     let mut src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", runtime_url()),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),

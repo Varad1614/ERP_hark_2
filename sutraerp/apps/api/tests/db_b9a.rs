@@ -54,6 +54,7 @@ async fn app_with_anchor_key(tenant: &'static str) -> (Router, sqlx::PgPool) {
     let url: &'static str = Box::leak(runtime_url().into_boxed_str());
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", url),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),

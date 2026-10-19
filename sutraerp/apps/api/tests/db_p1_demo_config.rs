@@ -61,4 +61,8 @@ fn env_example_is_a_valid_development_configuration() {
     let cfg = Config::load(&Vars(env_example())).expect(".env.example is a valid configuration");
     assert_eq!(cfg.auth_provider, AuthProvider::Dev);
     assert!(!cfg.public_url.is_empty());
+    // D1/C1 (audit 2026-10): the documented file ships no dev password; dev auth refuses to
+    // start until the operator sets one.
+    assert_eq!(cfg.dev_auth_password, None);
+    assert!(cfg.require_dev_auth_password().is_err());
 }

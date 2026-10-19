@@ -28,6 +28,7 @@ const SOME_ID: &str = "0192f5a0-7c3e-7000-8000-0000000000aa";
 fn context(extra: &[(&'static str, &'static str)]) -> AppContext {
     let mut src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "test"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", "postgres://sutra:sutra@127.0.0.1:1/sutra"),
         ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "1"),
     ]);
@@ -80,7 +81,8 @@ async fn login(app: &Router, login_id: &str) -> (Login, Value) {
             .header("cookie", &pre)
             .header("x-csrf-token", &token)
             .body(Body::from(
-                json!({"loginId": login_id, "password": "sutra"}).to_string(),
+                json!({"loginId": login_id, "password": sutra_api::app::SPEC_DEV_PASSWORD})
+                    .to_string(),
             ))
             .unwrap(),
     )

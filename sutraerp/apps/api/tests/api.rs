@@ -91,7 +91,8 @@ fn login_request(login_id: &str, csrf: Option<&(String, String)>) -> Request<Bod
         b = b.header("cookie", cookie).header("x-csrf-token", token);
     }
     b.body(Body::from(
-        serde_json::json!({"loginId": login_id, "password": "sutra"}).to_string(),
+        serde_json::json!({"loginId": login_id, "password": sutra_api::app::SPEC_DEV_PASSWORD})
+            .to_string(),
     ))
     .unwrap()
 }
@@ -456,6 +457,7 @@ fn step_up_app() -> Router {
     let src: std::collections::HashMap<&'static str, &'static str> =
         std::collections::HashMap::from([
             ("SUTRA_ENV", "test"),
+            ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
             ("DATABASE_URL", "postgres://sutra:sutra@127.0.0.1:1/sutra"),
             ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "1"),
             ("SUTRA_MFA_STEP_UP", "true"),

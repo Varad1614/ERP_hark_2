@@ -379,6 +379,7 @@ fn bpmn_files_match_the_adapter_and_cover_every_approval_key() {
 async fn hardening_modes_wire_their_background_jobs() {
     let base = [
         ("SUTRA_ENV", "test"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", "postgres://sutra:sutra@127.0.0.1:1/sutra"),
         ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "1"),
     ];

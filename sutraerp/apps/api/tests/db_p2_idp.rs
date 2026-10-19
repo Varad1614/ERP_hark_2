@@ -62,6 +62,7 @@ async fn idp_app(tenant: &'static str) -> (Router, sqlx::PgPool) {
         Box::leak(format!("{scheme}://{RUNTIME_USER}:{RUNTIME_PASSWORD}@{host}").into_boxed_str());
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", runtime),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),

@@ -59,6 +59,7 @@ async fn app_with(tenant: &'static str, extra: &[(&'static str, &'static str)]) 
     let _ = owner_pool().await; // migrations + runtime role
     let mut src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", runtime_url()),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),

@@ -69,6 +69,7 @@ fn search_app(tenant: &'static str, prefix: &'static str) -> axum::Router {
     let os: &'static str = Box::leak(os_url().into_boxed_str());
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", db),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),

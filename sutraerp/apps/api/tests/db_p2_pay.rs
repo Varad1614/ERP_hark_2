@@ -77,6 +77,7 @@ async fn razorpay_app(
     let url = leak(runtime_url(database_url()));
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", url),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),
@@ -962,6 +963,7 @@ async fn recovery_job_is_wired_with_the_sweepers() {
     fn jobs(extra: &[(&'static str, &'static str)]) -> Vec<String> {
         let mut src: HashMap<&'static str, &'static str> = HashMap::from([
             ("SUTRA_ENV", "test"),
+            ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
             ("DATABASE_URL", "postgres://sutra:sutra@127.0.0.1:1/sutra"),
             ("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "1"),
             ("SUTRA_SWEEPERS", "true"),
@@ -995,6 +997,7 @@ async fn app_with_gateway(tenant: &'static str, gateway: &'static str) -> Router
     let url = leak(runtime_url(database_url()));
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", url),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),

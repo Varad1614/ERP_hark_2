@@ -182,7 +182,7 @@ pub fn url_password(url: &str) -> Option<&str> {
     userinfo.split_once(':').map(|(_, p)| p)
 }
 
-fn known_dev_secret(s: &str) -> bool {
+pub(crate) fn known_dev_secret(s: &str) -> bool {
     let s = s.trim();
     KNOWN_DEV_SECRETS.iter().any(|k| k.eq_ignore_ascii_case(s))
 }

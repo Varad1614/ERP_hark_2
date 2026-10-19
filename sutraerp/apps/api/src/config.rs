@@ -246,7 +246,10 @@ pub struct Config {
     pub request_timeout: Duration,
     pub shutdown_grace: Duration,
     pub auth_provider: AuthProvider,
-    pub dev_auth_password: String,
+    /// D1/C1 (audit 2026-10): the dev authenticator's shared password. There is no built-in
+    /// default: `None` when `SUTRA_DEV_AUTH_PASSWORD` (alias `SUTRA_DEV_PASSWORD`) is unset, and
+    /// the dev authenticator then refuses to start ([`Config::require_dev_auth_password`]).
+    pub dev_auth_password: Option<String>,
     pub dev_mfa_enforced: bool,
     pub dev_tenant_id: String,
     pub dev_institution_id: String,
@@ -372,6 +375,18 @@ fn parse<T: std::str::FromStr>(
             .parse()
             .map_err(|_| ConfigError::Invalid { key, value: v }),
     }
+}
+
+/// D1/C1 (audit 2026-10): minimum length of `SUTRA_DEV_AUTH_PASSWORD`.
+pub const MIN_DEV_AUTH_PASSWORD_LEN: usize = 12;
+const DEV_AUTH_PASSWORD_MISSING: &str = "SUTRA_AUTH_MODE=dev needs SUTRA_DEV_AUTH_PASSWORD: there is \
+     no default dev password; set it explicitly (at least 12 characters, not a published dev value)";
+const DEV_AUTH_PASSWORD_WEAK: &str = "SUTRA_DEV_AUTH_PASSWORD is too short or a published dev \
+     value (`sutra`, …): use at least 12 characters that are not a known default";
+
+fn weak_dev_auth_password(p: &str) -> bool {
+    p.trim().chars().count() < MIN_DEV_AUTH_PASSWORD_LEN
+        || crate::config_http::known_dev_secret(p.trim())
 }
 
 fn string(src: &dyn Source, key: &'static str, default: &str) -> String {
@@ -705,7 +720,9 @@ impl Config {
             request_timeout: Duration::from_secs(parse(src, "SUTRA_REQUEST_TIMEOUT_SECS", 30)?),
             shutdown_grace: Duration::from_secs(parse(src, "SUTRA_SHUTDOWN_GRACE_SECS", 20)?),
             auth_provider,
-            dev_auth_password: string(src, "SUTRA_DEV_AUTH_PASSWORD", "sutra"),
+            dev_auth_password: src
+                .get("SUTRA_DEV_AUTH_PASSWORD")
+                .or_else(|| src.get("SUTRA_DEV_PASSWORD")),
             dev_mfa_enforced,
             dev_tenant_id: string(src, "SUTRA_DEV_TENANT_ID", DEV_TENANT_ID),
             dev_institution_id: string(src, "SUTRA_DEV_INSTITUTION_ID", DEV_INSTITUTION_ID),
@@ -770,7 +787,30 @@ impl Config {
         Ok(cfg)
     }
 
+    /// D1/C1/SEC-2 (audit 2026-10): the dev authenticator has no built-in password. It starts
+    /// only when `SUTRA_DEV_AUTH_PASSWORD` is set explicitly to a value of at least
+    /// [`MIN_DEV_AUTH_PASSWORD_LEN`] characters that is not a published dev value (`sutra`, …)
+    /// — in every environment, not only production. `serve` (via `AppContext::from_config`) and
+    /// `check-config` call this before the dev authenticator is built.
+    pub fn require_dev_auth_password(&self) -> Result<&str, ConfigError> {
+        match self.dev_auth_password.as_deref() {
+            Some(p) if !weak_dev_auth_password(p) => Ok(p),
+            Some(_) => Err(ConfigError::Forbidden(DEV_AUTH_PASSWORD_WEAK)),
+            None => Err(ConfigError::Forbidden(DEV_AUTH_PASSWORD_MISSING)),
+        }
+    }
+
     fn validate(&self) -> Result<(), ConfigError> {
+        // D1/C1: an explicitly set dev password must be strong in every environment (an unset
+        // one is refused when the dev authenticator starts — `require_dev_auth_password`).
+        if self.auth_provider == AuthProvider::Dev
+            && self
+                .dev_auth_password
+                .as_deref()
+                .is_some_and(weak_dev_auth_password)
+        {
+            return Err(ConfigError::Forbidden(DEV_AUTH_PASSWORD_WEAK));
+        }
         if self.env == Environment::Production {
             if self.auth_provider == AuthProvider::Dev {
                 return Err(ConfigError::Forbidden(
@@ -1067,6 +1107,63 @@ mod tests {
             Config::load(&HashMap::from([("SUTRA_SESSION_TOUCH_SECS", "1800")])).is_err(),
             "touch interval must be below the idle timeout"
         );
+    }
+
+    /// D1/C1/SEC-2 (audit 2026-10): no built-in dev password, in any environment.
+    #[test]
+    fn dev_auth_refuses_without_an_explicit_strong_password() {
+        let unset = Config::load(&HashMap::<&str, &str>::new()).unwrap();
+        assert_eq!(unset.dev_auth_password, None, "no built-in default");
+        assert!(matches!(
+            unset.require_dev_auth_password(),
+            Err(ConfigError::Forbidden(_))
+        ));
+        for env in ["development", "test"] {
+            for weak in [
+                "sutra",
+                "SUTRA",
+                "",
+                "   ",
+                "short-pass",
+                "dev-only-change-me",
+            ] {
+                assert!(
+                    matches!(
+                        Config::load(&HashMap::from([
+                            ("SUTRA_ENV", env),
+                            ("SUTRA_AUTH_MODE", "dev"),
+                            ("SUTRA_DEV_AUTH_PASSWORD", weak),
+                        ])),
+                        Err(ConfigError::Forbidden(_))
+                    ),
+                    "{env}: {weak:?} must be refused"
+                );
+            }
+        }
+        let ok = Config::load(&HashMap::from([(
+            "SUTRA_DEV_AUTH_PASSWORD",
+            "ci-only-dev-signin-6d2f9b",
+        )]))
+        .unwrap();
+        assert_eq!(
+            ok.require_dev_auth_password().unwrap(),
+            "ci-only-dev-signin-6d2f9b"
+        );
+        let alias = Config::load(&HashMap::from([(
+            "SUTRA_DEV_PASSWORD",
+            "another-long-dev-pass",
+        )]))
+        .unwrap();
+        assert_eq!(
+            alias.require_dev_auth_password().unwrap(),
+            "another-long-dev-pass"
+        );
+        // Keycloak mode never reads it, so a stray value does not block start-up.
+        assert!(Config::load(&HashMap::from([
+            ("SUTRA_AUTH_MODE", "keycloak"),
+            ("SUTRA_DEV_AUTH_PASSWORD", "sutra"),
+        ]))
+        .is_ok());
     }
 
     #[test]

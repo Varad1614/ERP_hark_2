@@ -52,7 +52,14 @@ async fn main() -> ExitCode {
         // Part 1 demo: validates the effective environment (compose service env, `.env` or
         // SUTRA_ENV_FILE) exactly as `serve` would, without touching the database. Secrets are
         // never printed.
-        return match Config::from_env() {
+        // D1/C1: the dev authenticator's explicit-password rule is checked here as at start-up.
+        let checked = Config::from_env().and_then(|c| {
+            if c.auth_provider == sutra_api::config::AuthProvider::Dev {
+                c.require_dev_auth_password()?;
+            }
+            Ok(c)
+        });
+        return match checked {
             Ok(c) => {
                 println!(
                     "configuration ok: env={:?} auth={:?} mfa_step_up={} http_addr={} \

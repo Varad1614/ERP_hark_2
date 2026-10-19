@@ -74,6 +74,7 @@ async fn app_with(
     let url: &'static str = Box::leak(runtime_url(database_url()).into_boxed_str());
     let src: HashMap<&'static str, &'static str> = HashMap::from([
         ("SUTRA_ENV", "development"),
+        ("SUTRA_DEV_AUTH_PASSWORD", sutra_api::app::SPEC_DEV_PASSWORD),
         ("DATABASE_URL", url),
         ("SUTRA_SESSION_STORE", "postgres"),
         ("SUTRA_IDEMPOTENCY_STORE", "postgres"),
@@ -143,7 +144,8 @@ fn login_req(login_id: &str, csrf: &(String, String)) -> Request<Body> {
         .header("cookie", &csrf.0)
         .header("x-csrf-token", &csrf.1)
         .body(Body::from(
-            serde_json::json!({"loginId": login_id, "password": "sutra"}).to_string(),
+            serde_json::json!({"loginId": login_id, "password": sutra_api::app::SPEC_DEV_PASSWORD})
+                .to_string(),
         ))
         .unwrap()
 }

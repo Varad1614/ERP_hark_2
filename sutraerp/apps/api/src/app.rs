@@ -202,6 +202,10 @@ impl BackgroundTasks {
     }
 }
 
+/// Dev-authenticator password of [`AppContext::for_spec`] and the integration-test contexts
+/// (in-memory / CI only; `serve` never uses it — `SUTRA_DEV_AUTH_PASSWORD` has no default).
+pub const SPEC_DEV_PASSWORD: &str = "spec-only-dev-signin-never-served";
+
 #[derive(Debug, thiserror::Error)]
 pub enum BuildError {
     #[error("database configuration: {0}")]
@@ -318,13 +322,15 @@ impl AppContext {
                 let scope =
                     ExecutionScope::parse(Some(&cfg.dev_tenant_id), Some(&cfg.dev_institution_id))
                         .map_err(|e| BuildError::Scope(e.to_string()))?;
+                // D1/C1: no built-in dev password — refuse to start without an explicit one.
+                let password = cfg
+                    .require_dev_auth_password()
+                    .map_err(|e| BuildError::Auth(e.to_string()))?
+                    .to_owned();
                 tracing::warn!(
                     "using the DEV credential authenticator — never enable outside development"
                 );
-                (
-                    Arc::new(DevAuthenticator::new(cfg.dev_auth_password.clone(), scope)),
-                    None,
-                )
+                (Arc::new(DevAuthenticator::new(password, scope)), None)
             }
             AuthProvider::Keycloak => {
                 let o = &cfg.oidc;
@@ -507,13 +513,15 @@ impl AppContext {
     }
 
     /// Self-contained context with in-memory stores and a never-contacted lazy pool. Used by
-    /// tests and OpenAPI generation; needs no database.
+    /// tests and OpenAPI generation; needs no database. Its dev authenticator takes
+    /// [`SPEC_DEV_PASSWORD`] (D1/C1: there is no built-in dev password; this context never serves).
     pub fn for_spec() -> Self {
         let mut src: std::collections::HashMap<&'static str, &'static str> =
             std::collections::HashMap::new();
         src.insert("SUTRA_ENV", "test");
         src.insert("DATABASE_URL", "postgres://sutra:sutra@127.0.0.1:1/sutra");
         src.insert("SUTRA_DB_ACQUIRE_TIMEOUT_SECS", "1");
+        src.insert("SUTRA_DEV_AUTH_PASSWORD", SPEC_DEV_PASSWORD);
         #[allow(clippy::expect_used)]
         let cfg = Config::load(&src).expect("static test configuration is valid");
         #[allow(clippy::expect_used)]
