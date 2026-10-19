@@ -1070,6 +1070,74 @@ try {
     await shot(page, "people", "workload-time-rates");
   });
 
+  // ============================================================ 5D GST (screenshots 70–79)
+  shotNo = Math.max(shotNo, 69);
+  await step(page, "5D: Fees & charges → GST — profile saved (GSTIN, Maharashtra, FY series)", async () => {
+    await go(page, "/finance/charges");
+    const t = await openTile(page, "data-gst", "GST");
+    await t.locator("[data-gst-profile]").waitFor();
+    await shot(page, "finance", "charges-gst-profile-default");
+    await t.locator('[data-action="edit-gst-profile"]').click();
+    await apiAction(page, "PUT", /\/finance\/institutions\/[^/]+\/gst-profile$/, () =>
+      fillDialog(page, "gst-profile", { registrationType: "regular", gstin: "27AAPFU0939F1ZV", legalName: "Sutra Institute of Technology", stateCode: "27", defaultTaxNote: "preset:educationExempt" }),
+    );
+    await t.locator('[data-gst-profile="saved"]').waitFor({ timeout: 10000 });
+    check(((await t.locator("[data-gst-gstin]").textContent()) ?? "").includes("27AAPFU0939F1ZV"), "GSTIN shown on the profile");
+    await shot(page, "finance", "charges-gst-profile-saved");
+  });
+
+  await step(page, "5D: GST — fee heads: TUITION exempt (education, SAC 9992), HOSTEL 12% (SAC 996311)", async () => {
+    await go(page, "/finance/charges");
+    const heads = page.locator("[data-fee-heads]");
+    await heads.locator('[data-action="new-fee-head"]').click();
+    await apiAction(page, "POST", /\/finance\/institutions\/[^/]+\/fee-heads$/, () => fillDialog(page, "fee-head", { code: "HOSTEL", name: "Hostel rent", category: "hostel" }));
+    const t = await openTile(page, "data-gst", "GST");
+    await apiAction(page, "GET", /\/finance\/institutions\/[^/]+\/gst-fee-heads$/, () => tab(page, t, "data-gst-view", "heads"));
+    await row(page, "TUITION", t).waitFor();
+    await rowAction(page, "TUITION", "gst-head-edit", t);
+    await apiAction(page, "PUT", /\/finance\/institutions\/[^/]+\/gst-fee-heads\/[^/]+$/, () => fillDialog(page, "gst-fee-head", { sac: "9992", gstRate: "0", taxNote: "preset:educationExempt", exempt: true }));
+    await expectRowText(page, "TUITION", "Exempt", t);
+    await rowAction(page, "HOSTEL", "gst-head-edit", t);
+    await apiAction(page, "PUT", /\/finance\/institutions\/[^/]+\/gst-fee-heads\/[^/]+$/, () => fillDialog(page, "gst-fee-head", { sac: "996311", gstRate: "12" }));
+    await expectRowText(page, "HOSTEL", "CGST 6% + SGST 6%", t);
+    await t.scrollIntoViewIfNeeded();
+    await shot(page, "finance", "charges-gst-fee-heads");
+  });
+
+  await step(page, "5D: Hostel charge for Aarav → tax invoice, CGST + SGST in the side panel", async () => {
+    await go(page, "/finance/charges");
+    await page.locator('[data-action="new-charge"]').click();
+    const res = await apiAction(page, "POST", /\/finance\/institutions\/[^/]+\/charges$/, () =>
+      fillDialog(page, "charge", { studentId: "Aarav", description: "Hostel rent — term 2", feeHeadId: "HOSTEL", amount: "10000.00" }),
+    );
+    const created = await res.json().catch(() => ({}));
+    ids.gstCharge = created.chargeNumber;
+    check(created.totalAmount === "11200.00", `hostel charge ₹10,000 + 12% GST = ₹11,200 (got ${created.totalAmount})`);
+    await apiAction(page, "GET", /\/finance\/charges\/[^/]+\/tax-document$/, () => page.locator(`[data-charge="${ids.gstCharge}"]`).first().click());
+    const sec = page.locator('[data-charge-gst="tax_invoice"]');
+    await sec.waitFor({ timeout: 15000 });
+    check((await sec.locator('[data-gst-tax="cgst"]').count()) === 1 && (await sec.locator('[data-gst-tax="sgst"]').count()) === 1, "CGST and SGST rows on the tax invoice");
+    check(/^TI\/\d\d-\d\d\/0001$/.test(((await sec.locator("[data-gst-doc-number]").textContent()) ?? "").trim()), "first tax invoice of the FY series");
+    await sec.scrollIntoViewIfNeeded();
+    await shot(page, "finance", "charges-gst-tax-invoice");
+    await sec.locator('[data-action="gst-party"]').click();
+    await apiAction(page, "PUT", /\/finance\/student-accounts\/[^/]+\/gst-details$/, () => fillDialog(page, "gst-party", { stateCode: "27", legalName: "Aarav Desai" }));
+    await shot(page, "finance", "charges-gst-payer-details");
+    await page.keyboard.press("Escape");
+  });
+
+  await step(page, "5D: GST — summary of the month (SAC, documents issued) and the GSTR-1 CSV", async () => {
+    await go(page, "/finance/charges");
+    const t = await openTile(page, "data-gst", "GST");
+    await apiAction(page, "GET", /\/finance\/institutions\/[^/]+\/gst-summary$/, () => tab(page, t, "data-gst-view", "summary"));
+    await t.locator("[data-gst-net-taxable]").waitFor();
+    // The period is the browser's month so far; the invoice is dated in the institution's timezone.
+    if ((await t.locator('[data-gst-doc-range="tax_invoice"]').count()) === 0) log("  (tax invoice dated after the browser's today: not in this period)");
+    await t.scrollIntoViewIfNeeded();
+    await shot(page, "finance", "charges-gst-summary");
+    await apiAction(page, "GET", /\/finance\/institutions\/[^/]+\/gst-summary\/csv$/, () => t.locator('[data-action="gst-csv"]').click());
+  });
+
   const late = newProblems();
   if (late.length) failed.push(`errors outside the steps:\n    ${late.join("\n    ")}`);
   else log("  ✓ no page errors, console errors or 5xx answers outside the steps");
